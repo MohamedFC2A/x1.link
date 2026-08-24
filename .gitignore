@@ -1,0 +1,24 @@
+# Node & Dependencies
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Environment & Keys
+.env
+.env.*
+!.env.example
+
+# Logs & Temp
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+.system_generated/
+
+# Editor & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
