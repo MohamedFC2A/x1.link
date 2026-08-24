@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Clock, Circle, Sparkles } from 'lucide-react';
+import { Check, Clock, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface TimelineStep {
@@ -24,7 +24,6 @@ export const TimelineTracker: React.FC<TimelineTrackerProps> = ({ steps, classNa
           const isLast = index === steps.length - 1;
           const isCompleted = step.status === 'completed';
           const isInProgress = step.status === 'in-progress';
-          const isPending = step.status === 'pending';
 
           return (
             <div key={step.id} className="relative flex items-start gap-3.5 group">
@@ -33,11 +32,11 @@ export const TimelineTracker: React.FC<TimelineTrackerProps> = ({ steps, classNa
               {!isLast && (
                 <div
                   className={cn(
-                    "absolute right-[15px] top-[32px] w-[2px] h-[calc(100%+8px)] transition-all duration-500",
+                    "absolute right-[15px] top-[32px] w-[2px] h-[calc(100%+8px)] transition-all duration-300",
                     isCompleted
-                      ? "bg-gradient-to-b from-rose-500 to-rose-600 shadow-[0_0_8px_rgba(244,63,94,0.4)]"
+                      ? "bg-rose-500"
                       : isInProgress
-                      ? "bg-gradient-to-b from-rose-500 to-zinc-700"
+                      ? "bg-gradient-to-b from-rose-500 to-zinc-800"
                       : "bg-zinc-800"
                   )}
                 />
@@ -46,10 +45,10 @@ export const TimelineTracker: React.FC<TimelineTrackerProps> = ({ steps, classNa
               {/* Status Indicator Icon Node */}
               <div
                 className={cn(
-                  "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full transition-all duration-300 font-mono",
-                  isCompleted && "bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-lg shadow-rose-950/60 ring-2 ring-rose-500/30",
-                  isInProgress && "bg-zinc-900 border-2 border-rose-500 text-rose-400 shadow-md shadow-rose-950/40 animate-pulse ring-4 ring-rose-500/10",
-                  isPending && "bg-zinc-900 border border-zinc-700/80 text-zinc-500"
+                  "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200 font-mono",
+                  isCompleted && "bg-rose-600 text-white border border-rose-500",
+                  isInProgress && "bg-zinc-900 border-2 border-rose-500 text-rose-400",
+                  step.status === 'pending' && "bg-zinc-900 border border-zinc-700 text-zinc-500"
                 )}
               >
                 {isCompleted ? (
@@ -67,7 +66,7 @@ export const TimelineTracker: React.FC<TimelineTrackerProps> = ({ steps, classNa
                   <div className="text-[11px] font-mono text-zinc-500 mb-1 flex items-center gap-1.5">
                     <span>{step.timestamp}</span>
                     {isInProgress && (
-                      <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-rose-950/90 text-rose-400 border border-rose-800 animate-pulse">
+                      <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-rose-950 text-rose-400 border border-rose-800">
                         جاري التنفيذ
                       </span>
                     )}

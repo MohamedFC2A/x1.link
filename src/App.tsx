@@ -3,6 +3,7 @@ import { User } from '@supabase/supabase-js';
 import { DisclaimerModal } from './components/DisclaimerModal';
 import { X1UnlockModal } from './components/X1UnlockModal';
 import { ArchitectureModal } from './components/ArchitectureModal';
+import { LandingPage } from './components/LandingPage';
 import { TopBar } from './components/TopBar';
 import { ChatWindow } from './components/ChatWindow';
 import { PromptInput } from './components/ui/ai-chat-input';
@@ -28,6 +29,9 @@ const STORAGE_KEY_21 = 'x1_auth_age_21_biometric';
 const STORAGE_KEY_MSGS = 'x1_chat_history';
 
 export const App: React.FC = () => {
+  // Page Navigation State: 'landing' (Reception Page) vs 'chat' (AI Chat Room)
+  const [viewMode, setViewMode] = useState<'landing' | 'chat'>('landing');
+
   // Authentication & Mode State
   const [hasAccepted18, setHasAccepted18] = useState<boolean>(() => {
     return localStorage.getItem(STORAGE_KEY_18) === 'true';
@@ -127,6 +131,9 @@ export const App: React.FC = () => {
     meta?: { model?: string; attachments?: File[] }
   ) => {
     if (isStreaming) return;
+
+    // Switch to Chat room mode when sending message
+    setViewMode('chat');
 
     let attachedImageDataUrl: string | undefined = undefined;
     if (meta?.attachments && meta.attachments.length > 0) {
@@ -262,12 +269,14 @@ export const App: React.FC = () => {
     setMessages([]);
     setCurrentChatId(null);
     localStorage.removeItem(STORAGE_KEY_MSGS);
+    setViewMode('chat');
   };
 
   const handleSelectChat = async (chatId: string) => {
     setCurrentChatId(chatId);
     const history = await fetchChatMessages(chatId);
     setMessages(history);
+    setViewMode('chat');
   };
 
   const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
@@ -314,6 +323,7 @@ export const App: React.FC = () => {
         isOpen={isArchitectureModalOpen}
         onClose={() => setIsArchitectureModalOpen(false)}
         onStartChat={() => {
+          setViewMode('chat');
           const textarea = document.querySelector('textarea') as HTMLTextAreaElement | null;
           if (textarea) textarea.focus();
         }}
@@ -334,52 +344,74 @@ export const App: React.FC = () => {
         totalTokens={totalTokens}
       />
 
-      {/* Modern High-Tech Top Bar */}
-      <TopBar
-        isX1Active={isX1Active}
-        onToggleX1={handleToggleX1}
-        onOpenSidebar={() => setIsSidebarOpen(true)}
-        onNewChat={handleNewChat}
-        onClearChat={handleClearChat}
-      />
-
-      {/* Chat Messages Body */}
-      <main className="flex-1 flex flex-col max-w-4xl w-full mx-auto relative overflow-hidden">
-        <ChatWindow
-          messages={messages}
-          isStreaming={isStreaming}
-          isX1Active={isX1Active}
-          onSendPreset={(preset) => handleSendMessage(preset)}
+      {/* View Switch: Standalone Reception Landing Page vs Active AI Chat */}
+      {viewMode === 'landing' ? (
+        <LandingPage
+          onStartChat={() => setViewMode('chat')}
+          onSelectPreset={(preset) => {
+            setViewMode('chat');
+            handleSendMessage(preset);
+          }}
           onOpenArchitecture={() => setIsArchitectureModalOpen(true)}
-          onToggleX1={handleToggleX1}
-        />
-      </main>
-
-      {/* Modern Floating AI Chat Input & Stop Generator */}
-      <div className="sticky bottom-0 z-30 w-full px-3 pb-3 pt-1 bg-gradient-to-t from-[#09090b] via-[#09090b]/95 to-transparent backdrop-blur-sm">
-        {/* Floating Stop Button when AI is writing */}
-        {isStreaming && (
-          <div className="flex justify-center mb-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <button
-              type="button"
-              onClick={handleAbort}
-              className="group flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-rose-400 hover:text-rose-300 border border-rose-500/50 hover:border-rose-500 shadow-xl text-xs font-semibold backdrop-blur-md transition-all active:scale-95 cursor-pointer select-none"
-            >
-              <Square className="w-3.5 h-3.5 fill-rose-500 text-rose-500 group-hover:scale-110 transition-transform" />
-              <span>إيقاف التوليد</span>
-            </button>
-          </div>
-        )}
-
-        <PromptInput
-          onSubmit={(val, meta) => handleSendMessage(val, meta)}
-          isStreaming={isStreaming}
-          onAbort={handleAbort}
+          onOpenSidebar={() => setIsSidebarOpen(true)}
           isX1Active={isX1Active}
           onToggleX1={handleToggleX1}
-          placeholder={isX1Active ? "اسأل X1 (+21) أي شيء تريده..." : "اسأل X1 أي شيء..."}
+          user={user}
         />
-      </div>
+      ) : (
+        <div className="flex-1 flex flex-col h-full overflow-hidden animate-in fade-in duration-200">
+          
+          {/* Top Bar for Chat Room */}
+          <TopBar
+            isX1Active={isX1Active}
+            user={user}
+            onToggleX1={handleToggleX1}
+            onOpenSidebar={() => setIsSidebarOpen(true)}
+            onNewChat={handleNewChat}
+            onClearChat={handleClearChat}
+            onGoHome={() => setViewMode('landing')}
+          />
+
+          {/* Chat Messages Body */}
+          <main className="flex-1 flex flex-col max-w-4xl w-full mx-auto relative overflow-hidden">
+            <ChatWindow
+              messages={messages}
+              isStreaming={isStreaming}
+              isX1Active={isX1Active}
+              onSendPreset={(preset) => handleSendMessage(preset)}
+              onOpenArchitecture={() => setIsArchitectureModalOpen(true)}
+              onToggleX1={handleToggleX1}
+            />
+          </main>
+
+          {/* Floating AI Chat Input & Stop Generator */}
+          <div className="sticky bottom-0 z-30 w-full px-3 pb-3 pt-1 bg-[#09090b] border-t border-zinc-850">
+            {/* Stop Generation Button */}
+            {isStreaming && (
+              <div className="flex justify-center mb-2 animate-in fade-in duration-150">
+                <button
+                  type="button"
+                  onClick={handleAbort}
+                  className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-rose-400 border border-rose-500/60 text-xs font-semibold transition-all active:scale-95 cursor-pointer select-none shadow-md"
+                >
+                  <Square className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
+                  <span>إيقاف التوليد</span>
+                </button>
+              </div>
+            )}
+
+            <PromptInput
+              onSubmit={(val, meta) => handleSendMessage(val, meta)}
+              isStreaming={isStreaming}
+              onAbort={handleAbort}
+              isX1Active={isX1Active}
+              onToggleX1={handleToggleX1}
+              placeholder={isX1Active ? "اسأل X1 (+21) أي شيء تريده..." : "اسأل X1 أي شيء..."}
+            />
+          </div>
+
+        </div>
+      )}
 
     </div>
   );

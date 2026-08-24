@@ -1,7 +1,7 @@
 import React from 'react';
 import { ModelType } from '../types';
 import { User } from '@supabase/supabase-js';
-import { MessageSquare, Plus } from 'lucide-react';
+import { MessageSquare, Plus, Home } from 'lucide-react';
 import { NsfwNanoChip } from './NsfwNanoChip';
 
 interface TopBarProps {
@@ -14,6 +14,7 @@ interface TopBarProps {
   onOpenSidebar: () => void;
   onNewChat?: () => void;
   onClearChat?: () => void;
+  onGoHome?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -23,37 +24,59 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenSidebar,
   onNewChat,
   onClearChat,
+  onGoHome,
 }) => {
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#09090b]/90 backdrop-blur-md border-b border-zinc-800/80 px-3 sm:px-6 py-2.5 select-none transition-colors">
+    <header className="sticky top-0 z-40 w-full bg-[#09090b]/95 backdrop-blur-md border-b border-zinc-800 px-3 sm:px-6 py-2.5 select-none transition-colors">
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
         
-        {/* Right / Brand */}
-        <div className="flex items-center gap-2.5">
+        {/* Right / Brand with Home action */}
+        <div
+          onClick={onGoHome}
+          className="flex items-center gap-2.5 cursor-pointer group"
+          title="العودة إلى صفحة الاستقبال"
+        >
           <img
             src="/x1-logo.svg"
             alt="X1 Logo"
-            className="w-8 h-8 rounded-xl object-contain drop-shadow-[0_0_8px_rgba(225,29,72,0.4)]"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-contain"
           />
-          <span className="font-bold text-sm tracking-tight text-white font-mono">
-            X1.link
-          </span>
+          <div className="flex flex-col text-right">
+            <span className="font-bold text-sm tracking-tight text-white font-mono leading-none group-hover:text-rose-400 transition-colors">
+              X1.link
+            </span>
+            <span className="text-[9px] text-zinc-500 font-mono">
+              FATHOM AI
+            </span>
+          </div>
         </div>
 
         {/* Center / NSFW NANO Silicon Chip Trigger */}
         <div className="flex items-center">
           <NsfwNanoChip
             isActive={isX1Active}
-            onToggle={onToggleX1}
+            onClick={onToggleX1}
           />
         </div>
 
         {/* Left / History & New Chat */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {onGoHome && (
+            <button
+              type="button"
+              onClick={onGoHome}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
+              title="صفحة الاستقبال"
+            >
+              <Home className="w-3.5 h-3.5 text-zinc-400" />
+              <span className="hidden sm:inline">الاستقبال</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onNewChat || onClearChat}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
             title="محادثة جديدة"
           >
             <Plus className="w-3.5 h-3.5 text-rose-400" />
@@ -63,7 +86,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={onOpenSidebar}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-all"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
             title="سجل المحادثات والمزامنة السحابية"
           >
             <MessageSquare className="w-3.5 h-3.5 text-zinc-400" />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Sparkles, Cpu, ShieldCheck, Zap, ArrowLeft } from 'lucide-react';
+import { X, Cpu, ShieldCheck, Zap, ArrowLeft } from 'lucide-react';
 import { TimelineTracker, TimelineStep } from './ui/timeline-tracker';
 
 interface ArchitectureModalProps {
@@ -47,21 +47,21 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-300" dir="rtl">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200" dir="rtl">
       <div className="relative w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-8 text-right shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
         
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute left-4 top-4 p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+          className="absolute left-4 top-4 p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
 
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-600/30 to-red-900/40 border border-rose-500/50 text-rose-400 flex items-center justify-center shrink-0 shadow-lg shadow-rose-950/50">
+          <div className="w-12 h-12 rounded-2xl bg-rose-950 border border-rose-600 text-rose-400 flex items-center justify-center shrink-0">
             <Zap className="w-6 h-6" />
           </div>
           <div>
@@ -75,19 +75,19 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
         </div>
 
         {/* Timeline Roadmap */}
-        <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-850">
+        <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800">
           <TimelineTracker steps={architectureSteps} />
         </div>
 
         {/* Action Button */}
-        <div className="flex items-center justify-end gap-3 pt-2 border-t border-zinc-800/80">
+        <div className="flex items-center justify-end gap-3 pt-2 border-t border-zinc-800">
           <button
             type="button"
             onClick={() => {
               onClose();
               onStartChat();
             }}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-rose-950/60 transition-all active:scale-95 cursor-pointer"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm transition-all active:scale-95 cursor-pointer shadow-md"
           >
             <span>بدء التجربة الآن</span>
             <ArrowLeft className="w-4 h-4" />

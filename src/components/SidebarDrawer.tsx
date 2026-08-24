@@ -49,14 +49,14 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
             <img
               src="/x1-logo.svg"
               alt="X1 Logo"
-              className="w-7 h-7 rounded-lg object-contain drop-shadow-[0_0_6px_rgba(225,29,72,0.4)]"
+              className="w-7 h-7 rounded-lg object-contain"
             />
             <div>
               <h2 className="font-semibold text-sm text-white">
                 المحادثات السحابية
               </h2>
               <p className="text-[11px] text-zinc-400">
-                {user ? 'متصل بـ Supabase' : 'تخزين محلي'}
+                {user ? 'متصل بـ Supabase' : 'مزامنة سحابية (ضيوف)'}
               </p>
             </div>
           </div>
