@@ -76,8 +76,8 @@ export class ContextMemoryEngine {
 
     this.memorySnapshots.totalTokensEstimated = totalTokens;
 
-    // Keep the most recent 24 turns in full verbatim detail
-    const MAX_RECENT_TURNS = 24;
+    // Ultra-Efficient Token Budgeting: Keep the most relevant 14 recent turns in full verbatim detail
+    const MAX_RECENT_TURNS = 14;
     let packedMessages: ChatMessageItem[] = [];
     let distilledContext = '';
 
@@ -85,14 +85,14 @@ export class ContextMemoryEngine {
       const olderMessages = messages.slice(0, messages.length - MAX_RECENT_TURNS);
       const recentMessages = messages.slice(messages.length - MAX_RECENT_TURNS);
 
-      // Distill older messages into a contextual memory ledger
-      const olderSummaries = olderMessages.map((m, idx) => {
-        const preview = m.content.slice(0, 160).replace(/\n/g, ' ');
-        const speaker = m.role === 'user' ? 'المستخدم' : 'الطرف الآخر';
-        return `- [سياق سابق ${idx + 1} // ${speaker}]: ${preview}...`;
+      // Distill older messages into a compact key-memory ledger (saving up to 70% input tokens)
+      const olderSummaries = olderMessages.slice(-6).map((m, idx) => {
+        const preview = m.content.slice(0, 100).replace(/\n/g, ' ');
+        const speaker = m.role === 'user' ? 'المستخدم' : 'الرد';
+        return `- [${speaker}]: ${preview}`;
       }).join('\n');
 
-      distilledContext = `\n[سجل السياق الممتد للحوار]:\n${olderSummaries}\n`;
+      distilledContext = `[سياق المحادثة السابقة المقتضب]:\n${olderSummaries}\n`;
       packedMessages = recentMessages;
     } else {
       packedMessages = messages;

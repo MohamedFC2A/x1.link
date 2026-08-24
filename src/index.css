@@ -37,7 +37,7 @@
     overflow: hidden;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    font-family: "IBM Plex Sans Arabic", "Plus Jakarta Sans", system-ui, sans-serif;
+    font-family: "Cairo", "Readex Pro", "Plus Jakarta Sans", system-ui, sans-serif;
   }
 
   /* Sleek Minimal Scrollbars */
