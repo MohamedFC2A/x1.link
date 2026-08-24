@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { DisclaimerModal } from './components/DisclaimerModal';
 import { X1UnlockModal } from './components/X1UnlockModal';
+import { ArchitectureModal } from './components/ArchitectureModal';
 import { TopBar } from './components/TopBar';
 import { ChatWindow } from './components/ChatWindow';
 import { PromptInput } from './components/ui/ai-chat-input';
@@ -38,9 +39,10 @@ export const App: React.FC = () => {
 
   const [isX1Active, setIsX1Active] = useState<boolean>(false);
   const [isX1ModalOpen, setIsX1ModalOpen] = useState<boolean>(false);
+  const [isArchitectureModalOpen, setIsArchitectureModalOpen] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
-  // Supabase User & Cloud Sync
+  // Supabase User & Cloud Sync (Automatic for both Guests & Logged-in Users)
   const [user, setUser] = useState<User | null>(null);
   const [cloudChats, setCloudChats] = useState<SupabaseChat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
@@ -63,29 +65,27 @@ export const App: React.FC = () => {
   const [totalTokens, setTotalTokens] = useState<number>(0);
   const abortControllerRef = useRef<(() => void) | null>(null);
 
-  // Supabase Auth Listener
+  const loadCloudChats = async (userId: string | null) => {
+    const chats = await fetchUserChats(userId);
+    setCloudChats(chats);
+  };
+
+  // Initial mount & Supabase Auth Listener
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadUserCloudChats(session.user.id);
-      }
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      loadCloudChats(currentUser?.id ?? null);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadUserCloudChats(session.user.id);
-      }
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      loadCloudChats(currentUser?.id ?? null);
     });
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const loadUserCloudChats = async (userId: string) => {
-    const chats = await fetchUserChats(userId);
-    setCloudChats(chats);
-  };
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(messages));
@@ -138,10 +138,9 @@ export const App: React.FC = () => {
       });
     }
 
-    const chosenModel = (meta?.model as ModelType) || activeModel;
-    if (chosenModel !== activeModel) {
-      setActiveModel(chosenModel);
-    }
+    const chosenModel: ModelType = attachedImageDataUrl
+      ? 'deepseek-v4-flash-vision-exp'
+      : (meta?.model as ModelType) || activeModel;
 
     const userMessage: ChatMessageItem = {
       id: 'user-' + Date.now(),
@@ -166,17 +165,17 @@ export const App: React.FC = () => {
     setIsStreaming(true);
 
     let targetChatId = currentChatId;
-    if (user) {
-      if (!targetChatId) {
-        targetChatId = await createCloudChat(user.id, text, chosenModel, isX1Active);
-        if (targetChatId) {
-          setCurrentChatId(targetChatId);
-          loadUserCloudChats(user.id);
-        }
-      }
+    const userId = user ? user.id : null;
+
+    if (!targetChatId) {
+      targetChatId = await createCloudChat(userId, text, chosenModel, isX1Active);
       if (targetChatId) {
-        saveCloudMessage(targetChatId, user.id, userMessage);
+        setCurrentChatId(targetChatId);
+        loadCloudChats(userId);
       }
+    }
+    if (targetChatId) {
+      saveCloudMessage(targetChatId, userId, userMessage);
     }
 
     const { packedMessages, memoryContextPrompt } = memoryEngine.processMessages(newMessagesList);
@@ -220,11 +219,13 @@ export const App: React.FC = () => {
       },
       onComplete: () => {
         setIsStreaming(false);
-        abortControllerRef.current = null;
-        if (user && targetChatId && fullAssistantResponse) {
-          saveCloudMessage(targetChatId, user.id, {
-            ...assistantMessage,
-            content: fullAssistantResponse
+        if (targetChatId && fullAssistantResponse) {
+          saveCloudMessage(targetChatId, userId, {
+            id: assistantPlaceholderId,
+            role: 'assistant',
+            content: fullAssistantResponse,
+            isX1: isX1Active,
+            timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
           });
         }
       }
@@ -258,48 +259,73 @@ export const App: React.FC = () => {
   };
 
   const handleNewChat = () => {
-    handleClearChat();
+    setMessages([]);
+    setCurrentChatId(null);
+    localStorage.removeItem(STORAGE_KEY_MSGS);
   };
 
   const handleSelectChat = async (chatId: string) => {
     setCurrentChatId(chatId);
-    const msgs = await fetchChatMessages(chatId);
-    setMessages(msgs);
+    const history = await fetchChatMessages(chatId);
+    setMessages(history);
   };
 
   const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     await deleteCloudChat(chatId);
-    if (user) {
-      loadUserCloudChats(user.id);
-    }
     if (currentChatId === chatId) {
-      handleClearChat();
+      handleNewChat();
+    }
+    loadCloudChats(user?.id ?? null);
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      console.error('[Google Auth Failed]:', err);
     }
   };
 
-  return (
-    <div className="h-[100dvh] flex flex-col bg-[#09090b] text-[#f8fafc] font-sans antialiased overflow-hidden select-text">
-      
-      {/* 18+ Mandatory Disclaimer Entry Gate */}
-      {!hasAccepted18 && (
-        <DisclaimerModal onAccept={handleAccept18} />
-      )}
+  const handleSignOut = async () => {
+    await signOutUser();
+    setUser(null);
+    loadCloudChats(null);
+  };
 
-      {/* 21+ X1 Protocol Biometric Unlock Modal */}
+  return (
+    <div className="flex flex-col h-full h-[100dvh] bg-[#09090b] text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-rose-600 selection:text-white" dir="rtl">
+      
+      {/* 18+ Mandatory Age Disclaimer Modal */}
+      <DisclaimerModal
+        isOpen={!hasAccepted18}
+        onAccept={handleAccept18}
+      />
+
+      {/* Biometric NSFW NANO Unlock Modal */}
       <X1UnlockModal
         isOpen={isX1ModalOpen}
         onClose={() => setIsX1ModalOpen(false)}
         onSuccess={handleBiometricSuccess}
       />
 
-      {/* Slide-out Mobile Sidebar (History, Google Sign In, Cloud Sync) */}
+      {/* Architecture & Capabilities Timeline Roadmap Modal */}
+      <ArchitectureModal
+        isOpen={isArchitectureModalOpen}
+        onClose={() => setIsArchitectureModalOpen(false)}
+        onStartChat={() => {
+          const textarea = document.querySelector('textarea') as HTMLTextAreaElement | null;
+          if (textarea) textarea.focus();
+        }}
+      />
+
+      {/* Cloud History Drawer */}
       <SidebarDrawer
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         user={user}
-        onGoogleSignIn={signInWithGoogle}
-        onSignOut={signOutUser}
+        onGoogleSignIn={handleGoogleSignIn}
+        onSignOut={handleSignOut}
         chats={cloudChats}
         currentChatId={currentChatId}
         onSelectChat={handleSelectChat}
@@ -308,15 +334,12 @@ export const App: React.FC = () => {
         totalTokens={totalTokens}
       />
 
-      {/* Modern Clean Top Header */}
+      {/* Modern High-Tech Top Bar */}
       <TopBar
         isX1Active={isX1Active}
-        isX1Unlocked={isX1Unlocked}
-        activeModel={activeModel}
-        user={user}
         onToggleX1={handleToggleX1}
-        onSelectModel={setActiveModel}
         onOpenSidebar={() => setIsSidebarOpen(true)}
+        onNewChat={handleNewChat}
         onClearChat={handleClearChat}
       />
 
@@ -327,11 +350,13 @@ export const App: React.FC = () => {
           isStreaming={isStreaming}
           isX1Active={isX1Active}
           onSendPreset={(preset) => handleSendMessage(preset)}
+          onOpenArchitecture={() => setIsArchitectureModalOpen(true)}
+          onToggleX1={handleToggleX1}
         />
       </main>
 
       {/* Modern Floating AI Chat Input & Stop Generator */}
-      <div className="sticky bottom-0 z-30 w-full px-3 pb-3 pt-1 bg-gradient-to-t from-[#09090b] via-[#09090b]/90 to-transparent">
+      <div className="sticky bottom-0 z-30 w-full px-3 pb-3 pt-1 bg-gradient-to-t from-[#09090b] via-[#09090b]/95 to-transparent backdrop-blur-sm">
         {/* Floating Stop Button when AI is writing */}
         {isStreaming && (
           <div className="flex justify-center mb-2 animate-in fade-in slide-in-from-bottom-2 duration-200">

@@ -2,10 +2,12 @@ import React from 'react';
 import { ShieldAlert, CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface DisclaimerModalProps {
+  isOpen?: boolean;
   onAccept: () => void;
 }
 
-export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ onAccept }) => {
+export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen = true, onAccept }) => {
+  if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-300" dir="rtl">
       <div className="relative w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-8 text-right shadow-2xl space-y-5">
