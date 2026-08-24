@@ -111,58 +111,68 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
           />
         )}
 
-        {/* Formatted Markdown Content */}
-        <div className="prose prose-invert max-w-none text-zinc-200 text-sm sm:text-base leading-relaxed break-words font-sans">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              p: ({ children }) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
-              h1: ({ children }) => <h1 className="text-lg sm:text-xl font-bold text-white my-3 border-b border-zinc-800 pb-1.5">{children}</h1>,
-              h2: ({ children }) => <h2 className="text-base sm:text-lg font-semibold text-zinc-100 my-2.5">{children}</h2>,
-              h3: ({ children }) => <h3 className="text-sm sm:text-base font-semibold text-rose-400 my-2">{children}</h3>,
-              ul: ({ children }) => <ul className="list-disc list-inside space-y-1.5 my-2 text-zinc-300 pr-2">{children}</ul>,
-              ol: ({ children }) => <ol className="list-decimal list-inside space-y-1.5 my-2 text-zinc-300 pr-2">{children}</ol>,
-              blockquote: ({ children }) => (
-                <blockquote className="border-r-2 border-rose-500 bg-zinc-950/60 pr-3 py-2 my-2 text-xs sm:text-sm text-zinc-300 rounded-r-lg">
-                  {children}
-                </blockquote>
-              ),
-              code: ({ inline, className, children, ...props }: any) => {
-                const match = /language-(\w+)/.exec(className || '');
-                return !inline ? (
-                  <div className="my-3 rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden font-mono text-xs text-left" dir="ltr">
-                    <div className="flex justify-between items-center bg-zinc-900 px-3 py-1.5 border-b border-zinc-800 text-zinc-400 text-[11px]">
-                      <span>{match ? match[1] : 'code'}</span>
-                      <button
-                        type="button"
-                        onClick={() => navigator.clipboard.writeText(String(children).replace(/\n$/, ''))}
-                        className="hover:text-white flex items-center gap-1 font-medium transition-colors"
-                      >
-                        <Copy className="w-3 h-3" />
-                        نسخ
-                      </button>
-                    </div>
-                    <pre className="p-3.5 overflow-x-auto text-zinc-200 text-xs leading-relaxed">
-                      <code className={className} {...props}>
-                        {children}
-                      </code>
-                    </pre>
-                  </div>
-                ) : (
-                  <code className="bg-zinc-800/80 text-rose-300 border border-zinc-700/50 px-1.5 py-0.5 rounded font-mono text-xs" {...props}>
+        {/* Formatted Markdown Content or Initial Stream Pulsing State */}
+        {isStreaming && !message.content ? (
+          <div className="flex items-center gap-2.5 py-2 text-xs text-zinc-400 font-mono select-none">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+            </span>
+            <span className="font-sans text-xs text-zinc-300">جاري المعالجة وصياغة الرد عبر محرك Magnum v4 72B...</span>
+          </div>
+        ) : (
+          <div className="prose prose-invert max-w-none text-zinc-200 text-sm sm:text-base leading-relaxed break-words font-sans">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({ children }) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
+                h1: ({ children }) => <h1 className="text-lg sm:text-xl font-bold text-white my-3 border-b border-zinc-800 pb-1.5">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-base sm:text-lg font-semibold text-zinc-100 my-2.5">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-sm sm:text-base font-semibold text-rose-400 my-2">{children}</h3>,
+                ul: ({ children }) => <ul className="list-disc list-inside space-y-1.5 my-2 text-zinc-300 pr-2">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal list-inside space-y-1.5 my-2 text-zinc-300 pr-2">{children}</ol>,
+                blockquote: ({ children }) => (
+                  <blockquote className="border-r-2 border-rose-500 bg-zinc-950/60 pr-3 py-2 my-2 text-xs sm:text-sm text-zinc-300 rounded-r-lg">
                     {children}
-                  </code>
-                );
-              }
-            }}
-          >
-            {message.content}
-          </ReactMarkdown>
+                  </blockquote>
+                ),
+                code: ({ inline, className, children, ...props }: any) => {
+                  const match = /language-(\w+)/.exec(className || '');
+                  return !inline ? (
+                    <div className="my-3 rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden font-mono text-xs text-left" dir="ltr">
+                      <div className="flex justify-between items-center bg-zinc-900 px-3 py-1.5 border-b border-zinc-800 text-zinc-400 text-[11px]">
+                        <span>{match ? match[1] : 'code'}</span>
+                        <button
+                          type="button"
+                          onClick={() => navigator.clipboard.writeText(String(children).replace(/\n$/, ''))}
+                          className="hover:text-white flex items-center gap-1 font-medium transition-colors"
+                        >
+                          <Copy className="w-3 h-3" />
+                          نسخ
+                        </button>
+                      </div>
+                      <pre className="p-3.5 overflow-x-auto text-zinc-200 text-xs leading-relaxed">
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
+                      </pre>
+                    </div>
+                  ) : (
+                    <code className="bg-zinc-800/80 text-rose-300 border border-zinc-700/50 px-1.5 py-0.5 rounded font-mono text-xs" {...props}>
+                      {children}
+                    </code>
+                  );
+                }
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
 
-          {isStreaming && (
-            <span className="inline-block w-1.5 h-4 bg-rose-500 animate-pulse mr-1 align-middle rounded-full" />
-          )}
-        </div>
+            {isStreaming && (
+              <span className="inline-block w-1.5 h-4 bg-rose-500 animate-pulse mr-1 align-middle rounded-full" />
+            )}
+          </div>
+        )}
 
         {/* Footer Actions */}
         {message.content && !isStreaming && (

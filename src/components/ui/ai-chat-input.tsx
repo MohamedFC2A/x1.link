@@ -749,13 +749,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shine-beam pointer-events-none" />
                 )}
 
-                <Cpu className={cn("w-3 h-3 transition-colors", isX1Active ? "text-rose-400" : "text-zinc-400")} />
+                <Cpu className={cn("w-3.5 h-3.5 shrink-0 transition-colors", isX1Active ? "text-rose-300" : "text-zinc-400")} />
 
                 <span className={cn(
-                  "font-mono font-bold tracking-tight text-[11px]",
-                  isX1Active
-                    ? "bg-gradient-to-r from-rose-200 via-white to-rose-300 bg-[length:200%_auto] bg-clip-text text-transparent animate-shine-text"
-                    : "text-zinc-300"
+                  "font-mono font-bold tracking-tight text-[11px] whitespace-nowrap",
+                  isX1Active ? "text-rose-100 font-extrabold" : "text-zinc-300"
                 )}>
                   {isX1Active ? "NSFW NANO (+21 MAX)" : "NSFW NANO"}
                 </span>
@@ -763,7 +761,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 {isX1Active ? (
                   <DynamicBarsIcon level="X1 (+21)" />
                 ) : (
-                  <span className="text-[9px] px-1 py-0.5 rounded bg-zinc-900 border border-zinc-700/60 text-zinc-400 font-semibold flex items-center gap-0.5">
+                  <span className="text-[9px] px-1 py-0.5 rounded bg-zinc-900 border border-zinc-700/60 text-zinc-400 font-semibold flex items-center gap-0.5 shrink-0">
                     <Fingerprint className="w-2.5 h-2.5 text-rose-500" />
                     <span>+21</span>
                   </span>

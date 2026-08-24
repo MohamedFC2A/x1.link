@@ -293,59 +293,32 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
 
     const body = response.body;
     if (!body) {
-      res.write(`data: ${JSON.stringify({ content: 'تعذر استقبال تدفق البيانات من المحرك.' })}\n\n`);
-      res.write('data: [DONE]\n\n');
+      res.write(`data: [DONE]\n\n`);
       res.end();
       return;
     }
 
     const reader = body.getReader();
     activeReader = reader;
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
 
     while (!isClientDisconnected) {
       const { done, value } = await reader.read();
       if (done || isClientDisconnected) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (isClientDisconnected) break;
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith(':')) continue;
-
-        if (trimmed === 'data: [DONE]') {
-          if (!res.writableEnded) {
-            res.write('data: [DONE]\n\n');
-          }
-          continue;
-        }
-
-        if (trimmed.startsWith('data: ')) {
-          try {
-            const jsonStr = trimmed.slice(6);
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content || '';
-            if (content && !res.writableEnded) {
-              res.write(`data: ${JSON.stringify({ content })}\n\n`);
-            }
-          } catch (err) {
-            // Partial JSON chunk
-          }
+      if (value) {
+        res.write(value);
+        if (typeof (res as any).flush === 'function') {
+          (res as any).flush();
         }
       }
     }
 
     if (!isClientDisconnected && !res.writableEnded) {
-      res.write('data: [DONE]\n\n');
       res.end();
     }
   } catch (error: any) {

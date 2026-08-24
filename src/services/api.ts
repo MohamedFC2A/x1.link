@@ -93,30 +93,54 @@ export async function streamChatCompletion({
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith(':')) continue;
 
-        if (trimmed === 'data: [DONE]') {
+        if (trimmed === 'data: [DONE]' || trimmed === '[DONE]') {
           onComplete();
           return () => controller.abort();
         }
 
-        if (trimmed.startsWith('data: ')) {
-          const jsonStr = trimmed.slice(6);
+        if (trimmed.startsWith('data:')) {
+          const payload = trimmed.replace(/^data:\s*/, '');
+          if (payload === '[DONE]') {
+            onComplete();
+            return () => controller.abort();
+          }
+
           try {
-            const parsed = JSON.parse(jsonStr);
+            const parsed = JSON.parse(payload);
             if (parsed.error) {
-              onError(parsed.error || parsed.message || 'حدث خطأ أثناء معالجة الرد');
+              const errMsg = typeof parsed.error === 'object'
+                ? parsed.error.message || JSON.stringify(parsed.error)
+                : parsed.error;
+              onError(errMsg || 'حدث خطأ في استجابة الذكاء الاصطناعي');
               continue;
             }
-            const content = parsed.content !== undefined 
-              ? parsed.content 
-              : parsed.choices?.[0]?.delta?.content;
+
+            const content = parsed.choices?.[0]?.delta?.content ?? parsed.content ?? '';
             if (content) {
               onChunk(content);
             }
           } catch {
-            // Raw text fallback if not JSON
-            if (jsonStr && jsonStr !== '[DONE]') {
-              onChunk(jsonStr);
+            // Non-JSON plain text SSE fallback
+            if (payload && payload !== '[DONE]') {
+              onChunk(payload);
             }
+          }
+        }
+      }
+    }
+
+    // Flush any remaining buffer text
+    if (buffer.trim()) {
+      const trimmed = buffer.trim();
+      if (trimmed.startsWith('data:')) {
+        const payload = trimmed.replace(/^data:\s*/, '');
+        if (payload && payload !== '[DONE]') {
+          try {
+            const parsed = JSON.parse(payload);
+            const content = parsed.choices?.[0]?.delta?.content ?? parsed.content ?? '';
+            if (content) onChunk(content);
+          } catch {
+            onChunk(payload);
           }
         }
       }
