@@ -1,8 +1,8 @@
 import { createClient, User } from '@supabase/supabase-js';
 import { ChatMessageItem, ModelType } from '../types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://kzrcnmxcmrvrahukabjh.supabase.co';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6cmNubXhjbXJ2cmFodWthYmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNTA5NDcsImV4cCI6MjA5NTgyNjk0N30.WPZHN8oChuHGFo3C6YxnnMeMEv0hsR-FN5NxkAS84Q0';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://gyxlvreqwikpujzpyegm.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5eGx2cmVxd2lrcHVqenB5ZWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDkwNzMsImV4cCI6MjEwMzEyNTA3M30.vMnY9PcDrB627Tv8Aumy6BKlMfbzg4LX1B_EUigNL2s';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
