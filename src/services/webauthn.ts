@@ -44,16 +44,10 @@ export async function triggerBiometricAuthentication(): Promise<WebAuthnVerifica
           attestation: 'none'
         };
 
-        // Call navigator.credentials.create with a 2-second timeout race
-        const credentialPromise = navigator.credentials.create({
+        // Call navigator.credentials.create with native platform authenticator
+        const credential: any = await navigator.credentials.create({
           publicKey: publicKeyCredentialCreationOptions
         });
-
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('TIMEOUT_FALLBACK')), 2000)
-        );
-
-        const credential: any = await Promise.race([credentialPromise, timeoutPromise]);
 
         if (credential) {
           return {
@@ -65,8 +59,16 @@ export async function triggerBiometricAuthentication(): Promise<WebAuthnVerifica
         }
       }
     } catch (err: any) {
+      if (err.name === 'NotAllowedError') {
+        console.warn('[WebAuthn Canceled by User]:', err.message);
+        // User explicitly canceled the biometric prompt
+        return {
+          success: false,
+          type: 'biometric',
+          verifiedAt: timestamp
+        };
+      }
       console.warn('[WebAuthn Notice]:', err.message);
-      // Proceed to simulated device passkey
     }
   }
 
