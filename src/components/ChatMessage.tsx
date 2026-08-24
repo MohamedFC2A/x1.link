@@ -32,22 +32,42 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
 
   if (isUser) {
     return (
-      <div className="flex justify-start my-2">
-        <div className="max-w-[88%] sm:max-w-[75%] rounded-2xl rounded-tr-sm bg-zinc-800 text-zinc-100 p-3.5 sm:p-4 border border-zinc-700/60 shadow-sm text-right">
+      <div className="flex justify-start my-2 group">
+        <div className="max-w-[90%] sm:max-w-[78%] rounded-2xl rounded-tr-sm bg-zinc-800 text-zinc-100 p-3.5 sm:p-4 border border-zinc-700/60 shadow-sm text-right">
           {message.image && (
-            <div className="mb-2 rounded-xl overflow-hidden border border-zinc-700 bg-black/40 p-1">
+            <div className="mb-2.5 rounded-xl overflow-hidden border border-zinc-700 bg-black/40 p-1">
               <img
                 src={message.image}
                 alt="Uploaded attachment"
-                className="max-h-48 object-contain rounded-lg w-auto mx-auto"
+                className="max-h-56 object-contain rounded-lg w-auto mx-auto"
               />
             </div>
           )}
           <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans">
             {message.content}
           </p>
-          <div className="mt-1 text-[10px] text-zinc-400 font-mono text-left">
-            {message.timestamp}
+          <div className="mt-2 pt-1.5 border-t border-zinc-700/50 flex items-center justify-between text-xs text-zinc-400">
+            <span className="text-[10px] font-mono text-zinc-400">
+              {message.timestamp}
+            </span>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex items-center gap-1 text-zinc-400 hover:text-zinc-100 transition-colors px-1.5 py-0.5 rounded hover:bg-zinc-700/60 cursor-pointer select-none"
+              title="نسخ نص الرسالة"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400 text-[11px]">تم النسخ</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span className="text-[11px]">نسخ</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>

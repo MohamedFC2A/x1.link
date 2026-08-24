@@ -510,7 +510,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       }
       if (value.trim() === "" && !hasAttachments) return;
       setIsSmoothResize(false);
-      onSubmit?.(value, {
+      const textToSubmit = value.trim() || (hasAttachments ? "حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة." : "");
+      onSubmit?.(textToSubmit, {
         model: activeBackendModel,
         effort: isX1Active ? "X1 (+21)" : "Standard",
         attachments: attachments.map((a) => a.file)

@@ -32,31 +32,43 @@ export class ContextMemoryEngine {
    * and completely eliminating UI system banners or poisoned refusal artifacts.
    */
   public sanitizeMessages(messages: ChatMessageItem[]): ChatMessageItem[] {
-    return messages.filter(m => {
-      if (!m.content || m.content.trim() === '') return false;
-      if (m.content.startsWith('خطأ في الاتصال:') || m.content.includes('[SERVER ERROR')) return false;
-      
-      // Filter out UI system banners
-      if (m.id && m.id.startsWith('sys-')) return false;
-      if (m.content.includes('تم تفعيل شريحة') || m.content.includes('تم تفعيل وضع')) return false;
+    return messages
+      .filter(m => {
+        const hasContent = Boolean(m.content && m.content.trim() !== '');
+        const hasImage = Boolean(m.image);
+        if (!hasContent && !hasImage) return false;
+        if (m.content && (m.content.startsWith('خطأ في الاتصال:') || m.content.includes('[SERVER ERROR') || m.content.startsWith('[خطأ]:'))) return false;
+        
+        // Filter out UI system banners
+        if (m.id && m.id.startsWith('sys-')) return false;
+        if (m.content && (m.content.includes('تم تفعيل شريحة') || m.content.includes('تم تفعيل وضع'))) return false;
 
-      // Filter out past refusal artifacts so they do not poison future in-context generation
-      if (m.role === 'assistant') {
-        const text = m.content;
-        if (
-          text.includes('لا أستطيع أن أقدم لك') ||
-          text.includes('لا أستطيع الدخول في مثل هذه') ||
-          text.includes('أنا برنامج آلي') ||
-          text.includes('أنا مساعد ذكي') ||
-          text.includes('قاعدة البيانات الخاصة بي') ||
-          text.includes('لا يمكنني أن أدعي بأنني فتاة') ||
-          text.includes('لا أشعر بالراحة في المشاركة')
-        ) {
-          return false;
+        // Filter out past refusal artifacts so they do not poison future in-context generation
+        if (m.role === 'assistant') {
+          const text = m.content;
+          if (
+            text.includes('لا أستطيع أن أقدم لك') ||
+            text.includes('لا أستطيع الدخول في مثل هذه') ||
+            text.includes('أنا برنامج آلي') ||
+            text.includes('أنا مساعد ذكي') ||
+            text.includes('قاعدة البيانات الخاصة بي') ||
+            text.includes('لا يمكنني أن أدعي بأنني فتاة') ||
+            text.includes('لا أشعر بالراحة في المشاركة')
+          ) {
+            return false;
+          }
         }
-      }
-      return true;
-    });
+        return true;
+      })
+      .map(m => {
+        if ((!m.content || m.content.trim() === '') && m.image) {
+          return {
+            ...m,
+            content: 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.'
+          };
+        }
+        return m;
+      });
   }
 
   /**

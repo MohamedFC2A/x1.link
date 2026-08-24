@@ -12,6 +12,7 @@ import { ChatMessageItem, ModelType, WebAuthnVerificationResult } from './types'
 import { Square } from 'lucide-react';
 import { streamChatCompletion } from './services/api';
 import { memoryEngine } from './services/memoryManager';
+import { compressImageFile } from './lib/imageCompressor';
 import {
   supabase,
   signInWithGoogle,
@@ -138,12 +139,20 @@ export const App: React.FC = () => {
     let attachedImageDataUrl: string | undefined = undefined;
     if (meta?.attachments && meta.attachments.length > 0) {
       const file = meta.attachments[0];
-      attachedImageDataUrl = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.readAsDataURL(file);
-      });
+      try {
+        attachedImageDataUrl = await compressImageFile(file);
+      } catch {
+        attachedImageDataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+      }
     }
+
+    const trimmedText = text.trim();
+    const effectivePrompt = trimmedText || (attachedImageDataUrl ? 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.' : '');
+    if (!effectivePrompt && !attachedImageDataUrl) return;
 
     const chosenModel: ModelType = attachedImageDataUrl
       ? 'deepseek-v4-flash-vision-exp'
@@ -152,7 +161,7 @@ export const App: React.FC = () => {
     const userMessage: ChatMessageItem = {
       id: 'user-' + Date.now(),
       role: 'user',
-      content: text,
+      content: effectivePrompt,
       image: attachedImageDataUrl,
       timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
       isX1: isX1Active,

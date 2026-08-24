@@ -22,13 +22,13 @@ export async function streamChatCompletion({
   const controller = new AbortController();
 
   try {
-    // Format messages for the API (convert multimodal items with images if present)
+    // Format messages for API (convert multimodal items with images if present)
     const formattedMessages = messages.map(msg => {
-      if (msg.image && (model === 'deepseek-v4-flash-vision-exp' || model.includes('vision'))) {
+      if (msg.image) {
         return {
           role: msg.role,
           content: [
-            { type: 'text', text: msg.content },
+            { type: 'text', text: msg.content || 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.' },
             {
               type: 'image_url',
               image_url: {
@@ -40,7 +40,7 @@ export async function streamChatCompletion({
       }
       return {
         role: msg.role,
-        content: msg.content
+        content: msg.content || 'متابعة'
       };
     });
 
@@ -58,16 +58,21 @@ export async function streamChatCompletion({
       signal: controller.signal
     });
 
-
     if (!response.ok) {
-      const errBody = await response.text();
-      onError(`[SERVER ERROR ${response.status}]: ${errBody || 'Failed to connect to AI engine.'}`);
+      let errBody = '';
+      try {
+        const json = await response.json();
+        errBody = json.error || json.message || JSON.stringify(json);
+      } catch {
+        errBody = await response.text();
+      }
+      onError(errBody || `تعذر الاتصال بمحرك الذكاء الاصطناعي (رمز الاستجابة: ${response.status})`);
       onComplete();
       return () => controller.abort();
     }
 
     if (!response.body) {
-      onError('[ERROR]: No streaming body returned from AI engine.');
+      onError('تعذر استقبال تدفق البيانات من محرك الذكاء الاصطناعي.');
       onComplete();
       return () => controller.abort();
     }
@@ -98,7 +103,7 @@ export async function streamChatCompletion({
           try {
             const parsed = JSON.parse(jsonStr);
             if (parsed.error) {
-              onError(parsed.error || parsed.message || 'Stream processing error from API');
+              onError(parsed.error || parsed.message || 'حدث خطأ أثناء معالجة الرد');
               continue;
             }
             const content = parsed.content !== undefined 
@@ -122,7 +127,7 @@ export async function streamChatCompletion({
     if (err.name === 'AbortError') {
       console.log('[Stream Aborted by User]');
     } else {
-      onError(err.message || 'Network connection lost to AI protocol.');
+      onError(err.message || 'انقطع الاتصال ببروتوكول الذكاء الاصطناعي.');
     }
     onComplete();
   }

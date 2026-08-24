@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ModelType } from '../types';
+import { compressImageFile } from '../lib/imageCompressor';
 
 interface ChatInputProps {
   onSendMessage: (text: string, image?: string) => void;
@@ -33,18 +34,26 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   }, []);
 
-  const handleImageUpload = (file: File) => {
+  const handleImageUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) return;
     setImageName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
+    try {
+      const dataUrl = await compressImageFile(file);
       setImageAttachment(dataUrl);
       if (activeModel !== 'deepseek-v4-flash-vision-exp') {
         onModelChange('deepseek-v4-flash-vision-exp');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        setImageAttachment(dataUrl);
+        if (activeModel !== 'deepseek-v4-flash-vision-exp') {
+          onModelChange('deepseek-v4-flash-vision-exp');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleRemoveImage = () => {
