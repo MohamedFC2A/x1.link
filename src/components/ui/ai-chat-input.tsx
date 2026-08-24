@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Plus, X, ArrowUp, Mic, Square, Sparkles, Camera } from "lucide-react";
+import { Plus, X, ArrowUp, Mic, Square, Sparkles, Camera, Cpu, Fingerprint } from "lucide-react";
 
 // ----------------------------------------------------------------------
 // Transition Physics
@@ -242,6 +242,7 @@ export interface PromptInputProps {
   isStreaming?: boolean;
   onAbort?: () => void;
   isX1Active?: boolean;
+  onToggleX1?: () => void;
 }
 
 export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
@@ -257,6 +258,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       isStreaming = false,
       onAbort,
       isX1Active = false,
+      onToggleX1,
     },
     ref
   ) => {
@@ -721,19 +723,51 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 </span>
               </div>
 
-              {/* NSFW NANO Active Silicon Shimmer Badge */}
-              {isX1Active && (
-                <div className="relative overflow-hidden flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-rose-950/80 border border-rose-500/90 select-none shadow-sm font-mono">
-                  {/* Ultra-visible Sweeping Light Beam */}
+              {/* Interactive NSFW NANO Silicon Chip Button */}
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleX1?.();
+                }}
+                className={cn(
+                  "relative overflow-hidden flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-mono font-bold transition-all duration-200 select-none shadow-sm cursor-pointer active:scale-95",
+                  isX1Active
+                    ? "bg-gradient-to-r from-rose-950 via-red-900 to-rose-950 border border-rose-500/90 text-white shadow-rose-950/50 ring-1 ring-rose-500/40"
+                    : "bg-zinc-800/80 hover:bg-zinc-700/90 text-zinc-400 hover:text-zinc-200 border border-zinc-700/60 hover:border-rose-500/50"
+                )}
+                title={
+                  isX1Active
+                    ? "شريحة NSFW NANO مفعلة بالكامل (انقر للتعطيل)"
+                    : "تفعيل شريحة NSFW NANO (يتطلب بصمة الإصبع أو Face ID)"
+                }
+              >
+                {/* Sweeping metallic beam when active */}
+                {isX1Active && (
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shine-beam pointer-events-none" />
-                  
-                  {/* High-visibility Shimmering Metallic Text */}
-                  <span className="relative z-10 font-mono font-extrabold tracking-wide bg-gradient-to-r from-rose-200 via-white to-rose-300 bg-[length:200%_auto] bg-clip-text text-transparent animate-shine-text">
-                    NSFW NANO (+21 MAX)
-                  </span>
+                )}
+
+                <Cpu className={cn("w-3 h-3 transition-colors", isX1Active ? "text-rose-400" : "text-zinc-400")} />
+
+                <span className={cn(
+                  "font-mono font-bold tracking-tight text-[11px]",
+                  isX1Active
+                    ? "bg-gradient-to-r from-rose-200 via-white to-rose-300 bg-[length:200%_auto] bg-clip-text text-transparent animate-shine-text"
+                    : "text-zinc-300"
+                )}>
+                  {isX1Active ? "NSFW NANO (+21 MAX)" : "NSFW NANO"}
+                </span>
+
+                {isX1Active ? (
                   <DynamicBarsIcon level="X1 (+21)" />
-                </div>
-              )}
+                ) : (
+                  <span className="text-[9px] px-1 py-0.5 rounded bg-zinc-900 border border-zinc-700/60 text-zinc-400 font-semibold flex items-center gap-0.5">
+                    <Fingerprint className="w-2.5 h-2.5 text-rose-500" />
+                    <span>+21</span>
+                  </span>
+                )}
+              </button>
 
               {/* Image Upload Button (activates Fathom Cam automatically) */}
               <button

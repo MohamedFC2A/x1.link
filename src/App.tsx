@@ -351,6 +351,7 @@ export const App: React.FC = () => {
           isStreaming={isStreaming}
           onAbort={handleAbort}
           isX1Active={isX1Active}
+          onToggleX1={handleToggleX1}
           placeholder={isX1Active ? "اسأل X1 (+21) أي شيء تريده..." : "اسأل X1 أي شيء..."}
         />
       </div>
