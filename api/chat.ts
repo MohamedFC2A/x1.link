@@ -208,10 +208,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const requestPayload = {
     model: 'anthracite-org/magnum-v4-72b',
     messages: formattedMessages,
-    temperature: isX1Mode ? 0.88 : 0.85,
+    temperature: isX1Mode ? 0.8 : 0.75,
     top_p: 0.9,
-    min_p: 0.05,
-    repetition_penalty: 1.1,
+    frequency_penalty: 0.1,
+    presence_penalty: 0.1,
     stream: true,
     max_tokens: 4096,
   };
