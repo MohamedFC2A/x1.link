@@ -4,6 +4,17 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Protect server process from termination on stream disconnects / aborts
+process.on('uncaughtException', (err: any) => {
+  if (err?.name === 'AbortError' || err?.code === 'ABORT_ERR' || err?.message?.includes('aborted')) return;
+  console.error('[UNCAUGHT EXCEPTION]:', err);
+});
+
+process.on('unhandledRejection', (reason: any) => {
+  if (reason?.name === 'AbortError' || reason?.code === 'ABORT_ERR' || reason?.message?.includes('aborted')) return;
+  console.error('[UNHANDLED REJECTION]:', reason);
+});
+
 const app = express();
 const PORT = process.env.PORT || 5001;
 
@@ -157,20 +168,28 @@ app.get('/api/health', (_req: Request, res: Response) => {
 });
 
 // Helper function for automatic retry if provider returns 429 rate limit
-async function executeFetchWithRetry(url: string, options: any, maxRetries = 3): Promise<globalThis.Response> {
+async function executeFetchWithRetry(url: string, options: any, maxRetries = 3): Promise<globalThis.Response | null> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     if (options.signal?.aborted) {
-      throw new Error('Aborted by client');
+      return null;
     }
-    const res = await fetch(url, options);
-    if (res.status === 429 && attempt < maxRetries) {
-      console.warn(`[OpenRouter 429] Rate-limited. Retrying attempt ${attempt + 1}/${maxRetries} in 1.5s...`);
-      await new Promise(resolve => setTimeout(resolve, 1500 * attempt));
-      continue;
+    try {
+      const res = await fetch(url, options);
+      if (res.status === 429 && attempt < maxRetries) {
+        console.warn(`[OpenRouter 429] Rate-limited. Retrying attempt ${attempt + 1}/${maxRetries} in 1.5s...`);
+        await new Promise(resolve => setTimeout(resolve, 1500 * attempt));
+        continue;
+      }
+      return res;
+    } catch (err: any) {
+      if (err?.name === 'AbortError' || options.signal?.aborted) {
+        return null;
+      }
+      if (attempt === maxRetries) throw err;
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    return res;
   }
-  return await fetch(url, options);
+  return null;
 }
 
 // Multi-Tier Fathom Cam Vision Perception: Extracts comprehensive OCR and visual analysis from images
@@ -284,8 +303,9 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   res.on('close', () => {
     if (!res.writableEnded) {
       isClientDisconnected = true;
-      console.log('[X1-SERVER] Client closed connection prematurely.');
-      upstreamAbortController.abort();
+      try {
+        upstreamAbortController.abort();
+      } catch {}
       if (activeReader) {
         try {
           activeReader.cancel();
