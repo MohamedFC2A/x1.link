@@ -60,38 +60,38 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
 
         {/* Left / History & New Chat */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {onGoHome && (
             <button
               type="button"
               onClick={onGoHome}
-              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer active:scale-95"
+              className="flex items-center justify-center size-8 sm:size-auto sm:px-2.5 sm:py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer active:scale-95"
               title="صفحة الاستقبال"
             >
-              <Home className="w-3.5 h-3.5 text-zinc-400" />
-              <span className="hidden md:inline">الاستقبال</span>
+              <Home className="w-4 h-4 text-zinc-400" />
+              <span className="hidden lg:inline mr-1">الاستقبال</span>
             </button>
           )}
 
           <button
             type="button"
             onClick={onNewChat || onClearChat}
-            className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer active:scale-95"
+            className="flex items-center justify-center size-8 sm:size-auto sm:px-2.5 sm:py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer active:scale-95"
             title="محادثة جديدة"
           >
-            <Plus className="w-3.5 h-3.5 text-rose-400" />
-            <span className="hidden sm:inline">جديدة</span>
+            <Plus className="w-4 h-4 text-rose-400" />
+            <span className="hidden sm:inline mr-1">جديدة</span>
           </button>
 
           <button
             type="button"
             onClick={onOpenSidebar}
-            className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer active:scale-95"
+            className="flex items-center justify-center size-8 sm:size-auto sm:px-2.5 sm:py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer active:scale-95 relative"
             title="سجل المحادثات والمزامنة السحابية"
           >
-            <MessageSquare className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="hidden sm:inline">المحادثات</span>
-            {user && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+            <MessageSquare className="w-4 h-4 text-zinc-400" />
+            <span className="hidden sm:inline mr-1">المحادثات</span>
+            {user && <span className="absolute top-1 right-1 sm:static sm:mr-1 w-2 h-2 rounded-full bg-emerald-500" />}
           </button>
         </div>
 

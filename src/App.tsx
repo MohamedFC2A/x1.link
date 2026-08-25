@@ -312,7 +312,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full h-[100dvh] bg-[#09090b] text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-rose-600 selection:text-white" dir="rtl">
+    <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-[#09090b] text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-rose-600 selection:text-white" dir="rtl">
       
       {/* 18+ Mandatory Age Disclaimer Modal */}
       <DisclaimerModal

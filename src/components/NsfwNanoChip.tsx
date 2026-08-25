@@ -27,7 +27,7 @@ export const NsfwNanoChip: React.FC<NsfwNanoChipProps> = ({
     <button
       type="button"
       onClick={handleClick}
-      className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all duration-200 select-none overflow-hidden cursor-pointer active:scale-95 ${
+      className={`group relative flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[10px] sm:text-xs font-mono font-bold transition-all duration-200 select-none overflow-hidden cursor-pointer active:scale-95 shrink-0 ${
         isActive
           ? 'bg-rose-950/90 border-rose-600 text-white'
           : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200'
@@ -48,31 +48,31 @@ export const NsfwNanoChip: React.FC<NsfwNanoChipProps> = ({
 
       {/* Chip Core Icon */}
       <div
-        className={`relative flex items-center justify-center w-5 h-5 rounded-md border transition-all ${
+        className={`relative flex items-center justify-center size-4 sm:size-5 rounded-md border transition-all shrink-0 ${
           isActive
             ? 'bg-rose-600 border-rose-500 text-white'
             : 'bg-zinc-800 border-zinc-700 text-zinc-400 group-hover:text-rose-400'
         }`}
       >
-        <Cpu className="w-3 h-3" />
+        <Cpu className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
       </div>
 
       {/* Chip Label & Badge */}
-      <div className="flex items-center gap-1.5 text-right">
-        <span className="tracking-wider uppercase text-[11px] font-bold">
-          {isActive ? 'NSFW NANO // مفعّل' : 'NSFW NANO'}
+      <div className="flex items-center gap-1 sm:gap-1.5 text-right">
+        <span className="tracking-wider uppercase text-[9px] sm:text-[11px] font-bold">
+          {isActive ? 'NSFW NANO' : 'NSFW NANO'}
         </span>
 
         {/* Biometric Shield requirement pill */}
         <span
-          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold border transition-colors ${
+          className={`flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold border transition-colors ${
             isActive
               ? 'bg-rose-900 border-rose-500 text-rose-200'
               : 'bg-zinc-800 border-zinc-700 text-zinc-400'
           }`}
         >
-          <Fingerprint className="w-2.5 h-2.5" />
-          <span>+21 MAX</span>
+          <Fingerprint className="w-2 sm:w-2.5 h-2 sm:h-2.5" />
+          <span>+21</span>
         </span>
       </div>
     </button>

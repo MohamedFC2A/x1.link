@@ -450,7 +450,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 }
                 rows={1}
                 disabled={isRecording}
-                className="w-full bg-transparent text-zinc-100 text-sm sm:text-base leading-relaxed resize-none outline-none placeholder:text-zinc-500 font-sans max-h-40 min-h-[24px] py-1 px-1.5 selection:bg-rose-600 selection:text-white"
+                className="w-full bg-transparent text-zinc-100 text-[16px] sm:text-base leading-relaxed resize-none outline-none placeholder:text-zinc-500 font-sans max-h-36 min-h-[28px] py-1 px-1.5 selection:bg-rose-600 selection:text-white"
               />
             </div>
 
@@ -508,14 +508,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           </div>
 
           {/* Bottom Toolbar (Models, NSFW NANO Chip, Attachments) */}
-          <div className="flex items-center justify-between gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 border-t border-zinc-800/60 bg-zinc-950/40 rounded-b-2xl sm:rounded-b-3xl text-xs flex-wrap">
+          <div className="flex items-center justify-between gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 border-t border-zinc-800/60 bg-zinc-950/40 rounded-b-2xl sm:rounded-b-3xl text-xs overflow-x-auto no-scrollbar">
             
             {/* Right Group: Chips and Model Indicators */}
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-1.5 shrink-0">
               
               {/* Active Model Indicator */}
               <div
-                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] font-medium bg-zinc-800/80 text-zinc-300 border border-zinc-700/60 select-none shadow-sm"
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-medium bg-zinc-800/80 text-zinc-300 border border-zinc-700/60 select-none shadow-sm shrink-0"
                 title={isVisionMode ? "نموذج Fathom Cam للرؤية وتحليل الصور (مفعّل تلقائياً)" : "نموذج Fathom 1 الأساسي"}
               >
                 {isVisionMode ? (
@@ -537,7 +537,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   onToggleX1?.();
                 }}
                 className={cn(
-                  "relative overflow-hidden flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono font-bold transition-all duration-200 select-none shadow-sm cursor-pointer active:scale-95",
+                  "relative overflow-hidden flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono font-bold transition-all duration-200 select-none shadow-sm cursor-pointer active:scale-95 shrink-0",
                   isX1Active
                     ? "bg-gradient-to-r from-rose-950 via-red-900 to-rose-950 border border-rose-500/90 text-white shadow-rose-950/50 ring-1 ring-rose-500/40"
                     : "bg-zinc-800/80 hover:bg-zinc-750 text-zinc-400 hover:text-zinc-200 border border-zinc-700/60 hover:border-rose-500/50"
@@ -569,13 +569,13 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             </div>
 
             {/* Left Group: Image attachment button */}
-            <div className="flex items-center gap-1 mr-auto">
+            <div className="flex items-center gap-1 mr-auto shrink-0">
               <button
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => fileInputRef.current?.click()}
                 disabled={attachments.length >= maxAttachments}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg sm:rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700/60 text-[11px] font-medium transition-all cursor-pointer shadow-sm active:scale-95"
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700/60 text-[10px] sm:text-[11px] font-medium transition-all cursor-pointer shadow-sm active:scale-95"
                 title="إرفاق صورة لتحليلها بـ Fathom Cam"
               >
                 <Camera className="w-3.5 h-3.5 text-zinc-400 hover:text-white" />
