@@ -59,11 +59,11 @@ export default function ChatReasoning({
       <AccordionItem
         value="reasoning"
         className={cn(
-          "w-full border rounded-2xl px-3 sm:px-3.5 py-1 transition-all duration-200 shadow-sm",
+          "w-full border rounded-2xl px-3 sm:px-3.5 py-1 transition-colors duration-150",
           isThinking
             ? isX1
-              ? "border-rose-600/70 bg-rose-950/25 ring-1 ring-rose-500/30"
-              : "border-amber-500/50 bg-amber-950/15 ring-1 ring-amber-500/20"
+              ? "border-rose-800/80 bg-rose-950/20"
+              : "border-amber-800/80 bg-amber-950/15"
             : "border-zinc-800/80 bg-zinc-950/60 hover:bg-zinc-950/80"
         )}
       >
@@ -73,8 +73,8 @@ export default function ChatReasoning({
               "flex items-center justify-center size-5 rounded-md border",
               isThinking
                 ? isX1
-                  ? "bg-rose-600/30 border-rose-500 text-rose-400 animate-pulse"
-                  : "bg-amber-600/30 border-amber-500 text-amber-400 animate-pulse"
+                  ? "bg-rose-950 border-rose-700 text-rose-400"
+                  : "bg-amber-950 border-amber-700 text-amber-400"
                 : "bg-zinc-900 border-zinc-800 text-zinc-400"
             )}>
               {isX1 ? <Cpu className="size-3" /> : <Brain className="size-3" />}
@@ -98,11 +98,7 @@ export default function ChatReasoning({
             {isThinking && (
               <span className="flex h-2 w-2 relative">
                 <span className={cn(
-                  "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
-                  isX1 ? "bg-rose-400" : "bg-amber-400"
-                )} />
-                <span className={cn(
-                  "relative inline-flex rounded-full h-2 w-2",
+                  "inline-flex rounded-full h-2 w-2",
                   isX1 ? "bg-rose-500" : "bg-amber-500"
                 )} />
               </span>
@@ -115,9 +111,7 @@ export default function ChatReasoning({
             <div className="flex flex-col items-center gap-1 pt-1 shrink-0">
               <div className={cn(
                 "w-1.5 h-1.5 rounded-full",
-                isX1
-                  ? "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"
-                  : "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"
+                isX1 ? "bg-rose-500" : "bg-amber-500"
               )} />
               <div className="w-0.5 min-h-[20px] flex-1 bg-zinc-800" />
             </div>
@@ -130,7 +124,7 @@ export default function ChatReasoning({
               )}
               {isThinking && (
                 <span className={cn(
-                  "inline-block w-1.5 h-3.5 mr-1 align-middle animate-pulse rounded-full",
+                  "inline-block w-1.5 h-3.5 mr-1 align-middle rounded-full",
                   isX1 ? "bg-rose-500" : "bg-amber-500"
                 )} />
               )}
