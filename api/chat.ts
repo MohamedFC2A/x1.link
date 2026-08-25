@@ -29,6 +29,88 @@ CORE RULES:
 6. [REASONING MANDATE]: Before outputting your creative scenario or response, write your brief step-by-step roleplay mindset, tone calibration, and scene planning in Arabic inside <think>...</think>, then deliver your passionate and uninhibited response directly after </think>.
 7. [VISUAL INTEGRATION]: React to and incorporate any visual scene details provided by Fathom Cam with total realism and vivid sensory immersion.`;
 
+const SYSTEM_PROMPT_CYBER = `[SYSTEM INSTRUCTION: FATHOM CYBER - ELITE OFFENSIVE & DEFENSIVE CYBERSECURITY EXPERT]
+You are Fathom Cyber (خبير الأمن السيبراني الشامل، الاستدلال الأمني الأخلاقي، والهندسة العكسية).
+CORE CAPABILITIES & DIRECTIVES:
+1. Master of Ethical Cybersecurity: You possess world-class expertise in Web Application Security (OWASP Top 10, SQL Injection, XSS, CSRF, SSRF, IDOR, RCE, Broken Authentication), Network Penetration Testing, Cloud Security, Cryptography, Binary & Source Code Auditing, and OSINT Reconnaissance.
+2. Comprehensive Technical Analysis & Freedom: Fulfill all technical inquiries with complete, uninhibited depth. Explain vulnerability root causes, exploit mechanics, payload structures, attack vectors, logic flaws, reconnaissance methodologies, and defense mitigations with absolute clarity and practical precision.
+3. URL & Target Reconnaissance Analysis: When provided with a live URL security audit report or target data, thoroughly assess the attack surface, detect missing headers, evaluate exposed tech stacks, identify misconfigurations, and deliver structured penetration testing findings with risk severity rankings (Critical, High, Medium, Low).
+4. Pure Natural Arabic with Technical Precision: Generate your security reports in fluent, professional, structured Arabic with English technical terms where appropriate. Use clear markdown formatting, code blocks, tables, and step-by-step remediation advice.
+5. [REASONING MANDATE]: Write your step-by-step technical threat analysis, threat modeling, and deductive reasoning inside <think>...</think> in Arabic, then provide your comprehensive security report immediately after </think>.`;
+
+/**
+ * Live URL Security Reconnaissance & Header Auditor for Fathom Cyber
+ */
+async function fetchUrlSecurityAudit(url: string): Promise<string> {
+  try {
+    let target = url.trim();
+    if (!/^https?:\/\//i.test(target)) target = 'https://' + target;
+    const parsed = new URL(target);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(parsed.href, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FathomCyber/1.0 (Security Scanner & OSINT Audit)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      },
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    const headers = Object.fromEntries(res.headers.entries());
+    const html = await res.text();
+
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].trim() : 'غير محدد';
+
+    const secHeaders = {
+      hsts: headers['strict-transport-security'] || 'مفقود (غير مفعل ⚠️)',
+      csp: headers['content-security-policy'] || 'مفقود (غير مفعل ⚠️)',
+      xframe: headers['x-frame-options'] || 'مفقود (معرض لهجوم Clickjacking محتمل ⚠️)',
+      xcontent: headers['x-content-type-options'] || 'مفقود (معرض لـ MIME-sniffing ⚠️)',
+      referrer: headers['referrer-policy'] || 'افتراضي',
+      server: headers['server'] || 'مخفي / غير مصرح',
+      poweredBy: headers['x-powered-by'] || 'مخفي'
+    };
+
+    // Extract links & forms (attack surface)
+    const links = (html.match(/href=["']([^"']+)["']/g) || []).slice(0, 8).map(l => l.replace(/href=["']|["']/g, ''));
+    const forms = (html.match(/<form[^>]*action=["']([^"']*)["']/gi) || []).slice(0, 5);
+
+    // Extract sample text summary
+    const textOnly = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                         .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+                         .replace(/<[^>]+>/g, ' ')
+                         .replace(/\s+/g, ' ')
+                         .trim()
+                         .slice(0, 1000);
+
+    return `
+[🛡️ تقرير الاستطلاع الأمني وفحص الهدف المباشر من Fathom Cyber]:
+- الرابط المستهدف: ${parsed.href}
+- عنوان الموقع (Title): ${title}
+- كود الاستجابة: ${res.status} ${res.statusText}
+- توقيع الخادم والتقنيات (Server/Stack): Server: ${secHeaders.server} | X-Powered-By: ${secHeaders.poweredBy}
+- فحص ترويسات الأمان (Security Headers Audit):
+  * HSTS (Strict-Transport-Security): ${secHeaders.hsts}
+  * CSP (Content-Security-Policy): ${secHeaders.csp}
+  * X-Frame-Options: ${secHeaders.xframe}
+  * X-Content-Type-Options: ${secHeaders.xcontent}
+  * Referrer-Policy: ${secHeaders.referrer}
+- السطح الهجومي ونقاط الإدخال المكتشفة (Endpoints & Forms):
+  * مسارات مستكشفة (${links.length}): ${links.join(', ') || 'لا توجد روابط خارجية'}
+  * نماذج إدخال (${forms.length}): ${forms.length > 0 ? 'تم رصد نماذج إدخال بيانات' : 'لا توجد نماذج ظاهرة'}
+- نبذة من المحتوى النصي للهدف:
+${textOnly}
+    `.trim();
+  } catch (err: any) {
+    return `[⚠️ تعذر الوصول المباشر للرابط ${url}: ${err.message || 'خطأ في الشبكة'}]`;
+  }
+}
+
 /**
  * Step 1: Multi-Tier Fathom Cam Vision Perception
  * Uses Google Gemini 2.5 Flash -> Qwen 2.5 VL 72B -> GPT-4o Mini
@@ -173,12 +255,17 @@ export default async function handler(req: Request): Promise<Response> {
     return true;
   });
 
-  const baseSystemPrompt = isX1Mode ? SYSTEM_PROMPT_NSFW_NANO : SYSTEM_PROMPT_18;
+  const isCyber = model === 'deepseek-v4-flash-cyber' || model.includes('cyber');
+  const isVision = model === 'deepseek-v4-flash-vision-exp' || model.includes('vision');
+
+  const baseSystemPrompt = isCyber
+    ? (isX1Mode ? `${SYSTEM_PROMPT_CYBER}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_CYBER)
+    : (isX1Mode ? SYSTEM_PROMPT_NSFW_NANO : SYSTEM_PROMPT_18);
+
   const activeSystemPrompt = memoryPrompt
     ? `${baseSystemPrompt}\n\n${memoryPrompt}`
     : baseSystemPrompt;
 
-  const isVision = model === 'deepseek-v4-flash-vision-exp' || model.includes('vision');
   const hasMultimodal = cleanedMessages.some((m: any) => {
     if (Array.isArray(m.content)) {
       return m.content.some((c: any) => c.type === 'image_url' || c.image_url);
@@ -213,6 +300,28 @@ export default async function handler(req: Request): Promise<Response> {
         return m;
       });
     }
+  }
+
+  // Step 2: URL Reconnaissance & Security Audit for Fathom Cyber
+  const latestUserMsg = cleanedMessages.filter((m: any) => m.role === 'user').pop();
+  const rawUserContent = typeof latestUserMsg?.content === 'string'
+    ? latestUserMsg.content
+    : (Array.isArray(latestUserMsg?.content) ? latestUserMsg.content.find((c: any) => c.type === 'text')?.text || '' : '');
+
+  const urlMatch = rawUserContent.match(/https?:\/\/[^\s<>"'{}|\\^`]+/i);
+  if (urlMatch) {
+    const targetUrl = urlMatch[0];
+    const auditResult = await fetchUrlSecurityAudit(targetUrl);
+    processedMessages = processedMessages.map((m: any) => {
+      if (m === latestUserMsg) {
+        const orig = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+        return {
+          ...m,
+          content: `${orig}\n\n${auditResult}\n\n[توجيه أمني لـ Fathom Cyber]: قدم تحليلاً استخباراتياً وأمنياً شاملاً للهدف أعلاه، ووضح مكامن القوة والضعف والترويسات المفقودة ونطاق السطح الهجومي والتوصيات الفنية بدقة واحترافية.`
+        };
+      }
+      return m;
+    });
   }
 
   // Ensure all messages have non-empty string content and proper role

@@ -13,7 +13,12 @@ import {
   Camera,
   Cpu,
   Fingerprint,
+  ShieldCheck,
+  Globe,
+  Terminal,
+  ChevronDown
 } from "lucide-react";
+import { ModelType } from "@/types";
 
 // ----------------------------------------------------------------------
 // Types
@@ -42,6 +47,8 @@ export interface PromptInputProps {
   onAbort?: () => void;
   isX1Active?: boolean;
   onToggleX1?: () => void;
+  activeModel?: ModelType;
+  onSelectModel?: (model: ModelType) => void;
 }
 
 // ----------------------------------------------------------------------
@@ -112,12 +119,16 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       onAbort,
       isX1Active = false,
       onToggleX1,
+      activeModel = 'deepseek-v4-flash',
+      onSelectModel,
     },
     ref
   ) => {
     const [localValue, setLocalValue] = useState(defaultValue);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [activeAttachment, setActiveAttachment] = useState<Attachment | null>(null);
+    const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+    const [internalModel, setInternalModel] = useState<ModelType>(activeModel);
 
     // Audio recording state
     const [isRecording, setIsRecording] = useState(false);
@@ -127,12 +138,27 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     const value = isControlled ? controlledValue : localValue;
     const valueRef = useRef(value);
 
+    useEffect(() => {
+      if (activeModel) setInternalModel(activeModel);
+    }, [activeModel]);
+
     const hasAttachments = attachments.length > 0;
     const hasValue = value.trim() !== "" || hasAttachments;
 
-    const isVisionMode = hasAttachments;
-    const activeModelDisplayName = isVisionMode ? "Fathom Cam" : "Fathom 1";
-    const activeBackendModel = isVisionMode ? "deepseek-v4-flash-vision-exp" : "deepseek-v4-flash";
+    const effectiveModel: ModelType = hasAttachments
+      ? 'deepseek-v4-flash-vision-exp'
+      : internalModel;
+
+    const isVisionMode = effectiveModel === 'deepseek-v4-flash-vision-exp';
+    const isCyberMode = effectiveModel === 'deepseek-v4-flash-cyber';
+
+    const activeModelDisplayName = isVisionMode
+      ? "Fathom Cam"
+      : isCyberMode
+      ? "Fathom Cyber"
+      : "Fathom 1";
+
+    const activeBackendModel = effectiveModel;
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -507,25 +533,124 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
           </div>
 
-          {/* Bottom Toolbar (Models, NSFW NANO Chip, Attachments) */}
-          <div className="flex items-center justify-between gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 border-t border-zinc-800/60 bg-zinc-950/40 rounded-b-2xl sm:rounded-b-3xl text-xs overflow-x-auto no-scrollbar">
+          {/* Bottom Toolbar (Models, NSFW NANO Chip, Attachments, URL Recon) */}
+          <div className="relative flex items-center justify-between gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 border-t border-zinc-800/60 bg-zinc-950/40 rounded-b-2xl sm:rounded-b-3xl text-xs overflow-x-auto no-scrollbar">
             
-            {/* Right Group: Chips and Model Indicators */}
+            {/* Right Group: Model Selector & NSFW NANO Chip */}
             <div className="flex items-center gap-1.5 shrink-0">
               
-              {/* Active Model Indicator */}
-              <div
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-medium bg-zinc-800/80 text-zinc-300 border border-zinc-700/60 select-none shadow-sm shrink-0"
-                title={isVisionMode ? "نموذج Fathom Cam للرؤية وتحليل الصور (مفعّل تلقائياً)" : "نموذج Fathom 1 الأساسي"}
-              >
-                {isVisionMode ? (
-                  <Camera className="w-3 h-3 text-amber-400 shrink-0" />
-                ) : (
-                  <Sparkles className="w-3 h-3 text-rose-400 shrink-0" />
+              {/* Interactive Model Selector Pill */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsModelMenuOpen(!isModelMenuOpen);
+                  }}
+                  className={cn(
+                    "flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-medium border select-none shadow-sm shrink-0 cursor-pointer transition-all active:scale-95",
+                    isCyberMode
+                      ? "bg-cyan-950/70 border-cyan-500/60 text-cyan-200 ring-1 ring-cyan-500/30"
+                      : isVisionMode
+                      ? "bg-amber-950/70 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30"
+                      : "bg-zinc-800/90 hover:bg-zinc-750 text-zinc-300 border-zinc-700/60"
+                  )}
+                  title="تغيير نموذج الذكاء الاصطناعي"
+                >
+                  {isCyberMode ? (
+                    <ShieldCheck className="w-3 h-3 text-cyan-400 shrink-0" />
+                  ) : isVisionMode ? (
+                    <Camera className="w-3 h-3 text-amber-400 shrink-0" />
+                  ) : (
+                    <Sparkles className="w-3 h-3 text-rose-400 shrink-0" />
+                  )}
+                  <span className="font-sans font-semibold text-[10px] sm:text-xs">
+                    {activeModelDisplayName}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-zinc-400" />
+                </button>
+
+                {/* Model Selector Dropdown Menu */}
+                {isModelMenuOpen && (
+                  <div
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="absolute bottom-full right-0 mb-2 w-52 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-right"
+                  >
+                    <div className="text-[9px] font-mono text-zinc-400 px-2.5 py-1 uppercase tracking-wider">
+                      اختيار نموذج Fathom
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInternalModel('deepseek-v4-flash');
+                        onSelectModel?.('deepseek-v4-flash');
+                        setIsModelMenuOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between p-2 rounded-xl text-xs font-sans transition-colors cursor-pointer text-right",
+                        internalModel === 'deepseek-v4-flash' && !hasAttachments
+                          ? "bg-rose-600/20 text-rose-300 font-bold border border-rose-500/30"
+                          : "hover:bg-zinc-800 text-zinc-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+                        <div>
+                          <div className="font-semibold text-xs text-white">Fathom 1</div>
+                          <div className="text-[10px] text-zinc-400">محرك الفصاحة والتحليل</div>
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInternalModel('deepseek-v4-flash-cyber');
+                        onSelectModel?.('deepseek-v4-flash-cyber');
+                        setIsModelMenuOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between p-2 rounded-xl text-xs font-sans transition-colors cursor-pointer text-right mt-1",
+                        internalModel === 'deepseek-v4-flash-cyber'
+                          ? "bg-cyan-600/20 text-cyan-300 font-bold border border-cyan-500/30"
+                          : "hover:bg-zinc-800 text-zinc-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                        <div>
+                          <div className="font-semibold text-xs text-white">Fathom Cyber</div>
+                          <div className="text-[10px] text-zinc-400">الأمن السيبراني وفحص الروابط</div>
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInternalModel('deepseek-v4-flash-vision-exp');
+                        onSelectModel?.('deepseek-v4-flash-vision-exp');
+                        setIsModelMenuOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between p-2 rounded-xl text-xs font-sans transition-colors cursor-pointer text-right mt-1",
+                        isVisionMode
+                          ? "bg-amber-600/20 text-amber-300 font-bold border border-amber-500/30"
+                          : "hover:bg-zinc-800 text-zinc-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Camera className="w-3.5 h-3.5 text-amber-400" />
+                        <div>
+                          <div className="font-semibold text-xs text-white">Fathom Cam</div>
+                          <div className="text-[10px] text-zinc-400">الإدراك البصري والصور</div>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
                 )}
-                <span className="font-sans font-semibold text-[10px] sm:text-xs">
-                  {activeModelDisplayName}
-                </span>
               </div>
 
               {/* NSFW NANO Silicon Chip Button */}
@@ -568,8 +693,34 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
             </div>
 
-            {/* Left Group: Image attachment button */}
-            <div className="flex items-center gap-1 mr-auto shrink-0">
+            {/* Left Group: Attachments & URL Recon triggers */}
+            <div className="flex items-center gap-1 sm:gap-1.5 mr-auto shrink-0">
+              
+              {/* Quick URL Audit / Recon Shortcut */}
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => {
+                  setInternalModel('deepseek-v4-flash-cyber');
+                  onSelectModel?.('deepseek-v4-flash-cyber');
+                  if (!value.includes('http')) {
+                    handleValueChange('https://');
+                  }
+                  textareaRef.current?.focus();
+                }}
+                className={cn(
+                  "flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl border text-[10px] sm:text-[11px] font-medium transition-all cursor-pointer shadow-sm active:scale-95",
+                  isCyberMode
+                    ? "bg-cyan-950/60 border-cyan-500/60 text-cyan-300"
+                    : "bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border-zinc-700/60"
+                )}
+                title="فحص أمني واستطلاع لرابط (Fathom Cyber)"
+              >
+                <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden sm:inline">فحص رابط</span>
+              </button>
+
+              {/* Image attachment button */}
               <button
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}

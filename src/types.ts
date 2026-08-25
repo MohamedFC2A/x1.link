@@ -1,4 +1,4 @@
-export type ModelType = 'deepseek-v4-flash' | 'deepseek-v4-flash-vision-exp';
+export type ModelType = 'deepseek-v4-flash' | 'deepseek-v4-flash-vision-exp' | 'deepseek-v4-flash-cyber';
 
 export interface ImageAttachment {
   name: string;
@@ -15,6 +15,7 @@ export interface ChatMessageItem {
   image?: string;
   timestamp: string;
   isX1?: boolean;
+  model?: ModelType;
   tokensCount?: number;
 }
 

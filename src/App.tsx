@@ -165,6 +165,7 @@ export const App: React.FC = () => {
       image: attachedImageDataUrl,
       timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
       isX1: isX1Active,
+      model: chosenModel,
     };
 
     const assistantPlaceholderId = 'assistant-' + Date.now();
@@ -174,6 +175,7 @@ export const App: React.FC = () => {
       content: '',
       timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
       isX1: isX1Active,
+      model: chosenModel,
     };
 
     const newMessagesList = [...messages, userMessage];
@@ -395,6 +397,8 @@ export const App: React.FC = () => {
           {/* Top Bar for Chat Room */}
           <TopBar
             isX1Active={isX1Active}
+            activeModel={activeModel}
+            onSelectModel={setActiveModel}
             user={user}
             onToggleX1={handleToggleX1}
             onOpenSidebar={() => setIsSidebarOpen(true)}
@@ -437,7 +441,15 @@ export const App: React.FC = () => {
               onAbort={handleAbort}
               isX1Active={isX1Active}
               onToggleX1={handleToggleX1}
-              placeholder={isX1Active ? "اسأل X1 (+21) أي شيء تريده..." : "اسأل X1 أي شيء..."}
+              activeModel={activeModel}
+              onSelectModel={setActiveModel}
+              placeholder={
+                activeModel === 'deepseek-v4-flash-cyber'
+                  ? "اسأل Fathom Cyber عن فحص الروابط أو تدقيق الحماية..."
+                  : isX1Active
+                  ? "اسأل X1 (+21) أي شيء تريده..."
+                  : "اسأل Fathom 1 أي شيء..."
+              }
             />
           </div>
 

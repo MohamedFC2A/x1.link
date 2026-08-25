@@ -212,9 +212,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             {/* Card 3: Fathom Cam */}
+            {/* Card 3: Fathom Cam */}
             <div
               onClick={() => onSelectPreset('كيف يعمل مسار الرؤية المزدوج عند إرفاق الصور وكيف يستخرج التفاصيل بدقة؟')}
-              className="shrink-0 snap-center w-[260px] sm:w-64 h-64 sm:h-76 rounded-2xl sm:rounded-3xl p-4 sm:p-5 bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 transition-all duration-200 sm:transform sm:rotate-3 sm:hover:rotate-0 sm:hover:scale-105 cursor-pointer flex flex-col justify-between text-right group shadow-xl active:scale-95"
+              className="shrink-0 snap-center w-[260px] sm:w-64 h-64 sm:h-76 rounded-2xl sm:rounded-3xl p-4 sm:p-5 bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 transition-all duration-200 sm:transform sm:rotate-2 sm:hover:rotate-0 sm:hover:scale-105 cursor-pointer flex flex-col justify-between text-right group shadow-xl active:scale-95"
             >
               <div className="flex items-center justify-between">
                 <div className="size-9 sm:size-10 rounded-xl sm:rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 group-hover:text-white transition-colors">
@@ -240,10 +241,40 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
+            {/* Card 4: Fathom Cyber */}
+            <div
+              onClick={() => onSelectPreset('افحص هذا الرابط أمنياً واستخرج كافة المعلومات والترويسات ونقاط السطح الهجومي https://x1-link.vercel.app')}
+              className="shrink-0 snap-center w-[260px] sm:w-64 h-64 sm:h-76 rounded-2xl sm:rounded-3xl p-4 sm:p-5 bg-zinc-900/90 border border-cyan-900/40 hover:border-cyan-500/60 transition-all duration-200 sm:transform sm:rotate-3 sm:hover:rotate-0 sm:hover:scale-105 cursor-pointer flex flex-col justify-between text-right group shadow-xl active:scale-95"
+            >
+              <div className="flex items-center justify-between">
+                <div className="size-9 sm:size-10 rounded-xl sm:rounded-2xl bg-cyan-950/60 border border-cyan-500/40 flex items-center justify-center text-cyan-400 group-hover:text-white transition-colors">
+                  <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
+                </div>
+                <span className="text-[9px] sm:text-[10px] font-mono font-bold px-2 sm:px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40">
+                  FATHOM CYBER
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-white mb-1 group-hover:text-cyan-300 transition-colors font-sans">
+                  الأمن السيبراني وفحص الروابط
+                </h3>
+                <p className="text-[11px] sm:text-xs text-zinc-400 leading-relaxed font-sans line-clamp-3">
+                  استطلاع واستخراج أمني شامل للروابط والمواقع، وتحليل الثغرات، وترويسات الأمان والسطح الهجومي.
+                </p>
+              </div>
+
+              <div className="pt-2 sm:pt-3 border-t border-zinc-800 flex items-center justify-between text-[10px] sm:text-[11px] text-cyan-300 font-mono font-semibold">
+                <span>فحص أمني</span>
+                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+              </div>
+            </div>
+
           </div>
 
           {/* Swipe indicator for mobile */}
           <div className="flex sm:hidden items-center justify-center gap-1.5 pt-2">
+            <span className="size-1.5 rounded-full bg-zinc-600" />
             <span className="size-1.5 rounded-full bg-zinc-600" />
             <span className="size-2 rounded-full bg-rose-500" />
             <span className="size-1.5 rounded-full bg-zinc-600" />

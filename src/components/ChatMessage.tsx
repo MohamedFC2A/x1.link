@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessageItem } from '../types';
 import ChatReasoning, { ReasoningStep } from './ui/chat-reasoning';
-import { Check, Copy, Bot, Flame, X } from 'lucide-react';
+import { Check, Copy, Bot, Flame, X, ShieldCheck, Sparkles, Camera } from 'lucide-react';
 
 interface ChatMessageProps {
   message: ChatMessageItem;
@@ -93,21 +93,42 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
     );
   }
 
+  const isCyber = message.model === 'deepseek-v4-flash-cyber';
+  const isVision = message.model === 'deepseek-v4-flash-vision-exp';
+
   return (
     <div className="flex flex-col my-2.5 sm:my-3 w-full animate-in fade-in duration-200">
       
       {/* Assistant Header Tag */}
       <div className="flex items-center gap-1.5 sm:gap-2 mb-1 px-1 select-none">
         <div className={`flex items-center justify-center size-5 sm:size-6 rounded-lg ${
-          message.isX1
+          isCyber
+            ? 'bg-cyan-950 text-cyan-400 border border-cyan-500/40'
+            : isVision
+            ? 'bg-amber-950 text-amber-400 border border-amber-500/40'
+            : message.isX1
             ? 'bg-rose-600/20 text-rose-500 border border-rose-500/30'
             : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
         }`}>
-          {message.isX1 ? <Flame className="w-3 sm:w-3.5 h-3 sm:h-3.5 fill-current" /> : <Bot className="w-3 sm:w-3.5 h-3 sm:h-3.5" />}
+          {isCyber ? (
+            <ShieldCheck className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+          ) : isVision ? (
+            <Camera className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+          ) : message.isX1 ? (
+            <Flame className="w-3 sm:w-3.5 h-3 sm:h-3.5 fill-current" />
+          ) : (
+            <Sparkles className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+          )}
         </div>
 
         <span className="font-semibold text-xs text-zinc-200">
-          {message.isX1 ? 'X1 (+21)' : 'X1 AI'}
+          {isCyber
+            ? 'Fathom Cyber'
+            : isVision
+            ? 'Fathom Cam'
+            : message.isX1
+            ? 'X1 (+21 MAX)'
+            : 'Fathom 1'}
         </span>
 
         <span className="text-[9px] sm:text-[10px] text-zinc-500 font-mono">
@@ -117,7 +138,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
 
       {/* Assistant Message Bubble */}
       <div className={`w-full rounded-2xl p-3.5 sm:p-5 text-right border transition-colors ${
-        message.isX1
+        isCyber
+          ? 'bg-zinc-900/90 border-cyan-900/40 text-zinc-100'
+          : message.isX1
           ? 'bg-zinc-900/90 border-rose-900/30 text-zinc-100'
           : 'bg-zinc-900/60 border-zinc-800 text-zinc-100'
       }`}>

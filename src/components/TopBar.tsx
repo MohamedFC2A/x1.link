@@ -19,6 +19,8 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({
   isX1Active,
+  activeModel = 'deepseek-v4-flash',
+  onSelectModel,
   user,
   onToggleX1,
   onOpenSidebar,
@@ -46,7 +48,11 @@ export const TopBar: React.FC<TopBarProps> = ({
               X1.link
             </span>
             <span className="text-[8px] sm:text-[9px] text-zinc-500 font-mono">
-              FATHOM AI
+              {activeModel === 'deepseek-v4-flash-cyber'
+                ? 'FATHOM CYBER'
+                : activeModel === 'deepseek-v4-flash-vision-exp'
+                ? 'FATHOM CAM'
+                : 'FATHOM AI'}
             </span>
           </div>
         </div>
