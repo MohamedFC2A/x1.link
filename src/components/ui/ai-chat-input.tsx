@@ -3,13 +3,17 @@
 import * as React from "react";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Plus, X, ArrowUp, Mic, Square, Sparkles, Camera, Cpu, Fingerprint } from "lucide-react";
-
-// ----------------------------------------------------------------------
-// Transition Physics
-// ----------------------------------------------------------------------
-const SPRING_TRANSITION = "max-width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
-const SMOOTH_HEIGHT_TRANSITION = "max-width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), height 0.15s ease-out";
+import {
+  Plus,
+  X,
+  ArrowUp,
+  Mic,
+  Square,
+  Sparkles,
+  Camera,
+  Cpu,
+  Fingerprint,
+} from "lucide-react";
 
 // ----------------------------------------------------------------------
 // Types
@@ -22,211 +26,6 @@ export interface Attachment {
   width?: number;
   height?: number;
 }
-
-// ----------------------------------------------------------------------
-// Sub-components
-// ----------------------------------------------------------------------
-function MorphingText({ text }: { text: string }) {
-  const [width, setWidth] = useState<number | "auto">("auto");
-  const spanRef = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (spanRef.current) {
-      setWidth(spanRef.current.offsetWidth);
-    }
-  }, [text]);
-
-  return (
-    <span
-      className="relative inline-flex items-center justify-center overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]"
-      style={{ width }}
-    >
-      <span ref={spanRef} className="invisible whitespace-nowrap px-1">
-        {text}
-      </span>
-      <span
-        key={text}
-        className="absolute inset-0 flex items-center justify-center whitespace-nowrap animate-in fade-in zoom-in-95 duration-300"
-      >
-        {text}
-      </span>
-    </span>
-  );
-}
-
-function DynamicBarsIcon({ level }: { level: string }) {
-  const isMediumOrHigh = level === "Deep Reasoning" || level === "X1 (+21)";
-  const isHigh = level === "X1 (+21)";
-
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true" className={level === "X1 (+21)" ? "text-rose-500" : "text-zinc-400"}>
-      <rect x="1.5" y="8" width="2.5" height="4.5" rx="1" fill="currentColor" opacity={1} />
-      <rect x="5.75" y="5" width="2.5" height="7.5" rx="1" fill="currentColor" opacity={isMediumOrHigh ? 1 : 0.3} />
-      <rect x="10" y="2" width="2.5" height="10.5" rx="1" fill="currentColor" opacity={isHigh ? 1 : 0.3} />
-    </svg>
-  );
-}
-
-// ----------------------------------------------------------------------
-// Attachment Thumbnail
-// ----------------------------------------------------------------------
-function AttachmentThumb({
-  attachment,
-  index,
-  onRemove,
-  onOpen,
-  registerRef,
-}: {
-  attachment: Attachment;
-  index: number;
-  onRemove: (id: string) => void;
-  onOpen: (attachment: Attachment, rect: DOMRect) => void;
-  registerRef: (id: string, el: HTMLButtonElement | null) => void;
-}) {
-  const [isHovered, setIsHovered] = useState(false);
-  const btnRef = useRef<HTMLButtonElement | null>(null);
-
-  return (
-    <button
-      ref={(el) => {
-        btnRef.current = el;
-        registerRef(attachment.id, el);
-      }}
-      type="button"
-      onMouseDown={(e) => e.preventDefault()}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (btnRef.current) {
-          onOpen(attachment, btnRef.current.getBoundingClientRect());
-        }
-      }}
-      style={{ animationDelay: `${index * 35}ms`, animationFillMode: "backwards" }}
-      className={cn(
-        "group relative size-12 shrink-0 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-800 outline-none",
-        "transition-transform duration-200 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] hover:scale-[1.04] active:scale-[0.96]",
-        "animate-in fade-in slide-in-from-top-3 zoom-in-90 duration-400"
-      )}
-      aria-label={`Open preview of ${attachment.name}`}
-    >
-      <img src={attachment.url} alt={attachment.name} className="size-full object-cover" draggable={false} />
-      <span className={cn("absolute inset-0 flex items-start justify-end bg-black/0 transition-colors duration-200", isHovered && "bg-black/50")}>
-        <span
-          role="button" tabIndex={-1}
-          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-          onClick={(e) => { e.stopPropagation(); onRemove(attachment.id); }}
-          className={cn(
-            "m-1 flex size-4 items-center justify-center rounded-full bg-zinc-900/90 text-zinc-300 shadow-sm transition-all duration-200 hover:bg-rose-600 hover:text-white",
-            isHovered ? "opacity-100 scale-100" : "opacity-0 scale-50 pointer-events-none"
-          )}
-          aria-label={`Remove ${attachment.name}`}
-        >
-          <X className="w-2.5 h-2.5" />
-        </span>
-      </span>
-    </button>
-  );
-}
-
-// ----------------------------------------------------------------------
-// Shared-Element Gallery Modal
-// ----------------------------------------------------------------------
-function AttachmentGalleryModal({
-  attachment,
-  originRect,
-  onClose,
-}: {
-  attachment: Attachment;
-  originRect: DOMRect;
-  onClose: () => void;
-}) {
-  const [phase, setPhase] = useState<"opening" | "open" | "closing">("opening");
-  const [targetRect, setTargetRect] = useState<{
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-    radius: number;
-  } | null>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
-
-  useEffect(() => {
-    const maxW = Math.min(window.innerWidth * 0.88, 560);
-    const maxH = Math.min(window.innerHeight * 0.8, 720);
-
-    const naturalW = attachment.width || 800;
-    const naturalH = attachment.height || 600;
-    const scale = Math.min(maxW / naturalW, maxH / naturalH, 1.6);
-
-    const width = naturalW * scale;
-    const height = naturalH * scale;
-
-    setTargetRect({
-      top: (window.innerHeight - height) / 2,
-      left: (window.innerWidth - width) / 2,
-      width,
-      height,
-      radius: 16,
-    });
-
-    const raf = requestAnimationFrame(() => setPhase("open"));
-    return () => cancelAnimationFrame(raf);
-  }, [attachment]);
-
-  const handleClose = useCallback(() => setPhase("closing"), []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") handleClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", handleClose);
-  }, [handleClose]);
-
-  const isOpen = phase === "open";
-  const isClosing = phase === "closing";
-
-  const geometry = isOpen && targetRect
-      ? targetRect
-      : { top: originRect.top, left: originRect.left, width: originRect.width, height: originRect.height, radius: 12 };
-
-  const animEasing = isClosing ? "ease-out" : "cubic-bezier(0.175, 0.885, 0.32, 1.275)";
-  const animDur = isClosing ? "0.3s" : "0.45s";
-  const flipTransition = `top ${animDur} ${animEasing}, left ${animDur} ${animEasing}, width ${animDur} ${animEasing}, height ${animDur} ${animEasing}, border-radius ${animDur} ${animEasing}`;
-
-  return (
-    <div className="fixed inset-0 z-[100]" onClick={handleClose} role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300" style={{ opacity: isOpen ? 1 : 0 }} />
-      <div
-        style={{
-          position: "fixed",
-          top: geometry.top, left: geometry.left, width: geometry.width, height: geometry.height,
-          borderRadius: geometry.radius, transition: flipTransition, overflow: "hidden",
-          border: "1px solid rgba(255, 255, 255, 0.15)"
-        }}
-        className="bg-zinc-950 shadow-2xl"
-        onTransitionEnd={() => { if (phase === "closing") onClose(); }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <img ref={imgRef} src={attachment.url} alt={attachment.name} className="size-full object-cover" draggable={false} />
-      </div>
-
-      <button
-        type="button" onClick={handleClose}
-        style={{ opacity: isOpen ? 1 : 0, transform: isOpen ? "scale(1)" : "scale(0.7)" }}
-        className={cn(
-          "fixed right-4 top-4 flex size-9 items-center justify-center rounded-full bg-zinc-900/90 border border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all",
-          !isOpen && "pointer-events-none"
-        )}
-      >
-        <X className="w-4 h-4" />
-      </button>
-    </div>
-  );
-}
-
-// ----------------------------------------------------------------------
-// Main Component
-// ----------------------------------------------------------------------
 
 export interface PromptInputProps {
   onSubmit?: (
@@ -245,11 +44,65 @@ export interface PromptInputProps {
   onToggleX1?: () => void;
 }
 
+// ----------------------------------------------------------------------
+// Attachment Gallery Modal (Lightbox)
+// ----------------------------------------------------------------------
+function AttachmentGalleryModal({
+  attachment,
+  onClose,
+}: {
+  attachment: Attachment;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="fixed top-4 left-4 z-10 flex size-10 items-center justify-center rounded-full bg-zinc-900/90 border border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer shadow-lg"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      <div
+        className="relative max-w-4xl max-h-[85vh] overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-950 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={attachment.url}
+          alt={attachment.name}
+          className="max-h-[80vh] w-auto max-w-full object-contain mx-auto"
+        />
+        <div className="p-3 bg-zinc-900/90 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-300 font-mono">
+          <span className="truncate max-w-[200px] sm:max-w-md">{attachment.name}</span>
+          <span className="text-zinc-500">{attachment.width}x{attachment.height}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+// Main Responsive AI Chat Input
+// ----------------------------------------------------------------------
 export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
   (
     {
       onSubmit,
-      placeholder = "اسأل أي شيء...",
+      placeholder = "اسأل X1 أي شيء...",
       className,
       defaultValue = "",
       value: controlledValue,
@@ -262,92 +115,60 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     },
     ref
   ) => {
-    const [expanded, setExpanded] = useState(isX1Active);
-    const [isSmoothResize, setIsSmoothResize] = useState(false);
     const [localValue, setLocalValue] = useState(defaultValue);
-
     const [attachments, setAttachments] = useState<Attachment[]>([]);
-    const [activeAttachment, setActiveAttachment] = useState<{ attachment: Attachment; rect: DOMRect } | null>(null);
+    const [activeAttachment, setActiveAttachment] = useState<Attachment | null>(null);
 
-    // Audio/Voice recording states
+    // Audio recording state
     const [isRecording, setIsRecording] = useState(false);
-    const [audioData, setAudioData] = useState<number[]>(new Array(5).fill(0));
-    const valueRef = useRef(controlledValue !== undefined ? controlledValue : localValue);
-
-    const streamRef = useRef<MediaStream | null>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const rafRef = useRef<number | null>(null);
-    const recognitionRef = useRef<any>(null);
-
-    const [containerHeight, setContainerHeight] = useState(108);
-    const [textareaHeight, setTextareaHeight] = useState(60);
-    const [isScrolling, setIsScrolling] = useState(false);
+    const [audioData, setAudioData] = useState<number[]>(new Array(6).fill(0));
 
     const isControlled = controlledValue !== undefined;
     const value = isControlled ? controlledValue : localValue;
+    const valueRef = useRef(value);
+
     const hasAttachments = attachments.length > 0;
     const hasValue = value.trim() !== "" || hasAttachments;
 
-    // Active Model Name: Fathom 1 by default, Fathom Cam when images are attached
     const isVisionMode = hasAttachments;
     const activeModelDisplayName = isVisionMode ? "Fathom Cam" : "Fathom 1";
     const activeBackendModel = isVisionMode ? "deepseek-v4-flash-vision-exp" : "deepseek-v4-flash";
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const internalContainerRef = useRef<HTMLDivElement>(null);
-    const topFadeRef = useRef<HTMLDivElement>(null);
-    const bottomFadeRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const thumbRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
-
-    // Auto expand on X1 active, auto close on X1 inactive if empty
-    useEffect(() => {
-      if (isX1Active) {
-        setIsSmoothResize(false);
-        setExpanded(true);
-        const timer = setTimeout(() => {
-          if (textareaRef.current && window.innerWidth > 768) {
-            textareaRef.current.focus();
-          }
-        }, 100);
-        return () => clearTimeout(timer);
-      } else if (!value.trim() && !hasAttachments && !isRecording) {
-        setIsSmoothResize(false);
-        setExpanded(false);
-      }
-    }, [isX1Active]);
+    const streamRef = useRef<MediaStream | null>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const rafRef = useRef<number | null>(null);
+    const recognitionRef = useRef<any>(null);
 
     useEffect(() => {
       valueRef.current = value;
     }, [value]);
 
-    const updateFades = () => {
+    const handleValueChange = useCallback(
+      (val: string) => {
+        if (!isControlled) setLocalValue(val);
+        onChange?.(val);
+      },
+      [isControlled, onChange]
+    );
+
+    // Auto-adjust textarea height cleanly on input
+    useEffect(() => {
       const el = textareaRef.current;
       if (!el) return;
-      const { scrollTop, scrollHeight, clientHeight } = el;
-      if (topFadeRef.current) {
-        topFadeRef.current.style.opacity = Math.min(scrollTop / 20, 1).toString();
-      }
-      if (bottomFadeRef.current) {
-        const bottomScroll = scrollHeight - clientHeight - scrollTop;
-        bottomFadeRef.current.style.opacity = Math.min(Math.max(bottomScroll - 16, 0) / 10, 1).toString();
-      }
-    };
+      el.style.height = "auto";
+      const scrollHeight = el.scrollHeight;
+      const newHeight = Math.min(Math.max(scrollHeight, 38), 160);
+      el.style.height = `${newHeight}px`;
+    }, [value]);
 
-    const handleValueChange = useCallback((val: string) => {
-      setIsSmoothResize(true); 
-      if (!isControlled) setLocalValue(val);
-      onChange?.(val);
-    }, [isControlled, onChange]);
-
-    const expand = () => {
-      setIsSmoothResize(false); 
-      setExpanded(true);
-    };
-
+    // Voice recording management
     const stopRecording = useCallback(() => {
       if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch {}
+        try {
+          recognitionRef.current.stop();
+        } catch {}
         recognitionRef.current = null;
       }
       if (rafRef.current) {
@@ -359,17 +180,16 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         streamRef.current = null;
       }
       if (audioContextRef.current) {
-        try { audioContextRef.current.close(); } catch {}
+        try {
+          audioContextRef.current.close();
+        } catch {}
         audioContextRef.current = null;
       }
       setIsRecording(false);
-      setAudioData(new Array(5).fill(0));
+      setAudioData(new Array(6).fill(0));
     }, []);
 
     const startRecording = useCallback(async () => {
-      setIsSmoothResize(false);
-      setExpanded(true);
-
       let stream: MediaStream | null = null;
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -384,36 +204,41 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       if (stream) {
         streamRef.current = stream;
         const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        const audioCtx = new AudioCtx();
-        audioContextRef.current = audioCtx;
+        if (AudioCtx) {
+          try {
+            const audioCtx = new AudioCtx();
+            audioContextRef.current = audioCtx;
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 64;
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
 
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 64; 
-        const source = audioCtx.createMediaStreamSource(stream);
-        source.connect(analyser);
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-        const updateVisualizer = () => {
-          analyser.getByteFrequencyData(dataArray);
-          const bands = new Array(5).fill(0);
-          const step = Math.floor(dataArray.length / 5);
-          for (let i = 0; i < 5; i++) {
-            let sum = 0;
-            for (let j = 0; j < step; j++) {
-              sum += dataArray[i * step + j];
-            }
-            bands[i] = sum / step / 255;
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            const updateVisualizer = () => {
+              analyser.getByteFrequencyData(dataArray);
+              const bands = new Array(6).fill(0);
+              const step = Math.floor(dataArray.length / 6);
+              for (let i = 0; i < 6; i++) {
+                let sum = 0;
+                for (let j = 0; j < step; j++) {
+                  sum += dataArray[i * step + j];
+                }
+                bands[i] = sum / step / 255;
+              }
+              setAudioData(bands);
+              rafRef.current = requestAnimationFrame(updateVisualizer);
+            };
+            updateVisualizer();
+          } catch (e) {
+            console.warn("[AudioContext Warning]:", e);
           }
-          setAudioData(bands);
-          rafRef.current = requestAnimationFrame(updateVisualizer);
-        };
-        updateVisualizer();
+        }
 
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const SpeechRecognition =
+          (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (SpeechRecognition) {
           const recognition = new SpeechRecognition();
-          recognition.lang = 'ar-SA';
+          recognition.lang = "ar-SA";
           recognition.continuous = true;
           recognition.interimResults = true;
 
@@ -430,12 +255,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 interimTranscript += event.results[i][0].transcript;
               }
             }
-            
+
             if (finalTranscript) {
-               baseline += (baseline ? " " : "") + finalTranscript;
+              baseline += (baseline ? " " : "") + finalTranscript;
             }
-            
-            handleValueChange((baseline + (interimTranscript ? " " : "") + interimTranscript).trim());
+
+            handleValueChange(
+              (baseline + (interimTranscript ? " " : "") + interimTranscript).trim()
+            );
           };
 
           recognition.onerror = () => stopRecording();
@@ -449,96 +276,43 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       }
     }, [handleValueChange, stopRecording]);
 
-    useEffect(() => {
-      if ((value.trim() !== "" || hasAttachments) && !expanded) {
-        setIsSmoothResize(false);
-        setExpanded(true);
-      }
-    }, [value, expanded, hasAttachments]);
-
-    useEffect(() => {
-      if (expanded && !isRecording && window.innerWidth > 768) {
-        const timer = setTimeout(() => {
-          if (textareaRef.current) {
-            textareaRef.current.focus();
-            const length = textareaRef.current.value.length;
-            textareaRef.current.setSelectionRange(length, length);
-          }
-        }, 50);
-        return () => clearTimeout(timer);
-      }
-    }, [expanded, isRecording]);
-
-    useEffect(() => {
-      if (!textareaRef.current) return;
-      const el = textareaRef.current;
-      
-      const currentHeight = el.style.height;
-      el.style.transition = 'none';
-      el.style.height = "0px";
-      const scrollHeight = el.scrollHeight;
-      el.style.height = currentHeight;
-      void el.offsetHeight; 
-      el.style.transition = '';
-      
-      const newHeight = Math.max(56, Math.min(scrollHeight, 150));
-      el.style.height = `${newHeight}px`;
-      
-      setTextareaHeight(newHeight);
-      setIsScrolling(scrollHeight > 150);
-      
-      setTimeout(updateFades, 0);
-    }, [value, expanded]); 
-
-    useEffect(() => {
-      setContainerHeight(Math.max(108, textareaHeight + 46));
-      setTimeout(updateFades, 0);
-    }, [textareaHeight]);
-
-    const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
-      if (internalContainerRef.current && internalContainerRef.current.contains(e.relatedTarget as Node)) return;
-      if (!isX1Active && value.trim() === "" && !hasAttachments && !isRecording) {
-        setIsSmoothResize(false);
-        setExpanded(false);
-      }
-    };
-
     const handleSubmit = () => {
       if (isStreaming) {
         onAbort?.();
         return;
       }
       if (value.trim() === "" && !hasAttachments) return;
-      setIsSmoothResize(false);
-      const textToSubmit = value.trim() || (hasAttachments ? "حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة." : "");
+
+      const textToSubmit =
+        value.trim() ||
+        (hasAttachments
+          ? "حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة."
+          : "");
+
       onSubmit?.(textToSubmit, {
         model: activeBackendModel,
         effort: isX1Active ? "X1 (+21)" : "Standard",
-        attachments: attachments.map((a) => a.file)
+        attachments: attachments.map((a) => a.file),
       });
+
       handleValueChange("");
       attachments.forEach((a) => URL.revokeObjectURL(a.url));
       setAttachments([]);
-      if (!isX1Active) {
-        setExpanded(false);
+
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
       }
     };
 
-    const openFileChooser = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      fileInputRef.current?.click();
-    };
-
     const handleFilesChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"));
-      e.target.value = ""; 
+      const files = Array.from(e.target.files ?? []).filter((f) =>
+        f.type.startsWith("image/")
+      );
+      e.target.value = "";
 
       if (files.length === 0) return;
       const room = Math.max(0, maxAttachments - attachments.length);
       const accepted = files.slice(0, room);
-
-      if (!expanded) { setIsSmoothResize(false); setExpanded(true); } 
-      else { setIsSmoothResize(true); }
 
       for (const file of accepted) {
         const url = URL.createObjectURL(file);
@@ -549,24 +323,29 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       }
     };
 
-    const addAttachment = (file: File, url: string, width: number, height: number) => {
-      const id = `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`;
-      setAttachments((prev) => [...prev, { id, file, url, name: file.name, width, height }]);
+    const addAttachment = (
+      file: File,
+      url: string,
+      width: number,
+      height: number
+    ) => {
+      const id = `${file.name}-${file.lastModified}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
+      setAttachments((prev) => [
+        ...prev,
+        { id, file, url, name: file.name, width, height },
+      ]);
     };
 
-    const removeAttachment = (id: string) => {
-      setIsSmoothResize(true);
+    const removeAttachment = (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
       setAttachments((prev) => {
         const target = prev.find((a) => a.id !== id);
         if (target) URL.revokeObjectURL(target.url);
         return prev.filter((a) => a.id !== id);
       });
-      thumbRefs.current.delete(id);
     };
-
-    const showArrow = (hasValue || isStreaming) && !isRecording;
-    const showStop = isRecording || isStreaming;
-    const showMic = !hasValue && !isRecording && !isStreaming;
 
     const onActionButtonClick = (e: React.MouseEvent) => {
       e.preventDefault();
@@ -582,247 +361,240 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     };
 
     return (
-      <>
-        <div
-          ref={(node) => {
-            if (typeof ref === "function") ref(node);
-            else if (ref) ref.current = node;
-            // @ts-ignore
-            internalContainerRef.current = node;
-          }}
-          onBlur={handleBlur}
-          className={cn("relative flex flex-col w-full max-w-2xl mx-auto", className)}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFilesChosen}
-            className="hidden"
-            tabIndex={-1}
-            aria-hidden="true"
-          />
+      <div
+        ref={ref}
+        className={cn(
+          "relative flex flex-col w-full max-w-3xl mx-auto px-1 sm:px-0 select-none",
+          className
+        )}
+        dir="rtl"
+      >
+        {/* Hidden File Input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFilesChosen}
+          className="hidden"
+          tabIndex={-1}
+          aria-hidden="true"
+        />
 
-          {/* Attachment Tab */}
-          <div
-            aria-hidden={!hasAttachments}
-            style={{
-              height: hasAttachments && expanded ? 64 : 0,
-              transition: isSmoothResize
-                ? "height 0.15s ease-out"
-                : "height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-            }}
-            className="w-full relative z-0 overflow-hidden"
-          >
-            <div
-              style={{
-                position: "absolute",
-                bottom: -8,
-                left: 16,
-                right: 16,
-                height: 64,
-                transform: hasAttachments && expanded ? "translateY(0)" : "translateY(100%)",
-                opacity: hasAttachments && expanded ? 1 : 0,
-                transition: isSmoothResize
-                  ? "transform 0.15s ease-out, opacity 0.15s ease-out"
-                  : "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease-out",
-              }}
-              className="border border-zinc-800 border-b-0 bg-zinc-900/90 backdrop-blur-md rounded-t-2xl px-2.5 pt-2 pb-1 flex items-start gap-2 overflow-x-auto"
-            >
-              {attachments.map((attachment, index) => (
-                <AttachmentThumb
-                  key={attachment.id}
-                  attachment={attachment}
-                  index={index}
-                  onRemove={removeAttachment}
-                  onOpen={(a, rect) => setActiveAttachment({ attachment: a, rect })}
-                  registerRef={(id, el) => thumbRefs.current.set(id, el)}
+        {/* Attachment Preview Row */}
+        {hasAttachments && (
+          <div className="mb-2 flex items-center gap-2 overflow-x-auto p-1.5 bg-zinc-900/90 backdrop-blur-md rounded-2xl border border-zinc-800 no-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-200">
+            {attachments.map((attachment) => (
+              <div
+                key={attachment.id}
+                onClick={() => setActiveAttachment(attachment)}
+                className="relative group shrink-0 size-14 rounded-xl overflow-hidden border border-zinc-700 bg-zinc-800 cursor-pointer shadow-md"
+              >
+                <img
+                  src={attachment.url}
+                  alt={attachment.name}
+                  className="size-full object-cover"
                 />
-              ))}
-            </div>
-          </div>
-
-          {/* Main Input Container */}
-          <div
-            onMouseDown={(e) => {
-              const isTextarea = e.target === textareaRef.current;
-              if (expanded && !isTextarea && !isRecording) {
-                e.preventDefault();
-                textareaRef.current?.focus();
-              }
-            }}
-            style={{
-              borderRadius: 24,
-              height: expanded ? containerHeight : 50,
-              transition: isSmoothResize ? SMOOTH_HEIGHT_TRANSITION : SPRING_TRANSITION,
-              overflow: expanded ? "visible" : "hidden",
-            }}
-            className={cn(
-              "relative w-full border border-zinc-800 bg-zinc-900/90 backdrop-blur-md shadow-lg transition-all focus-within:border-zinc-700 z-10",
-              expanded ? "cursor-text ring-1 ring-zinc-700/50" : "cursor-default",
-              isX1Active && "border-rose-900/50 focus-within:border-rose-700/60"
-            )}
-          >
-            <textarea
-              ref={textareaRef}
-              value={value}
-              onChange={(e) => handleValueChange(e.target.value)}
-              onScroll={updateFades}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit();
-                }
-                if (e.key === "Escape" && value.trim() === "" && !hasAttachments && !isX1Active) {
-                  setIsSmoothResize(false);
-                  setExpanded(false);
-                }
-              }}
-              placeholder={placeholder}
-              aria-label="Prompt"
-              disabled={isRecording}
-              className={cn(
-                "absolute top-0 inset-x-0 z-[1] w-full resize-none bg-transparent pl-4 pr-12 py-3 text-sm leading-[22px] text-zinc-100 outline-none placeholder:text-zinc-500 font-sans cursor-text",
-                expanded ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 -translate-y-1 pointer-events-none",
-                isScrolling ? "overflow-y-auto" : "overflow-y-hidden",
-                isRecording && "pointer-events-none"
-              )}
-            />
-
+                <button
+                  type="button"
+                  onClick={(e) => removeAttachment(attachment.id, e)}
+                  className="absolute top-1 left-1 size-4 rounded-full bg-zinc-950/80 text-zinc-300 hover:text-white hover:bg-rose-600 flex items-center justify-center transition-colors shadow"
+                  title="حذف الصورة"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            ))}
             <button
               type="button"
-              onClick={expand}
-              style={{ transition: isSmoothResize ? "none" : "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)" }}
-              className={cn(
-                "absolute inset-x-0 top-0 z-[1] cursor-text pl-4 pr-12 py-[15px] text-right text-sm font-medium leading-[17px] text-zinc-400 outline-none font-sans",
-                !expanded ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-105 translate-y-1 pointer-events-none"
-              )}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={attachments.length >= maxAttachments}
+              className="shrink-0 size-14 rounded-xl border border-dashed border-zinc-700 hover:border-zinc-500 bg-zinc-900/50 hover:bg-zinc-850 flex flex-col items-center justify-center text-zinc-400 hover:text-white text-[10px] gap-0.5 transition-colors cursor-pointer"
             >
-              {placeholder}
+              <Plus className="w-4 h-4" />
+              <span>إضافة</span>
             </button>
+          </div>
+        )}
 
-            {/* Bottom Actions */}
-            <div
-              className={cn(
-                "absolute bottom-2 left-3 right-12 z-[10] flex items-center gap-2 transition-all duration-300",
-                expanded && !isRecording ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-2 pointer-events-none"
+        {/* Chat Input Container Card */}
+        <div
+          className={cn(
+            "relative w-full rounded-2xl sm:rounded-3xl border bg-zinc-900/95 backdrop-blur-xl shadow-xl transition-all duration-200",
+            isX1Active
+              ? "border-rose-900/60 shadow-rose-950/20 ring-1 ring-rose-500/30"
+              : "border-zinc-800 shadow-black/40 focus-within:border-zinc-700"
+          )}
+        >
+          {/* Main Text Area Row */}
+          <div className="flex items-end gap-2 p-2.5 sm:p-3">
+            
+            {/* Auto-growing Textarea */}
+            <div className="flex-1 relative min-h-[38px] flex items-center">
+              <textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => handleValueChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+                placeholder={
+                  isRecording
+                    ? "جاري الاستماع لصوتك وتسجيل الرسالة..."
+                    : isX1Active
+                    ? "اسأل X1 (+21) أي شيء بحرية تامة..."
+                    : placeholder
+                }
+                rows={1}
+                disabled={isRecording}
+                className="w-full bg-transparent text-zinc-100 text-sm sm:text-base leading-relaxed resize-none outline-none placeholder:text-zinc-500 font-sans max-h-40 min-h-[24px] py-1 px-1.5 selection:bg-rose-600 selection:text-white"
+              />
+            </div>
+
+            {/* Action Button: Send / Mic / Stop */}
+            <div className="shrink-0 flex items-center gap-1.5 pb-0.5">
+              {/* Audio Wave Visualizer when recording */}
+              {isRecording && (
+                <div className="flex items-center gap-1 px-2 py-1 rounded-xl bg-rose-950/60 border border-rose-800/80">
+                  {audioData.map((val, i) => (
+                    <div
+                      key={i}
+                      className="w-1 rounded-full bg-rose-500 transition-all duration-75"
+                      style={{ height: `${Math.max(4, val * 20)}px` }}
+                    />
+                  ))}
+                  <span className="text-[10px] text-rose-300 font-mono mr-1">استماع...</span>
+                </div>
               )}
-            >
-              {/* Dynamic Auto-Selected Model Badge: Fathom 1 / Fathom Cam */}
+
+              <button
+                type="button"
+                onClick={onActionButtonClick}
+                className={cn(
+                  "size-9 sm:size-10 rounded-xl sm:rounded-2xl flex items-center justify-center text-white transition-all shadow-md active:scale-95 cursor-pointer shrink-0",
+                  isStreaming
+                    ? "bg-rose-600 hover:bg-rose-500 ring-2 ring-rose-500/50 animate-pulse"
+                    : isRecording
+                    ? "bg-rose-600 hover:bg-rose-500 animate-pulse"
+                    : hasValue
+                    ? "bg-rose-600 hover:bg-rose-500 shadow-rose-950/40"
+                    : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white"
+                )}
+                title={
+                  isStreaming
+                    ? "إيقاف التوليد"
+                    : isRecording
+                    ? "إيقاف التسجيل الصوتي"
+                    : hasValue
+                    ? "إرسال الرسالة"
+                    : "تسجيل صوتي"
+                }
+              >
+                {isStreaming ? (
+                  <Square className="w-4 h-4 fill-current text-white" />
+                ) : isRecording ? (
+                  <Square className="w-4 h-4 fill-current text-white" />
+                ) : hasValue ? (
+                  <ArrowUp className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+                ) : (
+                  <Mic className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                )}
+              </button>
+            </div>
+
+          </div>
+
+          {/* Bottom Toolbar (Models, NSFW NANO Chip, Attachments) */}
+          <div className="flex items-center justify-between gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 border-t border-zinc-800/60 bg-zinc-950/40 rounded-b-2xl sm:rounded-b-3xl text-xs flex-wrap">
+            
+            {/* Right Group: Chips and Model Indicators */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              
+              {/* Active Model Indicator */}
               <div
-                className="flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium bg-zinc-800/80 text-zinc-300 border border-zinc-700/60 select-none"
+                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] font-medium bg-zinc-800/80 text-zinc-300 border border-zinc-700/60 select-none shadow-sm"
                 title={isVisionMode ? "نموذج Fathom Cam للرؤية وتحليل الصور (مفعّل تلقائياً)" : "نموذج Fathom 1 الأساسي"}
               >
                 {isVisionMode ? (
-                  <Camera className="w-3 h-3 text-amber-400" />
+                  <Camera className="w-3 h-3 text-amber-400 shrink-0" />
                 ) : (
-                  <Sparkles className="w-3 h-3 text-rose-400" />
+                  <Sparkles className="w-3 h-3 text-rose-400 shrink-0" />
                 )}
-                <span className="font-sans font-semibold">
-                  <MorphingText text={activeModelDisplayName} />
+                <span className="font-sans font-semibold text-[10px] sm:text-xs">
+                  {activeModelDisplayName}
                 </span>
               </div>
 
-              {/* Interactive NSFW NANO Silicon Chip Button */}
+              {/* NSFW NANO Silicon Chip Button */}
               <button
                 type="button"
-                onMouseDown={(e) => e.preventDefault()}
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
                   onToggleX1?.();
                 }}
                 className={cn(
-                  "relative overflow-hidden flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-mono font-bold transition-all duration-200 select-none shadow-sm cursor-pointer active:scale-95",
+                  "relative overflow-hidden flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono font-bold transition-all duration-200 select-none shadow-sm cursor-pointer active:scale-95",
                   isX1Active
                     ? "bg-gradient-to-r from-rose-950 via-red-900 to-rose-950 border border-rose-500/90 text-white shadow-rose-950/50 ring-1 ring-rose-500/40"
-                    : "bg-zinc-800/80 hover:bg-zinc-700/90 text-zinc-400 hover:text-zinc-200 border border-zinc-700/60 hover:border-rose-500/50"
+                    : "bg-zinc-800/80 hover:bg-zinc-750 text-zinc-400 hover:text-zinc-200 border border-zinc-700/60 hover:border-rose-500/50"
                 )}
                 title={
                   isX1Active
                     ? "شريحة NSFW NANO مفعلة بالكامل (انقر للتعطيل)"
-                    : "تفعيل شريحة NSFW NANO (يتطلب بصمة الإصبع أو Face ID)"
+                    : "تفعيل شريحة NSFW NANO (+21) مع كسر الرقابة"
                 }
               >
-                {/* Sweeping metallic beam when active */}
                 {isX1Active && (
-                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shine-beam pointer-events-none" />
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shine-beam pointer-events-none" />
                 )}
 
-                <Cpu className={cn("w-3.5 h-3.5 shrink-0 transition-colors", isX1Active ? "text-rose-300" : "text-zinc-400")} />
+                <Cpu className={cn("w-3 h-3 shrink-0", isX1Active ? "text-rose-300" : "text-zinc-400")} />
 
-                <span className={cn(
-                  "font-mono font-bold tracking-tight text-[11px] whitespace-nowrap",
-                  isX1Active ? "text-rose-100 font-extrabold" : "text-zinc-300"
-                )}>
-                  {isX1Active ? "NSFW NANO (+21 MAX)" : "NSFW NANO"}
+                <span className={cn("tracking-tight whitespace-nowrap", isX1Active ? "text-rose-100 font-extrabold" : "text-zinc-300")}>
+                  {isX1Active ? "+21 MAX NANO" : "NSFW NANO"}
                 </span>
 
-                {isX1Active ? (
-                  <DynamicBarsIcon level="X1 (+21)" />
-                ) : (
-                  <span className="text-[9px] px-1 py-0.5 rounded bg-zinc-900 border border-zinc-700/60 text-zinc-400 font-semibold flex items-center gap-0.5 shrink-0">
+                {!isX1Active && (
+                  <span className="hidden sm:inline-flex text-[9px] px-1 py-0.2 rounded bg-zinc-900 border border-zinc-700/60 text-zinc-400 font-semibold items-center gap-0.5">
                     <Fingerprint className="w-2.5 h-2.5 text-rose-500" />
                     <span>+21</span>
                   </span>
                 )}
               </button>
 
-              {/* Image Upload Button (activates Fathom Cam automatically) */}
+            </div>
+
+            {/* Left Group: Image attachment button */}
+            <div className="flex items-center gap-1 mr-auto">
               <button
                 type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={openFileChooser}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => fileInputRef.current?.click()}
                 disabled={attachments.length >= maxAttachments}
-                className="ml-auto flex size-7 items-center justify-center rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700/60 transition-all"
-                title="إرفاق صورة لتفعيل Fathom Cam"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg sm:rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700/60 text-[11px] font-medium transition-all cursor-pointer shadow-sm active:scale-95"
+                title="إرفاق صورة لتحليلها بـ Fathom Cam"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Camera className="w-3.5 h-3.5 text-zinc-400 hover:text-white" />
+                <span className="hidden sm:inline">إرفاق صورة</span>
               </button>
             </div>
 
-            {/* Audio Wave Visualizer */}
-            <div
-              className={cn(
-                "absolute right-12 bottom-2 z-[10] flex h-8 items-center justify-end gap-[3px] transition-all duration-300",
-                isRecording ? "w-16 opacity-100 translate-x-0" : "w-0 opacity-0 translate-x-4 pointer-events-none"
-              )}
-            >
-              {audioData.map((val, i) => (
-                <div
-                  key={i}
-                  className="w-1 rounded-full bg-rose-500 transition-[height] duration-75 ease-out"
-                  style={{ height: `${Math.max(4, val * 24)}px` }}
-                />
-              ))}
-            </div>
-
-            {/* Action Submit / Mic button */}
-            <button
-              type="button"
-              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }} 
-              onClick={onActionButtonClick}
-              aria-label={showArrow ? "Send prompt" : showStop ? "Stop recording" : "Use voice input"}
-              className="absolute right-2 bottom-2 z-[10] flex h-8 w-8 items-center justify-center rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-medium transition-all shadow-sm active:scale-95"
-            >
-              <span className="relative flex h-full w-full items-center justify-center">
-                <span className={cn("absolute inset-0 flex items-center justify-center transition-all duration-200", (showArrow || isStreaming) ? "opacity-100 scale-100" : "opacity-0 scale-50 pointer-events-none")}>
-                  {isStreaming ? <Square className="w-3.5 h-3.5 fill-current" /> : <ArrowUp className="w-4 h-4" />}
-                </span>
-                <span className={cn("absolute inset-0 flex items-center justify-center transition-all duration-200", showMic ? "opacity-100 scale-100" : "opacity-0 scale-50 pointer-events-none")}>
-                  <Mic className="w-4 h-4" />
-                </span>
-              </span>
-            </button>
           </div>
+
         </div>
 
+        {/* Lightbox Modal */}
         {activeAttachment && (
           <AttachmentGalleryModal
-            attachment={activeAttachment.attachment} originRect={activeAttachment.rect} onClose={() => setActiveAttachment(null)}
+            attachment={activeAttachment}
+            onClose={() => setActiveAttachment(null)}
           />
         )}
-      </>
+      </div>
     );
   }
 );

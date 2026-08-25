@@ -368,7 +368,7 @@ export const App: React.FC = () => {
           user={user}
         />
       ) : (
-        <div className="flex-1 flex flex-col h-full overflow-hidden animate-in fade-in duration-200">
+        <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden animate-in fade-in duration-200">
           
           {/* Top Bar for Chat Room */}
           <TopBar
@@ -382,7 +382,7 @@ export const App: React.FC = () => {
           />
 
           {/* Chat Messages Body */}
-          <main className="flex-1 flex flex-col max-w-4xl w-full mx-auto relative overflow-hidden">
+          <main className="flex-1 flex flex-col max-w-4xl w-full mx-auto relative overflow-hidden min-h-0">
             <ChatWindow
               messages={messages}
               isStreaming={isStreaming}
@@ -394,10 +394,10 @@ export const App: React.FC = () => {
           </main>
 
           {/* Floating AI Chat Input & Stop Generator */}
-          <div className="sticky bottom-0 z-30 w-full px-3 pb-3 pt-1 bg-[#09090b] border-t border-zinc-850">
+          <div className="sticky bottom-0 z-30 w-full px-2.5 sm:px-3 pb-2.5 sm:pb-3 pt-1.5 bg-[#09090b]/95 backdrop-blur-md border-t border-zinc-850 pb-safe">
             {/* Stop Generation Button */}
             {isStreaming && (
-              <div className="flex justify-center mb-2 animate-in fade-in duration-150">
+              <div className="flex justify-center mb-1.5 sm:mb-2 animate-in fade-in duration-150">
                 <button
                   type="button"
                   onClick={handleAbort}

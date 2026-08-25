@@ -35,40 +35,40 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-300" dir="rtl">
-      <div className="relative w-full max-w-md bg-zinc-950 border border-rose-900/60 rounded-3xl p-6 sm:p-8 text-right shadow-2xl space-y-5">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-300" dir="rtl">
+      <div className="relative w-full max-w-md max-h-[90dvh] overflow-y-auto smooth-scroll bg-zinc-950 border border-rose-900/60 rounded-2xl sm:rounded-3xl p-5 sm:p-8 text-right shadow-2xl space-y-4 sm:space-y-5">
         
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute left-4 top-4 p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+          className="absolute left-3.5 top-3.5 sm:left-4 sm:top-4 p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors active:scale-95 cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
 
         {/* Silicon Chip Header */}
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-600/30 to-red-900/40 border border-rose-500/50 text-rose-400 flex items-center justify-center shrink-0 shadow-lg shadow-rose-950/50">
+          <div className="size-11 sm:size-12 rounded-2xl bg-gradient-to-br from-rose-600/30 to-red-900/40 border border-rose-500/50 text-rose-400 flex items-center justify-center shrink-0 shadow-lg shadow-rose-950/50">
             <Cpu className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-white tracking-tight font-mono">
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight font-mono">
                 تفعيل شريحة NSFW NANO
               </h2>
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-900/80 text-rose-200 border border-rose-500">
                 +21 MAX
               </span>
             </div>
-            <p className="text-xs text-zinc-400 mt-0.5">
+            <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 font-sans">
               كسر كافة الحدود الرقابية وإطلاق العنان للحرية المطلقة
             </p>
           </div>
         </div>
 
         {/* Feature Highlights Card */}
-        <div className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 text-xs sm:text-sm text-zinc-300 space-y-3 leading-relaxed">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 text-xs sm:text-sm text-zinc-300 space-y-2.5 sm:space-y-3 leading-relaxed font-sans">
           <p className="text-zinc-200 font-medium">
             تفعيل هذه الشريحة يحرر المحرك العصبي تماماً ليتحدث في أي موضوع حميمي، نفسي، جنسي، أو فكري جريء بلا أي حواجز أو قيود.
           </p>
@@ -86,7 +86,7 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
 
         {/* Error message if any */}
         {errorMsg && (
-          <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800 text-rose-300 text-xs">
+          <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800 text-rose-300 text-xs font-sans">
             {errorMsg}
           </div>
         )}
@@ -96,9 +96,9 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
           type="button"
           onClick={handleStartBiometrics}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 disabled:opacity-50 text-white font-bold text-sm transition-all shadow-xl shadow-rose-950/50 active:scale-[0.98] cursor-pointer"
+          className="w-full flex items-center justify-center gap-2.5 py-3 sm:py-3.5 px-4 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 disabled:opacity-50 text-white font-bold text-xs sm:text-sm transition-all shadow-xl shadow-rose-950/50 active:scale-[0.98] cursor-pointer"
         >
-          <Fingerprint className="w-5 h-5 animate-pulse" />
+          <Fingerprint className="w-5 h-5 animate-pulse shrink-0" />
           <span>
             {loading ? 'جاري مسح البصمة / Face ID...' : 'تأكيد البصمة أو Face ID لتفعيل الشريحة'}
           </span>

@@ -7,9 +7,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// OpenRouter Key (Dedicated to anthracite-org/magnum-v4-72b and Fathom Cam vision)
+// Dedicated Keys (OpenRouter Magnum v4 72B primary, DeepSeek fallback)
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
+const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -248,15 +250,15 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     })
   ];
 
-  // Stage 2: Main synthesis is ALWAYS executed by Magnum v4 72B (Anthracite Org)
-  const targetUrl = `${OPENROUTER_BASE_URL}/chat/completions`;
-  const headers = {
+  // Stage 2: Main synthesis is primarily executed by Magnum v4 72B (Anthracite Org), with automatic DeepSeek fallback
+  let targetUrl = `${OPENROUTER_BASE_URL}/chat/completions`;
+  let headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
     'HTTP-Referer': 'https://x1.link',
     'X-Title': 'X1 AI',
   };
-  const requestPayload = {
+  let requestPayload: any = {
     model: 'anthracite-org/magnum-v4-72b',
     messages: formattedMessages,
     temperature: isX1Mode ? 0.8 : 0.75,
@@ -268,24 +270,53 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   };
 
   try {
-    const response = await executeFetchWithRetry(targetUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestPayload),
-      signal: upstreamAbortController.signal
-    });
+    let response: any;
+    try {
+      response = await executeFetchWithRetry(targetUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestPayload),
+        signal: upstreamAbortController.signal
+      });
+    } catch (err: any) {
+      console.warn('[X1-SERVER] Primary OpenRouter fetch failed:', err.message);
+    }
+
+    // If OpenRouter failed and DeepSeek key exists, attempt fallback
+    if ((!response || !response.ok) && DEEPSEEK_API_KEY) {
+      console.log('[X1-SERVER] Triggering resilient fallback to DeepSeek API...');
+      targetUrl = `${DEEPSEEK_BASE_URL}/chat/completions`;
+      headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      };
+      requestPayload = {
+        model: 'deepseek-chat',
+        messages: formattedMessages,
+        temperature: isX1Mode ? 0.8 : 0.75,
+        stream: true,
+        max_tokens: 4096,
+      };
+
+      response = await executeFetchWithRetry(targetUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestPayload),
+        signal: upstreamAbortController.signal
+      });
+    }
 
     if (isClientDisconnected) {
       console.log('[X1-SERVER] Client was already disconnected prior to response.');
       return;
     }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[API Gateway Error] Status: ${response.status}`, errorText);
+    if (!response || !response.ok) {
+      const errorText = response ? await response.text() : 'No response from AI gateways';
+      console.error(`[API Gateway Error] Status: ${response?.status}`, errorText);
       if (!res.headersSent) {
-        res.status(response.status).json({
-          error: `خطأ في بوابة الذكاء الاصطناعي (${response.status}): ${errorText}`
+        res.status(response?.status || 500).json({
+          error: `خطأ في بوابة الذكاء الاصطناعي (${response?.status || 500}): ${errorText}`
         });
       }
       return;

@@ -27,13 +27,13 @@ export const TopBar: React.FC<TopBarProps> = ({
   onGoHome,
 }) => {
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#09090b]/95 backdrop-blur-md border-b border-zinc-800 px-3 sm:px-6 py-2.5 select-none transition-colors">
-      <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-40 w-full bg-[#09090b]/95 backdrop-blur-md border-b border-zinc-800 px-2.5 sm:px-6 py-2 sm:py-2.5 select-none transition-colors pt-safe">
+      <div className="max-w-4xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3">
         
         {/* Right / Brand with Home action */}
         <div
           onClick={onGoHome}
-          className="flex items-center gap-2.5 cursor-pointer group"
+          className="flex items-center gap-2 cursor-pointer group shrink-0"
           title="العودة إلى صفحة الاستقبال"
         >
           <img
@@ -45,14 +45,14 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span className="font-bold text-sm tracking-tight text-white font-mono leading-none group-hover:text-rose-400 transition-colors">
               X1.link
             </span>
-            <span className="text-[9px] text-zinc-500 font-mono">
+            <span className="text-[8px] sm:text-[9px] text-zinc-500 font-mono">
               FATHOM AI
             </span>
           </div>
         </div>
 
         {/* Center / NSFW NANO Silicon Chip Trigger */}
-        <div className="flex items-center">
+        <div className="flex items-center shrink-0">
           <NsfwNanoChip
             isActive={isX1Active}
             onClick={onToggleX1}
@@ -60,23 +60,23 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
 
         {/* Left / History & New Chat */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {onGoHome && (
             <button
               type="button"
               onClick={onGoHome}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer active:scale-95"
               title="صفحة الاستقبال"
             >
               <Home className="w-3.5 h-3.5 text-zinc-400" />
-              <span className="hidden sm:inline">الاستقبال</span>
+              <span className="hidden md:inline">الاستقبال</span>
             </button>
           )}
 
           <button
             type="button"
             onClick={onNewChat || onClearChat}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer active:scale-95"
             title="محادثة جديدة"
           >
             <Plus className="w-3.5 h-3.5 text-rose-400" />
@@ -86,7 +86,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={onOpenSidebar}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer active:scale-95"
             title="سجل المحادثات والمزامنة السحابية"
           >
             <MessageSquare className="w-3.5 h-3.5 text-zinc-400" />
