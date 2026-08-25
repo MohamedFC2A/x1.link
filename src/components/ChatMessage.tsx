@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { ChatMessageItem } from '../types';
 import ChatReasoning, { ReasoningStep } from './ui/chat-reasoning';
 import ExecutionPipeline from './ui/execution-pipeline';
-import { Check, Copy, Bot, Flame, X, ShieldCheck, Sparkles, Camera } from 'lucide-react';
+import { Check, Copy, Bot, Flame, X, ShieldCheck, Sparkles, Camera, Globe, ExternalLink } from 'lucide-react';
 
 interface ChatMessageProps {
   message: ChatMessageItem;
@@ -26,6 +26,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
   const isThinking = Boolean(message.isThinking);
 
   if (isUser) {
+    // Extract URL if present to display as a dedicated prominent target badge
+    const urlMatch = message.content.match(/(?:https?:\/\/|www\.)[^\s<>"'{}|\\^`]+/i);
+    let extractedUrl: string | null = null;
+    let remainingText: string = message.content;
+
+    if (urlMatch) {
+      let rawFound = urlMatch[0];
+      let cleaned = rawFound.replace(/^[^a-zA-Z0-9]+/, '');
+      if (!/^https?:\/\//i.test(cleaned)) cleaned = 'https://' + cleaned;
+      extractedUrl = cleaned;
+      remainingText = message.content.replace(urlMatch[0], '').replace(/^\s*\/+\s*/, '').trim();
+    }
+
     return (
       <div className="flex justify-start my-2 group">
         <div className="max-w-[92%] sm:max-w-[80%] rounded-2xl rounded-tr-sm bg-zinc-800 text-zinc-100 p-3 sm:p-4 border border-zinc-700/60 shadow-sm text-right">
@@ -63,9 +76,40 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
               )}
             </>
           )}
-          <p className="text-xs sm:text-base leading-relaxed whitespace-pre-wrap font-sans break-words">
-            {message.content}
-          </p>
+
+          {/* Prominent High-Tech Target URL Badge */}
+          {extractedUrl && (
+            <div className="mb-2.5 flex flex-col gap-1.5 p-2.5 sm:p-3 rounded-xl bg-zinc-950/90 border border-cyan-500/50 shadow-md text-right animate-in fade-in duration-150">
+              <div className="flex items-center justify-between text-[11px] text-cyan-400 font-medium">
+                <span className="flex items-center gap-1.5 font-sans font-semibold">
+                  <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>رابط الهدف المستطلع للفحص:</span>
+                </span>
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-bold">
+                  TARGET URL
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 bg-black/60 p-2 rounded-lg border border-cyan-900/60 mt-0.5">
+                <a
+                  href={extractedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-xs sm:text-sm text-cyan-200 hover:text-cyan-100 underline underline-offset-4 decoration-cyan-500/60 break-all dir-ltr text-left flex-1"
+                  dir="ltr"
+                >
+                  {extractedUrl}
+                </a>
+                <ExternalLink className="w-3.5 h-3.5 text-cyan-400 shrink-0 opacity-70 hover:opacity-100" />
+              </div>
+            </div>
+          )}
+
+          {remainingText && (
+            <p className="text-xs sm:text-base leading-relaxed whitespace-pre-wrap font-sans break-words text-zinc-100">
+              {remainingText}
+            </p>
+          )}
+
           <div className="mt-2 pt-1.5 border-t border-zinc-700/50 flex items-center justify-between text-xs text-zinc-400">
             <span className="text-[10px] font-mono text-zinc-400">
               {message.timestamp}

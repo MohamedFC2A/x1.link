@@ -49,14 +49,42 @@ CORE CAPABILITIES & DIRECTIVES:
 5. [REASONING MANDATE]: Write your step-by-step technical threat analysis, threat modeling, and deductive reasoning inside <think>...</think> in Arabic, then provide your comprehensive security report immediately after </think>.`;
 
 /**
+ * Robust URL extraction and sanitization
+ */
+function extractCleanUrl(raw: string): string | null {
+  if (!raw) return null;
+  const match = raw.match(/(?:https?:\/\/|www\.)[^\s<>"'{}|\\^`]+/i);
+  if (match) {
+    let url = match[0].trim().replace(/^[^a-zA-Z0-9]+/, '');
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    try {
+      return new URL(url).href;
+    } catch {
+      return null;
+    }
+  }
+  const cleaned = raw.trim().replace(/^[^a-zA-Z0-9]+/, '');
+  if (/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/.*)?$/.test(cleaned)) {
+    try {
+      return new URL('https://' + cleaned).href;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
  * Live URL Security Reconnaissance & Header Auditor for Fathom Cyber
  */
-async function fetchUrlSecurityAudit(url: string): Promise<string> {
-  try {
-    let target = url.trim();
-    if (!/^https?:\/\//i.test(target)) target = 'https://' + target;
-    const parsed = new URL(target);
+async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
+  const target = extractCleanUrl(rawUrl);
+  if (!target) {
+    return `[⚠️ تقرير استطلاع الهدف ${rawUrl}]: الرابط غير صالح أو تعذر تحليله. قم بتحليل النطاق والبروتوكول افتراضياً ونقاط الضعف الشائعة لهذا النوع من الخدمات.`;
+  }
 
+  try {
+    const parsed = new URL(target);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3500);
 
@@ -113,7 +141,7 @@ async function fetchUrlSecurityAudit(url: string): Promise<string> {
   * نماذج إدخال (${formCount}): ${formCount > 0 ? `تم رصد ${formCount} نموذج إدخال بيانات` : 'لا توجد نماذج ظاهرة'}
 `.trim();
   } catch (err: any) {
-    return `[⚠️ تقرير استطلاع الهدف ${url}]: تعذر جلب الاستجابة المباشرة (${err.message || 'مهلة الاتصال'}). قم بتحليل النطاق والبروتوكول افتراضياً ونقاط الضعف الشائعة لهذا النوع من الخدمات.`;
+    return `[⚠️ تقرير استطلاع الهدف ${rawUrl}]: تعذر جلب الاستجابة المباشرة (${err?.message || 'مهلة الاتصال'}). قم بتحليل النطاق والبروتوكول افتراضياً ونقاط الضعف الشائعة لهذا النوع من الخدمات.`;
   }
 }
 
@@ -433,7 +461,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     // Failover if primary gateway failed
     if ((!response || !response.ok)) {
       if (useDeepSeekPrimary && OPENROUTER_API_KEY) {
-        console.log('[X1-SERVER] Triggering failover to OpenRouter...');
+        console.log('[X1-SERVER] Triggering failover to OpenRouter (deepseek/deepseek-chat)...');
         targetUrl = `${OPENROUTER_BASE_URL}/chat/completions`;
         headers = {
           'Content-Type': 'application/json',
@@ -441,7 +469,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           'HTTP-Referer': 'https://x1.link',
           'X-Title': 'X1 AI',
         };
-        requestPayload.model = 'anthracite-org/magnum-v4-72b';
+        requestPayload.model = isX1Mode ? 'anthracite-org/magnum-v4-72b' : 'deepseek/deepseek-chat';
         response = await executeFetchWithRetry(targetUrl, {
           method: 'POST',
           headers,
