@@ -21,15 +21,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Reasoning breakdown if it's an assistant response with substantive length
-  const reasoningSteps: ReasoningStep[] = !isUser && message.content.length > 60 ? [
-    {
-      type: 'reasoning',
-      text: message.isX1
-        ? 'تم تفعيل وضع X1 (+21): تحليل المسألة بعمق تجريدي واستحضار السياق عبر محرك الذاكرة المليونية وصياغة رد مباشر وصريح.'
-        : 'تحليل السؤال وتفكيك الفرضيات الأولية وتجهيز الإجابة بأسلوب ذكي ومنظم.'
-    }
-  ] : [];
+  const hasReasoning = Boolean(message.reasoning && message.reasoning.trim().length > 0);
+  const isThinking = Boolean(message.isThinking);
 
   if (isUser) {
     return (
@@ -129,22 +122,24 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
           : 'bg-zinc-900/60 border-zinc-800 text-zinc-100'
       }`}>
         
-        {/* Reasoning Breakdown Accordion */}
-        {reasoningSteps.length > 0 && (
+        {/* Real Live Reasoning / Thinking Accordion */}
+        {(hasReasoning || isThinking) && (
           <ChatReasoning
-            partsInAccordion={reasoningSteps}
+            reasoningText={message.reasoning}
+            isThinking={isThinking}
+            isX1={message.isX1}
             defaultValue={isStreaming ? "reasoning" : undefined}
           />
         )}
 
         {/* Formatted Markdown Content or Initial Stream Pulsing State */}
-        {isStreaming && !message.content ? (
+        {isStreaming && !message.content && !isThinking ? (
           <div className="flex items-center gap-2 py-2 text-xs text-zinc-400 font-mono select-none">
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
             </span>
-            <span className="font-sans text-xs text-zinc-300">جاري المعالجة وصياغة الرد عبر محرك Magnum v4 72B...</span>
+            <span className="font-sans text-xs text-zinc-300">جاري المعالجة والاتصال بمحرك الذكاء الاصطناعي...</span>
           </div>
         ) : (
           <div className="prose prose-invert max-w-none text-zinc-200 text-xs sm:text-base leading-relaxed break-words font-sans">

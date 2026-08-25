@@ -197,20 +197,27 @@ export const App: React.FC = () => {
     const { packedMessages, memoryContextPrompt } = memoryEngine.processMessages(newMessagesList);
 
     let fullAssistantResponse = '';
+    let fullAssistantReasoning = '';
 
     const abortFn = await streamChatCompletion({
       messages: packedMessages,
       model: attachedImageDataUrl ? 'deepseek-v4-flash-vision-exp' : chosenModel,
       isX1Mode: isX1Active,
       memoryPrompt: memoryContextPrompt,
-      onChunk: (chunk: string) => {
-        fullAssistantResponse += chunk;
+      onChunk: (data) => {
+        fullAssistantResponse = data.content;
+        fullAssistantReasoning = data.reasoning;
         setMessages(prev => {
           const last = prev[prev.length - 1];
           if (last && last.id === assistantPlaceholderId) {
             return [
               ...prev.slice(0, -1),
-              { ...last, content: last.content + chunk }
+              {
+                ...last,
+                content: data.content,
+                reasoning: data.reasoning,
+                isThinking: data.isThinking,
+              }
             ];
           }
           return prev;
@@ -224,6 +231,7 @@ export const App: React.FC = () => {
               ...prev.slice(0, -1),
               {
                 ...last,
+                isThinking: false,
                 content: last.content
                   ? last.content + `\n\n[خطأ]: ${errMsg}`
                   : `خطأ في الاتصال: ${errMsg}`
@@ -235,11 +243,25 @@ export const App: React.FC = () => {
       },
       onComplete: () => {
         setIsStreaming(false);
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last && last.id === assistantPlaceholderId) {
+            return [
+              ...prev.slice(0, -1),
+              {
+                ...last,
+                isThinking: false,
+              }
+            ];
+          }
+          return prev;
+        });
         if (targetChatId && fullAssistantResponse) {
           saveCloudMessage(targetChatId, userId, {
             id: assistantPlaceholderId,
             role: 'assistant',
             content: fullAssistantResponse,
+            reasoning: fullAssistantReasoning,
             isX1: isX1Active,
             timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
           });

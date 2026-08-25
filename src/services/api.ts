@@ -1,11 +1,17 @@
 import { ChatMessageItem, ModelType } from '../types';
 
+export interface StreamChunkData {
+  content: string;
+  reasoning: string;
+  isThinking: boolean;
+}
+
 export interface SendMessageOptions {
   messages: ChatMessageItem[];
   model: ModelType;
   isX1Mode: boolean;
   memoryPrompt?: string;
-  onChunk: (chunk: string) => void;
+  onChunk: (data: StreamChunkData) => void;
   onError: (errorMsg: string) => void;
   onComplete: () => void;
 }
@@ -81,6 +87,55 @@ export async function streamChatCompletion({
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
 
+    let accumulatedRaw = '';
+    let accumulatedReasoning = '';
+    let accumulatedContent = '';
+    let isThinking = false;
+
+    const processDelta = (deltaContent: string, deltaReasoning?: string) => {
+      if (deltaReasoning) {
+        accumulatedReasoning += deltaReasoning;
+        isThinking = true;
+        onChunk({
+          content: accumulatedContent,
+          reasoning: accumulatedReasoning,
+          isThinking: true
+        });
+        return;
+      }
+
+      if (!deltaContent) return;
+      accumulatedRaw += deltaContent;
+
+      const thinkStartIdx = accumulatedRaw.indexOf('<think>');
+      if (thinkStartIdx !== -1) {
+        const thinkEndIdx = accumulatedRaw.indexOf('</think>');
+        if (thinkEndIdx === -1) {
+          // Currently inside thinking block
+          isThinking = true;
+          accumulatedReasoning = accumulatedRaw.substring(thinkStartIdx + 7).trimStart();
+          accumulatedContent = accumulatedRaw.substring(0, thinkStartIdx).trim();
+        } else {
+          // Finished thinking block
+          isThinking = false;
+          accumulatedReasoning = accumulatedRaw.substring(thinkStartIdx + 7, thinkEndIdx).trim();
+          const preThink = accumulatedRaw.substring(0, thinkStartIdx).trim();
+          const postThink = accumulatedRaw.substring(thinkEndIdx + 8).trimStart();
+          accumulatedContent = preThink ? `${preThink}\n\n${postThink}` : postThink;
+        }
+      } else {
+        // No think tags present
+        accumulatedContent = accumulatedRaw;
+        isThinking = false;
+      }
+
+      onChunk({
+        content: accumulatedContent,
+        reasoning: accumulatedReasoning,
+        isThinking
+      });
+    };
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -116,13 +171,14 @@ export async function streamChatCompletion({
             }
 
             const content = parsed.choices?.[0]?.delta?.content ?? parsed.content ?? '';
-            if (content) {
-              onChunk(content);
+            const reasoning = parsed.choices?.[0]?.delta?.reasoning_content ?? parsed.choices?.[0]?.delta?.reasoning ?? '';
+            if (content || reasoning) {
+              processDelta(content, reasoning);
             }
           } catch {
             // Non-JSON plain text SSE fallback
             if (payload && payload !== '[DONE]') {
-              onChunk(payload);
+              processDelta(payload);
             }
           }
         }
@@ -138,9 +194,10 @@ export async function streamChatCompletion({
           try {
             const parsed = JSON.parse(payload);
             const content = parsed.choices?.[0]?.delta?.content ?? parsed.content ?? '';
-            if (content) onChunk(content);
+            const reasoning = parsed.choices?.[0]?.delta?.reasoning_content ?? parsed.choices?.[0]?.delta?.reasoning ?? '';
+            if (content || reasoning) processDelta(content, reasoning);
           } catch {
-            onChunk(payload);
+            processDelta(payload);
           }
         }
       }

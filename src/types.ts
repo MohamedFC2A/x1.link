@@ -10,6 +10,8 @@ export interface ChatMessageItem {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  reasoning?: string;
+  isThinking?: boolean;
   image?: string;
   timestamp: string;
   isX1?: boolean;
