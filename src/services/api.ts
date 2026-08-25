@@ -70,10 +70,15 @@ export async function streamChatCompletion({
     if (!response.ok) {
       let errBody = '';
       try {
-        const json = await response.json();
-        errBody = json.error || json.message || JSON.stringify(json);
-      } catch {
-        errBody = await response.text();
+        const rawText = await response.text();
+        try {
+          const json = JSON.parse(rawText);
+          errBody = json.error || json.message || JSON.stringify(json);
+        } catch {
+          errBody = rawText;
+        }
+      } catch (readErr: any) {
+        errBody = `خطأ في قراءة استجابة الخادم (${response.status}): ${readErr?.message || ''}`;
       }
       onError(errBody || `تعذر الاتصال بمحرك الذكاء الاصطناعي (رمز الاستجابة: ${response.status})`);
       onComplete();

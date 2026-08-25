@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessageItem } from '../types';
 import ChatReasoning, { ReasoningStep } from './ui/chat-reasoning';
+import ExecutionPipeline from './ui/execution-pipeline';
 import { Check, Copy, Bot, Flame, X, ShieldCheck, Sparkles, Camera } from 'lucide-react';
 
 interface ChatMessageProps {
@@ -145,6 +146,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
           : 'bg-zinc-900/60 border-zinc-800 text-zinc-100'
       }`}>
         
+        {/* Smart Live Execution Pipeline */}
+        {(isStreaming || hasReasoning || isThinking) && (
+          <ExecutionPipeline
+            model={message.model}
+            isX1={message.isX1}
+            isStreaming={isStreaming}
+            isThinking={isThinking}
+            hasReasoning={hasReasoning}
+            hasContent={Boolean(message.content && message.content.trim().length > 0)}
+          />
+        )}
+
         {/* Real Live Reasoning / Thinking Accordion */}
         {(hasReasoning || isThinking) && (
           <ChatReasoning

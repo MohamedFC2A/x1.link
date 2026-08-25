@@ -44,8 +44,8 @@ export default {
         ring: '#e11d48',
       },
       fontFamily: {
-        sans: ['"IBM Plex Sans Arabic"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        mono: ['"Plus Jakarta Sans"', 'monospace'],
+        sans: ['"Readex Pro"', '"IBM Plex Sans Arabic"', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"Fira Code"', '"Plus Jakarta Sans"', 'monospace'],
       },
       borderRadius: {
         '3xl': '1.5rem',
