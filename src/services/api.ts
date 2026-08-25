@@ -11,6 +11,7 @@ export interface SendMessageOptions {
   model: ModelType;
   isX1Mode: boolean;
   memoryPrompt?: string;
+  targetUrl?: string;
   onChunk: (data: StreamChunkData) => void;
   onError: (errorMsg: string) => void;
   onComplete: () => void;
@@ -21,6 +22,7 @@ export async function streamChatCompletion({
   model,
   isX1Mode,
   memoryPrompt = '',
+  targetUrl = '',
   onChunk,
   onError,
   onComplete,
@@ -60,6 +62,7 @@ export async function streamChatCompletion({
         model,
         isX1Mode,
         memoryPrompt,
+        targetUrl,
       }),
       signal: controller.signal
     });

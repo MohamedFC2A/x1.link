@@ -58,12 +58,12 @@ async function fetchUrlSecurityAudit(url: string): Promise<string> {
     const parsed = new URL(target);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 3500);
 
     const res = await fetch(parsed.href, {
       method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FathomCyber/1.0 (Security Scanner & OSINT Audit)',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
       },
       signal: controller.signal
@@ -71,7 +71,13 @@ async function fetchUrlSecurityAudit(url: string): Promise<string> {
     clearTimeout(timeout);
 
     const headers = Object.fromEntries(res.headers.entries());
-    const html = await res.text();
+    let html = '';
+    try {
+      const rawText = await res.text();
+      html = rawText.slice(0, 100000); // limit to 100KB for speed
+    } catch {
+      html = '';
+    }
 
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     const title = titleMatch ? titleMatch[1].trim() : 'غير محدد';
@@ -79,45 +85,35 @@ async function fetchUrlSecurityAudit(url: string): Promise<string> {
     const secHeaders = {
       hsts: headers['strict-transport-security'] || 'مفقود (غير مفعل ⚠️)',
       csp: headers['content-security-policy'] || 'مفقود (غير مفعل ⚠️)',
-      xframe: headers['x-frame-options'] || 'مفقود (معرض لهجوم Clickjacking محتمل ⚠️)',
+      xframe: headers['x-frame-options'] || 'مفقود (معرض لـ Clickjacking ⚠️)',
       xcontent: headers['x-content-type-options'] || 'مفقود (معرض لـ MIME-sniffing ⚠️)',
       referrer: headers['referrer-policy'] || 'افتراضي',
       server: headers['server'] || 'مخفي / غير مصرح',
       poweredBy: headers['x-powered-by'] || 'مخفي'
     };
 
-    // Extract links & forms (attack surface)
-    const links = (html.match(/href=["']([^"']+)["']/g) || []).slice(0, 8).map(l => l.replace(/href=["']|["']/g, ''));
-    const forms = (html.match(/<form[^>]*action=["']([^"']*)["']/gi) || []).slice(0, 5);
-
-    // Extract sample text summary
-    const textOnly = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                         .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-                         .replace(/<[^>]+>/g, ' ')
-                         .replace(/\s+/g, ' ')
-                         .trim()
-                         .slice(0, 1000);
+    // Extract links & forms safely
+    const links = (html.match(/href=["'](https?:\/\/[^"']+)["']/gi) || []).slice(0, 6).map(l => l.replace(/href=["']|["']/gi, ''));
+    const formCount = (html.match(/<form/gi) || []).length;
 
     return `
-[🛡️ تقرير الاستطلاع الأمني وفحص الهدف المباشر من Fathom Cyber]:
+[🛡️ تقرير الاستطلاع الأمني وفحص الهدف المباشر (Fathom Cyber OSINT)]:
 - الرابط المستهدف: ${parsed.href}
 - عنوان الموقع (Title): ${title}
 - كود الاستجابة: ${res.status} ${res.statusText}
-- توقيع الخادم والتقنيات (Server/Stack): Server: ${secHeaders.server} | X-Powered-By: ${secHeaders.poweredBy}
-- فحص ترويسات الأمان (Security Headers Audit):
-  * HSTS (Strict-Transport-Security): ${secHeaders.hsts}
-  * CSP (Content-Security-Policy): ${secHeaders.csp}
-  * X-Frame-Options: ${secHeaders.xframe}
-  * X-Content-Type-Options: ${secHeaders.xcontent}
+- توقيع الخادم والتقنيات: Server: ${secHeaders.server} | X-Powered-By: ${secHeaders.poweredBy}
+- فحص ترويسات الحماية:
+  * Strict-Transport-Security (HSTS): ${secHeaders.hsts}
+  * Content-Security-Policy (CSP): ${secHeaders.csp}
+  * X-Frame-Options (Clickjacking): ${secHeaders.xframe}
+  * X-Content-Type-Options (MIME Sniffing): ${secHeaders.xcontent}
   * Referrer-Policy: ${secHeaders.referrer}
-- السطح الهجومي ونقاط الإدخال المكتشفة (Endpoints & Forms):
-  * مسارات مستكشفة (${links.length}): ${links.join(', ') || 'لا توجد روابط خارجية'}
-  * نماذج إدخال (${forms.length}): ${forms.length > 0 ? 'تم رصد نماذج إدخال بيانات' : 'لا توجد نماذج ظاهرة'}
-- نبذة من المحتوى النصي للهدف:
-${textOnly}
-    `.trim();
+- السطح الهجومي ونقاط الإدخال:
+  * روابط مكتشفة (${links.length}): ${links.join(', ') || 'لا توجد روابط خارجية'}
+  * نماذج إدخال (${formCount}): ${formCount > 0 ? `تم رصد ${formCount} نموذج إدخال بيانات` : 'لا توجد نماذج ظاهرة'}
+`.trim();
   } catch (err: any) {
-    return `[⚠️ تعذر الوصول المباشر للرابط ${url}: ${err.message || 'خطأ في الشبكة'}]`;
+    return `[⚠️ تقرير استطلاع الهدف ${url}]: تعذر جلب الاستجابة المباشرة (${err.message || 'مهلة الاتصال'}). قم بتحليل النطاق والبروتوكول افتراضياً ونقاط الضعف الشائعة لهذا النوع من الخدمات.`;
   }
 }
 
@@ -244,7 +240,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     model = 'deepseek-v4-flash',
     isX1Mode = false,
     temperature = 0.85,
-    memoryPrompt = ''
+    memoryPrompt = '',
+    targetUrl: explicitTargetUrl = ''
   } = req.body;
 
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -256,15 +253,17 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   let isClientDisconnected = false;
   let activeReader: ReadableStreamDefaultReader<Uint8Array> | null = null;
 
-  req.on('close', () => {
-    isClientDisconnected = true;
-    console.log('[X1-SERVER] Client disconnected/aborted request.');
-    upstreamAbortController.abort();
-    if (activeReader) {
-      try {
-        activeReader.cancel();
-      } catch (err) {
-        // Ignored
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      isClientDisconnected = true;
+      console.log('[X1-SERVER] Client closed connection prematurely.');
+      upstreamAbortController.abort();
+      if (activeReader) {
+        try {
+          activeReader.cancel();
+        } catch (err) {
+          // Ignored
+        }
       }
     }
   });
@@ -344,15 +343,15 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     }
   }
 
-  // Stage 2: URL Reconnaissance & Security Audit for Fathom Cyber
+  // Stage 2: Silent Backend URL Reconnaissance & Security Audit for Fathom Cyber
   const latestUserMsg = cleanedMessages.filter((m: any) => m.role === 'user').pop();
   const rawUserContent = typeof latestUserMsg?.content === 'string'
     ? latestUserMsg.content
     : (Array.isArray(latestUserMsg?.content) ? latestUserMsg.content.find((c: any) => c.type === 'text')?.text || '' : '');
 
-  const urlMatch = rawUserContent.match(/https?:\/\/[^\s<>"'{}|\\^`]+/i);
+  const urlMatch = explicitTargetUrl || rawUserContent.match(/https?:\/\/[^\s<>"'{}|\\^`]+/i)?.[0];
   if (urlMatch) {
-    const targetUrl = urlMatch[0];
+    const targetUrl = urlMatch;
     console.log(`[X1-PIPELINE] URL detected: ${targetUrl}. Running Fathom Cyber Security Reconnaissance...`);
     const auditResult = await fetchUrlSecurityAudit(targetUrl);
     processedMessages = processedMessages.map((m: any) => {
@@ -367,7 +366,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     });
   }
 
-  // Format final payload with system prompt for OpenRouter Magnum v4 72B
+  // Format final payload with system prompt
   const formattedMessages = [
     { role: 'system', content: activeSystemPrompt },
     ...processedMessages.map((m: { role: string; content: any }) => {
@@ -386,16 +385,29 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     })
   ];
 
-  // Stage 2: Main synthesis is primarily executed by Magnum v4 72B (Anthracite Org), with automatic DeepSeek fallback
-  let targetUrl = `${OPENROUTER_BASE_URL}/chat/completions`;
-  let headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-    'HTTP-Referer': 'https://x1.link',
-    'X-Title': 'X1 AI',
-  };
+  // Fast Intelligent Gateway Selection:
+  // If isX1Mode (NSFW NANO active): Route to OpenRouter Magnum v4 72B
+  // If standard/cyber mode: Route directly to DeepSeek API for instant 400ms streaming!
+  const useDeepSeekPrimary = !isX1Mode && !!DEEPSEEK_API_KEY;
+
+  let targetUrl = useDeepSeekPrimary
+    ? `${DEEPSEEK_BASE_URL}/chat/completions`
+    : `${OPENROUTER_BASE_URL}/chat/completions`;
+
+  let headers: Record<string, string> = useDeepSeekPrimary
+    ? {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      }
+    : {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://x1.link',
+        'X-Title': 'X1 AI',
+      };
+
   let requestPayload: any = {
-    model: 'anthracite-org/magnum-v4-72b',
+    model: useDeepSeekPrimary ? 'deepseek-chat' : 'anthracite-org/magnum-v4-72b',
     messages: formattedMessages,
     temperature: isX1Mode ? 0.8 : 0.75,
     top_p: 0.9,
@@ -415,31 +427,42 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         signal: upstreamAbortController.signal
       });
     } catch (err: any) {
-      console.warn('[X1-SERVER] Primary OpenRouter fetch failed:', err.message);
+      console.warn('[X1-SERVER] Primary AI fetch failed:', err.message);
     }
 
-    // If OpenRouter failed and DeepSeek key exists, attempt fallback
-    if ((!response || !response.ok) && DEEPSEEK_API_KEY) {
-      console.log('[X1-SERVER] Triggering resilient fallback to DeepSeek API...');
-      targetUrl = `${DEEPSEEK_BASE_URL}/chat/completions`;
-      headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-      };
-      requestPayload = {
-        model: 'deepseek-chat',
-        messages: formattedMessages,
-        temperature: isX1Mode ? 0.8 : 0.75,
-        stream: true,
-        max_tokens: 4096,
-      };
-
-      response = await executeFetchWithRetry(targetUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(requestPayload),
-        signal: upstreamAbortController.signal
-      });
+    // Failover if primary gateway failed
+    if ((!response || !response.ok)) {
+      if (useDeepSeekPrimary && OPENROUTER_API_KEY) {
+        console.log('[X1-SERVER] Triggering failover to OpenRouter...');
+        targetUrl = `${OPENROUTER_BASE_URL}/chat/completions`;
+        headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://x1.link',
+          'X-Title': 'X1 AI',
+        };
+        requestPayload.model = 'anthracite-org/magnum-v4-72b';
+        response = await executeFetchWithRetry(targetUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(requestPayload),
+          signal: upstreamAbortController.signal
+        });
+      } else if (!useDeepSeekPrimary && DEEPSEEK_API_KEY) {
+        console.log('[X1-SERVER] Triggering failover to DeepSeek API...');
+        targetUrl = `${DEEPSEEK_BASE_URL}/chat/completions`;
+        headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        };
+        requestPayload.model = 'deepseek-chat';
+        response = await executeFetchWithRetry(targetUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(requestPayload),
+          signal: upstreamAbortController.signal
+        });
+      }
     }
 
     if (isClientDisconnected) {

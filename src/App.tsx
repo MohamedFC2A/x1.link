@@ -129,7 +129,7 @@ export const App: React.FC = () => {
 
   const handleSendMessage = async (
     text: string,
-    meta?: { model?: string; attachments?: File[] }
+    meta?: { model?: string; attachments?: File[]; targetUrl?: string; effort?: string }
   ) => {
     if (isStreaming) return;
 
@@ -206,6 +206,7 @@ export const App: React.FC = () => {
       model: attachedImageDataUrl ? 'deepseek-v4-flash-vision-exp' : chosenModel,
       isX1Mode: isX1Active,
       memoryPrompt: memoryContextPrompt,
+      targetUrl: meta?.targetUrl,
       onChunk: (data) => {
         fullAssistantResponse = data.content;
         fullAssistantReasoning = data.reasoning;

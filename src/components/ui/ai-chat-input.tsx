@@ -35,7 +35,7 @@ export interface Attachment {
 export interface PromptInputProps {
   onSubmit?: (
     value: string,
-    meta: { model: string; effort: string; attachments: File[] }
+    meta: { model: string; effort: string; attachments: File[]; targetUrl?: string }
   ) => void;
   placeholder?: string;
   className?: string;
@@ -310,14 +310,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       if (!/^https?:\/\//i.test(target)) target = 'https://' + target;
 
       const extraPrompt = value.trim();
-      const finalPrompt = extraPrompt
-        ? `افحص هذا الرابط أمنياً واستخرج كافة المعلومات والترويسات ونقاط السطح الهجومي: ${target}\n\nتوجيهات إضافية: ${extraPrompt}`
-        : `افحص هذا الرابط أمنياً واستخرج كافة المعلومات والترويسات ونقاط السطح الهجومي: ${target}`;
+      // Keep chat display 100% clean without displaying internal prompt templates in the chat
+      const displayContent = extraPrompt ? `${target}\n${extraPrompt}` : target;
 
-      onSubmit?.(finalPrompt, {
+      onSubmit?.(displayContent, {
         model: 'deepseek-v4-flash-cyber',
         effort: isX1Active ? "X1 (+21)" : "Standard",
         attachments: [],
+        targetUrl: target,
       });
 
       setCyberTargetUrl('');
