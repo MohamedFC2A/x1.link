@@ -507,32 +507,19 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 )}
               </button>
 
-              {/* Model 3: Fathom Cam */}
-              <button
-                type="button"
-                onClick={() => {
-                  setInternalModel('deepseek-v4-flash-vision-exp');
-                  onSelectModel?.('deepseek-v4-flash-vision-exp');
-                  setIsModelMenuOpen(false);
-                }}
-                className={cn(
-                  "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-colors cursor-pointer text-right mt-1",
-                  isVisionMode
-                    ? "bg-amber-950/60 text-amber-200 font-bold border border-amber-500/40"
-                    : "hover:bg-zinc-800 text-zinc-300"
-                )}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Camera className="w-4 h-4 text-amber-400 shrink-0" />
-                  <div>
-                    <div className="font-semibold text-xs text-white">Fathom Cam</div>
-                    <div className="text-[10px] text-zinc-400 font-normal">الإدراك البصري وتحليل الصور</div>
+              {/* Model 3: Fathom Cam (Shown ONLY when image or file is uploaded) */}
+              {hasAttachments && (
+                <div className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans bg-amber-950/60 text-amber-200 font-bold border border-amber-500/40 mt-1">
+                  <div className="flex items-center gap-2.5">
+                    <Camera className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div>
+                      <div className="font-semibold text-xs text-white">Fathom Cam</div>
+                      <div className="text-[10px] text-amber-300/80 font-normal">مفعّل تلقائياً لتحليل الصورة</div>
+                    </div>
                   </div>
-                </div>
-                {isVisionMode && (
                   <span className="size-2 rounded-full bg-amber-400 shrink-0" />
-                )}
-              </button>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -584,55 +571,44 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               : "border-zinc-800 focus-within:border-zinc-700"
           )}
         >
-          {/* Dedicated URL Scanner Bar (Shown ONLY for Fathom Cyber) */}
-          {isCyberMode && (
-            <div className="p-2 sm:p-2.5 border-b border-zinc-800/80 bg-cyan-950/30 rounded-t-2xl sm:rounded-t-3xl flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
-              <div className="flex items-center justify-between text-[11px] font-mono text-cyan-300 px-1">
-                <span className="flex items-center gap-1.5 font-bold">
-                  <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>فحص واستطلاع الروابط أمنياً (Fathom Cyber OSINT)</span>
-                </span>
-                <span className="text-[10px] text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800/60 font-semibold">
-                  تحليل مباشر
-                </span>
+          {/* Streamlined Cyber URL Bar (Shown ONLY for Fathom Cyber) */}
+          {isCyberMode && !hasAttachments && (
+            <div className="p-2 sm:p-2.5 border-b border-zinc-800/80 bg-cyan-950/20 rounded-t-2xl sm:rounded-t-3xl flex items-center gap-1.5 sm:gap-2 animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-black/70 border border-cyan-500/40 focus-within:border-cyan-400 transition-colors">
+                <Globe className="w-4 h-4 text-cyan-400 shrink-0" />
+                <input
+                  type="url"
+                  value={cyberTargetUrl}
+                  onChange={(e) => setCyberTargetUrl(e.target.value)}
+                  placeholder="أدخل رابط الهدف للفحص الأمني (https://example.com)..."
+                  className="w-full bg-transparent text-xs sm:text-sm text-cyan-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left"
+                  dir="ltr"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCyberSubmit();
+                    }
+                  }}
+                />
+                {cyberTargetUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setCyberTargetUrl('')}
+                    className="text-zinc-400 hover:text-white p-0.5 rounded-full cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-black/70 border border-cyan-500/40 focus-within:border-cyan-400 transition-colors">
-                  <Globe className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <input
-                    type="url"
-                    value={cyberTargetUrl}
-                    onChange={(e) => setCyberTargetUrl(e.target.value)}
-                    placeholder="أدخل رابط الهدف للفحص (مثال: https://example.com)..."
-                    className="w-full bg-transparent text-xs sm:text-sm text-cyan-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left"
-                    dir="ltr"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleCyberSubmit();
-                      }
-                    }}
-                  />
-                  {cyberTargetUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setCyberTargetUrl('')}
-                      className="text-zinc-400 hover:text-white p-0.5 rounded-full cursor-pointer"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCyberSubmit}
-                  disabled={!cyberTargetUrl.trim() || isStreaming}
-                  className="px-3 sm:px-4 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-black text-xs font-bold font-sans transition-all cursor-pointer select-none active:scale-95 shrink-0 flex items-center gap-1.5"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>فحص الهدف</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleCyberSubmit}
+                disabled={!cyberTargetUrl.trim() || isStreaming}
+                className="px-3 sm:px-4 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-black text-xs font-bold font-sans transition-colors cursor-pointer select-none active:scale-95 shrink-0 flex items-center gap-1.5"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>فحص الهدف</span>
+              </button>
             </div>
           )}
 

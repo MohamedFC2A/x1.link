@@ -419,22 +419,8 @@ export const App: React.FC = () => {
             />
           </main>
 
-          {/* Floating AI Chat Input & Stop Generator */}
+          {/* Floating AI Chat Input */}
           <div className="sticky bottom-0 z-30 w-full px-2.5 sm:px-3 pb-2.5 sm:pb-3 pt-1.5 bg-[#09090b]/95 backdrop-blur-md border-t border-zinc-850 pb-safe">
-            {/* Stop Generation Button */}
-            {isStreaming && (
-              <div className="flex justify-center mb-1.5 sm:mb-2 animate-in fade-in duration-150">
-                <button
-                  type="button"
-                  onClick={handleAbort}
-                  className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-rose-400 border border-rose-500/60 text-xs font-semibold transition-all active:scale-95 cursor-pointer select-none shadow-md"
-                >
-                  <Square className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
-                  <span>إيقاف التوليد</span>
-                </button>
-              </div>
-            )}
-
             <PromptInput
               onSubmit={(val, meta) => handleSendMessage(val, meta)}
               isStreaming={isStreaming}
