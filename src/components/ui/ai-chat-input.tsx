@@ -837,28 +837,50 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     }
                   }}
                   className={cn(
-                    "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
+                    "w-full flex items-start justify-between p-3 rounded-2xl text-xs font-sans transition-all cursor-pointer text-right border relative overflow-hidden group",
                     internalModel === 'meta/muse-spark-1.2-contributor' || hasNonImageMedia
-                      ? "bg-violet-500/15 text-white font-bold border-violet-500/30 shadow-sm"
-                      : "hover:bg-white/[0.04] text-zinc-300 border-transparent"
+                      ? "bg-gradient-to-r from-violet-950/80 via-fuchsia-950/60 to-indigo-950/80 text-white font-bold border-violet-500/50 shadow-[0_0_20px_rgba(168,85,247,0.25)]"
+                      : "hover:bg-white/[0.05] text-zinc-300 border-transparent hover:border-white/[0.08]"
                   )}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-9 rounded-xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-white shrink-0">
-                      <Sparkles className="w-4 h-4 text-violet-400" />
-                    </div>
-                    <div className="min-w-0 text-right">
-                      <div className="font-bold text-xs text-violet-200 flex items-center gap-1.5">
-                        <span>Fathom Spark</span>
-                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-300 font-mono">1.2 Multi</span>
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    {/* Comprehensive Multimedia Multi-Service Icon Badge */}
+                    <div className="size-11 rounded-xl bg-gradient-to-tr from-violet-600/30 via-fuchsia-500/25 to-indigo-600/30 border border-violet-400/50 flex flex-col items-center justify-center text-white shrink-0 p-1 shadow-[0_0_12px_rgba(168,85,247,0.35)] relative overflow-hidden group-hover:scale-105 transition-transform">
+                      <div className="grid grid-cols-2 gap-1 items-center justify-items-center">
+                        <Video className="w-3 h-3 text-violet-300" />
+                        <Music className="w-3 h-3 text-fuchsia-300" />
+                        <FileText className="w-3 h-3 text-cyan-300" />
+                        <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
                       </div>
-                      <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
-                        استيعاب فائق للفيديوهات، الصوتيات، والملفات الضخمة
+                    </div>
+
+                    <div className="min-w-0 text-right flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-extrabold text-sm bg-gradient-to-r from-violet-200 via-fuchsia-200 to-indigo-100 bg-clip-text text-transparent">Fathom Spark</span>
+                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-gradient-to-r from-violet-500/30 to-fuchsia-500/30 border border-violet-400/40 text-violet-200 font-mono font-bold shadow-sm">
+                          Multi 1.2
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-zinc-300 font-normal leading-relaxed mt-1">
+                        المحرك الشامل لاستيعاب الفيديوهات، التسجيلات الصوتية، والمستندات والأكواد الضخمة
+                      </div>
+
+                      {/* Feature Service Chips */}
+                      <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[9px] font-sans">
+                        <span className="px-1.5 py-0.5 rounded-md bg-violet-500/20 border border-violet-500/30 text-violet-300 flex items-center gap-1">
+                          <Video className="w-2.5 h-2.5" /> فيديوهات
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-md bg-fuchsia-500/20 border border-fuchsia-500/30 text-fuchsia-300 flex items-center gap-1">
+                          <Music className="w-2.5 h-2.5" /> صوتيات
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 flex items-center gap-1">
+                          <FileText className="w-2.5 h-2.5" /> ملفات وأكواد
+                        </span>
                       </div>
                     </div>
                   </div>
                   {(internalModel === 'meta/muse-spark-1.2-contributor' || hasNonImageMedia) && (
-                    <span className="size-1.5 rounded-full bg-violet-400 shrink-0 mr-2" />
+                    <span className="size-2 rounded-full bg-violet-400 shrink-0 mr-2 mt-1.5 shadow-[0_0_8px_rgba(168,85,247,0.8)] animate-pulse" />
                   )}
                 </button>
               </div>
@@ -1392,15 +1414,17 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               <SmartTooltip
                 title={activeModelDisplayName}
                 description={
-                  isCyberMode
+                  isMediaMode
+                    ? "المحرك الشامل لاستيعاب وتحليل الفيديوهات، التسجيلات الصوتية، المستندات والأكواد بسياق ضخم يصل لمليون توكن."
+                    : isCyberMode
                     ? "نموذج استخباري سيبراني متخصص في فحص الروابط، تحليل الثغرات، واكتشاف التهديدات الرقمية."
                     : isVisionMode
                     ? "نموذج الرؤية البصرية الفورية لتحليل الصور، قراءة المستندات، واستخراج النصوص OCR."
                     : "النموذج الذكي الأساسي للتحليل اللغوي العميق، التفكير المنطقي، وتوليد الأفكار الحرة."
                 }
-                badge={isCyberMode ? "Cyber Engine" : isVisionMode ? "Vision Engine" : "Flagship AI"}
-                badgeColor={isCyberMode ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : isVisionMode ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : "bg-amber-500/20 text-amber-300 border-amber-500/40"}
-                icon={isCyberMode ? <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" /> : isVisionMode ? <Camera className="w-3.5 h-3.5 text-emerald-400" /> : <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />}
+                badge={isMediaMode ? "Spark Multi 1.2" : isCyberMode ? "Cyber Engine" : isVisionMode ? "Vision Engine" : "Flagship AI"}
+                badgeColor={isMediaMode ? "bg-violet-500/20 text-violet-300 border-violet-500/40" : isCyberMode ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : isVisionMode ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : "bg-amber-500/20 text-amber-300 border-amber-500/40"}
+                icon={isMediaMode ? <Sparkles className="w-3.5 h-3.5 text-violet-400" /> : isCyberMode ? <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" /> : isVisionMode ? <Camera className="w-3.5 h-3.5 text-emerald-400" /> : <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />}
                 side="top"
                 disabled={isModelMenuOpen}
               >
@@ -1410,16 +1434,26 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     e.stopPropagation();
                     setIsModelMenuOpen(!isModelMenuOpen);
                   }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium select-none shrink-0 cursor-pointer transition-all bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.16] text-zinc-300 hover:text-white active:scale-95 shadow-none"
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium select-none shrink-0 cursor-pointer transition-all border active:scale-95 shadow-none",
+                    isMediaMode
+                      ? "bg-violet-500/10 hover:bg-violet-500/20 border-violet-500/30 text-violet-200"
+                      : "bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.08] hover:border-white/[0.16] text-zinc-300 hover:text-white"
+                  )}
                 >
-                  {isCyberMode ? (
+                  {isMediaMode ? (
+                    <div className="flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                      <Video className="w-3 h-3 text-fuchsia-400 shrink-0 hidden sm:inline" />
+                    </div>
+                  ) : isCyberMode ? (
                     <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                   ) : isVisionMode ? (
                     <Camera className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   ) : (
                     <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20 shrink-0" />
                   )}
-                  <span className="hidden sm:inline font-sans text-xs font-semibold">
+                  <span className={cn("hidden sm:inline font-sans text-xs font-semibold", isMediaMode && "text-violet-200")}>
                     {activeModelDisplayName}
                   </span>
                   <ChevronDown className={cn("w-3 h-3 text-zinc-400 transition-transform duration-200", isModelMenuOpen && "rotate-180")} />

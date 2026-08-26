@@ -211,27 +211,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       <AnimatePresence>
         {showScrollBottom && (
           <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.9 }}
+            initial={{ opacity: 0, y: 10, scale: 0.92 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 pointer-events-auto shadow-2xl"
+            exit={{ opacity: 0, y: 8, scale: 0.92 }}
+            transition={{ type: 'spring', stiffness: 450, damping: 28 }}
+            className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-auto shadow-2xl"
           >
             <button
               type="button"
-              onClick={() => scrollToBottom(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-zinc-950/90 hover:bg-zinc-900 text-zinc-200 hover:text-white border border-white/[0.15] shadow-2xl backdrop-blur-2xl text-xs font-sans font-medium transition-all active:scale-95 cursor-pointer group"
+              onClick={() => {
+                setShowScrollBottom(false);
+                scrollToBottom(true);
+              }}
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-zinc-950/95 hover:bg-zinc-900 text-zinc-200 hover:text-white border border-white/[0.18] shadow-[0_8px_30px_rgba(0,0,0,0.8)] backdrop-blur-2xl text-[11px] sm:text-xs font-sans font-medium transition-all active:scale-95 cursor-pointer group select-none"
             >
               {isStreaming ? (
-                <span className="relative flex h-2.5 w-2.5">
+                <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
               ) : (
-                <ArrowDown className="w-3.5 h-3.5 text-zinc-300 group-hover:translate-y-0.5 transition-transform" />
+                <ArrowDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 group-hover:translate-y-0.5 transition-transform shrink-0" />
               )}
-              <span>{isStreaming ? 'جاري كتابة الرد • انقر للنزول' : 'الانتقال لأحدث رسالة'}</span>
-              <ChevronDown className="w-3 h-3 text-zinc-400" />
+              <span className="leading-none">{isStreaming ? 'جاري الكتابة • انزل للأسفل' : 'الانتقال لأحدث رسالة'}</span>
+              <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-zinc-400 shrink-0" />
             </button>
           </motion.div>
         )}
