@@ -32,7 +32,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
     },
     {
       id: 3,
-      title: 'المرحلة الثالثة: العزل البيومتري والتحرر الكامل (NSFW NANO Protocol)',
+      title: 'المرحلة الثالثة: العزل البيومتري والتحرر الكامل (NSFW Off Mode)',
       description: 'تفعيل مسار المعالجة غير المقيد فور التحقق من بصمة الإصبع أو Face ID، مع إزالة كاملة للقيود أو الرقابة المسبقة.',
       timestamp: 'المرحلة 03 • الأمان البيومتري',
       status: 'in-progress',

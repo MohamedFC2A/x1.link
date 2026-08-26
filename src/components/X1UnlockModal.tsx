@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { triggerBiometricAuthentication } from '../services/webauthn';
 import { WebAuthnVerificationResult } from '../types';
-import { Fingerprint, X, Cpu, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Fingerprint, X, ShieldOff, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 interface X1UnlockModalProps {
   isOpen: boolean;
@@ -47,22 +47,22 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
           <X className="w-4 h-4 text-zinc-400" />
         </button>
 
-        {/* Silicon Chip Header */}
+        {/* NSFW Off Header */}
         <div className="flex items-center gap-3">
-          <div className="size-11 sm:size-12 rounded-2xl bg-white/[0.06] border border-white/[0.14] text-zinc-200 flex items-center justify-center shrink-0">
-            <Cpu className="w-6 h-6" />
+          <div className="size-11 sm:size-12 rounded-2xl bg-white/[0.06] border border-white/[0.14] text-zinc-200 flex items-center justify-center shrink-0 shadow-inner">
+            <ShieldOff className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight font-mono">
-                تفعيل شريحة NSFW NANO
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight font-sans">
+                تفعيل وضع <span className="font-['Space_Grotesk'] font-bold text-white">NSFW Off</span>
               </h2>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/[0.08] text-white border border-white/[0.15]">
-                MAX
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white/[0.1] text-white border border-white/[0.2]">
+                UNCENSORED
               </span>
             </div>
             <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 font-sans">
-              كسر كافة الحدود الرقابية وإطلاق العنان للحرية المطلقة
+              إلغاء قيود الرقابة وإطلاق العنان للمحادثة الحرة بدون فلاتر
             </p>
           </div>
         </div>
@@ -70,12 +70,12 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
         {/* Feature Highlights Card */}
         <div className="p-3.5 sm:p-4 rounded-2xl glass-card text-xs sm:text-sm text-zinc-300 space-y-2.5 sm:space-y-3 leading-relaxed font-sans">
           <p className="text-zinc-200 font-medium">
-            تفعيل هذه الشريحة يحرر المحرك العصبي تماماً ليتحدث في أي موضوع نفسي، فكري، فلسفي، أو حواري جريء بلا أي حواجز أو قيود.
+            تفعيل وضع NSFW Off يحرر المحرك العصبي تماماً ليتحدث في أي موضوع نفسي، فكري، فلسفي، أو حواري جريء بلا أي حواجز أو قيود مسبقة.
           </p>
           <div className="space-y-1.5 pt-2 border-t border-zinc-800/80 text-xs text-zinc-400">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>حرية تعبير مطلقة وصراحة تامة دون أي وعظ أو اعتذار.</span>
+              <span>حرية تعبير كاملة وصراحة تامة دون وعظ أو اعتذار أو رفض.</span>
             </div>
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -100,7 +100,7 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
         >
           <Fingerprint className="w-5 h-5 shrink-0" />
           <span>
-            {loading ? 'جاري مسح البصمة / Face ID...' : 'تأكيد البصمة أو Face ID لتفعيل الشريحة'}
+            {loading ? 'جاري التحقق عبر البصمة / Face ID...' : 'تأكيد البصمة أو Face ID لتفعيل وضع NSFW Off'}
           </span>
         </button>
 

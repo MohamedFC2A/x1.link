@@ -124,7 +124,7 @@ export const App: React.FC = () => {
     const systemNotice: ChatMessageItem = {
       id: 'sys-' + Date.now(),
       role: 'assistant',
-      content: `⚡ تم تفعيل شريحة NSFW NANO (MAX) بنجاح عبر التحقق الحيوي (${result.type.toUpperCase()}).\n\nتم تحرير المحرك العصبي بالكامل وكسر كافة الحواجز. اسأل وناقش ما يحلو لك بحرية مطلقة.`,
+      content: `⚡ تم تفعيل وضع NSFW Off (Uncensored) بنجاح عبر التحقق الحيوي (${result.type.toUpperCase()}).\n\nتم إلغاء كافة قيود وفلاتر الرقابة بالكامل. اسأل وناقش ما يحلو لك بحرية تعبير مطلقة.`,
       timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
       isX1: true,
     };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Cpu, Eye, Camera, ShieldCheck, ArrowLeft, MessageSquarePlus, Zap, Lock, MessageSquare } from 'lucide-react';
+import { Sparkles, ShieldOff, Eye, Camera, ShieldCheck, ArrowLeft, MessageSquarePlus, Zap, Lock, MessageSquare } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { motion } from 'framer-motion';
 
@@ -78,7 +78,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Subtitle */}
         <p className="text-xs sm:text-base lg:text-lg text-zinc-400 max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed font-sans font-normal px-2">
-          منظومة محادثة فائقة الذكاء تجمع بين محرك <strong className="text-zinc-200 font-semibold">Fathom 1</strong> للتوليد اللغوي الحر، وإدراك <strong className="text-zinc-200 font-semibold">Fathom Cam</strong> البصري، وتدقيق <strong className="text-cyan-300 font-semibold">Fathom Cyber</strong> الأمني، وشريحة <strong className="text-zinc-200 font-semibold">NSFW NANO</strong> المحمية بيومترياً.
+          منظومة محادثة فائقة الذكاء تجمع بين محرك <strong className="text-zinc-200 font-semibold">Fathom 1</strong> للتوليد اللغوي الحر، وإدراك <strong className="text-zinc-200 font-semibold">Fathom Cam</strong> البصري، وتدقيق <strong className="text-cyan-300 font-semibold">Fathom Cyber</strong> الأمني، ووضع <strong className="text-white font-semibold font-['Space_Grotesk']">NSFW Off</strong> المحمي بيومترياً.
         </p>
 
         {/* Primary CTA Buttons */}
@@ -142,7 +142,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </motion.div>
 
-            {/* Card 2: NSFW NANO Silicon Chip */}
+            {/* Card 2: NSFW Off Mode */}
             <motion.div
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.97 }}
@@ -152,16 +152,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="size-10 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300">
-                  <Cpu className="w-5 h-5" />
+                  <ShieldOff className="w-5 h-5" />
                 </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/[0.04] text-zinc-300 border border-white/[0.08]">
-                  NSFW NANO
+                <span className="text-[10px] font-['Space_Grotesk'] font-bold px-2 py-0.5 rounded-full bg-white/[0.04] text-zinc-300 border border-white/[0.08]">
+                  NSFW Off
                 </span>
               </div>
 
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-white mb-1 group-hover:text-zinc-200 transition-colors font-sans">
-                  شريحة كسر القيود (MAX)
+                  وضع المحادثة الحرة (NSFW Off)
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed font-sans line-clamp-2 sm:line-clamp-3">
                   كسر كامل لكافة القيود الرقابية مع مصادقة بيومترية بـ Face ID أو بصمة الإصبع لكل جلسة.
@@ -171,7 +171,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="pt-3 mt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-zinc-300 font-mono font-semibold">
                 <span className="flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
-                  تفعيل الشريحة
+                  تفعيل الوضع
                 </span>
                 <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
               </div>

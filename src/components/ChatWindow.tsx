@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ChatMessageItem } from '../types';
 import { ChatMessage } from './ChatMessage';
-import { Sparkles, Cpu, Eye, Camera, ShieldCheck, ChevronDown, ArrowDown } from 'lucide-react';
+import { Sparkles, ShieldOff, Eye, Camera, ShieldCheck, ChevronDown, ArrowDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ChatWindowProps {
@@ -201,17 +201,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="size-8 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300">
-                    <Cpu className="w-4 h-4" />
+                    <ShieldOff className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-white/[0.05] text-zinc-300 border border-white/[0.08]">
-                    NSFW NANO
+                  <span className="text-[10px] font-['Space_Grotesk'] font-bold px-2 py-0.5 rounded-full bg-white/[0.05] text-zinc-300 border border-white/[0.08]">
+                    NSFW Off
                   </span>
                 </div>
                 <div className="text-xs sm:text-sm font-semibold text-white group-hover:text-zinc-200 transition-colors mb-1 font-sans">
                   حوار متحرر وصريح
                 </div>
                 <div className="text-[11px] sm:text-xs text-zinc-400 font-sans line-clamp-2 leading-relaxed">
-                  كسر القيود عبر شريحة NSFW NANO البيومترية.
+                  إلغاء قيود الرقابة عبر وضع NSFW Off البيومتري.
                 </div>
               </motion.button>
 

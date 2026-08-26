@@ -20,7 +20,8 @@ import {
   MoreHorizontal,
   FileText,
   Search,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ShieldOff
 } from "lucide-react";
 import { ModelType } from "@/types";
 
@@ -676,11 +677,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         ? "bg-white text-black border-white"
                         : "bg-white/[0.04] text-zinc-200 border-white/[0.08]"
                     )}>
-                      <Cpu className="w-4 h-4" />
+                      <ShieldOff className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 text-right">
-                      <div className="font-semibold text-xs text-white truncate">شريحة NSFW NANO</div>
-                      <div className="text-[11px] text-zinc-400 font-normal truncate mt-0.5">كسر القيود عبر البصمة الحيوية</div>
+                      <div className="font-semibold text-xs text-white truncate">وضع <span className="font-['Space_Grotesk'] font-bold">NSFW Off</span></div>
+                      <div className="text-[11px] text-zinc-400 font-normal truncate mt-0.5">إلغاء القيود عبر البصمة الحيوية</div>
                     </div>
                   </div>
                   <span className={cn(
@@ -951,10 +952,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               {/* NSFW Active Icon Indicator */}
               {isX1Active && (
                 <div
-                  title="شريحة كسر القيود (NSFW MAX) مفعلة"
+                  title="وضع NSFW Off (Uncensored) مفعل"
                   className="size-7 rounded-xl bg-white/[0.06] border border-white/[0.12] flex items-center justify-center text-zinc-200 shrink-0"
                 >
-                  <Cpu className="w-3.5 h-3.5 text-zinc-200" />
+                  <ShieldOff className="w-3.5 h-3.5 text-zinc-200" />
                 </div>
               )}
 
