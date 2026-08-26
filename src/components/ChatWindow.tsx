@@ -172,41 +172,41 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         }}
       >
         {messages.length === 0 ? (
-          <div className="min-h-[60vh] flex flex-col items-center justify-center max-w-xl mx-auto py-8 text-center animate-in fade-in duration-300 px-4 relative">
-            {/* Tech Grid Backdrop Aura */}
-            <div className="absolute inset-0 -z-10 bg-grid-white opacity-25 grid-radial-fade pointer-events-none rounded-3xl" />
+          <div className="min-h-[55vh] flex flex-col items-center justify-center max-w-lg mx-auto py-8 text-center animate-in fade-in duration-300 px-4 relative select-none">
+            {/* Minimal Subtle Grid Aura */}
+            <div className="absolute inset-0 -z-10 bg-grid-white opacity-20 grid-radial-fade pointer-events-none rounded-3xl" />
             
             {/* Title */}
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-3 font-sans tracking-tight">
-              كيف يمكن لـ <span className="brand-shimmer-text font-['Space_Grotesk'] font-black">matany.one</span> مساعدتك اليوم؟
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 font-sans tracking-tight">
+              كيف يمكن لـ <span className="brand-shimmer-text font-['Space_Grotesk'] font-black">matany.one</span> مساعدتك؟
             </h2>
             
-            <p className="text-xs sm:text-sm text-zinc-400 max-w-md mx-auto font-sans leading-relaxed mb-6">
-              اكتب رسالتك في الحقل بالأسفل للبدء، أو ارفع صورة للتحليل، أو ابدأ الاستكشاف والبحث المباشر.
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-sm mx-auto font-sans leading-relaxed mb-6">
+              ذكاء اصطناعي حر بذاكرة سحابية مليونية وتحليل متعدد الوسائط
             </p>
 
-            {/* Quick Action Pills for Mobile and Desktop */}
+            {/* Quick Minimalist Starter Chips */}
             <div className="flex flex-wrap items-center justify-center gap-2 max-w-md mx-auto">
               <button
                 type="button"
                 onClick={() => onSendPreset('ما هي أحدث قدرات الذكاء الاصطناعي في matany.one؟')}
-                className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 hover:text-white text-xs transition-all active:scale-95 cursor-pointer shadow-sm font-sans"
+                className="px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-zinc-300 hover:text-white text-xs transition-all active:scale-95 cursor-pointer font-sans"
               >
-                ⚡ قدرات النموذج
+                ⚡ قدرات المنظومة
               </button>
               <button
                 type="button"
-                onClick={() => onSendPreset('قم بتحليل وشرح رابط يوتيوب بالتفصيل')}
-                className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 hover:text-white text-xs transition-all active:scale-95 cursor-pointer shadow-sm font-sans"
+                onClick={() => onSendPreset('قم بتحليل وتلخيص رابط فيديو بالتفصيل')}
+                className="px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-zinc-300 hover:text-white text-xs transition-all active:scale-95 cursor-pointer font-sans"
               >
-                🎬 تلخيص فيديو
+                🎬 تلخيص وسائط
               </button>
               <button
                 type="button"
                 onClick={() => onSendPreset('ساعدني في كتابة وتدقيق كود برمجي احترافي')}
-                className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 hover:text-white text-xs transition-all active:scale-95 cursor-pointer shadow-sm font-sans"
+                className="px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-zinc-300 hover:text-white text-xs transition-all active:scale-95 cursor-pointer font-sans"
               >
-                💻 كتابة كود
+                💻 كتابة وتدقيق كود
               </button>
             </div>
           </div>
