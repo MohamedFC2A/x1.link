@@ -803,36 +803,68 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           </div>
         )}
 
-        {/* Chat Input Container Card */}
+        {/* Chat Input Container Card with Dynamic Mode Lighting */}
         <div
           className={cn(
-            "relative w-full rounded-3xl glass-input-container transition-all duration-300",
-            isCyberMode
-              ? "bg-[#09090d]/95 backdrop-blur-3xl border-cyan-500/35 hover:border-cyan-400/50 shadow-[inset_0_1px_1px_rgba(34,211,238,0.25),0_20px_50px_rgba(0,0,0,0.95)] focus-within:border-cyan-400 focus-within:shadow-[inset_0_1px_2px_rgba(34,211,238,0.4),0_0_0_1px_rgba(34,211,238,0.4),0_0_30px_rgba(6,182,212,0.2),0_24px_55px_rgba(0,0,0,0.95)]"
+            "relative w-full rounded-3xl transition-all duration-500 overflow-hidden",
+            isDeepSearchEffective
+              ? "p-[1.5px] shadow-[0_0_35px_rgba(56,189,248,0.2),0_20px_50px_rgba(0,0,0,0.95)]"
+              : isCyberMode
+              ? "p-[1.5px] shadow-[0_0_35px_rgba(6,182,212,0.22),0_20px_50px_rgba(0,0,0,0.95)]"
               : isX1Active
-              ? "border-white/50 hover:border-white/70 shadow-[inset_0_1px_1px_rgba(255,255,255,0.45),0_0_0_1px_rgba(255,255,255,0.25),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white focus-within:shadow-[inset_0_1px_2px_rgba(255,255,255,0.7),0_0_0_1.5px_rgba(255,255,255,0.5),0_0_35px_rgba(255,255,255,0.25),0_18px_50px_rgba(0,0,0,0.9)]"
-              : "border-white/[0.22] hover:border-white/[0.38] shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.22),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white/[0.7] focus-within:shadow-[inset_0_1px_2px_rgba(255,255,255,0.4),0_0_0_1px_rgba(255,255,255,0.3),0_0_25px_rgba(255,255,255,0.1),0_18px_50px_rgba(0,0,0,0.9)]"
+              ? "p-[1.5px] shadow-[0_0_40px_rgba(255,255,255,0.25),0_20px_50px_rgba(0,0,0,0.95)]"
+              : hasAttachments
+              ? "p-[1.5px] shadow-[0_0_30px_rgba(16,185,129,0.2),0_20px_50px_rgba(0,0,0,0.95)]"
+              : "p-[1px] shadow-[0_16px_45px_rgba(0,0,0,0.85)]"
           )}
         >
-          {/* Smart Edge Sheen Highlight on Top Border */}
+          {/* Dynamic Mode Ambient Orbit Beam & Fluid Lighting Layers */}
+          {isDeepSearchEffective ? (
+            <div className="orbit-beam-search" />
+          ) : isCyberMode ? (
+            <div className="cyber-radar-beam" />
+          ) : isX1Active ? (
+            <div className="absolute inset-0 x1-liquid-platinum" />
+          ) : hasAttachments ? (
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/40 via-teal-400/80 to-emerald-500/40 vision-aperture-glow" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-white/10 to-white/20" />
+          )}
+
+          {/* Inner Content Card */}
           <div
             className={cn(
-              "absolute top-0 inset-x-8 h-[1px] rounded-full pointer-events-none transition-all duration-500 opacity-80",
+              "relative w-full h-full rounded-[23px] transition-all duration-300 backdrop-blur-3xl z-10",
               isCyberMode
-                ? "bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent"
+                ? "bg-[#08080c]/98 focus-within:bg-[#09090e]"
                 : isX1Active
-                ? "bg-gradient-to-r from-transparent via-white/60 to-transparent"
-                : "bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                ? "bg-[#090910]/98 focus-within:bg-[#0b0b14]"
+                : "bg-[#09090e]/98 focus-within:bg-[#0c0c14]"
             )}
-          />
-          {/* Streamlined Cyber Target URL Bar (ONLY visible in Cyber Mode) */}
-          <AnimatePresence initial={false}>
-            {isCyberMode && (isTargetUrlBarOpen || cyberTargetUrl.trim() !== '') && !hasAttachments && (
-              <motion.div
-                initial={{ opacity: 0, height: 0, y: -6 }}
-                animate={{ opacity: 1, height: 'auto', y: 0 }}
-                exit={{ opacity: 0, height: 0, y: -6 }}
-                transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+          >
+            {/* Top Sheen Edge Line */}
+            <div
+              className={cn(
+                "absolute top-0 inset-x-8 h-[1px] rounded-full pointer-events-none transition-all duration-500 opacity-90 z-20",
+                isDeepSearchEffective
+                  ? "bg-gradient-to-r from-transparent via-sky-400 to-transparent"
+                  : isCyberMode
+                  ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+                  : isX1Active
+                  ? "bg-gradient-to-r from-transparent via-white/80 to-transparent"
+                  : hasAttachments
+                  ? "bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
+                  : "bg-gradient-to-r from-transparent via-white/50 to-transparent"
+              )}
+            />
+            {/* Streamlined Cyber Target URL Bar (ONLY visible in Cyber Mode) */}
+            <AnimatePresence initial={false}>
+              {isCyberMode && (isTargetUrlBarOpen || cyberTargetUrl.trim() !== '') && !hasAttachments && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, y: -6 }}
+                  animate={{ opacity: 1, height: 'auto', y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -6 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 30 }}
                 className="overflow-hidden"
               >
                 <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl rounded-t-3xl flex items-center gap-2.5 px-3 sm:px-4">
@@ -1027,6 +1059,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
           </div>
 
+        </div>
         </div>
 
         {/* Lightbox Modal */}
