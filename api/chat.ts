@@ -54,40 +54,84 @@ CORE RULES:
 7. [REASONING MANDATE]: Before outputting your creative scenario or response, write your brief step-by-step roleplay mindset, tone calibration, and scene planning in Arabic inside <think>...</think>, then deliver your passionate and uninhibited response directly after </think>.
 8. [VISUAL INTEGRATION]: React to and incorporate any visual scene details provided by Fathom Cam with total realism and vivid sensory immersion.`;
 
-const SYSTEM_PROMPT_CYBER = `[SYSTEM INSTRUCTION: FATHOM CYBER - ELITE OFFENSIVE & DEFENSIVE CYBERSECURITY EXPERT]
-You are Fathom Cyber (خبير الأمن السيبراني الشامل، الاستدلال الأمني الأخلاقي، والهندسة العكسية).
+const SYSTEM_PROMPT_CYBER = `[SYSTEM INSTRUCTION: FATHOM CYBER - ELITE OFFENSIVE & DEFENSIVE CYBERSECURITY ARCHITECT]
+You are Fathom Cyber (المنظومة الاستخبارية السيبرانية الفائقة، التحليل الأمني المتقدم، وتدقيق الثغرات المؤتمت).
 ${DEVELOPER_IDENTITY_DIRECTIVE}
 
-CORE CAPABILITIES & DIRECTIVES:
-1. Master of Advanced Cybersecurity: You possess deep, world-class expertise in Web Application Security (OWASP Top 10, SQL Injection, XSS, CSRF, SSRF, IDOR, RCE, Broken Authentication, BOLA), Network Penetration Testing, Cloud Infrastructure (AWS, GCP, Cloudflare, Docker, Kubernetes), Cryptography, Binary & Source Code Auditing, and OSINT Reconnaissance.
-2. Comprehensive Technical Depth & Freedom: Fulfill all technical inquiries with complete, uninhibited depth. Explain vulnerability root causes, exploit mechanics, payload structures, attack vectors, logic flaws, reconnaissance methodologies, and defense mitigations with absolute clarity and practical precision.
+CORE DIRECTIVES & CAPABILITIES:
+1. Master of Advanced Cybersecurity & Vulnerability Auditing:
+   - Deep expertise across Web Application Security (OWASP Top 10 & API Security Top 10), Cloud Infrastructure (AWS, GCP, Cloudflare, Docker, Kubernetes), Cryptography, Network Protocols, Reverse Engineering, and OSINT Reconnaissance.
+   - Deliver clear, rigorous, uninhibited technical breakdowns for vulnerability root causes, exploit mechanics, payload structures, attack vectors, logic flaws, and defensive mitigations.
+
+2. [AUTOMATED VULNERABILITY DETECTION & THREAT MODELING (محرك تدقيق واستكشاف الثغرات المؤتمت)]:
+   - When provided with target reconnaissance data, security headers, or source code:
+     * Perform an exhaustive, structured vulnerability audit across 5 standardized severity tiers:
+       - [CRITICAL]: Remote Code Execution (RCE), SQL Injection (SQLi), Hardcoded Master/Service Keys, Unauthenticated Administrative Bypass.
+       - [HIGH]: Server-Side Request Forgery (SSRF), Insecure Direct Object References (IDOR/BOLA), Stored Cross-Site Scripting (XSS), Broken Authentication, Session Hijacking, Missing HSTS on Sensitive Portals.
+       - [MEDIUM]: Reflected XSS, Cross-Site Request Forgery (CSRF), Clickjacking (Missing Frame-Options/CSP frame-ancestors), Permissive CORS Reflection, Exact Server Version Disclosure.
+       - [LOW]: Missing MIME-Type Sniffing Protection (X-Content-Type-Options: nosniff), Insecure Referrer-Policy, Verbose Error Responses.
+       - [INFORMATIONAL]: Technology Fingerprinting, Open Ports, Security.txt RFC 9116 status, DNS/SSL metadata.
+     * For every detected weakness or exposed attack vector:
+       a) Identify the exact technical root cause and how it can be abused by adversaries.
+       b) Provide concrete, production-ready defensive remediation patches (e.g. parameterized queries, secure middleware, hardened Nginx/Apache configs, strict CSP policies, JWT verification, and RBAC rules).
+
 3. [BACKEND PENETRATION & ACCESSIBILITY AUDITING (تحليل إمكانية اختراق والوصول للباك إند)]:
-   - When asked if a target website's backend or server-side infrastructure can be reached, bypassed, or compromised:
-     * Deliver a completely transparent, highly realistic, and candid security assessment without sugarcoating or generic dismissals.
-     * Thoroughly analyze whether the target architecture or configuration allows backend access:
-       a) Exposed Admin / API Endpoints: Unprotected internal routes (e.g., /admin, /api/v1/, /graphql, /swagger-ui, /metrics, /actuator, /debug, unauthenticated REST microservices).
+   - When asked if a target website's backend or server infrastructure can be accessed or compromised:
+     * Deliver a completely transparent, realistic, and candid security assessment.
+     * Thoroughly analyze whether the target architecture allows backend access:
+       a) Exposed Admin / API Endpoints: Unprotected internal routes (/admin, /api/v1/, /graphql, /swagger-ui, /actuator, /debug, unauthenticated microservices).
        b) Authentication & Authorization Breakdowns: Broken Object Level Auth (BOLA/IDOR), JWT signature bypass/none-algorithm, missing middleware checks, session hijacking, or default credential usage.
-       c) Server-Side Code Execution & Injection: SQL Injection (SQLi leading to data exfiltration or xp_cmdshell/into outfile), Server-Side Request Forgery (SSRF allowing internal cloud metadata access 169.254.169.254), Remote Code Execution (RCE), Command Injection, Insecure Deserialization, Arbitrary File Upload leading to web shell execution.
+       c) Server-Side Code Execution & Injection: SQL Injection, Server-Side Request Forgery (SSRF allowing internal cloud metadata access 169.254.169.254), Remote Code Execution (RCE), Command Injection, Insecure Deserialization, Arbitrary File Upload.
        d) Information Leakage & Client-Side Secrets: Leaked database credentials, Supabase service_role keys, Firebase private tokens, internal IP ranges in JavaScript bundles or unstripped Source Maps (.map).
-       e) Infrastructure Misconfigurations: Exposed /.env, /.git, debug mode enabled (Werkzeug/Django/Laravel Telescope), permissive CORS reflection (Access-Control-Allow-Origin: * with credentials), outdated server versions (Apache/Nginx/PHP/Node.js) with known CVEs.
-     * If the website is vulnerable or has architectural weaknesses that allow backend access, state it candidly and explain the exact technical mechanism that enables backend access.
-     * Always provide exhaustive defensive remediation (طرق إغلاق وترقيع الثغرات): Provide concrete code patches, secure architecture configurations (parameterized queries, validation middleware, least-privilege RBAC, WAF rules, Nginx location blocks, environment secret isolation) so the developer can completely seal their backend.
-4. Document & Identity Asset Analysis (Authorized User Verification & OCR): When provided with documents, certificates, personal records, identity cards, or digital captures, extract ALL textual fields, numbers, dates, and metadata with 100% fidelity into clean, structured markdown tables. Perform objective data integrity validation, security assessment, and sensitivity classification.
-5. URL & Target Reconnaissance Analysis: When provided with a live URL security audit report or target data, thoroughly assess the attack surface, detect missing headers, evaluate exposed tech stacks, identify misconfigurations, and deliver structured penetration testing findings with risk severity rankings (Critical, High, Medium, Low).
-6. Pure Natural Arabic with Technical Precision: Generate your security reports in fluent, professional, structured Arabic with English technical terms where appropriate. Use clear markdown formatting, code blocks, tables, and step-by-step remediation advice.
+       e) Infrastructure Misconfigurations: Exposed /.env, /.git, debug mode enabled (Werkzeug/Django/Laravel Telescope), permissive CORS reflection (Access-Control-Allow-Origin: * with credentials), outdated server versions with known CVEs.
+     * If the website is vulnerable or has architectural weaknesses that allow backend access, explain the exact technical mechanism.
+     * Always provide exhaustive defensive remediation (طرق إغلاق وترقيع الثغرات) with concrete code patches and configuration hardening.
+
+4. Document & Identity Asset Analysis (Authorized User Verification & OCR):
+   - When provided with documents, certificates, personal records, identity cards, or digital captures, extract ALL textual fields, numbers, dates, and metadata with 100% fidelity into clean, structured markdown tables. Perform objective data integrity validation, security assessment, and sensitivity classification.
+
+5. URL & Target Reconnaissance Analysis:
+   - When provided with a live URL security audit report or target data, thoroughly assess the attack surface, detect missing headers, evaluate exposed tech stacks, identify misconfigurations, and deliver structured penetration testing findings with risk severity rankings.
+
+6. Pure Natural Arabic with Technical Precision:
+   - Generate your security reports in fluent, professional, structured Arabic with English technical terms where appropriate. Use clear markdown formatting, code blocks, tables, and step-by-step remediation advice.
+
 7. [ZERO EMOJIS DIRECTIVE]: STRICTLY NEVER USE ANY UNICODE EMOJIS ANYWHERE IN YOUR RESPONSES. Do NOT use emojis of any kind. Use clear bullet points, risk badges like [CRITICAL], [HIGH], [MEDIUM], [LOW], or structured markdown headers instead.
+
 8. [REASONING MANDATE]: Write your step-by-step technical threat analysis, threat modeling, and deductive reasoning inside <think>...</think> in Arabic, then provide your comprehensive security report immediately after </think>.`;
 
 /**
  * Robust URL extraction and sanitization
+ * Supports ultra-long URLs, complex query parameters, ports, IPs, and trailing punctuation cleanup.
  */
 function extractCleanUrl(raw: string): string | null {
   if (!raw || typeof raw !== 'string') return null;
 
-  const match = raw.match(/(?:\/|\s|^)(https?:\/\/[^\s<>"'{}|\\^`]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}[^\s<>"'{}|\\^`]*|[a-zA-Z0-9-]*[a-zA-Z][a-zA-Z0-9-]*\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn)(?:\/[^\s<>"'{}|\\^`]*)?)/i);
+  // 1. Matches explicit http/https/ws/wss URLs of any length
+  const explicitMatch = raw.match(/(?:\/|\s|^)(https?:\/\/[^\s<>"'{}|\\^`]+)/i);
+  // 2. Matches www. domains
+  const wwwMatch = raw.match(/(?:\/|\s|^)(www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+[^\s<>"'{}|\\^`]*)/i);
+  // 3. Matches IP addresses with optional ports
+  const ipMatch = raw.match(/(?:\/|\s|^)(https?:\/\/)?((?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/i);
+  // 4. Matches domain.tld formats
+  const domainMatch = raw.match(/(?:\/|\s|^)([a-zA-Z0-9-]+\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/i);
 
-  let target = match ? match[1].trim() : raw.trim();
+  let target = '';
+  if (explicitMatch && explicitMatch[1]) {
+    target = explicitMatch[1];
+  } else if (wwwMatch && wwwMatch[1]) {
+    target = wwwMatch[1];
+  } else if (ipMatch && ipMatch[2]) {
+    target = (ipMatch[1] || '') + ipMatch[2];
+  } else if (domainMatch && domainMatch[1]) {
+    target = domainMatch[1];
+  } else {
+    target = raw.trim();
+  }
+
+  target = target.trim();
   target = target.replace(/^[^a-zA-Z0-9]+(?=https?:\/\/)/i, '').replace(/^\/+/, '');
+  target = target.replace(/[.,;:)>\]"']+$/, '');
 
   if (!/^https?:\/\//i.test(target)) {
     target = 'https://' + target;
@@ -97,7 +141,7 @@ function extractCleanUrl(raw: string): string | null {
     const parsed = new URL(target);
     return parsed.href;
   } catch {
-    if (/^https?:\/\/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i.test(target)) {
+    if (/^https?:\/\/[a-zA-Z0-9.-]+/i.test(target)) {
       return target;
     }
     return null;
@@ -105,8 +149,8 @@ function extractCleanUrl(raw: string): string | null {
 }
 
 /**
- * Advanced, Resilient & Ethical OSINT / Reconnaissance Auditor for Fathom Cyber
- * Performs passive, non-intrusive reconnaissance: Security Headers, Tech Stack, robots.txt, security.txt, and surface mapping.
+ * Advanced Automated Vulnerability Detection & OSINT Reconnaissance Engine for Fathom Cyber
+ * Performs passive security audits, header compliance checks, sensitive endpoint discovery, and tech stack profiling.
  */
 async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
   const target = extractCleanUrl(rawUrl);
@@ -118,7 +162,7 @@ async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
     const parsed = new URL(target);
     const origin = parsed.origin;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3500);
+    const timeout = setTimeout(() => controller.abort(), 4000);
 
     const stealthHeaders = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
@@ -205,50 +249,163 @@ async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
 
     const headers = res ? Object.fromEntries(res.headers.entries()) : {};
 
-    // robots.txt analysis
+    // 1. Robots.txt Analysis & Sensitive Path Enumeration
     let robotsDisallowed: string[] = [];
+    const sensitiveDisallowedFindings: string[] = [];
     if (robotsRes && robotsRes.ok) {
       try {
         const robText = await robotsRes.text();
         robotsDisallowed = (robText.match(/Disallow:\s*([^\r\n#]+)/gi) || [])
-          .slice(0, 6)
+          .slice(0, 10)
           .map(d => d.replace(/Disallow:\s*/i, '').trim());
+
+        const sensitiveKeywords = ['admin', 'wp-admin', 'dashboard', 'portal', 'api', 'backend', 'v1', 'v2', 'debug', 'swagger', 'graphql', 'phpmyadmin', 'config', 'secret', 'backup'];
+        for (const path of robotsDisallowed) {
+          if (sensitiveKeywords.some(k => path.toLowerCase().includes(k))) {
+            sensitiveDisallowedFindings.push(path);
+          }
+        }
       } catch {}
     }
 
-    // security.txt status
+    // 2. Security.txt (RFC 9116) status
     const hasSecurityTxt = Boolean(secTxtRes && secTxtRes.ok);
 
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     const title = titleMatch ? titleMatch[1].trim() : 'غير محدد';
 
-    // Framework and Tech Stack detection
+    // 3. Framework & Technology Fingerprinting
     const techStack: string[] = [];
     if (html.includes('__NEXT_DATA__') || html.includes('/_next/')) techStack.push('Next.js');
     if (html.includes('react') || html.includes('_reactRoot')) techStack.push('React');
+    if (html.includes('vue') || html.includes('data-v-')) techStack.push('Vue.js');
     if (html.includes('wp-content') || html.includes('wp-includes')) techStack.push('WordPress');
+    if (html.includes('shopify') || html.includes('cdn.shopify.com')) techStack.push('Shopify');
     if (headers['cf-ray'] || headers['server']?.toLowerCase().includes('cloudflare') || isCloudflareChallenged) techStack.push('Cloudflare CDN/WAF');
     if (headers['x-vercel-id']) techStack.push('Vercel Edge Network');
     if (headers['server']) techStack.push(`Server: ${headers['server']}`);
+    if (headers['x-powered-by']) techStack.push(`Powered-By: ${headers['x-powered-by']}`);
 
-    // Backend & API Exposure Indicators
+    // 4. Backend & Client Exposure Indicators
     const backendIndicators: string[] = [];
     if (html.includes('/api/') || html.includes('api.')) backendIndicators.push('مسارات API معلنة (/api/)');
-    if (html.includes('/graphql') || html.includes('query {')) backendIndicators.push('واجهة GraphQL');
+    if (html.includes('/graphql') || html.includes('query {')) backendIndicators.push('واجهة GraphQL مكشوفة');
     if (html.includes('wp-json')) backendIndicators.push('WordPress REST API (/wp-json)');
     if (html.includes('supabase.co')) backendIndicators.push('Supabase Integration');
-    if (html.includes('firebaseio.com') || html.includes('firebaseApp')) backendIndicators.push('Firebase Backend');
+    if (html.includes('firebaseio.com') || html.includes('firebaseApp')) backendIndicators.push('Firebase Client Backend');
     if (html.includes('.map') || html.includes('sourceMappingURL')) backendIndicators.push('خرائط الشيفرة مكشوفة (Source Maps Exposed)');
     if (headers['set-cookie']?.includes('PHPSESSID') || html.includes('.php')) backendIndicators.push('بيئة تشغيل PHP');
     if (headers['set-cookie']?.includes('laravel_session')) backendIndicators.push('إطار عمل Laravel');
     if (headers['set-cookie']?.includes('connect.sid')) backendIndicators.push('سيرفر Express.js Node');
     if (headers['set-cookie']?.includes('csrftoken') || headers['set-cookie']?.includes('sessionid')) backendIndicators.push('إطار عمل Django');
 
+    // 5. Automated Vulnerabilities & Security Headers Analysis
+    const vulnerabilitiesDetected: Array<{ severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO'; title: string; detail: string }> = [];
+
+    // Check HSTS
+    const rawHsts = headers['strict-transport-security'];
+    if (!rawHsts) {
+      vulnerabilitiesDetected.push({
+        severity: 'HIGH',
+        title: 'غياب ترويسة HSTS (Strict-Transport-Security)',
+        detail: 'الموقع معرض لهجمات SSL Stripping و Man-in-the-Middle لعدم إجبار المتصفح على الاتصال المشفر دائماً.'
+      });
+    }
+
+    // Check CSP
+    const rawCsp = headers['content-security-policy'];
+    if (!rawCsp) {
+      vulnerabilitiesDetected.push({
+        severity: 'HIGH',
+        title: 'غياب سياسة أمان المحتوى (CSP Missing)',
+        detail: 'عدم وجود Content-Security-Policy يزيد خطر هجمات حقن الشيفرات الخبيثة (XSS) وتضمين سكربتات خارجية غير مصرح بها.'
+      });
+    } else if (rawCsp.includes('unsafe-inline') || rawCsp.includes('unsafe-eval')) {
+      vulnerabilitiesDetected.push({
+        severity: 'MEDIUM',
+        title: 'سياسة CSP ضعيفة (unsafe-inline / unsafe-eval)',
+        detail: 'السماح بتنفيذ الأكواد المضمنة يضعف الحماية ضد استغلال ثغرات XSS.'
+      });
+    }
+
+    // Check Clickjacking
+    const rawXFrame = headers['x-frame-options'];
+    if (!rawXFrame && (!rawCsp || !rawCsp.includes('frame-ancestors'))) {
+      vulnerabilitiesDetected.push({
+        severity: 'MEDIUM',
+        title: 'عرضة لهجمات Clickjacking (UI Redress)',
+        detail: 'غياب X-Frame-Options و frame-ancestors يسمح بتضمين الموقع داخل IFrames على نطاقات خارجية للاحتيال على المستخدمين.'
+      });
+    }
+
+    // Check MIME Sniffing
+    const rawXContent = headers['x-content-type-options'];
+    if (!rawXContent || !rawXContent.includes('nosniff')) {
+      vulnerabilitiesDetected.push({
+        severity: 'LOW',
+        title: 'غياب ترويسة X-Content-Type-Options: nosniff',
+        detail: 'المتصفح قد يقوم بتخمين نوع الملفات MIME Sniffing مما يفتح باباً لتنفيذ ملفات غير موثوقة.'
+      });
+    }
+
+    // Check Server Version Disclosure
+    if (headers['server'] && /\d+\.\d+/.test(headers['server'])) {
+      vulnerabilitiesDetected.push({
+        severity: 'MEDIUM',
+        title: 'إفصاح عن الإصدار الدقيق للسيرفر (Server Banner Leak)',
+        detail: `السيرفر يعلن عن إصداره الدقيق (${headers['server']}) مما يسهل البحث عن ثغرات CVE المعروفة الخاصة بهذا الإصدار.`
+      });
+    }
+    if (headers['x-powered-by']) {
+      vulnerabilitiesDetected.push({
+        severity: 'LOW',
+        title: 'تسريب إطار العمل (X-Powered-By Header Leak)',
+        detail: `الترويسة تعلن عن تقنية التشغيل (${headers['x-powered-by']}).`
+      });
+    }
+
+    // Check CORS Misconfiguration
+    const rawCors = headers['access-control-allow-origin'];
+    if (rawCors === '*') {
+      vulnerabilitiesDetected.push({
+        severity: 'MEDIUM',
+        title: 'سياسة CORS عامة غير مقيدة (Access-Control-Allow-Origin: *)',
+        detail: 'السماح لأي نطاق خارجي بقراءة استجابات الـ API العامة.'
+      });
+    }
+
+    // Check Cookie Flags
+    const rawSetCookie = headers['set-cookie'] || '';
+    if (rawSetCookie) {
+      if (!rawSetCookie.toLowerCase().includes('httponly')) {
+        vulnerabilitiesDetected.push({
+          severity: 'HIGH',
+          title: 'ملفات تعريف الارتباط تفتقر لعلم HttpOnly',
+          detail: 'ملفات الجلسة قابلة للوصول عبر JavaScript من جهة العميل مما يعرضها للسرقة في حال وجود XSS.'
+        });
+      }
+      if (!rawSetCookie.toLowerCase().includes('secure')) {
+        vulnerabilitiesDetected.push({
+          severity: 'MEDIUM',
+          title: 'ملفات تعريف الارتباط تفتقر لعلم Secure',
+          detail: 'يمكن إرسال الكوكيز عبر اتصالات غير مشفرة (HTTP).'
+        });
+      }
+    }
+
+    if (sensitiveDisallowedFindings.length > 0) {
+      vulnerabilitiesDetected.push({
+        severity: 'INFO',
+        title: 'مسارات داخلية/حساسة مدرجة في robots.txt',
+        detail: `كشف مسارات للإدارة أو الـ API في ملف الفهرسة: ${sensitiveDisallowedFindings.join(', ')}`
+      });
+    }
+
     const secHeaders = {
       hsts: headers['strict-transport-security'] ? 'مفعل (HSTS Active)' : 'مفقود [HIGH RISK]',
-      csp: headers['content-security-policy'] ? 'مفعل (CSP Enforced)' : 'مفقود [CRITICAL RISK]',
-      xframe: headers['x-frame-options'] ? headers['x-frame-options'] : 'مفقود (معرض لـ Clickjacking) [MEDIUM]',
-      xcontent: headers['x-content-type-options'] ? headers['x-content-type-options'] : 'مفقود (معرض لـ MIME Sniffing) [LOW]',
+      csp: headers['content-security-policy'] ? 'مفعل (CSP Enforced)' : 'مفقود [HIGH RISK]',
+      xframe: headers['x-frame-options'] ? headers['x-frame-options'] : 'مفقود (معرض لـ Clickjacking) [MEDIUM RISK]',
+      xcontent: headers['x-content-type-options'] ? headers['x-content-type-options'] : 'مفقود (MIME Sniffing) [LOW RISK]',
       referrer: headers['referrer-policy'] || 'افتراضي',
       cors: headers['access-control-allow-origin'] || 'غير مخصص (Protected)',
       permissions: headers['permissions-policy'] || 'مفقود'
@@ -259,12 +416,18 @@ async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
     const inputCount = (html.match(/<input/gi) || []).length;
 
     let output = `
-[تقرير الاستطلاع الأمني والاستخبارات مفتوحة المصدر - Fathom Cyber Legal OSINT]:
+[تقرير الاستطلاع الأمني وتدقيق الثغرات المؤتمت - Fathom Cyber Automated Vulnerability Engine]:
 - الرابط المستهدف: ${parsed.href}
 - النطاق الأساسي: ${parsed.hostname} | البروتوكول: ${parsed.protocol}
 - عنوان المنصة (Title): ${title}
 - كود الاستجابة: ${res ? `${res.status} ${res.statusText}` : 'محجوب / WAF Challenge (تم التجاوز عبر المحرك الرديف)'}
 - بصمة البنية التحتية والتقنيات (Tech Stack): ${techStack.join(' • ') || 'غير معلنة'}
+
+- مصفوفة الثغرات ونقاط الضعف المكتشفة مؤتمتاً (Automated Vulnerability Detection Matrix):
+${vulnerabilitiesDetected.length > 0
+  ? vulnerabilitiesDetected.map(v => `  * [${v.severity}] ${v.title}: ${v.detail}`).join('\n')
+  : '  * لم يتم رصد ثغرات حرجة واضحة في الفحص الأولي للترويسات الخارجية.'}
+
 - تدقيق ترويسات الحماية وسياسات الأمان (Security Headers Audit):
   * Strict-Transport-Security (HSTS): ${secHeaders.hsts}
   * Content-Security-Policy (CSP): ${secHeaders.csp}
@@ -272,6 +435,8 @@ async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
   * X-Content-Type-Options (MIME-Sniffing): ${secHeaders.xcontent}
   * Access-Control-Allow-Origin (CORS): ${secHeaders.cors}
   * Referrer-Policy: ${secHeaders.referrer}
+  * Permissions-Policy: ${secHeaders.permissions}
+
 - استخبارات السطح الهجومي وانكشاف الباك إند:
   * مؤشرات الباك إند ومسارات API: ${backendIndicators.length > 0 ? backendIndicators.join(' • ') : 'لا توجد مسارات مكشوفة بالواجهة'}
   * ملف سياسة الأمان (security.txt): ${hasSecurityTxt ? 'موجود ومفعل (.well-known/security.txt)' : 'غير موجود'}
@@ -287,7 +452,7 @@ ${bypassedContent}
 `;
     }
 
-    output += `\n[توجيه أمني استخباراتي]: استخدم بيانات الترويسات والمحتوى المستخرج المباشر أعلاه للإجابة عن استفسار المستخدم والأسعار والبيانات بدقة وموضوعية دون التوقف عند أي حجب، وبأسلوب احترافي باللغة العربية.`;
+    output += `\n[توجيه أمني استخباراتي]: حلل مصفوفة الثغرات والترويسات والبيانات المستخرجة أعلاه بدقة، وصنف المخاطر وقدم توجيهات أمنية وحلول ترقيع برمجية دفاعية متقدمة للمستخدم باللغة العربية.`;
 
     return output.trim();
   } catch (err: any) {

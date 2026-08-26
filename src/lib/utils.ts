@@ -13,22 +13,26 @@ export interface DetectedUrlInfo {
 }
 
 /**
- * Robustly detects, extracts, and normalizes URLs from raw text.
- * Handles prefixes like `/https://`, `https://`, `http://`, `www.`, or plain domain names.
+ * Robustly detects, extracts, and normalizes URLs of any length from raw text.
+ * Handles ultra-long URLs, query parameters, fragments, IP addresses, ports,
+ * protocols (https://, http://, www.), and clean trailing punctuation removal.
  */
 export function detectAndExtractUrl(rawText: string): DetectedUrlInfo {
   if (!rawText || typeof rawText !== 'string') {
     return { hasUrl: false, cleanUrl: null, domain: null, remainingText: rawText || '' };
   }
 
-  // Matches explicit http/https URLs (even with leading slashes like /https://...)
+  // 1. Matches explicit http/https/ws/wss URLs of any length, including complex query params and fragments
   const explicitMatch = rawText.match(/(?:\/|\s|^)(https?:\/\/[^\s<>"'{}|\\^`]+)/i);
 
-  // Matches www. domains
-  const wwwMatch = rawText.match(/(?:\/|\s|^)(www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}[^\s<>"'{}|\\^`]*)/i);
+  // 2. Matches www. domains with any paths/params
+  const wwwMatch = rawText.match(/(?:\/|\s|^)(www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+[^\s<>"'{}|\\^`]*)/i);
 
-  // Matches domain.tld formats (e.g. upstore.one, github.com, tansik.egypt.gov.eg)
-  const domainMatch = rawText.match(/(?:\/|\s|^)([a-zA-Z0-9-]*[a-zA-Z][a-zA-Z0-9-]*\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn)(?:\/[^\s<>"'{}|\\^`]*)?)/i);
+  // 3. Matches IP addresses with optional ports (e.g. 192.168.1.1:8080, 10.0.0.1)
+  const ipMatch = rawText.match(/(?:\/|\s|^)(https?:\/\/)?((?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/i);
+
+  // 4. Matches domain.tld formats (e.g. upstore.one, github.com, sub.target.co.uk)
+  const domainMatch = rawText.match(/(?:\/|\s|^)([a-zA-Z0-9-]+\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/i);
 
   let rawUrlFound = '';
 
@@ -36,6 +40,8 @@ export function detectAndExtractUrl(rawText: string): DetectedUrlInfo {
     rawUrlFound = explicitMatch[1];
   } else if (wwwMatch && wwwMatch[1]) {
     rawUrlFound = wwwMatch[1];
+  } else if (ipMatch && ipMatch[2]) {
+    rawUrlFound = (ipMatch[1] || '') + ipMatch[2];
   } else if (domainMatch && domainMatch[1]) {
     rawUrlFound = domainMatch[1];
   }
@@ -44,10 +50,11 @@ export function detectAndExtractUrl(rawText: string): DetectedUrlInfo {
     return { hasUrl: false, cleanUrl: null, domain: null, remainingText: rawText };
   }
 
-  // Clean the extracted URL
+  // Strip unwanted surrounding brackets, trailing punctuation or quotes commonly attached in prose
   let sanitized = rawUrlFound.trim();
   sanitized = sanitized.replace(/^[^a-zA-Z0-9]+(?=https?:\/\/)/i, '');
   sanitized = sanitized.replace(/^\/+/, '');
+  sanitized = sanitized.replace(/[.,;:)>\]"']+$/, ''); // Strip trailing punctuation attached to end of URL
 
   if (!/^https?:\/\//i.test(sanitized)) {
     sanitized = 'https://' + sanitized;
@@ -61,9 +68,9 @@ export function detectAndExtractUrl(rawText: string): DetectedUrlInfo {
     finalUrl = parsed.href;
     domain = parsed.hostname;
   } catch {
-    if (/^https?:\/\/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(sanitized)) {
+    if (/^https?:\/\/[a-zA-Z0-9.-]+/i.test(sanitized)) {
       finalUrl = sanitized;
-      domain = sanitized.replace(/^https?:\/\//i, '').split('/')[0];
+      domain = sanitized.replace(/^https?:\/\//i, '').split('/')[0].split(':')[0];
     }
   }
 

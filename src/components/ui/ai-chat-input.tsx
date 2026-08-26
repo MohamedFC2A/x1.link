@@ -214,18 +214,21 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
     const handleValueChange = useCallback(
       (val: string) => {
-        // Automatic URL detection on typing ONLY when input is exclusively a standalone URL
+        // Automatic instant URL detection on typing or pasting
         if (val && !cyberTargetUrl) {
           const trimmed = val.trim();
-          const words = trimmed.split(/\s+/);
-          if (words.length === 1) {
-            const urlInfo = detectAndExtractUrl(trimmed);
-            if (urlInfo.hasUrl && urlInfo.cleanUrl && urlInfo.remainingText.trim() === '') {
-              const hasTrailingSpace = /\s$/.test(val);
-              if (hasTrailingSpace || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-                activateCyberUrlMode(urlInfo.cleanUrl, '');
-                return;
-              }
+          const urlInfo = detectAndExtractUrl(trimmed);
+          if (urlInfo.hasUrl && urlInfo.cleanUrl) {
+            // Trigger immediately if explicit protocol/domain or when finished typing (space/newline)
+            if (
+              trimmed.startsWith('http://') ||
+              trimmed.startsWith('https://') ||
+              trimmed.startsWith('www.') ||
+              /\s$/.test(val) ||
+              urlInfo.remainingText.trim() === ''
+            ) {
+              activateCyberUrlMode(urlInfo.cleanUrl, urlInfo.remainingText.trim());
+              return;
             }
           }
         }
@@ -349,18 +352,20 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         return;
       }
 
-      // 2. Check for URLs in Text — ONLY activate target mode if pasting exclusively a single standalone URL
+      // 2. Check for URLs in Text — Instant extraction for any pasted URL (short, complex, or ultra-long)
       const pastedText = clipboardData.getData('text');
       if (!pastedText) return;
 
       const trimmedPasted = pastedText.trim();
-      const words = trimmedPasted.split(/\s+/);
-      if (words.length === 1 && !cyberTargetUrl) {
-        const urlInfo = detectAndExtractUrl(trimmedPasted);
-        if (urlInfo.hasUrl && urlInfo.cleanUrl && urlInfo.remainingText.trim() === '') {
-          e.preventDefault();
-          activateCyberUrlMode(urlInfo.cleanUrl, value.trim());
-        }
+      const urlInfo = detectAndExtractUrl(trimmedPasted);
+      if (urlInfo.hasUrl && urlInfo.cleanUrl && !cyberTargetUrl) {
+        e.preventDefault();
+        const existingValue = value.trim();
+        const prompt = urlInfo.remainingText.trim()
+          ? (existingValue ? `${existingValue} ${urlInfo.remainingText.trim()}` : urlInfo.remainingText.trim())
+          : existingValue;
+        activateCyberUrlMode(urlInfo.cleanUrl, prompt);
+        return;
       }
     }, [value, cyberTargetUrl, activateCyberUrlMode, processFileToAttachment]);
 
