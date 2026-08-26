@@ -82,7 +82,7 @@ CORE CAPABILITIES & DIRECTIVES:
 function extractCleanUrl(raw: string): string | null {
   if (!raw || typeof raw !== 'string') return null;
 
-  const match = raw.match(/(?:\/|\s|^)(https?:\/\/[^\s<>"'{}|\\^`]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}[^\s<>"'{}|\\^`]*|[a-zA-Z0-9-]+\.(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov)(?:\/[^\s<>"'{}|\\^`]*)?)/i);
+  const match = raw.match(/(?:\/|\s|^)(https?:\/\/[^\s<>"'{}|\\^`]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}[^\s<>"'{}|\\^`]*|[a-zA-Z0-9-]*[a-zA-Z][a-zA-Z0-9-]*\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn)(?:\/[^\s<>"'{}|\\^`]*)?)/i);
 
   let target = match ? match[1].trim() : raw.trim();
   target = target.replace(/^[^a-zA-Z0-9]+(?=https?:\/\/)/i, '').replace(/^\/+/, '');
@@ -713,7 +713,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   const formattedMessages = [
     { role: 'system', content: activeSystemPrompt },
-    ...processedMessages.map((m: { role: string; content: any }) => {
+    ...processedMessages.map((m: { role: string; content: any; reasoning?: string }, idx: number) => {
       let contentStr = '';
       if (typeof m.content === 'string') {
         contentStr = m.content.trim();
@@ -722,6 +722,12 @@ export default async function handler(req: Request): Promise<Response> {
       } else {
         contentStr = JSON.stringify(m.content || '');
       }
+
+      // Preserve previous assistant reasoning chain in cumulative multi-turn chats
+      if (m.role === 'assistant' && m.reasoning && m.reasoning.trim()) {
+        contentStr = `<think>\n${m.reasoning.trim()}\n</think>\n\n${contentStr}`;
+      }
+
       return {
         role: m.role || 'user',
         content: contentStr || 'متابعة'

@@ -67,13 +67,15 @@ export async function streamChatCompletion({
 
         return {
           role: msg.role,
-          content: contentParts
+          content: contentParts,
+          reasoning: msg.reasoning
         };
       }
 
       return {
         role: msg.role,
-        content: msg.content || 'متابعة'
+        content: msg.content || 'متابعة',
+        reasoning: msg.reasoning
       };
     });
 
@@ -98,22 +100,18 @@ export async function streamChatCompletion({
       try {
         const rawText = await response.text();
         try {
-          const json = JSON.parse(rawText);
-          errBody = json.error || json.message || JSON.stringify(json);
+          const parsed = JSON.parse(rawText);
+          errBody = parsed.error || parsed.message || rawText;
         } catch {
           errBody = rawText;
         }
-      } catch (readErr: any) {
-        errBody = `خطأ في قراءة استجابة الخادم (${response.status}): ${readErr?.message || ''}`;
-      }
-      onError(errBody || `تعذر الاتصال بمحرك الذكاء الاصطناعي (رمز الاستجابة: ${response.status})`);
-      onComplete();
+      } catch {}
+      onError(errBody || `خطأ في الاتصال بالخادم (${response.status})`);
       return () => controller.abort();
     }
 
     if (!response.body) {
-      onError('تعذر استقبال تدفق البيانات من محرك الذكاء الاصطناعي.');
-      onComplete();
+      onError('استجابة الخادم فارغة تماماً.');
       return () => controller.abort();
     }
 
@@ -141,24 +139,31 @@ export async function streamChatCompletion({
       if (!deltaContent) return;
       accumulatedRaw += deltaContent;
 
-      const thinkStartIdx = accumulatedRaw.indexOf('<think>');
-      if (thinkStartIdx !== -1) {
-        const thinkEndIdx = accumulatedRaw.indexOf('</think>');
-        if (thinkEndIdx === -1) {
+      const lowerRaw = accumulatedRaw.toLowerCase();
+      const thinkStartIdx = lowerRaw.indexOf('<think>');
+      const thoughtStartIdx = thinkStartIdx !== -1 ? thinkStartIdx : lowerRaw.indexOf('<thought>');
+
+      if (thoughtStartIdx !== -1) {
+        const tagLength = lowerRaw.startsWith('<thought>', thoughtStartIdx) ? 9 : 7;
+        const thinkEndIdx = lowerRaw.indexOf('</think>', thoughtStartIdx);
+        const thoughtEndIdx = thinkEndIdx !== -1 ? thinkEndIdx : lowerRaw.indexOf('</thought>', thoughtStartIdx);
+
+        if (thoughtEndIdx === -1) {
           // Currently inside thinking block
           isThinking = true;
-          accumulatedReasoning = accumulatedRaw.substring(thinkStartIdx + 7).trimStart();
-          accumulatedContent = accumulatedRaw.substring(0, thinkStartIdx).trim();
+          accumulatedReasoning = accumulatedRaw.substring(thoughtStartIdx + tagLength).trimStart();
+          accumulatedContent = accumulatedRaw.substring(0, thoughtStartIdx).trim();
         } else {
           // Finished thinking block
           isThinking = false;
-          accumulatedReasoning = accumulatedRaw.substring(thinkStartIdx + 7, thinkEndIdx).trim();
-          const preThink = accumulatedRaw.substring(0, thinkStartIdx).trim();
-          const postThink = accumulatedRaw.substring(thinkEndIdx + 8).trimStart();
+          const closeTagLength = lowerRaw.startsWith('</thought>', thoughtEndIdx) ? 10 : 8;
+          accumulatedReasoning = accumulatedRaw.substring(thoughtStartIdx + tagLength, thoughtEndIdx).trim();
+          const preThink = accumulatedRaw.substring(0, thoughtStartIdx).trim();
+          const postThink = accumulatedRaw.substring(thoughtEndIdx + closeTagLength).trimStart();
           accumulatedContent = preThink ? `${preThink}\n\n${postThink}` : postThink;
         }
       } else {
-        // No think tags present
+        // No think tags present in content stream
         accumulatedContent = accumulatedRaw;
         isThinking = false;
       }

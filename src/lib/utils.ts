@@ -25,10 +25,10 @@ export function detectAndExtractUrl(rawText: string): DetectedUrlInfo {
   const explicitMatch = rawText.match(/(?:\/|\s|^)(https?:\/\/[^\s<>"'{}|\\^`]+)/i);
 
   // Matches www. domains
-  const wwwMatch = rawText.match(/(?:\/|\s|^)(www\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}[^\s<>"'{}|\\^`]*)/i);
+  const wwwMatch = rawText.match(/(?:\/|\s|^)(www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}[^\s<>"'{}|\\^`]*)/i);
 
-  // Matches domain.tld formats (e.g. github.com, youtube.com/watch?v=123)
-  const domainMatch = rawText.match(/(?:\/|\s|^)([a-zA-Z0-9-]+\.(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov)(?:\/[^\s<>"'{}|\\^`]*)?)/i);
+  // Matches domain.tld formats (e.g. upstore.one, github.com, tansik.egypt.gov.eg)
+  const domainMatch = rawText.match(/(?:\/|\s|^)([a-zA-Z0-9-]*[a-zA-Z][a-zA-Z0-9-]*\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn)(?:\/[^\s<>"'{}|\\^`]*)?)/i);
 
   let rawUrlFound = '';
 
