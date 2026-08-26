@@ -579,7 +579,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
-                      <Bot className="w-4 h-4 text-zinc-200" />
+                      <Cpu className="w-4 h-4 text-zinc-200" />
                     </div>
                     <div className="min-w-0 text-right">
                       <div className="font-bold text-xs text-white">Fathom 1</div>
@@ -1057,7 +1057,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 ) : isVisionMode ? (
                   <Camera className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 ) : (
-                  <Bot className="w-3.5 h-3.5 text-zinc-300 shrink-0" />
+                  <Cpu className="w-3.5 h-3.5 text-zinc-300 shrink-0" />
                 )}
                 <span className="hidden sm:inline font-sans text-xs font-semibold">
                   {activeModelDisplayName}
@@ -1070,14 +1070,16 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             {/* Left Group: Icon-Only Status Badges & 3-Dots Actions Menu */}
             <div className="flex items-center gap-1.5 mr-auto shrink-0">
               
-              {/* NSFW Active Icon Indicator */}
+              {/* NSFW Active Icon Indicator (Clickable to cancel/toggle) */}
               {isX1Active && (
-                <div
-                  title="وضع NSFW Off (Uncensored) مفعل"
-                  className="size-7 rounded-xl bg-white/[0.06] border border-white/[0.12] flex items-center justify-center text-zinc-200 shrink-0"
+                <button
+                  type="button"
+                  onClick={onToggleX1}
+                  className="size-8 rounded-xl bg-zinc-950 border border-white/[0.12] hover:border-rose-500/40 hover:bg-rose-950/20 text-rose-400 hover:text-rose-300 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0"
+                  title="وضع NSFW Off (Uncensored) مفعل - انقر للإلغاء"
                 >
-                  <ShieldOff className="w-3.5 h-3.5 text-zinc-200" />
-                </div>
+                  <ShieldOff className="w-3.5 h-3.5 text-rose-400" />
+                </button>
               )}
 
               {/* Deep Search Active Icon Indicator */}
