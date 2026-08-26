@@ -91,11 +91,8 @@ export default function ChatReasoning({
         <AccordionContent className="p-0 pt-2 pb-2 border-t border-white/[0.06]">
           <div className="flex gap-2.5 items-start">
             <div className="flex flex-col items-center gap-1 pt-1 shrink-0">
-              <div className={cn(
-                "w-1.5 h-1.5 rounded-full",
-                isX1 ? "bg-rose-500" : "bg-amber-500"
-              )} />
-              <div className="w-0.5 min-h-[20px] flex-1 bg-zinc-800" />
+              <div className="w-1.5 h-1.5 rounded-full bg-zinc-300" />
+              <div className="w-0.5 min-h-[20px] flex-1 bg-white/[0.08]" />
             </div>
 
             <div className="flex-1 text-xs text-zinc-300 leading-relaxed font-sans whitespace-pre-wrap select-text pr-1 break-words">
@@ -105,10 +102,7 @@ export default function ChatReasoning({
                 </span>
               )}
               {isThinking && (
-                <span className={cn(
-                  "inline-block w-1.5 h-3.5 mr-1 align-middle rounded-full",
-                  isX1 ? "bg-rose-500" : "bg-amber-500"
-                )} />
+                <span className="inline-block w-1.5 h-3.5 mr-1 align-middle rounded-full bg-zinc-300 animate-pulse" />
               )}
             </div>
           </div>

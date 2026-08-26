@@ -678,8 +678,6 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               ? "border-cyan-500/50 shadow-[inset_0_1px_1px_rgba(6,182,212,0.45),0_0_0_1px_rgba(6,182,212,0.25),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-cyan-400 focus-within:shadow-[inset_0_1px_2px_rgba(6,182,212,0.7),0_0_0_1.5px_rgba(6,182,212,0.5),0_18px_50px_rgba(0,0,0,0.9)]"
               : isX1Active
               ? "border-rose-500/50 shadow-[inset_0_1px_1px_rgba(244,63,94,0.45),0_0_0_1px_rgba(244,63,94,0.25),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-rose-400 focus-within:shadow-[inset_0_1px_2px_rgba(244,63,94,0.7),0_0_0_1.5px_rgba(244,63,94,0.5),0_18px_50px_rgba(0,0,0,0.9)]"
-              : isVisionMode
-              ? "border-amber-500/50 shadow-[inset_0_1px_1px_rgba(245,158,11,0.45),0_0_0_1px_rgba(245,158,11,0.25),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-amber-400 focus-within:shadow-[inset_0_1px_2px_rgba(245,158,11,0.7),0_0_0_1.5px_rgba(245,158,11,0.5),0_18px_50px_rgba(0,0,0,0.9)]"
               : "border-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white/[0.3] focus-within:shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_0_0_1px_rgba(255,255,255,0.15),0_18px_50px_rgba(0,0,0,0.9)]"
           )}
         >
@@ -691,14 +689,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
                 : isX1Active
                 ? "bg-gradient-to-r from-transparent via-rose-400 to-transparent"
-                : isVisionMode
-                ? "bg-gradient-to-r from-transparent via-amber-400 to-transparent"
                 : "bg-gradient-to-r from-transparent via-white/40 to-transparent"
             )}
           />
-          {/* Streamlined Cyber Target URL Bar */}
+          {/* Streamlined Cyber Target URL Bar (ONLY visible in Cyber Mode) */}
           <AnimatePresence initial={false}>
-            {(isTargetUrlBarOpen || cyberTargetUrl.trim() !== '') && !hasAttachments && (
+            {isCyberMode && (isTargetUrlBarOpen || cyberTargetUrl.trim() !== '') && !hasAttachments && (
               <motion.div
                 initial={{ opacity: 0, height: 0, y: -6 }}
                 animate={{ opacity: 1, height: 'auto', y: 0 }}
@@ -766,11 +762,13 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   }
                 }}
                 placeholder={
-                  (isCyberMode || isTargetUrlBarOpen || cyberTargetUrl)
+                  isCyberMode
                     ? "اسأل Fathom Cyber عن فحص الهدف، الثغرات، أو ترويسات الحماية..."
+                    : isVisionMode
+                    ? "أرفق صورة أو اسأل Fathom Cam لتحليل وتفريغ الصور..."
                     : isX1Active
                     ? "اسأل X1 MAX أي شيء بحرية تامة..."
-                    : placeholder
+                    : (placeholder || "اسأل Fathom AI أي شيء...")
                 }
                 rows={1}
                 className="w-full bg-transparent text-zinc-100 text-[15px] sm:text-base leading-relaxed resize-none outline-none placeholder:text-zinc-500 font-sans max-h-44 min-h-[38px] py-1 px-1 smooth-scroll no-scrollbar"
@@ -787,7 +785,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 className={cn(
                   "flex items-center justify-center size-9 sm:size-10 rounded-2xl transition-all duration-200 cursor-pointer select-none active:scale-90",
                   isStreaming
-                    ? "bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_20px_rgba(225,29,72,0.4)] animate-pulse"
+                    ? "bg-white hover:bg-zinc-200 text-zinc-950 shadow-[0_0_20px_rgba(255,255,255,0.3)] animate-pulse"
                     : hasValue
                     ? isCyberMode
                       ? "bg-cyan-400 hover:bg-cyan-300 text-black font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-105"
@@ -797,7 +795,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 title={isStreaming ? "إيقاف التوليد" : "إرسال"}
               >
                 {isStreaming ? (
-                  <Square className="w-4 h-4 fill-current" />
+                  <Square className="w-4 h-4 fill-current text-zinc-950" />
                 ) : (
                   <ArrowUp className={cn("w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]", isCyberMode ? "text-black" : hasValue ? "text-zinc-950" : "text-zinc-600")} />
                 )}
@@ -822,8 +820,6 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   "glass-button flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold select-none shrink-0 cursor-pointer transition-all active:scale-95",
                   isCyberMode
                     ? "bg-cyan-950/40 border-cyan-800/60 text-cyan-200 hover:text-white"
-                    : isVisionMode
-                    ? "bg-amber-950/40 border-amber-800/60 text-amber-200 hover:text-white"
                     : "text-zinc-200 hover:text-white"
                 )}
                 title={`النموذج النشط: ${activeModelDisplayName} (انقر للتغيير)`}
@@ -831,7 +827,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 {isCyberMode ? (
                   <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
                 ) : isVisionMode ? (
-                  <Camera className="w-4 h-4 text-amber-400 shrink-0" />
+                  <Camera className="w-4 h-4 text-zinc-300 shrink-0" />
                 ) : (
                   <Sparkles className="w-4 h-4 text-zinc-300 shrink-0" />
                 )}

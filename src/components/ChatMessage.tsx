@@ -215,8 +215,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
         {isStreaming && !message.content && !isThinking ? (
           <div className="flex items-center gap-2 py-2 text-xs text-zinc-400 font-mono select-none">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
             </span>
             <span className="font-sans text-xs text-zinc-300">جاري المعالجة والاتصال بمحرك الذكاء الاصطناعي...</span>
           </div>
@@ -233,7 +233,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                   </p>
                 ),
                 h1: ({ children }) => (
-                  <h1 className="text-base sm:text-xl font-bold text-white my-2 sm:my-3 border-b border-zinc-800 pb-1.5">
+                  <h1 className="text-base sm:text-xl font-bold text-white my-2 sm:my-3 border-b border-white/[0.1] pb-1.5">
                     {React.Children.map(children, (child) =>
                       typeof child === 'string' ? renderSmartTextWithIcons(child) : child
                     )}
@@ -247,7 +247,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                   </h2>
                 ),
                 h3: ({ children }) => (
-                  <h3 className="text-xs sm:text-base font-semibold text-rose-400 my-1.5 sm:my-2">
+                  <h3 className="text-xs sm:text-base font-semibold text-white my-1.5 sm:my-2">
                     {React.Children.map(children, (child) =>
                       typeof child === 'string' ? renderSmartTextWithIcons(child) : child
                     )}
@@ -263,26 +263,26 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                 ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2 text-zinc-300 pr-1 sm:pr-2">{children}</ul>,
                 ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2 text-zinc-300 pr-1 sm:pr-2">{children}</ol>,
                 blockquote: ({ children }) => (
-                  <blockquote className="border-r-2 border-rose-500 bg-zinc-950/60 pr-2.5 sm:pr-3 py-1.5 sm:py-2 my-2 text-xs sm:text-sm text-zinc-300 rounded-r-lg">
+                  <blockquote className="border-r-2 border-white/30 bg-white/[0.03] pr-2.5 sm:pr-3 py-1.5 sm:py-2 my-2 text-xs sm:text-sm text-zinc-300 rounded-r-lg">
                     {children}
                   </blockquote>
                 ),
                 table: ({ children }) => (
-                  <div className="my-3 overflow-x-auto rounded-xl border border-zinc-800">
+                  <div className="my-3 overflow-x-auto rounded-xl border border-white/[0.1]">
                     <table className="w-full text-xs text-right border-collapse">{children}</table>
                   </div>
                 ),
                 th: ({ children }) => (
-                  <th className="bg-zinc-800/80 p-2 text-zinc-200 font-semibold border-b border-zinc-700">{children}</th>
+                  <th className="bg-white/[0.06] p-2 text-zinc-200 font-semibold border-b border-white/[0.1]">{children}</th>
                 ),
                 td: ({ children }) => (
-                  <td className="p-2 border-b border-zinc-800 text-zinc-300">{children}</td>
+                  <td className="p-2 border-b border-white/[0.06] text-zinc-300">{children}</td>
                 ),
                 code: ({ inline, className, children, ...props }: any) => {
                   const match = /language-(\w+)/.exec(className || '');
                   return !inline ? (
-                    <div className="my-2.5 sm:my-3 rounded-xl border border-zinc-800 bg-zinc-950/90 overflow-hidden font-mono text-xs text-left" dir="ltr">
-                      <div className="flex justify-between items-center bg-zinc-900/90 px-3 py-1.5 border-b border-zinc-800 text-zinc-400 text-[11px]">
+                    <div className="my-2.5 sm:my-3 rounded-xl border border-white/[0.1] bg-black/80 overflow-hidden font-mono text-xs text-left" dir="ltr">
+                      <div className="flex justify-between items-center bg-white/[0.04] px-3 py-1.5 border-b border-white/[0.08] text-zinc-400 text-[11px]">
                         <span>{match ? match[1] : 'code'}</span>
                         <button
                           type="button"
@@ -300,7 +300,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                       </pre>
                     </div>
                   ) : (
-                    <code className="bg-zinc-800/80 text-rose-300 border border-zinc-700/50 px-1.5 py-0.5 rounded font-mono text-xs" {...props}>
+                    <code className="bg-white/[0.08] text-zinc-200 border border-white/[0.1] px-1.5 py-0.5 rounded font-mono text-xs" {...props}>
                       {children}
                     </code>
                   );
@@ -311,7 +311,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
             </ReactMarkdown>
 
             {isStreaming && (
-              <span className="inline-block w-1.5 h-4 bg-rose-500 animate-pulse mr-1 align-middle rounded-full" />
+              <span className="inline-block w-1.5 h-4 bg-zinc-300 animate-pulse mr-1 align-middle rounded-full" />
             )}
           </div>
         )}
