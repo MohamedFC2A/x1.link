@@ -220,6 +220,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
           <ChatReasoning
             reasoningText={message.reasoning}
             isThinking={isThinking}
+            isStreaming={isStreaming}
             isX1={message.isX1}
             defaultValue={isStreaming ? "reasoning" : undefined}
           />
