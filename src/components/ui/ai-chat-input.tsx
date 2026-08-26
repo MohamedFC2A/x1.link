@@ -808,10 +808,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           className={cn(
             "relative w-full rounded-3xl glass-input-container transition-all duration-300",
             isCyberMode
-              ? "bg-[#09090d]/90 backdrop-blur-3xl border-white/[0.16] shadow-[inset_0_1px_1px_rgba(255,255,255,0.18),0_20px_50px_rgba(0,0,0,0.95)] focus-within:border-cyan-400/40 focus-within:shadow-[inset_0_1px_1px_rgba(6,182,212,0.25),0_0_0_1px_rgba(6,182,212,0.15),0_24px_55px_rgba(0,0,0,0.95)]"
+              ? "bg-[#09090d]/95 backdrop-blur-3xl border-cyan-500/35 hover:border-cyan-400/50 shadow-[inset_0_1px_1px_rgba(34,211,238,0.25),0_20px_50px_rgba(0,0,0,0.95)] focus-within:border-cyan-400 focus-within:shadow-[inset_0_1px_2px_rgba(34,211,238,0.4),0_0_0_1px_rgba(34,211,238,0.4),0_0_30px_rgba(6,182,212,0.2),0_24px_55px_rgba(0,0,0,0.95)]"
               : isX1Active
-              ? "border-white/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_0_0_1px_rgba(255,255,255,0.2),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white focus-within:shadow-[inset_0_1px_2px_rgba(255,255,255,0.6),0_0_0_1.5px_rgba(255,255,255,0.4),0_18px_50px_rgba(0,0,0,0.9)]"
-              : "border-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white/[0.3] focus-within:shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_0_0_1px_rgba(255,255,255,0.15),0_18px_50px_rgba(0,0,0,0.9)]"
+              ? "border-white/50 hover:border-white/70 shadow-[inset_0_1px_1px_rgba(255,255,255,0.45),0_0_0_1px_rgba(255,255,255,0.25),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white focus-within:shadow-[inset_0_1px_2px_rgba(255,255,255,0.7),0_0_0_1.5px_rgba(255,255,255,0.5),0_0_35px_rgba(255,255,255,0.25),0_18px_50px_rgba(0,0,0,0.9)]"
+              : "border-white/[0.22] hover:border-white/[0.38] shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.22),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white/[0.7] focus-within:shadow-[inset_0_1px_2px_rgba(255,255,255,0.4),0_0_0_1px_rgba(255,255,255,0.3),0_0_25px_rgba(255,255,255,0.1),0_18px_50px_rgba(0,0,0,0.9)]"
           )}
         >
           {/* Smart Edge Sheen Highlight on Top Border */}
