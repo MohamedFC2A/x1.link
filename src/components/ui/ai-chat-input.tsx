@@ -497,14 +497,15 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       const hasNSFW = isX1Active;
 
       // 1. NSFW + Deep Search Fusion (Crimson-Purple-Sky Sunset Plasma)
+      // 1. NSFW + Deep Search Fusion (Crimson Ruby & Emerald Green)
       if (hasNSFW && hasSearch) {
         return {
           type: 'nsfw-search',
           placeholder: 'استكشاف حر وبحث مباشر في الويب دون أي قيود...',
           beamClass: 'nsfw-search-beam',
-          textColor: 'text-rose-50 placeholder:text-rose-300/50 selection:bg-purple-500/40',
-          sendGradient: 'bg-gradient-to-r from-rose-500 via-purple-500 to-sky-400 text-white',
-          topSheen: 'bg-gradient-to-r from-transparent via-purple-400 to-transparent',
+          textColor: 'text-rose-50 placeholder:text-rose-300/50 selection:bg-emerald-500/40',
+          sendGradient: 'bg-gradient-to-r from-rose-500 via-pink-500 to-emerald-400 text-white',
+          topSheen: 'bg-gradient-to-r from-transparent via-emerald-400 to-transparent',
         };
       }
 
@@ -539,7 +540,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           placeholder: 'استخبارات سيبرانية: افحص الهدف واستكشف الويب...',
           beamClass: 'cyber-search-beam',
           textColor: 'text-cyan-100 placeholder:text-cyan-300/50 selection:bg-cyan-500/40',
-          sendGradient: 'bg-gradient-to-r from-cyan-400 to-sky-400 text-black',
+          sendGradient: 'bg-gradient-to-r from-cyan-400 to-emerald-400 text-black',
           topSheen: 'bg-gradient-to-r from-transparent via-cyan-400 to-transparent',
         };
       }
@@ -562,9 +563,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           type: 'vision-search',
           placeholder: 'بحث بصري: حلل الصورة واستكشف الويب...',
           beamClass: 'vision-search-beam',
-          textColor: 'text-sky-100 placeholder:text-sky-300/50 selection:bg-sky-500/40',
-          sendGradient: 'bg-gradient-to-r from-emerald-400 to-sky-400 text-black',
-          topSheen: 'bg-gradient-to-r from-transparent via-sky-400 to-transparent',
+          textColor: 'text-emerald-100 placeholder:text-emerald-300/50 selection:bg-emerald-500/40',
+          sendGradient: 'bg-gradient-to-r from-emerald-400 to-teal-400 text-black',
+          topSheen: 'bg-gradient-to-r from-transparent via-emerald-400 to-transparent',
         };
       }
 
@@ -715,15 +716,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             />
             <div
               dir="rtl"
-              className="absolute bottom-full left-0 mb-3 w-[320px] sm:w-[350px] glass-popover rounded-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none"
+              className="absolute bottom-full left-0 mb-3 w-[280px] sm:w-[300px] glass-popover rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/[0.08] mb-2">
-                <span className="text-xs font-sans font-bold text-white tracking-wide">أدوات الإدخال والاستخبارات</span>
-                <span className="text-[9px] font-mono text-zinc-400 font-semibold tracking-wider">MATANY MATRIX</span>
+              <div className="px-2 py-1 border-b border-white/[0.08] mb-1.5">
+                <span className="text-xs font-sans font-bold text-white tracking-wide">أدوات إضافية</span>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {/* Action 1: Upload Image */}
                 <button
                   type="button"
@@ -731,16 +731,13 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     fileInputRef.current?.click();
                     setIsActionsMenuOpen(false);
                   }}
-                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-white/[0.06] text-xs font-sans text-zinc-200 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-white/[0.08]"
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.06] text-xs font-sans text-zinc-200 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-white/[0.08]"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="size-8 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300 group-hover:text-white shrink-0">
-                      <Camera className="w-4 h-4" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300 group-hover:text-white shrink-0">
+                      <Camera className="w-3.5 h-3.5" />
                     </div>
-                    <div>
-                      <div className="font-bold text-xs text-white">رفع صورة أو مستند</div>
-                      <div className="text-[11px] text-zinc-400 font-normal">استخراج النصوص (OCR) والتحليل البصري</div>
-                    </div>
+                    <span className="font-semibold text-xs text-white">رفع صورة أو مستند</span>
                   </div>
                 </button>
 
@@ -752,30 +749,27 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     setIsActionsMenuOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
+                    "w-full flex items-center justify-between p-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
                     isDeepSearchEffective
-                      ? "bg-sky-500/10 border-sky-500/30 text-sky-200"
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
                       : "hover:bg-white/[0.06] text-zinc-200 hover:text-white border-transparent hover:border-white/[0.08]"
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     <div className={cn(
-                      "size-8 rounded-xl flex items-center justify-center shrink-0 border transition-all",
+                      "size-7 rounded-lg flex items-center justify-center shrink-0 border transition-all",
                       isDeepSearchEffective
-                        ? "bg-sky-500/20 border-sky-500/40 text-sky-300"
+                        ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
                         : "bg-white/[0.04] border-white/[0.08] text-zinc-300"
                     )}>
-                      <Search className="w-4 h-4" />
+                      <Search className="w-3.5 h-3.5" />
                     </div>
-                    <div>
-                      <div className="font-bold text-xs text-white">البحث والاستخبارات العميقة</div>
-                      <div className="text-[11px] text-zinc-400 font-normal">مسح واستكشاف 100+ صفحة ومصدر</div>
-                    </div>
+                    <span className="font-semibold text-xs text-white">البحث في الويب</span>
                   </div>
                   <span className={cn(
                     "text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0",
                     isDeepSearchEffective
-                      ? "bg-sky-500/20 border-sky-500/40 text-sky-300 font-bold"
+                      ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-bold"
                       : "bg-white/[0.04] border-white/[0.08] text-zinc-400"
                   )}>
                     {isDeepSearchEffective ? 'مفعّل' : 'معطّل'}
@@ -790,25 +784,22 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     setIsActionsMenuOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
+                    "w-full flex items-center justify-between p-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
                     isX1Active
                       ? "bg-rose-500/10 border-rose-500/30 text-rose-200"
                       : "hover:bg-white/[0.06] text-zinc-200 hover:text-white border-transparent hover:border-white/[0.08]"
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     <div className={cn(
-                      "size-8 rounded-xl flex items-center justify-center shrink-0 border transition-all",
+                      "size-7 rounded-lg flex items-center justify-center shrink-0 border transition-all",
                       isX1Active
                         ? "bg-rose-500/20 border-rose-500/40 text-rose-300"
                         : "bg-white/[0.04] border-white/[0.08] text-zinc-300"
                     )}>
-                      <ShieldOff className="w-4 h-4" />
+                      <ShieldOff className="w-3.5 h-3.5" />
                     </div>
-                    <div>
-                      <div className="font-bold text-xs text-white">وضع NSFW Off</div>
-                      <div className="text-[11px] text-zinc-400 font-normal">إلغاء القيود عبر البصمة الحيوية</div>
-                    </div>
+                    <span className="font-semibold text-xs text-white">وضع NSFW Off</span>
                   </div>
                   <span className={cn(
                     "text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0",
@@ -928,7 +919,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   : activeFusion
                   ? `${activeFusion.topSheen} opacity-90`
                   : isDeepSearchEffective
-                  ? "bg-gradient-to-r from-transparent via-sky-400 to-transparent opacity-90"
+                  ? "bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-90"
                   : isCyberMode
                   ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-90"
                   : isX1Active
@@ -1034,7 +1025,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   activeFusion
                     ? activeFusion.textColor
                     : isDeepSearchEffective
-                    ? "text-sky-50 placeholder:text-sky-300/50 selection:bg-sky-500/40"
+                    ? "text-emerald-50 placeholder:text-emerald-300/50 selection:bg-emerald-500/40"
                     : isCyberMode
                     ? "text-cyan-50 placeholder:text-cyan-300/50 selection:bg-cyan-500/40"
                     : hasAttachments
@@ -1061,7 +1052,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     ? activeFusion
                       ? `${activeFusion.sendGradient} font-bold hover:scale-105 shadow-xl`
                       : isDeepSearchEffective
-                      ? "bg-gradient-to-r from-sky-400 to-indigo-400 hover:from-sky-300 hover:to-indigo-300 text-slate-950 font-bold hover:scale-105 shadow-sky-500/30"
+                      ? "bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-bold hover:scale-105 shadow-emerald-500/30"
                       : isCyberMode
                       ? "bg-cyan-400 hover:bg-cyan-300 text-black font-bold hover:scale-105 shadow-cyan-400/30"
                       : hasAttachments
@@ -1131,10 +1122,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 <button
                   type="button"
                   onClick={toggleDeepSearch}
-                  className="size-8 rounded-xl bg-zinc-950 border border-white/[0.12] hover:border-white/[0.22] flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0"
-                  title="البحث والاستخبارات العميقة (100+ صفحة) مفعلة - انقر للإلغاء"
+                  className="size-8 rounded-xl bg-zinc-950 border border-white/[0.12] hover:border-emerald-500/40 hover:bg-emerald-950/20 text-emerald-400 hover:text-emerald-300 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0"
+                  title="البحث المباشر في الويب مفعل - انقر للإلغاء"
                 >
-                  <ThinkingOrb state="searching" size={20} theme="dark" speed={1.6} />
+                  <Search className="w-3.5 h-3.5 text-emerald-400" />
                 </button>
               )}
 

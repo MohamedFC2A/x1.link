@@ -306,10 +306,10 @@
     background: conic-gradient(
       from 0deg,
       transparent 0deg,
-      transparent 280deg,
-      rgba(56, 189, 248, 0.2) 310deg,
-      rgba(56, 189, 248, 0.9) 340deg,
-      rgba(129, 140, 248, 1) 355deg,
+      transparent 270deg,
+      rgba(16, 185, 129, 0.25) 300deg,
+      rgba(52, 211, 153, 0.9) 340deg,
+      rgba(110, 231, 183, 1) 355deg,
       rgba(255, 255, 255, 1) 360deg
     );
   }
@@ -355,8 +355,8 @@
       transparent 0deg,
       transparent 180deg,
       rgba(244, 63, 94, 0.5) 230deg,
-      rgba(168, 85, 247, 0.95) 290deg,
-      rgba(56, 189, 248, 1) 345deg,
+      rgba(236, 72, 153, 0.95) 290deg,
+      rgba(52, 211, 153, 1) 345deg,
       rgba(255, 255, 255, 1) 360deg
     );
   }
