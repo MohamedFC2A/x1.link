@@ -648,10 +648,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       <div className="flex items-center gap-2 mb-1.5 px-1 text-xs text-zinc-300">
         <div className="flex items-center gap-1.5 font-sans font-medium">
           {isMedia ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-violet-950/90 via-fuchsia-950/80 to-indigo-950/90 border border-violet-500/40 text-violet-200 shadow-[0_0_15px_rgba(168,85,247,0.25)]">
-              <Sparkles className="w-3.5 h-3.5 text-violet-300 animate-pulse" />
-              <span className="font-bold text-xs bg-gradient-to-r from-violet-200 via-fuchsia-200 to-indigo-100 bg-clip-text text-transparent">محرك Fathom Spark</span>
-              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-violet-500/30 text-violet-300 font-mono font-semibold">Multi 1.2</span>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
+              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+              <span className="font-semibold text-xs text-zinc-100">محرك Fathom Spark</span>
             </div>
           ) : isCyber ? (
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
