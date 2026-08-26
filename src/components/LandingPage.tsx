@@ -25,22 +25,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <header className="sticky top-0 z-30 w-full bg-[#000000]/95 border-b border-white/[0.08] px-3.5 sm:px-8 py-3 backdrop-blur-xl pt-safe">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
           
-          {/* Right / Pure Typographic Luxury Brand Wordmark */}
-          <div className="flex flex-col text-left justify-center select-none py-0.5" dir="ltr">
-            <div className="flex items-baseline gap-0.5 leading-none">
-              <span className="font-['Space_Grotesk'] font-black text-xl sm:text-2xl tracking-tight brand-shimmer-text">
-                matany
-              </span>
-              <span className="font-['Space_Grotesk'] font-bold text-xs sm:text-sm text-zinc-400 font-mono tracking-tight">
-                .one
-              </span>
-            </div>
-            <span className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono mt-1 font-semibold tracking-[0.22em] uppercase">
-              AUTONOMOUS AI PLATFORM
-            </span>
-          </div>
-
-          {/* Left Actions */}
+          {/* Right / Actions */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -62,6 +47,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
           </div>
 
+          {/* Left / Pure Typographic Luxury Brand Wordmark */}
+          <div className="flex flex-col text-left justify-center select-none py-0.5" dir="ltr">
+            <div className="flex items-baseline gap-0.5 leading-none">
+              <span className="font-['Space_Grotesk'] font-black text-xl sm:text-2xl tracking-tight brand-shimmer-text">
+                matany
+              </span>
+              <span className="font-['Space_Grotesk'] font-bold text-xs sm:text-sm text-zinc-400 font-mono tracking-tight">
+                .one
+              </span>
+            </div>
+            <span className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono mt-1 font-semibold tracking-[0.22em] uppercase">
+              AUTONOMOUS AI PLATFORM
+            </span>
+          </div>
+
         </div>
       </header>
 
@@ -78,7 +78,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Subtitle */}
         <p className="text-xs sm:text-base lg:text-lg text-zinc-400 max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed font-sans font-normal px-2">
-          منظومة محادثة فائقة الذكاء تجمع بين محرك <strong className="text-zinc-200 font-semibold">Matany Core</strong> للتوليد اللغوي الحر، وإدراك <strong className="text-zinc-200 font-semibold">Fathom Cam</strong> البصري، وتدقيق <strong className="text-cyan-300 font-semibold">Fathom Cyber</strong> الأمني، وشريحة <strong className="text-zinc-200 font-semibold">NSFW NANO</strong> المحمية بيومترياً.
+          منظومة محادثة فائقة الذكاء تجمع بين محرك <strong className="text-zinc-200 font-semibold">Fathom 1</strong> للتوليد اللغوي الحر، وإدراك <strong className="text-zinc-200 font-semibold">Fathom Cam</strong> البصري، وتدقيق <strong className="text-cyan-300 font-semibold">Fathom Cyber</strong> الأمني، وشريحة <strong className="text-zinc-200 font-semibold">NSFW NANO</strong> المحمية بيومترياً.
         </p>
 
         {/* Primary CTA Buttons */}
@@ -110,7 +110,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-right">
             
-            {/* Card 1: Matany Core */}
+            {/* Card 1: Fathom 1 */}
             <motion.div
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.97 }}
@@ -123,7 +123,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/[0.04] text-zinc-300 border border-white/[0.08]">
-                  MATANY CORE
+                  FATHOM 1
                 </span>
               </div>
 

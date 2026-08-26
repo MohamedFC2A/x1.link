@@ -187,7 +187,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-white/[0.05] text-zinc-300 border border-white/[0.08]">
-                    MATANY CORE
+                    FATHOM 1
                   </span>
                 </div>
                 <div className="text-xs sm:text-sm font-semibold text-white group-hover:text-zinc-200 transition-colors mb-1 font-sans">

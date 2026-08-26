@@ -175,7 +175,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       ? "Fathom Cam"
       : isCyberMode
       ? "Fathom Cyber"
-      : "Matany Core";
+      : "Fathom 1";
 
     const activeBackendModel = effectiveModel;
 
@@ -433,7 +433,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     </div>
                     <div className="min-w-0 text-right">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-white">Matany Core</span>
+                        <span className="font-bold text-xs text-white">Fathom 1</span>
                         <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08]">CORE</span>
                       </div>
                       <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
