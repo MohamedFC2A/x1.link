@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, ShieldOff, Eye, Camera, ShieldCheck, ArrowLeft, MessageSquarePlus, Zap, Lock, MessageSquare } from 'lucide-react';
+import { Sparkles, ShieldOff, Eye, Camera, ShieldCheck, ArrowLeft, MessageSquarePlus, Zap, Lock, MessageSquare, CreditCard, Activity, User as UserIcon } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { motion } from 'framer-motion';
 
@@ -8,6 +8,9 @@ interface LandingPageProps {
   onSelectPreset: (presetText: string) => void;
   onOpenArchitecture: () => void;
   onOpenSidebar: () => void;
+  onNavigateToPricing?: () => void;
+  onNavigateToLimits?: () => void;
+  onNavigateToProfile?: () => void;
   user: User | null;
 }
 
@@ -16,6 +19,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onSelectPreset,
   onOpenArchitecture,
   onOpenSidebar,
+  onNavigateToPricing,
+  onNavigateToLimits,
+  onNavigateToProfile,
   user,
 }) => {
   return (
@@ -31,11 +37,35 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               type="button"
               onClick={onOpenSidebar}
               className="glass-button flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer active:scale-95 shadow-sm"
-              title="سجل المحادثات السحابية"
+              title="سجل المحادثات السحابية والقائمة"
             >
               <MessageSquare className="w-4 h-4 text-zinc-300" />
-              <span className="hidden sm:inline font-sans">سجل المحادثات</span>
+              <span className="hidden sm:inline font-sans">السجل</span>
             </button>
+
+            {onNavigateToPricing && (
+              <button
+                type="button"
+                onClick={onNavigateToPricing}
+                className="glass-button flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer active:scale-95 shadow-sm"
+                title="خطط الاشتراكات $29 و $99"
+              >
+                <CreditCard className="w-4 h-4 text-zinc-300" />
+                <span className="hidden sm:inline font-sans">الاشتراكات</span>
+              </button>
+            )}
+
+            {onNavigateToLimits && (
+              <button
+                type="button"
+                onClick={onNavigateToLimits}
+                className="glass-button flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-cyan-300 hover:text-white text-xs font-semibold cursor-pointer active:scale-95 shadow-sm"
+                title="تتبع الاستهلاك والليميت"
+              >
+                <Activity className="w-4 h-4 text-cyan-400" />
+                <span className="hidden sm:inline font-sans">الاستهلاك</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -88,6 +118,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <MessageSquarePlus className="w-5 h-5 text-zinc-950 group-hover:scale-110 transition-transform" />
             <span>ابدأ المحادثة الآن</span>
           </button>
+
+          {onNavigateToPricing && (
+            <button
+              type="button"
+              onClick={onNavigateToPricing}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 sm:px-7 py-3 sm:py-3.5 rounded-2xl bg-zinc-900 border border-white/15 hover:bg-zinc-800 text-white font-semibold text-sm sm:text-base transition-all active:scale-95 cursor-pointer font-sans"
+            >
+              <CreditCard className="w-4 h-4 text-zinc-300" />
+              <span>خطط الاشتراك والأسعار</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -247,7 +288,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <footer className="border-t border-white/[0.08] py-3 sm:py-4 px-4 sm:px-6 text-center text-[10px] sm:text-xs text-zinc-500 font-mono pb-safe">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1 sm:gap-2">
           <span>Matany.one • Fathom Silicon Platform</span>
-          <span>حفظ سحابي فوري ومشفر على Supabase</span>
+          <div className="flex items-center gap-4">
+            {onNavigateToPricing && (
+              <button type="button" onClick={onNavigateToPricing} className="hover:text-zinc-300 transition-colors cursor-pointer">
+                الاشتراكات والأسعار
+              </button>
+            )}
+            {onNavigateToLimits && (
+              <button type="button" onClick={onNavigateToLimits} className="hover:text-zinc-300 transition-colors cursor-pointer">
+                تتبع الاستهلاك
+              </button>
+            )}
+            {onNavigateToProfile && (
+              <button type="button" onClick={onNavigateToProfile} className="hover:text-zinc-300 transition-colors cursor-pointer">
+                الملف الشخصي
+              </button>
+            )}
+          </div>
         </div>
       </footer>
 

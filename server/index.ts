@@ -765,6 +765,64 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
+// Anti-Bruteforce Rate Limiter for Subscription Verification (Passcode: 012727)
+const SUBSCRIPTION_SECRET_CODE = '012727';
+const activationRateLimits = new Map<string, { failedAttempts: number; lockedUntil: number | null }>();
+
+app.post('/api/verify-subscription-code', (req: Request, res: Response) => {
+  try {
+    const { code, planId, deviceId } = req.body || {};
+    const key = (deviceId && typeof deviceId === 'string') ? deviceId : (req.ip || 'anonymous_dev');
+
+    const now = Date.now();
+    const currentLimit = activationRateLimits.get(key) || { failedAttempts: 0, lockedUntil: null };
+
+    // Check if locked
+    if (currentLimit.lockedUntil && now < currentLimit.lockedUntil) {
+      const minutesRemaining = Math.ceil((currentLimit.lockedUntil - now) / 60000);
+      return res.status(429).json({
+        success: false,
+        error: `تم قفل إدخال الكود مؤقتاً لحماية النظام (${minutesRemaining} دقيقة متبقية).`,
+        locked: true,
+        remainingMs: currentLimit.lockedUntil - now,
+      });
+    }
+
+    if (currentLimit.lockedUntil && now >= currentLimit.lockedUntil) {
+      currentLimit.failedAttempts = 0;
+      currentLimit.lockedUntil = null;
+    }
+
+    const cleanCode = (code || '').toString().trim();
+
+    if (cleanCode === SUBSCRIPTION_SECRET_CODE) {
+      activationRateLimits.delete(key);
+      return res.json({
+        success: true,
+        planId: planId || 'pro-29',
+        status: 'active',
+        message: 'تم تفعيل الاشتراك بنجاح.',
+      });
+    } else {
+      currentLimit.failedAttempts += 1;
+      if (currentLimit.failedAttempts >= 5) {
+        currentLimit.lockedUntil = now + 15 * 60 * 1000; // 15 minutes lockout
+      }
+      activationRateLimits.set(key, currentLimit);
+
+      return res.status(400).json({
+        success: false,
+        error: 'كود التفعيل غير صحيح.',
+        remainingAttempts: Math.max(0, 5 - currentLimit.failedAttempts),
+        locked: !!currentLimit.lockedUntil,
+      });
+    }
+  } catch (err: any) {
+    console.error('[API /api/verify-subscription-code Error]:', err);
+    return res.status(500).json({ error: 'Server validation error' });
+  }
+});
+
 // Automated Link Resolution, Unshortening, & UI Framework / Design System Profiler
 app.post('/api/resolve-link', async (req: Request, res: Response) => {
   try {

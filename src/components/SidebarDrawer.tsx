@@ -1,7 +1,18 @@
 import React from 'react';
 import { User } from '@supabase/supabase-js';
 import { SupabaseChat } from '../services/supabase';
-import { X, Plus, Trash2, LogOut, MessageSquare, Database } from 'lucide-react';
+import { 
+  X, 
+  Plus, 
+  Trash2, 
+  LogOut, 
+  MessageSquare, 
+  Database, 
+  CreditCard, 
+  Activity, 
+  User as UserIcon,
+  Sparkles
+} from 'lucide-react';
 
 interface SidebarDrawerProps {
   isOpen: boolean;
@@ -15,6 +26,10 @@ interface SidebarDrawerProps {
   onNewChat: () => void;
   onDeleteChat: (chatId: string, e: React.MouseEvent) => void;
   totalTokens: number;
+  onNavigateToPricing?: () => void;
+  onNavigateToLimits?: () => void;
+  onNavigateToProfile?: () => void;
+  onNavigateToChat?: () => void;
 }
 
 export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
@@ -29,6 +44,10 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   onNewChat,
   onDeleteChat,
   totalTokens,
+  onNavigateToPricing,
+  onNavigateToLimits,
+  onNavigateToProfile,
+  onNavigateToChat,
 }) => {
   if (!isOpen) return null;
 
@@ -41,7 +60,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
       />
 
       {/* Drawer Content */}
-      <div className="relative w-[85vw] max-w-xs sm:max-w-sm bg-[#08080d]/85 backdrop-blur-2xl border-l border-white/[0.08] text-zinc-100 flex flex-col h-full z-10 shadow-2xl animate-in slide-in-from-right duration-300 pt-safe pb-safe">
+      <div className="relative w-[85vw] max-w-xs sm:max-w-sm glass-panel border-l border-white/15 text-zinc-100 flex flex-col h-full z-10 shadow-2xl animate-in slide-in-from-right duration-300 pt-safe pb-safe">
         
         {/* Header */}
         <div className="p-3.5 sm:p-4 border-b border-white/[0.08] flex items-center justify-between">
@@ -68,19 +87,60 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           </button>
         </div>
 
-        {/* Action: New Chat */}
-        <div className="p-2.5 sm:p-3 border-b border-white/[0.06]">
+        {/* Quick Nav Actions (Pricing, Limits, Profile, New Chat) */}
+        <div className="p-2.5 sm:p-3 border-b border-white/[0.06] space-y-2">
           <button
             type="button"
             onClick={() => {
               onNewChat();
               onClose();
             }}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl glass-button text-white font-medium text-xs shadow-sm active:scale-95 cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white text-zinc-950 font-bold text-xs shadow-md active:scale-95 cursor-pointer hover:bg-zinc-200 transition-all"
           >
-            <Plus className="w-4 h-4 text-zinc-300" />
+            <Plus className="w-4 h-4 text-zinc-950" />
             <span className="font-sans">بدء محادثة جديدة</span>
           </button>
+
+          <div className="grid grid-cols-3 gap-1.5 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                onNavigateToPricing?.();
+                onClose();
+              }}
+              className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl glass-button text-zinc-300 hover:text-white text-[10px] font-semibold cursor-pointer active:scale-95"
+              title="خطط الاشتراك"
+            >
+              <CreditCard className="w-4 h-4 text-zinc-300" />
+              <span>الاشتراكات</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                onNavigateToLimits?.();
+                onClose();
+              }}
+              className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl glass-button text-cyan-300 hover:text-white text-[10px] font-semibold cursor-pointer active:scale-95"
+              title="تتبع الاستهلاك والليميت"
+            >
+              <Activity className="w-4 h-4 text-cyan-400" />
+              <span>الاستهلاك</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                onNavigateToProfile?.();
+                onClose();
+              }}
+              className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl glass-button text-zinc-300 hover:text-white text-[10px] font-semibold cursor-pointer active:scale-95"
+              title="الملف الشخصي"
+            >
+              <UserIcon className="w-4 h-4 text-zinc-300" />
+              <span>البروفايل</span>
+            </button>
+          </div>
         </div>
 
         {/* Chat List */}
@@ -155,12 +215,18 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
         <div className="p-3 border-t border-white/[0.08] bg-[#000000]">
           {user ? (
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="size-8 rounded-full bg-white/[0.08] text-white flex items-center justify-center font-bold text-xs border border-white/[0.15] shrink-0">
+              <div 
+                onClick={() => {
+                  onNavigateToProfile?.();
+                  onClose();
+                }}
+                className="flex items-center gap-2 min-w-0 cursor-pointer group"
+              >
+                <div className="size-8 rounded-full bg-white/[0.08] text-white flex items-center justify-center font-bold text-xs border border-white/[0.15] shrink-0 group-hover:border-white/40 transition-colors">
                   {user.email?.[0].toUpperCase() || 'U'}
                 </div>
                 <div className="truncate text-xs">
-                  <div className="font-medium text-white truncate font-sans">{user.email}</div>
+                  <div className="font-medium text-white truncate font-sans group-hover:text-zinc-200 transition-colors">{user.email}</div>
                   <div className="text-[10px] text-emerald-400 font-mono">حساب متصل ومحمي</div>
                 </div>
               </div>

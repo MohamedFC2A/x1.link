@@ -3,18 +3,25 @@ import { User } from '@supabase/supabase-js';
 import { DisclaimerModal } from './components/DisclaimerModal';
 import { X1UnlockModal } from './components/X1UnlockModal';
 import { ArchitectureModal } from './components/ArchitectureModal';
+import { SubscriptionModal } from './components/SubscriptionModal';
 import { LandingPage } from './components/LandingPage';
 import { TopBar } from './components/TopBar';
 import { ChatWindow } from './components/ChatWindow';
 import { PromptInput } from './components/ui/ai-chat-input';
 import { SidebarDrawer } from './components/SidebarDrawer';
+import { PricingPage } from './components/PricingPage';
+import { LimitsPage } from './components/LimitsPage';
+import { ProfilePage } from './components/ProfilePage';
+import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
+import { TermsOfServicePage } from './components/TermsOfServicePage';
 import { ChatMessageItem, ModelType, WebAuthnVerificationResult, MediaAttachmentItem } from './types';
-import { Square } from 'lucide-react';
 import { streamChatCompletion } from './services/api';
 import { memoryEngine } from './services/memoryManager';
 import { compressImageFile } from './lib/imageCompressor';
 import { detectAndExtractUrl } from './lib/utils';
 import { classifyFileType, extractVideoClientMetadata, extractAudioClientMetadata, extractTextClientMetadata } from './lib/mediaExtractor';
+import { fetchUserSubscription } from './services/subscriptionService';
+import { recordRealUsage, checkPlanLimit, getLocalUsage, fetchRemoteUsage, estimateTokens } from './services/usageTracker';
 import {
   supabase,
   signInWithGoogle,
@@ -31,12 +38,62 @@ const STORAGE_KEY_18 = 'x1_auth_age_18';
 const STORAGE_KEY_21 = 'x1_auth_age_21_biometric';
 const STORAGE_KEY_MSGS = 'x1_chat_history';
 const STORAGE_KEY_SEEN_LANDING = 'x1_has_seen_landing';
+const STORAGE_KEY_PLAN = 'x1_active_plan';
+
+export type AppViewMode = 'landing' | 'chat' | 'pricing' | 'limits' | 'profile' | 'privacy' | 'terms';
 
 export const App: React.FC = () => {
-  // Page Navigation State: 'landing' (Shown only for first-time visitor) vs 'chat' (AI Chat Room)
-  const [viewMode, setViewMode] = useState<'landing' | 'chat'>(() => {
+  // Page Navigation State based on pathname or local storage
+  const [viewMode, setViewMode] = useState<AppViewMode>(() => {
+    const path = window.location.pathname.toLowerCase();
+    if (path === '/privacy' || path === '/privacy-policy') return 'privacy';
+    if (path === '/terms' || path === '/terms-of-service') return 'terms';
+    if (path === '/pricing') return 'pricing';
+    if (path === '/limits') return 'limits';
+    if (path === '/profile') return 'profile';
     return localStorage.getItem(STORAGE_KEY_SEEN_LANDING) === 'true' ? 'chat' : 'landing';
   });
+
+  const navigateTo = (view: AppViewMode) => {
+    setViewMode(view);
+    const pathMap: Record<AppViewMode, string> = {
+      landing: '/',
+      chat: '/',
+      pricing: '/pricing',
+      limits: '/limits',
+      profile: '/profile',
+      privacy: '/privacy',
+      terms: '/terms',
+    };
+    const newPath = pathMap[view] || '/';
+    if (window.location.pathname !== newPath) {
+      window.history.pushState(null, '', newPath);
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.toLowerCase();
+      if (path === '/privacy' || path === '/privacy-policy') setViewMode('privacy');
+      else if (path === '/terms' || path === '/terms-of-service') setViewMode('terms');
+      else if (path === '/pricing') setViewMode('pricing');
+      else if (path === '/limits') setViewMode('limits');
+      else if (path === '/profile') setViewMode('profile');
+      else setViewMode(localStorage.getItem(STORAGE_KEY_SEEN_LANDING) === 'true' ? 'chat' : 'landing');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Current Subscription Plan ('free-0' | 'pro-29' | 'elite-99')
+  const [currentPlanId, setCurrentPlanId] = useState<string>(() => {
+    return localStorage.getItem(STORAGE_KEY_PLAN) || 'free-0';
+  });
+
+  // Subscription Modal State
+  const [isSubModalOpen, setIsSubModalOpen] = useState<boolean>(false);
+  const [subModalTargetPlan, setSubModalTargetPlan] = useState<'pro-29' | 'elite-99'>('pro-29');
 
   // Authentication & Mode State
   const [hasAccepted18, setHasAccepted18] = useState<boolean>(() => {
@@ -52,7 +109,7 @@ export const App: React.FC = () => {
   const [isArchitectureModalOpen, setIsArchitectureModalOpen] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
-  // Supabase User & Cloud Sync (Automatic for both Guests & Logged-in Users)
+  // Supabase User & Cloud Sync
   const [user, setUser] = useState<User | null>(null);
   const [cloudChats, setCloudChats] = useState<SupabaseChat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
@@ -72,26 +129,40 @@ export const App: React.FC = () => {
   });
 
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
-  const [totalTokens, setTotalTokens] = useState<number>(0);
+  const [totalTokens, setTotalTokens] = useState<number>(() => getLocalUsage().totalTokens);
   const abortControllerRef = useRef<(() => void) | null>(null);
+
+  // Calculate current active chat tokens
+  const currentChatTokens = messages.reduce((acc, m) => {
+    if (m.tokensCount) return acc + m.tokensCount;
+    return acc + estimateTokens(m.content || '', '', m.reasoning);
+  }, 0);
 
   const loadCloudChats = async (userId: string | null) => {
     const chats = await fetchUserChats(userId);
     setCloudChats(chats);
   };
 
-  // Initial mount & Supabase Auth Listener
+  // Initial mount & Supabase Auth & Subscription Listener
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       loadCloudChats(currentUser?.id ?? null);
+      fetchUserSubscription(currentUser?.id ?? null).then(plan => setCurrentPlanId(plan));
+      fetchRemoteUsage(currentUser?.id ?? null).then(usage => {
+        if (usage) setTotalTokens(usage.totalTokens);
+      });
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       loadCloudChats(currentUser?.id ?? null);
+      fetchUserSubscription(currentUser?.id ?? null).then(plan => setCurrentPlanId(plan));
+      fetchRemoteUsage(currentUser?.id ?? null).then(usage => {
+        if (usage) setTotalTokens(usage.totalTokens);
+      });
     });
 
     return () => subscription.unsubscribe();
@@ -99,13 +170,10 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      // Store lightweight messages in localStorage to prevent QuotaExceededError crashes (5MB browser limit)
-      // Never slice base64 strings as that corrupts image binary data!
       const lightweightMsgs = messages.map(m => {
         if (m.images || m.image) {
           return {
             ...m,
-            // Only persist lightweight image data or omit from local disk storage to protect quota
             image: (m.image && m.image.length < 150000) ? m.image : undefined,
             images: m.images ? m.images.filter(img => img && img.length < 150000) : undefined
           };
@@ -116,15 +184,12 @@ export const App: React.FC = () => {
     } catch (storageErr) {
       console.warn('[LocalStorage Quota Protection caught]:', storageErr);
       try {
-        // Fallback: store only recent 10 messages without image payloads
         const minimalMsgs = messages.slice(-10).map(m => ({ ...m, image: undefined, images: undefined }));
         localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(minimalMsgs));
       } catch {
-        // Ignore if storage is completely full
+        // Ignore
       }
     }
-    const stats = memoryEngine.processMessages(messages);
-    setTotalTokens(stats.totalTokens);
   }, [messages]);
 
   const handleAccept18 = () => {
@@ -134,7 +199,6 @@ export const App: React.FC = () => {
 
   const handleToggleX1 = () => {
     if (!isX1Active) {
-      // Must require biometric verification on every single activation
       setIsX1ModalOpen(true);
     } else {
       setIsX1Active(false);
@@ -147,14 +211,16 @@ export const App: React.FC = () => {
     setIsX1ModalOpen(false);
   };
 
+  const handleSelectPlan = (planId: string) => {
+    setCurrentPlanId(planId);
+    localStorage.setItem(STORAGE_KEY_PLAN, planId);
+  };
+
   const handleSendMessage = async (
     text: string,
     meta?: { model?: string; attachments?: File[]; targetUrl?: string; targetUrls?: string[]; effort?: string; deepSearch?: boolean }
   ) => {
     if (isStreaming) return;
-
-    // Switch to Chat room mode when sending message
-    setViewMode('chat');
 
     const attachedImagesDataUrls: string[] = [];
     const attachedMediaList: MediaAttachmentItem[] = [];
@@ -211,9 +277,7 @@ export const App: React.FC = () => {
       }
     }
 
-    // Deduplicate images to protect against redundant tokens and storage
     const uniqueImagesDataUrls = Array.from(new Set(attachedImagesDataUrls));
-
     const trimmedText = text.trim();
     let effectivePrompt = trimmedText;
     if (!effectivePrompt) {
@@ -231,6 +295,48 @@ export const App: React.FC = () => {
 
     const detectedUrlInfo = detectAndExtractUrl(effectivePrompt);
     const resolvedTargetUrl = meta?.targetUrl || (detectedUrlInfo.hasUrl ? detectedUrlInfo.cleanUrl : undefined);
+
+    // Enforce Plan Limits (Check Free Plan 2-trial limit, cyber limit, quota)
+    const limitCheck = checkPlanLimit(currentPlanId, {
+      isVision: uniqueImagesDataUrls.length > 0,
+      isCyber: !!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber',
+    });
+
+    if (!limitCheck.allowed) {
+      navigateTo('chat');
+      let limitMsg = '';
+      if (limitCheck.reason === 'free_fathom1_limit') {
+        limitMsg = 'لقد استهلكت حد التجربة المتاح في الخطة المجانية لنموذج Fathom 1 (مرتان فقط). يرجى الترقية إلى باقة المحترف ($29) أو النخبة ($99) للمتابعة بلا قيود.';
+      } else if (limitCheck.reason === 'free_vision_limit') {
+        limitMsg = 'لقد استهلكت حد التجربة المتاح في الخطة المجانية لإدراك Fathom Cam البصري (صورتان فقط). يرجى الترقية إلى باقة المحترف ($29) أو النخبة ($99) لتحليل غير محدود.';
+      } else if (limitCheck.reason === 'free_cyber_disabled') {
+        limitMsg = 'فحوصات Fathom Cyber والاستخبارات السيبرانية غير مفعلة في الخطة المجانية. يرجى تفعيل باقة المحترف ($29) أو النخبة ($99).';
+      } else {
+        limitMsg = 'لقد بلغت الحد الأقصى لرصيد التوكن الشهري لخطة اشتراكك الحالية. يمكنك الترقية لباقة النخبة ($99) للحصول على سعة مفتوحة.';
+      }
+
+      setMessages(prev => [
+        ...prev,
+        {
+          id: 'user-' + Date.now(),
+          role: 'user',
+          content: effectivePrompt,
+          timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+        },
+        {
+          id: 'assistant-' + Date.now(),
+          role: 'assistant',
+          content: limitMsg,
+          timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+        }
+      ]);
+      setSubModalTargetPlan('pro-29');
+      setIsSubModalOpen(true);
+      return;
+    }
+
+    // Switch to Chat room mode when sending message
+    navigateTo('chat');
 
     let chosenModel: ModelType;
     if (attachedMediaList.length > 0) {
@@ -351,7 +457,7 @@ export const App: React.FC = () => {
           return prev;
         });
       },
-      onComplete: () => {
+      onComplete: async () => {
         setIsStreaming(false);
         abortControllerRef.current = null;
         setMessages(prev => {
@@ -367,6 +473,22 @@ export const App: React.FC = () => {
           }
           return prev;
         });
+
+        // Record real usage & token metrics to Supabase
+        const updatedUsage = await recordRealUsage({
+          model: chosenModel,
+          promptText: effectivePrompt,
+          responseText: fullAssistantResponse,
+          reasoningText: fullAssistantReasoning,
+          hasImages: uniqueImagesDataUrls.length > 0,
+          imagesCount: uniqueImagesDataUrls.length,
+          isCyberScan: !!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber',
+          userId,
+          currentPlanId,
+        });
+
+        setTotalTokens(updatedUsage.totalTokens);
+
         if (targetChatId && fullAssistantResponse) {
           saveCloudMessage(targetChatId, userId, {
             id: assistantPlaceholderId,
@@ -416,7 +538,7 @@ export const App: React.FC = () => {
     setMessages([]);
     setCurrentChatId(null);
     localStorage.removeItem(STORAGE_KEY_MSGS);
-    setViewMode('chat');
+    navigateTo('chat');
   };
 
   useEffect(() => {
@@ -440,7 +562,7 @@ export const App: React.FC = () => {
     setCurrentChatId(chatId);
     const history = await fetchChatMessages(chatId);
     setMessages(history);
-    setViewMode('chat');
+    navigateTo('chat');
   };
 
   const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
@@ -467,15 +589,15 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-black text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-white selection:text-black relative" dir="rtl">
+    <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-[#030306] text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-white selection:text-black relative" dir="rtl">
       
-      {/* Dynamic Ambient Atmospheric Glow for Visual Vitality */}
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] h-[320px] bg-gradient-to-b from-zinc-800/15 via-zinc-900/10 to-transparent rounded-full blur-[100px] opacity-75" />
-        <div className="absolute top-1/4 -right-32 w-[400px] h-[400px] bg-cyan-950/15 rounded-full blur-[110px] opacity-60" />
-        <div className="absolute -bottom-32 -left-32 w-[450px] h-[450px] bg-zinc-900/15 rounded-full blur-[120px] opacity-50" />
+      {/* Ambient Dark Luminescence for Enhanced Glassmorphism Depth */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0 select-none opacity-40">
+        <div className="absolute -top-[15%] right-[10%] w-[550px] h-[550px] rounded-full bg-gradient-to-br from-indigo-950/40 via-purple-950/20 to-transparent blur-[130px]" />
+        <div className="absolute top-[35%] -left-[10%] w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-cyan-950/30 via-slate-900/30 to-transparent blur-[140px]" />
+        <div className="absolute -bottom-[15%] right-[20%] w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-zinc-800/30 via-indigo-950/25 to-transparent blur-[130px]" />
       </div>
-
+      
       {/* 18+ Mandatory Age Disclaimer Modal */}
       <DisclaimerModal
         isOpen={!hasAccepted18}
@@ -489,12 +611,21 @@ export const App: React.FC = () => {
         onSuccess={handleBiometricSuccess}
       />
 
+      {/* Subscription & Activation Code Modal */}
+      <SubscriptionModal
+        isOpen={isSubModalOpen}
+        onClose={() => setIsSubModalOpen(false)}
+        targetPlanId={subModalTargetPlan}
+        onSuccess={(plan) => handleSelectPlan(plan)}
+        user={user}
+      />
+
       {/* Architecture & Capabilities Timeline Roadmap Modal */}
       <ArchitectureModal
         isOpen={isArchitectureModalOpen}
         onClose={() => setIsArchitectureModalOpen(false)}
         onStartChat={() => {
-          setViewMode('chat');
+          navigateTo('chat');
           const textarea = document.querySelector('textarea') as HTMLTextAreaElement | null;
           if (textarea) textarea.focus();
         }}
@@ -513,72 +644,145 @@ export const App: React.FC = () => {
         onNewChat={handleNewChat}
         onDeleteChat={handleDeleteChat}
         totalTokens={totalTokens}
+        onNavigateToPricing={() => navigateTo('pricing')}
+        onNavigateToLimits={() => navigateTo('limits')}
+        onNavigateToProfile={() => navigateTo('profile')}
+        onNavigateToChat={() => navigateTo('chat')}
       />
 
-      {/* View Switch: Standalone Reception Landing Page vs Active AI Chat */}
+      {/* Main App Layout */}
       {viewMode === 'landing' ? (
         <LandingPage
           onStartChat={() => {
             localStorage.setItem(STORAGE_KEY_SEEN_LANDING, 'true');
-            setViewMode('chat');
+            navigateTo('chat');
           }}
           onSelectPreset={(preset) => {
             localStorage.setItem(STORAGE_KEY_SEEN_LANDING, 'true');
-            setViewMode('chat');
+            navigateTo('chat');
             handleSendMessage(preset);
           }}
           onOpenArchitecture={() => setIsArchitectureModalOpen(true)}
           onOpenSidebar={() => setIsSidebarOpen(true)}
+          onNavigateToPricing={() => navigateTo('pricing')}
+          onNavigateToLimits={() => navigateTo('limits')}
+          onNavigateToProfile={() => navigateTo('profile')}
           user={user}
         />
       ) : (
-        <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative z-10 animate-in fade-in duration-200">
+        <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative z-10">
           
-          {/* Top Bar for Chat Room */}
+          {/* PERSISTENT FIXED GLOBAL TOP BAR */}
           <TopBar
             isX1Active={isX1Active}
             activeModel={activeModel}
             onSelectModel={setActiveModel}
             user={user}
+            currentView={viewMode === 'privacy' || viewMode === 'terms' ? 'chat' : viewMode}
+            currentChatTokens={currentChatTokens}
+            totalTokens={totalTokens}
+            cloudChatsCount={cloudChats.length}
             onToggleX1={handleToggleX1}
             onOpenSidebar={() => setIsSidebarOpen(true)}
             onNewChat={handleNewChat}
             onClearChat={handleClearChat}
-            onGoHome={() => setViewMode('landing')}
+            onGoHome={() => navigateTo('landing')}
+            onNavigateToPricing={() => navigateTo('pricing')}
+            onNavigateToLimits={() => navigateTo('limits')}
+            onNavigateToProfile={() => navigateTo('profile')}
+            onNavigateToChat={() => navigateTo('chat')}
           />
 
-          {/* Chat Messages Body */}
-          <main className="flex-1 flex flex-col max-w-4xl w-full mx-auto relative overflow-hidden min-h-0">
-            <ChatWindow
-              messages={messages}
-              isStreaming={isStreaming}
-              isX1Active={isX1Active}
-              onSendPreset={(preset) => handleSendMessage(preset)}
-              onOpenArchitecture={() => setIsArchitectureModalOpen(true)}
-              onToggleX1={handleToggleX1}
-            />
-          </main>
+          {/* Dynamic Page Views Container */}
+          <div className="flex-1 min-h-0 overflow-hidden relative">
+            {viewMode === 'pricing' && (
+              <PricingPage
+                currentPlanId={currentPlanId}
+                onSelectPlan={handleSelectPlan}
+                onNavigateToLimits={() => navigateTo('limits')}
+                onNavigateToProfile={() => navigateTo('profile')}
+                onNavigateToChat={() => navigateTo('chat')}
+                user={user}
+              />
+            )}
 
-          {/* Floating AI Chat Input */}
-          <div className="sticky bottom-0 z-30 w-full px-3 sm:px-6 pb-3 sm:pb-4 pt-1 bg-gradient-to-t from-black via-black/80 to-transparent pb-safe max-w-4xl mx-auto">
-            <PromptInput
-              onSubmit={(val, meta) => handleSendMessage(val, meta)}
-              isStreaming={isStreaming}
-              onAbort={handleAbort}
-              isX1Active={isX1Active}
-              onToggleX1={handleToggleX1}
-              activeModel={activeModel}
-              onSelectModel={setActiveModel}
-              placeholder={
-                activeModel === 'deepseek-v4-flash-cyber'
-                  ? "اسأل Fathom Cyber في أي شيء..."
-                  : activeModel === 'deepseek-v4-flash-vision-exp'
-                  ? "اسأل Fathom Cam أو أرفق صور..."
-                  : isX1Active
-                  ? "اسأل matany.one في أي شيء..."
-                  : "اسأل Fathom 1 في أي شيء..."
-              }
-            />
+            {viewMode === 'limits' && (
+              <LimitsPage
+                currentPlanId={currentPlanId}
+                totalTokensUsed={totalTokens}
+                onNavigateToPricing={() => navigateTo('pricing')}
+                onNavigateToProfile={() => navigateTo('profile')}
+                onNavigateToChat={() => navigateTo('chat')}
+                onSelectPlan={handleSelectPlan}
+                user={user}
+              />
+            )}
+
+            {viewMode === 'profile' && (
+              <ProfilePage
+                currentPlanId={currentPlanId}
+                totalTokens={totalTokens}
+                user={user}
+                onGoogleSignIn={handleGoogleSignIn}
+                onSignOut={handleSignOut}
+                onNavigateToPricing={() => navigateTo('pricing')}
+                onNavigateToLimits={() => navigateTo('limits')}
+                onNavigateToChat={() => navigateTo('chat')}
+                onClearChatHistory={handleClearChat}
+              />
+            )}
+
+            {viewMode === 'privacy' && (
+              <PrivacyPolicyPage
+                onNavigateToChat={() => navigateTo('chat')}
+                onNavigateToTerms={() => navigateTo('terms')}
+              />
+            )}
+
+            {viewMode === 'terms' && (
+              <TermsOfServicePage
+                onNavigateToChat={() => navigateTo('chat')}
+                onNavigateToPrivacy={() => navigateTo('privacy')}
+              />
+            )}
+
+            {viewMode === 'chat' && (
+              <div className="flex flex-col h-full min-h-0 animate-in fade-in duration-150">
+                {/* Chat Messages Body */}
+                <main className="flex-1 flex flex-col max-w-4xl w-full mx-auto relative overflow-hidden min-h-0">
+                  <ChatWindow
+                    messages={messages}
+                    isStreaming={isStreaming}
+                    isX1Active={isX1Active}
+                    onSendPreset={(preset) => handleSendMessage(preset)}
+                    onOpenArchitecture={() => setIsArchitectureModalOpen(true)}
+                    onToggleX1={handleToggleX1}
+                  />
+                </main>
+
+                {/* Floating AI Chat Input */}
+                <div className="sticky bottom-0 z-30 w-full px-3 sm:px-6 pb-3 sm:pb-4 pt-1 bg-gradient-to-t from-black via-black/80 to-transparent pb-safe max-w-4xl mx-auto">
+                  <PromptInput
+                    onSubmit={(val, meta) => handleSendMessage(val, meta)}
+                    isStreaming={isStreaming}
+                    onAbort={handleAbort}
+                    isX1Active={isX1Active}
+                    onToggleX1={handleToggleX1}
+                    activeModel={activeModel}
+                    onSelectModel={setActiveModel}
+                    placeholder={
+                      activeModel === 'deepseek-v4-flash-cyber'
+                        ? "اسأل Fathom Cyber في أي شيء..."
+                        : activeModel === 'deepseek-v4-flash-vision-exp'
+                        ? "اسأل Fathom Cam أو أرفق صور..."
+                        : isX1Active
+                        ? "اسأل matany.one في أي شيء..."
+                        : "اسأل Fathom 1 في أي شيء..."
+                    }
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
         </div>
