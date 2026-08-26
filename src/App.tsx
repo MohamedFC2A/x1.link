@@ -332,6 +332,8 @@ export const App: React.FC = () => {
         });
       },
       onError: (errMsg: string) => {
+        setIsStreaming(false);
+        abortControllerRef.current = null;
         setMessages(prev => {
           const last = prev[prev.length - 1];
           if (last && last.id === assistantPlaceholderId) {

@@ -818,8 +818,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   // Intent classification on user request
   const promptLower = previousUserPrompt.toLowerCase();
   const isMetadataIntent = /(?:meta[-\s]?data|metadata|exif|ميتاداتا|الميتاداتا|ميتا\s?داتا|الميتا\s?داتا|كاميرا|نوع الجوال|جوال|هاتف|موقع جغرافي|تاريخ الالتقاط|بيانات الصورة|تاريخ الصورة|حجم الصورة)/i.test(promptLower);
-  const isAiDetectIntent = /(?:ai[-\s]?detect|ذكاء\s?اصطناعي|توليد|مولدة|حقيقية|مزيفة|fake|deepfake|synthetic|بوت|فوتوشوب)/i.test(promptLower);
-  const isTimeIntent = /(?:time[-\s]?detect|timedetect|الوقت|الساعة|التوقيت|الزمن|تايمر|مؤقت|تذكير|فكرني|احذف الشات|تدمير ذاتي|تاريخ اليوم|اليوم كام|كم الساعة|كم الوقت|كم باقي|كم مر|متبقي على)/i.test(promptLower);
+  const isTimeIntent = /(?:time[-\s]?detect|timedetect|الوقت|الساعة|التوقيت|الزمن|الزمني|الزمنية|تاريخ|سنة|عام|سنوات|أعوام|قرن|عقد|توقيت|شهور|أشهر|أيام|يوم|أمس|غداً|الماضي|الحاضر|المستقبل|اليوم|عمره|عمرها|كم سنة|كم عام|كم عمر|متى|تايمر|مؤقت|تذكير|فكرني|احذف الشات|تدمير ذاتي|تاريخ اليوم|اليوم كام|كم الساعة|كم الوقت|كم باقي|كم مر|متبقي على|\b(19\d\d|20\d\d)\b)/i.test(promptLower) || /(?:time[-\s]?detect|timedetect|الفارق الزمني|استشعار الزمن|حساب الزمن)/i.test(message.reasoning || '');
 
   // Dynamic 2-second detection status phase
   const [loadingPhase, setLoadingPhase] = useState<'perceiving' | 'detecting'>('perceiving');

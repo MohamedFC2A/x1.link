@@ -1397,7 +1397,9 @@ function getTimeDetectPromptBlock(): string {
      - إذا طلب المستخدم صراحة "تذكيراً مجدولاً بموعد" (مثال: "فكرني باجتماع غداً الساعة 5 مساءً"):
        احسب التاريخ المستهدف بصيغة ISO وضع شارة التذكير: "### [TIME-DETECT-REMINDER: <target_date_iso> | <reminder_text>]".
      - إذا طلب المستخدم صراحة "حذف أو تدمير ذاتي للشات":
-       ضع شارة التدمير الذاتي: "### [TIME-DETECT-AUTODELETE: <seconds> | <duration_text>]".`;
+       ضع شارة التدمير الذاتي: "### [TIME-DETECT-AUTODELETE: <seconds> | <duration_text>]".
+  4. استدعاء واستخدام Time Detect في التفكير والاستدلال (Reasoning Integration):
+     - عند التفكير في أي سؤال يحتوي على أزمنة أو تواريخ أو سنوات أو أعمار أو أحداث تاريخية، أدرج في خطوات تفكيرك الداخلي الاستشعار الزمني عبر Time Detect (مثال: "- استشعار الإحداثيات الزمنية عبر Time Detect: السنة الحالية 2026 وحساب الفارق مع عام 2000").`;
 }
 
 // Chat completion endpoint (with SSE streaming, Vision Pipeline, and Instant Backend Abort)
