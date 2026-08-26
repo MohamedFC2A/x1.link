@@ -1,7 +1,7 @@
 import { resolveAndProfileUrl } from '../server/linkResolver';
 import { fetchYouTubeTranscript, buildTranscriptContextBlock, containsYouTubeUrl, extractYouTubeUrlFromText, extractYouTubeVideoId, type YouTubeTranscriptResult, type TranscriptFailure } from '../server/youtubeTranscript';
 import { fetchTikTokData, buildTikTokContextBlock, isTikTokUrl, extractTikTokUrlFromText, type TikTokResult, type TikTokFailure } from '../server/tiktokService';
-import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildVideoVisionContextBlock, buildMasterVideoIntelligenceBlock, type VideoVisionResult } from '../server/videoVisionService';
+import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildMasterVideoIntelligenceBlock, type VideoVisionResult } from '../server/videoVisionService';
 import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatform, extractSocialUrlFromText, type SocialVideoMetadata, type SocialVideoFailure } from '../server/socialVideoService';
 
 export const config = {
@@ -829,6 +829,12 @@ async function extractVisualContext(imageMessages: any[]): Promise<string> {
       const errText = await visionRes.text().catch(() => '');
       console.warn('[Vision Extraction Error]:', visionRes.status, errText);
     }
+    return '';
+  } catch (err) {
+    console.warn('[Vision Extraction Exception]:', err);
+    return '';
+  }
+}
 
 // ─── Multi-Link Intelligence Matrix Core Helpers (Edge) ─────────────────────
 
@@ -1156,7 +1162,51 @@ function buildMultiLinkMatrixBlock(processedLinks: ProcessedLinkData[]): string 
   sections.push(`3. توجيه الإجابة المباشرة: إذا سأل المستخدم عن تفاصيل في رابط (مثل "اي لون شعره" أو "ما السعر" أو "ما ملخصه") وكان هناك رابط أحدث أو رابط مقصود، أجب بدقة بالغة بالرجوع إلى بيانات الرابط المفحوصة والمطابقة بصرياً وصوتياً بدون أي تردد أو خلط بين الروابط.`);
   sections.push(bar);
 
-  return sections.join('\n');
+function getTimeDetectPromptBlock(): string {
+  const now = new Date();
+  
+  const cairoFormatter = new Intl.DateTimeFormat('ar-EG', {
+    timeZone: 'Africa/Cairo',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+  
+  const cairoTimeArabic = cairoFormatter.format(now);
+  const isoUtc = now.toISOString();
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const currentDay = String(now.getUTCDate()).padStart(2, '0');
+  const epoch = Date.now();
+
+  return `
+[نظام استشعار وحساب الوقت الذكي الخلفي — TIME DETECT BACKEND DIRECTIVE]:
+- التوقيت الحالي اللحظي المعتمد في السيرفر والخلفية:
+  * التاريخ والوقت في مصر والسعودية (GMT+3): ${cairoTimeArabic}
+  * التوقيت العالمي الموحد (UTC): ${isoUtc}
+  * السنة الحالية المعتمدة: ${currentYear} (السنة الحالية الآن هي ${currentYear}).
+  * التاريخ الميلادي الكامل: ${currentYear}-${currentMonth}-${currentDay}
+  * طابع الـ Epoch الملي ثانية: ${epoch}
+- إرشادات وقواعد الذكاء الزمني لـ Time Detect:
+  1. المعالجة الزمنية الباكند (Pure Backend Temporal Intelligence):
+     - استخدم التوقيت والتاريخ الحالي أعلاه لحساب الفوارق الزمنية بدقة رياضية وفكرية تامة (سواء في الماضي، الحاضر، المستقبل، الأعمار، السنوات المنقضية، أو المواعيد).
+     - أجب عن الأسئلة بشكل طبيعي وسلس ومباشر وفصيح في سياق النص العادي دون وضع أي مربعات أو بطاقات ساعات إطلاقاً.
+  2. حظر مطلق لعرض بطاقات الساعات في الرد:
+     - يُحظر تماماً وبشكل قاطع توليد أي شارات ساعات حية أو بطاقات توقيت في ردك (Time Detect يعمل خلف الكواليس كمعطى معرفي دقيق).
+  3. الأدوات التفاعلية (المؤقتات والتذكيرات فقط عند الطلب الصريح):
+     - إذا طلب المستخدم صراحة "إنشاء تايمر" أو "مؤقت زمني تفاعلي" (مثال: "اعمل تايمر 5 دقائق"):
+       احسب الثواني وضع شارة المؤقت: "### [TIME-DETECT-TIMER: <seconds> | <duration_text> | <title>]" (مثال: "### [TIME-DETECT-TIMER: 300 | 5 دقائق | مؤقت التركيز]").
+     - إذا طلب المستخدم صراحة "تذكيراً مجدولاً بموعد" (مثال: "فكرني باجتماع غداً الساعة 5 مساءً"):
+       احسب التاريخ المستهدف بصيغة ISO وضع شارة التذكير: "### [TIME-DETECT-REMINDER: <target_date_iso> | <reminder_text>]".
+     - إذا طلب المستخدم صراحة "حذف أو تدمير ذاتي للشات":
+       ضع شارة التدمير الذاتي: "### [TIME-DETECT-AUTODELETE: <seconds> | <duration_text>]".
+  4. استدعاء واستخدام Time Detect في التفكير والاستدلال (Reasoning Integration):
+     - عند التفكير في أي سؤال يحتوي على أزمنة أو تواريخ أو سنوات أو أعمار أو أحداث تاريخية، أدرج في خطوات تفكيرك الداخلي الاستشعار الزمني عبر Time Detect (مثال: "- استشعار الإحداثيات الزمنية عبر Time Detect: السنة الحالية 2026 وحساب الفارق مع عام 2000").`;
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -1223,53 +1273,6 @@ export default async function handler(req: Request): Promise<Response> {
     }
     return true;
   });
-
-function getTimeDetectPromptBlock(): string {
-  const now = new Date();
-  
-  const cairoFormatter = new Intl.DateTimeFormat('ar-EG', {
-    timeZone: 'Africa/Cairo',
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  });
-  
-  const cairoTimeArabic = cairoFormatter.format(now);
-  const isoUtc = now.toISOString();
-  const currentYear = now.getUTCFullYear();
-  const currentMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
-  const currentDay = String(now.getUTCDate()).padStart(2, '0');
-  const epoch = Date.now();
-
-  return `
-[نظام استشعار وحساب الوقت الذكي الخلفي — TIME DETECT BACKEND DIRECTIVE]:
-- التوقيت الحالي اللحظي المعتمد في السيرفر والخلفية:
-  * التاريخ والوقت في مصر والسعودية (GMT+3): ${cairoTimeArabic}
-  * التوقيت العالمي الموحد (UTC): ${isoUtc}
-  * السنة الحالية المعتمدة: ${currentYear} (السنة الحالية الآن هي ${currentYear}).
-  * التاريخ الميلادي الكامل: ${currentYear}-${currentMonth}-${currentDay}
-  * طابع الـ Epoch الملي ثانية: ${epoch}
-- إرشادات وقواعد الذكاء الزمني لـ Time Detect:
-  1. المعالجة الزمنية الباكند (Pure Backend Temporal Intelligence):
-     - استخدم التوقيت والتاريخ الحالي أعلاه لحساب الفوارق الزمنية بدقة رياضية وفكرية تامة (سواء في الماضي، الحاضر، المستقبل، الأعمار، السنوات المنقضية، أو المواعيد).
-     - أجب عن الأسئلة بشكل طبيعي وسلس ومباشر وفصيح في سياق النص العادي دون وضع أي مربعات أو بطاقات ساعات إطلاقاً.
-  2. حظر مطلق لعرض بطاقات الساعات في الرد:
-     - يُحظر تماماً وبشكل قاطع توليد أي شارات ساعات حية أو بطاقات توقيت في ردك (Time Detect يعمل خلف الكواليس كمعطى معرفي دقيق).
-  3. الأدوات التفاعلية (المؤقتات والتذكيرات فقط عند الطلب الصريح):
-     - إذا طلب المستخدم صراحة "إنشاء تايمر" أو "مؤقت زمني تفاعلي" (مثال: "اعمل تايمر 5 دقائق"):
-       احسب الثواني وضع شارة المؤقت: "### [TIME-DETECT-TIMER: <seconds> | <duration_text> | <title>]" (مثال: "### [TIME-DETECT-TIMER: 300 | 5 دقائق | مؤقت التركيز]").
-     - إذا طلب المستخدم صراحة "تذكيراً مجدولاً بموعد" (مثال: "فكرني باجتماع غداً الساعة 5 مساءً"):
-       احسب التاريخ المستهدف بصيغة ISO وضع شارة التذكير: "### [TIME-DETECT-REMINDER: <target_date_iso> | <reminder_text>]".
-     - إذا طلب المستخدم صراحة "حذف أو تدمير ذاتي للشات":
-       ضع شارة التدمير الذاتي: "### [TIME-DETECT-AUTODELETE: <seconds> | <duration_text>]".
-  4. استدعاء واستخدام Time Detect في التفكير والاستدلال (Reasoning Integration):
-     - عند التفكير في أي سؤال يحتوي على أزمنة أو تواريخ أو سنوات أو أعمار أو أحداث تاريخية، أدرج في خطوات تفكيرك الداخلي الاستشعار الزمني عبر Time Detect (مثال: "- استشعار الإحداثيات الزمنية عبر Time Detect: السنة الحالية 2026 وحساب الفارق مع عام 2000").`;
-}
 
   const isCyber = model === 'deepseek-v4-flash-cyber' || model.includes('cyber');
   const isVision = model === 'deepseek-v4-flash-vision-exp' || model.includes('vision');
@@ -1367,7 +1370,7 @@ function getTimeDetectPromptBlock(): string {
         };
       }
     }
-  } else if (deepSearch) {
+  } else if (deepSearch || /(?:ابحث|بحث|تحقق من|تأكد من|أخبار|اخر اخبار|آخر الأخبار|مصدر|بحث عميق|سيرش|search|deep search)/i.test(rawUserContent)) {
     console.log(`[FATHOM SEARCH PIPELINE Edge] Initiating Live Web Intelligence for: "${rawUserContent.slice(0, 80)}..."`);
     const searchRes = await performUltraDeepCyberSearch(rawUserContent, undefined);
     if (searchRes) {
@@ -1418,7 +1421,6 @@ function getTimeDetectPromptBlock(): string {
 
   // Fast Intelligent Gateway Selection:
   const isMediaSpark = model === 'meta/muse-spark-1.2-contributor' || model.includes('muse-spark') || model.includes('spark');
-  const isVision = model === 'deepseek-v4-flash-vision-exp' || model.includes('vision');
   const useDeepSeekPrimary = !isX1Mode && !isMediaSpark && !!DEEPSEEK_API_KEY;
 
   let chosenModelName = 'deepseek-v4-flash';

@@ -1601,7 +1601,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         };
       }
     }
-  } else if (deepSearch) {
+  } else if (deepSearch || /(?:ابحث|بحث|تحقق من|تأكد من|أخبار|اخر اخبار|آخر الأخبار|مصدر|بحث عميق|سيرش|search|deep search)/i.test(rawUserContent)) {
     console.log(`[FATHOM SEARCH PIPELINE] Initiating Live Web Intelligence for: "${rawUserContent.slice(0, 80)}..."`);
     const searchRes = await performUltraDeepCyberSearch(rawUserContent, undefined, upstreamAbortController.signal);
     if (searchRes) {

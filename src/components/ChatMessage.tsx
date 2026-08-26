@@ -910,18 +910,25 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   // Intent classification on user request
   const promptLower = previousUserPrompt.toLowerCase();
   const isMetadataIntent = /(?:meta[-\s]?data|metadata|exif|ميتاداتا|الميتاداتا|ميتا\s?داتا|الميتا\s?داتا|كاميرا|نوع الجوال|جوال|هاتف|موقع جغرافي|تاريخ الالتقاط|بيانات الصورة|تاريخ الصورة|حجم الصورة)/i.test(promptLower);
+  const isAiDetectIntent = /(?:ai[-\s]?detect|aidetect|ذكاء اصطناعي|توليد|مولدة|حقيقية|معدلة|فيك|fake|deepfake|تزييف|بصمة ذكاء|كاشف|فحص الصورة|اصالة|أصالة|فحص النص|تحقق)/i.test(promptLower);
   const isTimeIntent = /(?:time[-\s]?detect|timedetect|الوقت|الساعة|التوقيت|الزمن|الزمني|الزمنية|تاريخ|سنة|عام|سنوات|أعوام|قرن|عقد|توقيت|شهور|أشهر|أيام|يوم|أمس|غداً|الماضي|الحاضر|المستقبل|اليوم|عمره|عمرها|كم سنة|كم عام|كم عمر|متى|تايمر|مؤقت|تذكير|فكرني|احذف الشات|تدمير ذاتي|تاريخ اليوم|اليوم كام|كم الساعة|كم الوقت|كم باقي|كم مر|متبقي على|\b(19\d\d|20\d\d)\b)/i.test(promptLower) || /(?:time[-\s]?detect|timedetect|الفارق الزمني|استشعار الزمن|حساب الزمن)/i.test(message.reasoning || '');
 
-  // Dynamic 2-second detection status phase
-  const [loadingPhase, setLoadingPhase] = useState<'perceiving' | 'detecting'>('perceiving');
+  // Dynamic thorough detection status phases
+  const [loadingPhase, setLoadingPhase] = useState<'searching' | 'perceiving' | 'detecting'>('searching');
 
   useEffect(() => {
     if (isStreaming && !message.content) {
-      setLoadingPhase('perceiving');
-      const timer = setTimeout(() => {
+      setLoadingPhase('searching');
+      const timer1 = setTimeout(() => {
+        setLoadingPhase('perceiving');
+      }, 1500);
+      const timer2 = setTimeout(() => {
         setLoadingPhase('detecting');
-      }, 2000);
-      return () => clearTimeout(timer);
+      }, 3000);
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
     }
   }, [isStreaming, message.content]);
 
@@ -1165,50 +1172,62 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               />
               <span className="whitespace-nowrap text-xs font-sans font-medium text-zinc-300 flex items-center gap-1.5">
                 {isTimeIntent ? (
-                  <>
-                    <span>جارِ البحث واستشعار وتطبيق قواعد الوقت عبر</span>
-                    <TimeDetectIcon />
-                    <span className="time-detect-text font-black text-xs">Time Detect</span>
-                    <span>...</span>
-                  </>
+                  loadingPhase === 'searching' ? (
+                    <>
+                      <span>جارِ البحث الزمني العميق والتحقق من التواريخ عبر</span>
+                      <TimeDetectIcon />
+                      <span className="time-detect-text font-black text-xs">Time Detect</span>
+                      <span>...</span>
+                    </>
+                  ) : loadingPhase === 'perceiving' ? (
+                    <>
+                      <span>جارِ استشعار الإحداثيات وتطبيق قواعد الوقت عبر</span>
+                      <TimeDetectIcon />
+                      <span className="time-detect-text font-black text-xs">Time Detect</span>
+                      <span>...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>جارِ تدقيق وحساب الفوارق الزمنية عبر</span>
+                      <TimeDetectIcon />
+                      <span className="time-detect-text font-black text-xs">Time Detect</span>
+                      <span>...</span>
+                    </>
+                  )
+                ) : isMetadataIntent ? (
+                  loadingPhase === 'searching' ? (
+                    <>
+                      <span>جارِ البحث الجنائي واستخراج طبقات الميتاداتا عبر</span>
+                      <span className="meta-data-text font-black text-xs">Meta Data</span>
+                      <span>...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>جارِ تدقيق بيانات العتاد والموقع الجغرافي عبر</span>
+                      <span className="meta-data-text font-black text-xs">Meta Data</span>
+                      <span>...</span>
+                    </>
+                  )
+                ) : isAiDetectIntent ? (
+                  loadingPhase === 'searching' ? (
+                    <>
+                      <span>جارِ البحث والتحقق العميق من المصادر ونمط التوليد عبر</span>
+                      <span className="ai-detect-text font-black text-xs">AI Detect</span>
+                      <span>...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>جارِ تدقيق البصمات وتحديد أصالة المعطيات عبر</span>
+                      <span className="ai-detect-text font-black text-xs">AI Detect</span>
+                      <span>...</span>
+                    </>
+                  )
                 ) : isMedia ? (
                   "جاري استيعاب الوسائط المتعددة واستخراج المعطيات..."
                 ) : isVision ? (
-                  loadingPhase === 'detecting' ? (
-                    isMetadataIntent ? (
-                      <>
-                        <span>جاري استخراج الميتاداتا والتحليل الجنائي عبر</span>
-                        <span className="meta-data-text font-black text-xs">Meta Data</span>
-                        <span>...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>جاري تدقيق البصمات وتحديد أصالة الصورة عبر</span>
-                        <span className="ai-detect-text font-black text-xs">AI Detect</span>
-                        <span>...</span>
-                      </>
-                    )
-                  ) : (
-                    "جاري فك وتوليد الإدراك البصري واستيعاب الطلب..."
-                  )
+                  "جاري فك وتوليد الإدراك البصري واستيعاب المعطيات..."
                 ) : isCyber ? (
-                  loadingPhase === 'detecting' ? (
-                    isMetadataIntent ? (
-                      <>
-                        <span>جاري الفحص واستخراج بيانات العتاد عبر</span>
-                        <span className="meta-data-text font-black text-xs">Meta Data</span>
-                        <span>...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>جاري التحليل الجنائي وتحديد نمط التوليد عبر</span>
-                        <span className="ai-detect-text font-black text-xs">AI Detect</span>
-                        <span>...</span>
-                      </>
-                    )
-                  ) : (
-                    "جاري الاستطلاع الأمني وتدقيق الهدف..."
-                  )
+                  "جاري الاستطلاع الأمني وتدقيق الهدف والبحث الحي..."
                 ) : message.isX1 ? (
                   "جاري تحرير المحرك العصبي واستدعاء الرد..."
                 ) : (
