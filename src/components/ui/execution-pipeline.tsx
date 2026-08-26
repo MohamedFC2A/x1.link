@@ -2,6 +2,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { Brain, Sparkles, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { ModelType } from "@/types";
+import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 
 export interface ExecutionPipelineProps {
   model?: ModelType;
@@ -62,14 +63,14 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
             className={cn(
               "flex size-4 sm:size-5 items-center justify-center rounded-full text-[10px] font-mono font-bold transition-all",
               step2Active
-                ? "bg-white text-black border border-white"
+                ? "bg-transparent border-0"
                 : step2Done
                 ? "bg-white/[0.08] text-white border border-white/[0.15]"
                 : "bg-white/[0.04] text-zinc-500 border border-white/[0.08]"
             )}
           >
             {step2Active ? (
-              <Loader2 className="size-2.5 sm:size-3 animate-spin text-black" />
+              <ThinkingOrb state="solving" size={20} theme="dark" />
             ) : step2Done ? (
               <CheckCircle2 className="size-3 sm:size-3.5" />
             ) : (
@@ -85,7 +86,7 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
             {isCyber
               ? "تحليل ومطابقة الأدلة"
               : isX1
-              ? "استدعاء خوارزميات X1 MAX"
+              ? "استدعاء معمارية X1 MAX"
               : "التفكير والتحليل المنطقي"}
           </span>
         </div>
@@ -98,14 +99,14 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
             className={cn(
               "flex size-4 sm:size-5 items-center justify-center rounded-full text-[10px] font-mono font-bold transition-all",
               step3Active
-                ? "bg-white text-black border border-white"
+                ? "bg-transparent border-0"
                 : step3Done
                 ? "bg-white/[0.08] text-white border border-white/[0.15]"
                 : "bg-white/[0.04] text-zinc-500 border border-white/[0.08]"
             )}
           >
             {step3Active ? (
-              <Loader2 className="size-2.5 sm:size-3 animate-spin text-black" />
+              <ThinkingOrb state="composing" size={20} theme="dark" />
             ) : step3Done ? (
               <CheckCircle2 className="size-3 sm:size-3.5" />
             ) : (

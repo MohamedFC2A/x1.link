@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { Brain, Cpu, Check, Loader2, ChevronRight, CheckCircle2 } from "lucide-react";
+import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 
 export interface ReasoningStep {
   type: string;
@@ -182,7 +183,13 @@ export default function ChatReasoning({
         <AccordionTrigger className="text-xs font-medium text-zinc-300 hover:text-white hover:no-underline py-2 w-full flex items-center justify-between cursor-pointer">
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center size-5 rounded-md border bg-white/[0.05] border-white/[0.08] text-zinc-200">
-              {isX1 ? <Cpu className="size-3 text-zinc-200" /> : <Brain className="size-3 text-zinc-200" />}
+              {isThinking ? (
+                <ThinkingOrb state="solving" size={20} theme="dark" />
+              ) : isX1 ? (
+                <Cpu className="size-3 text-zinc-200" />
+              ) : (
+                <Brain className="size-3 text-zinc-200" />
+              )}
             </div>
 
             <span className="font-sans font-semibold text-xs sm:text-sm text-zinc-200">
@@ -232,8 +239,8 @@ export default function ChatReasoning({
                           <Check className="size-3 text-zinc-100 stroke-[2.5]" />
                         </div>
                       ) : isProgress ? (
-                        <div className="size-5 rounded-full bg-white border border-white text-zinc-950 flex items-center justify-center shadow-[0_0_12px_rgba(255,255,255,0.4)]">
-                          <Loader2 className="size-3 text-zinc-950 animate-spin" />
+                        <div className="size-5 rounded-full bg-zinc-950 border border-white/60 flex items-center justify-center shadow-[0_0_12px_rgba(255,255,255,0.3)]">
+                          <ThinkingOrb state="solving" size={20} theme="dark" />
                         </div>
                       ) : (
                         <div className="size-5 rounded-full bg-zinc-950 border border-zinc-800" />

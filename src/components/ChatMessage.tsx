@@ -8,6 +8,7 @@ import { Check, Copy, Bot, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink
 import { motion } from 'framer-motion';
 import { renderSmartTextWithIcons } from '@/lib/smart-icons';
 import { detectAndExtractUrl, getFaviconUrl } from '@/lib/utils';
+import { ThinkingOrb } from './ui/thinking-orbs';
 
 interface ChatMessageProps {
   message: ChatMessageItem;
@@ -227,12 +228,25 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
         )}
 
         {isStreaming && !message.content && !isThinking ? (
-          <div className="flex items-center gap-2 py-2 text-xs text-zinc-400 font-mono select-none">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-            </span>
-            <span className="font-sans text-xs text-zinc-300">جاري المعالجة والاتصال بمحرك الذكاء الاصطناعي...</span>
+          <div className="flex items-center gap-2 py-1.5 select-none" dir="rtl">
+            <div
+              className="inline-flex h-8 items-center gap-2.5 rounded-full pl-3.5 pr-2.5 border border-white/[0.12] bg-zinc-900/70 shadow-[inset_0_0_20px_rgba(255,255,255,0.02)] backdrop-blur-md"
+            >
+              <ThinkingOrb
+                state={isCyber ? "searching" : isVision ? "working" : message.isX1 ? "solving" : "composing"}
+                size={20}
+                theme="dark"
+              />
+              <span className="whitespace-nowrap text-xs font-sans font-medium text-zinc-300">
+                {isCyber
+                  ? "جاري الاستطلاع الأمني وتدقيق الهدف..."
+                  : isVision
+                  ? "جاري فك وتوليد الإدراك البصري..."
+                  : message.isX1
+                  ? "جاري تحرير المحرك العصبي واستدعاء الرد..."
+                  : "جاري توليد الاستجابة اللغوية الفصحى..."}
+              </span>
+            </div>
           </div>
         ) : (
           <div className="prose prose-invert max-w-none text-zinc-200 text-xs sm:text-base leading-relaxed break-words font-sans">

@@ -24,6 +24,7 @@ import {
   ShieldOff
 } from "lucide-react";
 import { ModelType } from "@/types";
+import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 
 // ----------------------------------------------------------------------
 // Types
@@ -788,9 +789,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 className="overflow-hidden"
               >
                 <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl rounded-t-3xl flex items-center gap-2.5 px-3 sm:px-4">
-                  {/* Smart Cyber Website Logo Badge */}
+                  {/* Smart Cyber Website Logo / Live Orb Badge */}
                   <div className="size-7 rounded-xl bg-zinc-900/90 border border-white/[0.14] flex items-center justify-center overflow-hidden shrink-0 shadow-inner backdrop-blur-md">
-                    {activeFaviconUrl && !faviconError ? (
+                    {cyberTargetUrl.trim() ? (
+                      <ThinkingOrb state="working" size={20} theme="dark" />
+                    ) : activeFaviconUrl && !faviconError ? (
                       <img
                         src={activeFaviconUrl}
                         alt={activeDomain || 'Target Logo'}
@@ -964,10 +967,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 <button
                   type="button"
                   onClick={toggleDeepSearch}
-                  className="size-7 rounded-xl bg-cyan-950/70 border border-cyan-700/60 text-cyan-300 hover:bg-cyan-900/60 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0"
+                  className="size-7 rounded-xl bg-cyan-950/70 border border-cyan-700/60 text-cyan-300 hover:bg-cyan-900/60 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 overflow-hidden"
                   title="البحث والاستخبارات العميقة (100+ صفحة) مفعلة - انقر للإلغاء"
                 >
-                  <Search className="w-3.5 h-3.5 text-cyan-300" />
+                  <ThinkingOrb state="searching" size={20} theme="dark" />
                 </button>
               )}
 
