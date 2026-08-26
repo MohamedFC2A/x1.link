@@ -327,7 +327,14 @@ async function performUltraDeepCyberSearch(
             .trim()
             .slice(0, 900);
           return { link: item.link, title: item.title, text: cleanText };
-    const scrapedData = (await Promise.all(deepScrapePromises)).filter(Boolean);
+        }
+      } catch {}
+      return null;
+    });
+
+    const scrapedData = (await Promise.all(deepScrapePromises)).filter(
+      (s): s is { link: string; title: string; text: string } => Boolean(s)
+    );
 
     // Build structured Intelligence Dossier
     let output = `
@@ -356,7 +363,7 @@ async function performUltraDeepCyberSearch(
     if (scrapedData.length > 0) {
       output += `\n- مقتطفات استخباراتية تفصيلية مستخرجة من أعمق المصادر:\n`;
       scrapedData.forEach((sc, idx) => {
-        output += `\n--- [مصدر موثوق ${idx + 1}: ${sc!.title}] (${sc!.link}) ---\n${sc!.text}\n`;
+        output += `\n--- [مصدر موثوق ${idx + 1}: ${sc.title}] (${sc.link}) ---\n${sc.text}\n`;
       });
     }
 
