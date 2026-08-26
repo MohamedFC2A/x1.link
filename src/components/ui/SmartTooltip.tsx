@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, ReactNode } from 'react';
+import React, { useState, useRef, useEffect, ReactNode, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -28,19 +28,20 @@ export const SmartTooltip: React.FC<SmartTooltipProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLDivElement | null>(null);
-  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPressingRef = useRef(false);
 
-  const updatePosition = () => {
+  const calculatePosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
-    const targetY = side === 'top' ? rect.top - 12 : rect.bottom + 12;
-    setCoords({ top: targetY, left: centerX });
-  };
+    const safeX = Math.max(150, Math.min(window.innerWidth - 150, centerX));
+    const targetY = side === 'top' ? rect.top - 10 : rect.bottom + 10;
+    setCoords({ top: targetY, left: safeX });
+  }, [side]);
 
-  const clearTimers = () => {
+  const clearTimers = useCallback(() => {
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
@@ -50,75 +51,104 @@ export const SmartTooltip: React.FC<SmartTooltipProps> = ({
       pressTimerRef.current = null;
     }
     isPressingRef.current = false;
-  };
+  }, []);
 
-  const handleMouseEnter = () => {
+  // Hover detection: 2.0 seconds
+  const handleMouseEnter = useCallback(() => {
     if (disabled) return;
     clearTimers();
-    // 2.0 seconds continuous mouse hover requirement
     hoverTimerRef.current = setTimeout(() => {
-      updatePosition();
+      calculatePosition();
       setIsVisible(true);
     }, 2000);
-  };
+  }, [disabled, clearTimers, calculatePosition]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     clearTimers();
     setIsVisible(false);
-  };
+  }, [clearTimers]);
 
-  const handlePointerDown = (e: React.PointerEvent) => {
+  // Press / Hold detection: 1.5 seconds (Mouse & Touch)
+  const startPressTimer = useCallback(() => {
     if (disabled) return;
-    if (e.button !== 0) return;
+    clearTimers();
     isPressingRef.current = true;
-    // 1.5 seconds press / hold requirement
     pressTimerRef.current = setTimeout(() => {
       if (isPressingRef.current) {
-        updatePosition();
+        calculatePosition();
         setIsVisible(true);
       }
     }, 1500);
-  };
+  }, [disabled, clearTimers, calculatePosition]);
 
-  const handlePointerUp = () => {
+  const endPressTimer = useCallback(() => {
     if (pressTimerRef.current) {
       clearTimeout(pressTimerRef.current);
       pressTimerRef.current = null;
     }
     isPressingRef.current = false;
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    startPressTimer();
+  };
+
+  const handleTouchStart = () => {
+    startPressTimer();
+  };
+
+  const handleTouchEnd = () => {
+    endPressTimer();
+  };
+
+  const handleTouchMove = () => {
+    endPressTimer();
   };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIsVisible(false);
     };
-    const handleScrollOrResize = () => {
-      if (isVisible) setIsVisible(false);
+    const handleGlobalClick = () => {
+      setIsVisible(false);
     };
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('scroll', handleScrollOrResize, true);
-    window.addEventListener('resize', handleScrollOrResize);
+    const handleScrollOrResize = () => {
+      setIsVisible(false);
+    };
+
+    if (isVisible) {
+      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('click', handleGlobalClick);
+      window.addEventListener('scroll', handleScrollOrResize, true);
+      window.addEventListener('resize', handleScrollOrResize);
+    }
+
     return () => {
       clearTimers();
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('click', handleGlobalClick);
       window.removeEventListener('scroll', handleScrollOrResize, true);
       window.removeEventListener('resize', handleScrollOrResize);
     };
-  }, [isVisible]);
+  }, [isVisible, clearTimers]);
 
   return (
     <>
       <div
         ref={triggerRef}
-        className={`relative inline-flex ${className}`}
+        className={`relative inline-flex items-center justify-center ${className}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onClick={() => {
+        onPointerUp={endPressTimer}
+        onPointerCancel={endPressTimer}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchMove}
+        onContextMenu={(e) => {
           if (isVisible) {
-            setIsVisible(false);
+            e.preventDefault();
           }
         }}
       >
@@ -129,28 +159,30 @@ export const SmartTooltip: React.FC<SmartTooltipProps> = ({
         createPortal(
           <AnimatePresence>
             {isVisible && !disabled && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.92, y: side === 'top' ? 6 : -6 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
+              <div
                 style={{
                   position: 'fixed',
-                  top: coords.top,
-                  left: coords.left,
-                  transform: side === 'top' ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
+                  top: `${coords.top}px`,
+                  left: `${coords.left}px`,
+                  transform: side === 'top' ? 'translate(-50%, -100%)' : 'translate(-50%, 0%)',
                   zIndex: 999999,
+                  pointerEvents: 'auto',
                 }}
-                className="pointer-events-auto select-none"
                 dir="rtl"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsVisible(false);
                 }}
               >
-                <div className="w-64 sm:w-72 p-3 rounded-2xl bg-[#09090d]/95 backdrop-blur-2xl border border-white/[0.16] shadow-[0_20px_50px_rgba(0,0,0,0.95)] text-right relative overflow-hidden">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: side === 'top' ? 8 : -8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.92, y: side === 'top' ? 4 : -4 }}
+                  transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  className="w-64 sm:w-72 p-3 rounded-2xl bg-[#09090d]/95 backdrop-blur-2xl border border-white/[0.18] shadow-[0_20px_50px_rgba(0,0,0,0.95)] text-right select-none relative overflow-hidden"
+                >
                   {/* Subtle Ambient Radial Glow */}
-                  <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/[0.05] rounded-full blur-xl pointer-events-none" />
+                  <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/[0.06] rounded-full blur-xl pointer-events-none" />
 
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <div className="flex items-center gap-2 min-w-0">
@@ -175,11 +207,11 @@ export const SmartTooltip: React.FC<SmartTooltipProps> = ({
                   </p>
 
                   <div className="mt-2 pt-1.5 border-t border-white/[0.08] flex items-center justify-between text-[9px] text-zinc-500 font-sans">
-                    <span>معلومات توضيحية</span>
+                    <span>تلميح ذكي توضيحي</span>
                     <span className="font-mono text-zinc-400">FATHOM AI</span>
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
+              </div>
             )}
           </AnimatePresence>,
           document.body
