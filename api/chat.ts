@@ -635,7 +635,7 @@ export default async function handler(req: Request): Promise<Response> {
       shouldSearch
         ? performUltraDeepCyberSearch(rawUserContent, extractedTargetUrl || undefined)
         : Promise.resolve(''),
-      shouldAuditUrl
+      shouldAuditUrl && extractedTargetUrl
         ? fetchUrlSecurityAudit(extractedTargetUrl)
         : Promise.resolve('')
     ]);
