@@ -82,26 +82,37 @@ async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
     const parsed = new URL(target);
     const origin = parsed.origin;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2500);
+    const timeout = setTimeout(() => controller.abort(), 3500);
+
+    const stealthHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+      'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1'
+    };
 
     // Parallel passive queries: Main Page, robots.txt, and security.txt
     const [mainResPromise, robotsPromise, securityTxtPromise] = [
       fetch(parsed.href, {
         method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 (Fathom-OSINT-Audit/2.0)',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-        },
+        headers: stealthHeaders,
         signal: controller.signal
       }).catch(() => null),
       fetch(`${origin}/robots.txt`, {
         method: 'GET',
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        headers: stealthHeaders,
         signal: controller.signal
       }).catch(() => null),
       fetch(`${origin}/.well-known/security.txt`, {
         method: 'GET',
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        headers: stealthHeaders,
         signal: controller.signal
       }).catch(() => null)
     ];
@@ -109,28 +120,54 @@ async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
     const [res, robotsRes, secTxtRes] = await Promise.all([mainResPromise, robotsPromise, securityTxtPromise]);
     clearTimeout(timeout);
 
-    if (!res) {
-      return `
-[تقرير الاستطلاع الأمني واستخبارات المصادر المفتوحة - Fathom Cyber Legal OSINT]:
-- الرابط المستهدف: ${parsed.href}
-- النطاق الأساسي (Host): ${parsed.hostname}
-- البروتوكول المستخدم: ${parsed.protocol}
-- حالة الاتصال: تم حجب الاتصال المباشر من جدار الحماية للهدف (WAF / Bot Protection) أو انتهاء المهلة بشكل آمن.
-- السطح الهجومي والتحصين الافتراضي:
-  * التحقق من سجلات DNS وMX وSPF لمنع انتحال النطاق.
-  * فحص هجمات Subdomain Takeover وحماية مسارات الـ API.
-  * فحص شهادات SSL/TLS وتطبيق بروتوكول HSTS الإلزامي.
-`.trim();
+    let html = '';
+    let isCloudflareChallenged = false;
+
+    if (res && res.ok) {
+      try {
+        const rawText = await res.text();
+        html = rawText.slice(0, 80000);
+        if (
+          html.includes('cf-browser-verification') ||
+          html.includes('Just a moment...') ||
+          html.includes('Cloudflare Ray ID') ||
+          html.includes('Checking your browser')
+        ) {
+          isCloudflareChallenged = true;
+        }
+      } catch {
+        html = '';
+      }
+    } else {
+      isCloudflareChallenged = true;
     }
 
-    const headers = Object.fromEntries(res.headers.entries());
-    let html = '';
-    try {
-      const rawText = await res.text();
-      html = rawText.slice(0, 80000); // 80KB slice
-    } catch {
-      html = '';
+    // High-Res Bypass Pipeline: If blocked by Cloudflare (403/503/Challenge), fetch via Jina Reader engine
+    let bypassedContent = '';
+    if (isCloudflareChallenged || !html || html.length < 500) {
+      try {
+        const bypassController = new AbortController();
+        const bypassTimeout = setTimeout(() => bypassController.abort(), 3500);
+        const bypassRes = await fetch(`https://r.jina.ai/${parsed.href}`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/plain, application/json'
+          },
+          signal: bypassController.signal
+        });
+        clearTimeout(bypassTimeout);
+        if (bypassRes.ok) {
+          const jinaText = await bypassRes.text();
+          if (jinaText && jinaText.length > 150 && !jinaText.includes('Challenge Validation Failed')) {
+            bypassedContent = jinaText.slice(0, 4500);
+          }
+        }
+      } catch (err) {
+        console.warn('[Jina Bypass Notice]:', err);
+      }
     }
+
+    const headers = res ? Object.fromEntries(res.headers.entries()) : {};
 
     // robots.txt analysis
     let robotsDisallowed: string[] = [];
@@ -154,7 +191,7 @@ async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
     if (html.includes('__NEXT_DATA__') || html.includes('/_next/')) techStack.push('Next.js');
     if (html.includes('react') || html.includes('_reactRoot')) techStack.push('React');
     if (html.includes('wp-content') || html.includes('wp-includes')) techStack.push('WordPress');
-    if (headers['cf-ray'] || headers['server']?.toLowerCase().includes('cloudflare')) techStack.push('Cloudflare CDN/WAF');
+    if (headers['cf-ray'] || headers['server']?.toLowerCase().includes('cloudflare') || isCloudflareChallenged) techStack.push('Cloudflare CDN/WAF');
     if (headers['x-vercel-id']) techStack.push('Vercel Edge Network');
     if (headers['server']) techStack.push(`Server: ${headers['server']}`);
 
@@ -172,12 +209,12 @@ async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
     const formCount = (html.match(/<form/gi) || []).length;
     const inputCount = (html.match(/<input/gi) || []).length;
 
-    return `
+    let output = `
 [تقرير الاستطلاع الأمني والاستخبارات مفتوحة المصدر - Fathom Cyber Legal OSINT]:
 - الرابط المستهدف: ${parsed.href}
 - النطاق الأساسي: ${parsed.hostname} | البروتوكول: ${parsed.protocol}
 - عنوان المنصة (Title): ${title}
-- كود الاستجابة: ${res.status} ${res.statusText}
+- كود الاستجابة: ${res ? `${res.status} ${res.statusText}` : 'محجوب / WAF Challenge (تم التجاوز عبر المحرك الرديف)'}
 - بصمة البنية التحتية والتقنيات (Tech Stack): ${techStack.join(' • ') || 'غير معلنة'}
 - تدقيق ترويسات الحماية وسياسات الأمان (Security Headers Audit):
   * Strict-Transport-Security (HSTS): ${secHeaders.hsts}
@@ -191,7 +228,18 @@ async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
   * مسارات حساسة مفحوصة في robots.txt: ${robotsDisallowed.length > 0 ? robotsDisallowed.join(', ') : 'لا توجد مسارات محظورة معلنة'}
   * عناصر الإدخال التفاعلية: ${formCount} نماذج (${inputCount} حقول إدخال)
   * الروابط والارتباطات الخارجية: ${links.length > 0 ? links.join(', ') : 'لا توجد روابط خارجية مكتشفة'}
-`.trim();
+`;
+
+    if (bypassedContent) {
+      output += `
+- محتوى وبيانات الصفحة المستخرجة مباشرة بعد تجاوز الحماية (Live Bypassed Content):
+${bypassedContent}
+`;
+    }
+
+    output += `\n[توجيه أمني استخباراتي]: استخدم بيانات الترويسات والمحتوى المستخرج المباشر أعلاه للإجابة عن استفسار المستخدم والأسعار والبيانات بدقة وموضوعية دون التوقف عند أي حجب، وبأسلوب احترافي باللغة العربية.`;
+
+    return output.trim();
   } catch (err: any) {
     return `[تقرير استطلاع الهدف ${rawUrl}]: تعذر جلب الاستجابة المباشرة (${err?.message || 'مهلة الاتصال'}). قم بتحليل النطاق والبروتوكول افتراضياً ونقاط الضعف الشائعة لهذا النوع من الخدمات.`;
   }
@@ -244,9 +292,10 @@ async function performUltraDeepCyberSearch(
     searchQueries.push({ q: `${cleanQuery} security analysis vulnerabilities architecture`, page: 1, category: 'Security & Assessment' });
     searchQueries.push({ q: `site:github.com ${cleanQuery}`, page: 1, category: 'Open Repositories & Tools' });
 
-    // Vector 4: Target Specific OSINT or In-Depth Investigation
+    // Vector 4: Target Specific OSINT or In-Depth Investigation & Pricing
     if (domain) {
       searchQueries.push({ q: `site:${domain} OR inurl:${domain} security headers API endpoints`, page: 1, category: 'Target Domain OSINT' });
+      searchQueries.push({ q: `site:${domain} price OR pricing OR cost OR domain`, page: 1, category: 'Target Domain Live Data' });
       searchQueries.push({ q: `"${domain}" security SSL vulnerabilities exposure`, page: 1, category: 'Target Domain OSINT' });
       searchQueries.push({ q: `site:github.com "${domain}" credentials leaks`, page: 1, category: 'Target Leak Recon' });
     } else {

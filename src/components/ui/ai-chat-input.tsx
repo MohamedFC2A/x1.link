@@ -689,7 +689,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           className={cn(
             "relative w-full rounded-3xl glass-input-container transition-all duration-300",
             isCyberMode
-              ? "border-cyan-500/50 shadow-[inset_0_1px_1px_rgba(6,182,212,0.45),0_0_0_1px_rgba(6,182,212,0.25),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-cyan-400 focus-within:shadow-[inset_0_1px_2px_rgba(6,182,212,0.7),0_0_0_1.5px_rgba(6,182,212,0.5),0_18px_50px_rgba(0,0,0,0.9)]"
+              ? "bg-[#09090d]/95 backdrop-blur-2xl border-white/[0.16] shadow-[inset_0_1px_1px_rgba(255,255,255,0.18),0_18px_45px_rgba(0,0,0,0.92)] focus-within:border-cyan-400/40 focus-within:shadow-[inset_0_1px_1px_rgba(6,182,212,0.25),0_0_0_1px_rgba(6,182,212,0.15),0_20px_50px_rgba(0,0,0,0.95)]"
               : isX1Active
               ? "border-white/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_0_0_1px_rgba(255,255,255,0.2),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white focus-within:shadow-[inset_0_1px_2px_rgba(255,255,255,0.6),0_0_0_1.5px_rgba(255,255,255,0.4),0_18px_50px_rgba(0,0,0,0.9)]"
               : "border-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white/[0.3] focus-within:shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_0_0_1px_rgba(255,255,255,0.15),0_18px_50px_rgba(0,0,0,0.9)]"
@@ -698,9 +698,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           {/* Smart Edge Sheen Highlight on Top Border */}
           <div
             className={cn(
-              "absolute top-0 inset-x-8 h-[1px] rounded-full pointer-events-none transition-all duration-500 opacity-90",
+              "absolute top-0 inset-x-8 h-[1px] rounded-full pointer-events-none transition-all duration-500 opacity-80",
               isCyberMode
-                ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+                ? "bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent"
                 : isX1Active
                 ? "bg-gradient-to-r from-transparent via-white/60 to-transparent"
                 : "bg-gradient-to-r from-transparent via-white/40 to-transparent"
@@ -716,27 +716,23 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 transition={{ type: 'spring', stiffness: 420, damping: 30 }}
                 className="overflow-hidden"
               >
-                <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-cyan-950/25 rounded-t-3xl flex items-center gap-2 px-3 sm:px-3.5">
+                <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-black/50 rounded-t-3xl flex items-center gap-2 px-3 sm:px-3.5">
                   {/* Smart Cyber Website Logo Badge */}
-                  <div className="size-6 sm:size-7 rounded-lg bg-cyan-950/70 border border-cyan-500/40 flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
+                  <div className="size-7 rounded-xl bg-zinc-900/90 border border-white/[0.12] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
                     {activeFaviconUrl && !faviconError ? (
                       <img
                         src={activeFaviconUrl}
                         alt={activeDomain || 'Target Logo'}
-                        className="size-3.5 sm:size-4 object-contain rounded-sm"
+                        className="size-4 object-contain rounded"
                         onError={() => setFaviconError(true)}
                       />
                     ) : (
-                      <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                      <div className="relative flex items-center justify-center">
+                        <Globe className="w-3.5 h-3.5 text-zinc-400" />
+                        <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-cyan-400/80" />
+                      </div>
                     )}
                   </div>
-
-                  {activeDomain && (
-                    <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shrink-0 font-bold select-none">
-                      <Globe className="w-2.5 h-2.5 text-cyan-400" />
-                      {activeDomain}
-                    </span>
-                  )}
 
                   <input
                     type="url"
@@ -745,8 +741,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       setCyberTargetUrl(e.target.value);
                       setFaviconError(false);
                     }}
-                    placeholder="أدخل رابط الهدف للفحص الأمني (https://example.com)..."
-                    className="w-full bg-transparent text-xs sm:text-sm text-cyan-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left"
+                    placeholder="أدخل رابط الهدف للفحص والتحليل (https://example.com)..."
+                    className="w-full bg-transparent text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left"
                     dir="ltr"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -762,7 +758,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         setCyberTargetUrl('');
                         setFaviconError(false);
                       }}
-                      className="text-zinc-400 hover:text-white p-1 rounded-full cursor-pointer transition-colors shrink-0"
+                      className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] cursor-pointer transition-colors shrink-0"
                       title="مسح الرابط"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -775,7 +771,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       setCyberTargetUrl('');
                       setFaviconError(false);
                     }}
-                    className="size-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                    className="size-7 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-white/[0.06]"
                     title="إلغاء وضع الرابط"
                   >
                     <X className="w-3.5 h-3.5" />

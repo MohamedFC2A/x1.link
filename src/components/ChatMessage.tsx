@@ -46,39 +46,42 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
         <div className="max-w-[94%] sm:max-w-[82%] rounded-2xl rounded-tr-sm glass-card text-white p-3 sm:p-4 text-right">
           
           {extractedUrl && (
-            <div className="mb-2.5 flex flex-col gap-1.5 p-2.5 sm:p-3 rounded-xl glass-card border-cyan-500/20 bg-cyan-950/20 text-right animate-in fade-in duration-150">
+            <div className="mb-2.5 flex flex-col gap-1.5 p-2.5 sm:p-3 rounded-xl bg-black/60 border border-white/[0.1] text-right animate-in fade-in duration-150 backdrop-blur-md">
               <div className="flex items-center justify-between text-[11px] text-zinc-300 font-medium">
-                <span className="flex items-center gap-1.5 font-sans font-semibold">
-                  <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="flex items-center gap-1.5 font-sans font-semibold text-zinc-300">
+                  <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
                   <span>رابط الهدف المستطلع للفحص:</span>
                 </span>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-bold">
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08] font-bold">
                   TARGET URL
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-2.5 bg-black/70 p-2 sm:p-2.5 rounded-lg border border-cyan-500/25 mt-0.5 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
-                <div className="size-6 sm:size-7 rounded-md bg-cyan-950/80 border border-cyan-500/30 flex items-center justify-center overflow-hidden shrink-0">
+              <div className="flex items-center justify-between gap-2.5 bg-zinc-950/80 p-2 sm:p-2.5 rounded-lg border border-white/[0.08] mt-0.5 shadow-inner">
+                <div className="size-7 rounded-xl bg-zinc-900 border border-white/[0.12] flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
                   {faviconUrl && !faviconFailed ? (
                     <img
                       src={faviconUrl}
                       alt={domainName || 'Site Logo'}
-                      className="size-3.5 sm:size-4 object-contain rounded-sm"
+                      className="size-4 object-contain rounded"
                       onError={() => setFaviconFailed(true)}
                     />
                   ) : (
-                    <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                    <div className="relative flex items-center justify-center">
+                      <Globe className="w-3.5 h-3.5 text-zinc-400" />
+                      <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-cyan-400/80" />
+                    </div>
                   )}
                 </div>
                 <a
                   href={extractedUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-xs sm:text-sm text-cyan-200 hover:text-white underline underline-offset-4 decoration-cyan-400/40 break-all dir-ltr text-left flex-1"
+                  className="font-mono text-xs sm:text-sm text-zinc-200 hover:text-white underline underline-offset-4 decoration-white/20 hover:decoration-white break-all dir-ltr text-left flex-1 transition-colors"
                   dir="ltr"
                 >
                   {extractedUrl}
                 </a>
-                <ExternalLink className="w-3.5 h-3.5 text-cyan-400 shrink-0 opacity-75 hover:opacity-100" />
+                <ExternalLink className="w-3.5 h-3.5 text-zinc-400 shrink-0 opacity-75 hover:opacity-100" />
               </div>
             </div>
           )}
