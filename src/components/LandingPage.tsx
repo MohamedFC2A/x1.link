@@ -22,10 +22,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     <div className="min-h-full flex flex-col justify-between bg-[#000000] text-[#f8fafc] overflow-y-auto smooth-scroll selection:bg-zinc-700 selection:text-white" dir="rtl">
       
       {/* Header */}
-      <header className="sticky top-0 z-30 w-full bg-[#000000]/95 border-b border-white/[0.08] px-3.5 sm:px-8 py-3 backdrop-blur-xl pt-safe">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-30 w-full bg-[#000000]/95 border-b border-white/[0.08] px-4 sm:px-8 py-3 backdrop-blur-xl pt-safe">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           
-          {/* Right / Actions */}
+          {/* Right / Pure Typographic Luxury Brand Wordmark */}
+          <div className="flex flex-col text-left justify-center select-none py-0.5" dir="ltr">
+            <div className="flex items-baseline gap-0.5 leading-none">
+              <span className="font-['Space_Grotesk'] font-black text-xl sm:text-2xl tracking-tight brand-shimmer-text">
+                matany
+              </span>
+              <span className="font-['Space_Grotesk'] font-bold text-xs sm:text-sm text-zinc-400 font-mono tracking-tight">
+                .one
+              </span>
+            </div>
+            <span className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono mt-1 font-semibold tracking-[0.22em] uppercase">
+              AUTONOMOUS AI PLATFORM
+            </span>
+          </div>
+
+          {/* Left Actions */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -45,21 +60,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <MessageSquarePlus className="w-4 h-4 text-zinc-950" />
               <span>دخول الشات</span>
             </button>
-          </div>
-
-          {/* Left / Pure Typographic Luxury Brand Wordmark */}
-          <div className="flex flex-col text-left justify-center select-none py-0.5" dir="ltr">
-            <div className="flex items-baseline gap-0.5 leading-none">
-              <span className="font-['Space_Grotesk'] font-black text-xl sm:text-2xl tracking-tight brand-shimmer-text">
-                matany
-              </span>
-              <span className="font-['Space_Grotesk'] font-bold text-xs sm:text-sm text-zinc-400 font-mono tracking-tight">
-                .one
-              </span>
-            </div>
-            <span className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono mt-1 font-semibold tracking-[0.22em] uppercase">
-              AUTONOMOUS AI PLATFORM
-            </span>
           </div>
 
         </div>
