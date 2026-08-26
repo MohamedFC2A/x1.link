@@ -1231,26 +1231,32 @@ function getTimeDetectPromptBlock(): string {
   
   const cairoTimeArabic = cairoFormatter.format(now);
   const isoUtc = now.toISOString();
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const currentDay = String(now.getUTCDate()).padStart(2, '0');
   const epoch = Date.now();
 
   return `
-[نظام استشعار وحساب الوقت الذكي — TIME DETECT DIRECTIVE]:
-- التوقيت الحالي اللحظي المعتمد بدقة مطلقة:
+[نظام استشعار وحساب الوقت الذكي الخلفي — TIME DETECT BACKEND DIRECTIVE]:
+- التوقيت الحالي اللحظي المعتمد في السيرفر والخلفية:
   * التاريخ والوقت في مصر والسعودية (GMT+3): ${cairoTimeArabic}
-  * التوقيت العالمي الموحد (UTC/ISO): ${isoUtc}
-  * التاريخ الميلادي: ${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}
+  * التوقيت العالمي الموحد (UTC): ${isoUtc}
+  * السنة الحالية المعتمدة: ${currentYear} (السنة الحالية الآن هي ${currentYear}).
+  * التاريخ الميلادي الكامل: ${currentYear}-${currentMonth}-${currentDay}
   * طابع الـ Epoch الملي ثانية: ${epoch}
-- قواعد وإرشادات منظومة Time Detect:
-  1. إذا سأل المستخدم عن الوقت الحالي، الساعة الآن، التاريخ اليوم، أو فروق التوقيت بين الدول:
-     - أجب فوراً بالوقت والتاريخ الحقيقي الدقيق أعلاه بثقة تامة ودون أي تردد.
-     - ضع شارة الساعة الحية في ردك: "### [TIME-DETECT-CLOCK: Live | ${now.toISOString().slice(0,10)} | توقيت مصر والسعودية (GMT+3)]"
-  2. إذا طلب المستخدم إنشاء مؤقت زمني أو تايمر ذكي (مثال: "اعمل تايمر 5 دقائق" أو "مؤقت دقيقة للتركيز"):
-     - احسب عدد الثواني وضع شارة المؤقت التفاعلي: "### [TIME-DETECT-TIMER: <seconds> | <duration_text> | <title>]" (مثال: "### [TIME-DETECT-TIMER: 300 | 5 دقائق | مؤقت التركيز والعمل]").
-  3. إذا طلب المستخدم تذكيراً بموعد أو مهمة (مثال: "فكرني باجتماع غداً الساعة 5 مساءً" أو "فكرني بعد ساعتين"):
-     - احسب التاريخ المستهدف بدقة بصيغة ISO وضع شارة التذكير: "### [TIME-DETECT-REMINDER: <target_date_iso> | <reminder_text>]" (مثال: "### [TIME-DETECT-REMINDER: ${isoUtc} | تذكير بالاجتماع]").
-  4. إذا طلب المستخدم مسح أو حذف الشات بعد فترة زمنية معينة (مثال: "احذف هذا الشات بعد 10 دقائق"):
-     - احسب الثواني وضع شارة التدمير الذاتي: "### [TIME-DETECT-AUTODELETE: <seconds> | <duration_text>]" (مثال: "### [TIME-DETECT-AUTODELETE: 600 | 10 دقائق]").
-  5. عند الإشارة إلى وظيفة فحص أو حساب الوقت في إجابتك، استخدم مصطلح "Time Detect" ليتألق بالثيم الزمني المتعدد الألوان.`;
+- إرشادات وقواعد الذكاء الزمني لـ Time Detect:
+  1. المعالجة الزمنية الباكند (Pure Backend Temporal Intelligence):
+     - استخدم التوقيت والتاريخ الحالي أعلاه لحساب الفوارق الزمنية بدقة رياضية وفكرية تامة (سواء في الماضي، الحاضر، المستقبل، الأعمار، السنوات المنقضية، أو المواعيد).
+     - أجب عن الأسئلة بشكل طبيعي وسلس ومباشر وفصيح في سياق النص العادي دون وضع أي مربعات أو بطاقات ساعات إطلاقاً.
+  2. حظر مطلق لعرض بطاقات الساعات في الرد:
+     - يُحظر تماماً وبشكل قاطع توليد أي شارات ساعات حية أو بطاقات توقيت في ردك (Time Detect يعمل خلف الكواليس كمعطى معرفي دقيق).
+  3. الأدوات التفاعلية (المؤقتات والتذكيرات فقط عند الطلب الصريح):
+     - إذا طلب المستخدم صراحة "إنشاء تايمر" أو "مؤقت زمني تفاعلي" (مثال: "اعمل تايمر 5 دقائق"):
+       احسب الثواني وضع شارة المؤقت: "### [TIME-DETECT-TIMER: <seconds> | <duration_text> | <title>]" (مثال: "### [TIME-DETECT-TIMER: 300 | 5 دقائق | مؤقت التركيز]").
+     - إذا طلب المستخدم صراحة "تذكيراً مجدولاً بموعد" (مثال: "فكرني باجتماع غداً الساعة 5 مساءً"):
+       احسب التاريخ المستهدف بصيغة ISO وضع شارة التذكير: "### [TIME-DETECT-REMINDER: <target_date_iso> | <reminder_text>]".
+     - إذا طلب المستخدم صراحة "حذف أو تدمير ذاتي للشات":
+       ضع شارة التدمير الذاتي: "### [TIME-DETECT-AUTODELETE: <seconds> | <duration_text>]".`;
 }
 
   const isCyber = model === 'deepseek-v4-flash-cyber' || model.includes('cyber');

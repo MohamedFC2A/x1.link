@@ -6,7 +6,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { Brain, Cpu, Check, ChevronRight } from "lucide-react";
+import { Brain, Cpu, Check, ChevronRight, Clock } from "lucide-react";
 import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 
 export interface ReasoningStep {
@@ -22,6 +22,7 @@ export interface ChatReasoningProps {
   isThinking?: boolean;
   isStreaming?: boolean;
   isX1?: boolean;
+  isTimeIntent?: boolean;
   defaultValue?: string;
   className?: string;
 }
@@ -111,6 +112,7 @@ export default function ChatReasoning({
   isThinking = false,
   isStreaming = false,
   isX1 = false,
+  isTimeIntent = false,
   defaultValue,
   className,
 }: ChatReasoningProps) {
@@ -180,13 +182,24 @@ export default function ChatReasoning({
               )}
             </div>
 
-            <span className="font-sans font-semibold text-xs sm:text-sm text-zinc-200">
-              {isThinking
-                ? isX1
-                  ? "تفكير واستدعاء معمارية X1 MAX..."
-                  : "جاري التفكير والتحليل المنطقي..."
-                : "التفكير والتحليل المنطقي"}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-sans font-semibold text-xs sm:text-sm text-zinc-200">
+                {isThinking
+                  ? isX1
+                    ? "تفكير واستدعاء معمارية X1 MAX..."
+                    : isTimeIntent
+                    ? "استشعار المعطيات الزمنية والمنطقية..."
+                    : "جاري التفكير والتحليل المنطقي..."
+                  : "التفكير والتحليل المنطقي"}
+              </span>
+
+              {isTimeIntent && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-950/90 border border-sky-400/25 time-detect-text text-[10px] font-mono font-black tracking-wide shadow-sm">
+                  <Clock className="w-2.5 h-2.5 text-sky-400 shrink-0" />
+                  Time Detect
+                </span>
+              )}
+            </div>
           </div>
         </AccordionTrigger>
 

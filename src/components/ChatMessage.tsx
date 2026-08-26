@@ -453,70 +453,6 @@ function playTimerChime() {
   }
 }
 
-export const TimeDetectClock: React.FC<{ timezoneLabel?: string }> = ({ timezoneLabel = 'توقيت مكة والقاهرة (GMT+3)' }) => {
-  const [now, setNow] = useState<Date>(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const timeStr = now.toLocaleTimeString('ar-EG', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  });
-
-  const dateStr = now.toLocaleDateString('ar-EG', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-
-  return (
-    <div className="my-3 p-3.5 sm:p-4 rounded-2xl time-detect-badge border border-amber-500/20 text-right animate-in fade-in duration-200 select-none shadow-xl" dir="rtl">
-      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-2.5 mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono font-black uppercase px-2.5 py-0.5 rounded-md bg-zinc-900 border border-amber-500/30 time-detect-text">
-            TIME DETECT
-          </span>
-          <span className="text-xs sm:text-sm font-sans font-bold text-zinc-100 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-amber-400" />
-            استشعار التوقيت اللحظي المباشر
-          </span>
-        </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-zinc-300">
-          Live Sync
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-        <div className="flex flex-col gap-1">
-          <div className="text-2xl sm:text-3xl font-black font-mono text-white tracking-tight dir-ltr text-right">
-            {timeStr}
-          </div>
-          <div className="text-xs text-zinc-300 font-sans font-medium">
-            {dateStr}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5 text-xs text-zinc-400 bg-white/[0.03] p-2.5 rounded-xl border border-white/[0.06]">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-zinc-400">النطاق الزمني:</span>
-            <span className="font-semibold text-zinc-200">{timezoneLabel}</span>
-          </div>
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-zinc-400">توقيت غرينتش (UTC):</span>
-            <span className="font-mono text-zinc-300 dir-ltr">{now.toUTCString().slice(17, 25)} UTC</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export const TimeDetectTimer: React.FC<{
   initialSeconds?: number;
   durationLabel?: string;
@@ -828,14 +764,7 @@ function parseCustomBadges(rawContent: string): React.ReactNode | null {
     return <AiDetectBadge verdict={verdict} score={score} />;
   }
 
-  // 2. Time Detect - Clock
-  const clockMatch = rawContent.match(/(?:\[TIME-DETECT-CLOCK:\s*([^|\]]+)?(?:\s*\|\s*([^|\]]+))?(?:\s*\|\s*([^\]]+))?\]|TIME-DETECT-CLOCK:\s*([^|\n]+)?)/i);
-  if (clockMatch) {
-    const tz = (clockMatch[3] || clockMatch[1] || clockMatch[4])?.trim() || 'توقيت مكة والقاهرة (GMT+3)';
-    return <TimeDetectClock timezoneLabel={tz} />;
-  }
-
-  // 3. Time Detect - Timer
+  // 2. Time Detect - Timer
   const timerMatch = rawContent.match(/(?:\[TIME-DETECT-TIMER:\s*(\d+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-TIMER:\s*(\d+))/i);
   if (timerMatch) {
     const seconds = parseInt(timerMatch[1] || timerMatch[4] || '300', 10);
@@ -1129,6 +1058,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             isThinking={isThinking}
             isStreaming={isStreaming}
             isX1={message.isX1}
+            isTimeIntent={isTimeIntent}
             defaultValue={isStreaming ? "reasoning" : undefined}
           />
         )}
