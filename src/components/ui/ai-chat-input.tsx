@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { cn, detectAndExtractUrl, getFaviconUrl, extractAllCleanUrls } from "@/lib/utils";
+import { cn, detectAndExtractUrl, getFaviconUrl, extractAllCleanUrls, isMediaOrVideoUrl } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -476,9 +476,15 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           return combined;
         });
 
-        // Automatically switch to Fathom Cyber model
-        setInternalModel('deepseek-v4-flash-cyber');
-        onSelectModel?.('deepseek-v4-flash-cyber');
+        const hasOnlyMediaUrls = extracted.urls.every(u => isMediaOrVideoUrl(u));
+        if (hasOnlyMediaUrls) {
+          // Keep conversational model or use Spark Multi for video transcript analysis
+          // Do not trigger Cyber security recon mode for YouTube/TikTok/Media links
+        } else {
+          // Switch to Fathom Cyber only for actual website security & link reconnaissance
+          setInternalModel('deepseek-v4-flash-cyber');
+          onSelectModel?.('deepseek-v4-flash-cyber');
+        }
 
         if (extracted.remainingText) {
           const existingValue = value.trim();

@@ -1721,10 +1721,10 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     // Fast Intelligent Gateway Selection & Resilient 4-Tier Multi-Provider Fallback:
     const gateCandidates: Array<{ name: string; url: string; headers: Record<string, string>; payload: any }> = [];
 
-    // Candidate 1: Meta Muse Spark 1.2 (Specialized for Video, Audio, Multimodal Files)
+    // Candidate 1: Multimodal Media & Video/Audio Engine (Powered by Gemini 2.5 Flash + GPT-4o-mini)
     if (isMediaSpark && OPENROUTER_API_KEY) {
       gateCandidates.push({
-        name: 'OpenRouter Meta Muse Spark 1.2',
+        name: 'OpenRouter Gemini 2.5 Flash (Fathom Spark Multimodal)',
         url: `${OPENROUTER_BASE_URL}/chat/completions`,
         headers: {
           'Content-Type': 'application/json',
@@ -1734,7 +1734,22 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         },
         payload: {
           ...basePayload,
-          model: 'meta/muse-spark-1.2-contributor',
+          model: 'google/gemini-2.5-flash',
+        }
+      });
+
+      gateCandidates.push({
+        name: 'OpenRouter GPT-4o-mini Backup',
+        url: `${OPENROUTER_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
+        },
+        payload: {
+          ...basePayload,
+          model: 'openai/gpt-4o-mini',
         }
       });
     }

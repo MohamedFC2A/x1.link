@@ -154,6 +154,36 @@ export function extractYouTubeVideoId(input: string | null | undefined): string 
 }
 
 /**
+ * Checks if a URL is a YouTube Shorts URL specifically
+ */
+export function isYouTubeShortsUrl(url: string | null | undefined): boolean {
+  if (!url || typeof url !== 'string') return false;
+  return /youtube\.com\/shorts\/[a-zA-Z0-9_-]+/i.test(url);
+}
+
+/**
+ * Checks if a URL belongs to a media/video platform (YouTube, TikTok, Instagram, Twitter, etc.)
+ */
+export function isMediaOrVideoUrl(url: string | null | undefined): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const lower = url.toLowerCase();
+  return (
+    lower.includes('youtube.com') ||
+    lower.includes('youtu.be') ||
+    lower.includes('tiktok.com') ||
+    lower.includes('instagram.com') ||
+    lower.includes('twitter.com') ||
+    lower.includes('x.com') ||
+    lower.includes('facebook.com') ||
+    lower.includes('fb.watch') ||
+    lower.includes('vimeo.com') ||
+    lower.includes('dailymotion.com') ||
+    lower.includes('soundcloud.com') ||
+    lower.includes('spotify.com')
+  );
+}
+
+/**
  * Returns high-resolution YouTube video thumbnail URL
  */
 export function getYouTubeThumbnailUrl(videoId: string | null | undefined): string | null {

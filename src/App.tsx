@@ -18,8 +18,8 @@ import { ChatMessageItem, ModelType, WebAuthnVerificationResult, MediaAttachment
 import { streamChatCompletion } from './services/api';
 import { memoryEngine } from './services/memoryManager';
 import { compressImageFile } from './lib/imageCompressor';
-import { detectAndExtractUrl } from './lib/utils';
-import { classifyFileType, extractVideoClientMetadata, extractAudioClientMetadata, extractTextClientMetadata } from './lib/mediaExtractor';
+import { detectAndExtractUrl, isMediaOrVideoUrl } from './lib/utils';
+import { classifyFileType, extractVideoClientMetadata, extractAudioClientMetadata, extractTextClientMetadata, extractVideoKeyframes, formatMediaDuration } from './lib/mediaExtractor';
 import { fetchUserSubscription } from './services/subscriptionService';
 import { recordRealUsage, checkPlanLimit, getLocalUsage, fetchRemoteUsage, estimateTokens } from './services/usageTracker';
 import {
@@ -242,6 +242,16 @@ export const App: React.FC = () => {
           }
         } else if (mediaType === 'video') {
           const metaInfo = await extractVideoClientMetadata(file);
+          // Extract visual keyframes across video for AI optical comprehension
+          try {
+            const keyframes = await extractVideoKeyframes(file, 5);
+            if (keyframes.length > 0) {
+              attachedImagesDataUrls.push(...keyframes);
+            }
+          } catch (e) {
+            console.warn('[Keyframes extraction caught]:', e);
+          }
+
           attachedMediaList.push({
             id: `video-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             name: file.name,
@@ -286,8 +296,23 @@ export const App: React.FC = () => {
         effectivePrompt = `قم بتحليل واستيعاب المعطيات والبيانات الواردة في المرفقات التالية بالتفصيل: ${names}`;
       } else if (uniqueImagesDataUrls.length > 0) {
         effectivePrompt = uniqueImagesDataUrls.length > 1
-          ? `حلل هذه الـ ${uniqueImagesDataUrls.length} صور وقارن بينها واستخرج كافة التفاصيل والمعلومات بدقة.`
+          ? `حلل هذه الـ ${uniqueImagesDataUrls.length} لقطات/صور بصرية وقارن بينها واستخرج كافة التفاصيل والمعلومات بدقة.`
           : 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.';
+      }
+    }
+
+    // Append document text contents & audio metadata into effective prompt
+    for (const item of attachedMediaList) {
+      if (item.type === 'document') {
+        const docFile = meta?.attachments?.find(f => f.name === item.name);
+        if (docFile) {
+          const textData = await extractTextClientMetadata(docFile);
+          if (textData.textSnippet) {
+            effectivePrompt += `\n\n--- [محتوى المستند/الكود المرفق: "${item.name}"] ---\n${textData.textSnippet}\n--- [نهاية المستند] ---`;
+          }
+        }
+      } else if (item.type === 'audio') {
+        effectivePrompt += `\n\n[ملف صوتي مرفق: "${item.name}" - المدة: ${formatMediaDuration(item.duration || 0)}]`;
       }
     }
 
@@ -296,10 +321,13 @@ export const App: React.FC = () => {
     const detectedUrlInfo = detectAndExtractUrl(effectivePrompt);
     const resolvedTargetUrl = meta?.targetUrl || (detectedUrlInfo.hasUrl ? detectedUrlInfo.cleanUrl : undefined);
 
-    // Enforce Plan Limits (Check Free Plan 2-trial limit, cyber limit, quota)
+    // Enforce Plan Limits: Only actual non-media websites trigger Cyber limits
+    const isTargetMedia = isMediaOrVideoUrl(resolvedTargetUrl);
+    const isActualCyber = !isTargetMedia && (!!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber');
+
     const limitCheck = checkPlanLimit(currentPlanId, {
       isVision: uniqueImagesDataUrls.length > 0,
-      isCyber: !!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber',
+      isCyber: isActualCyber,
     });
 
     if (!limitCheck.allowed) {

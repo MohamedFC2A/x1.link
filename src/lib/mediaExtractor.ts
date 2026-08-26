@@ -129,6 +129,72 @@ export async function extractVideoClientMetadata(file: File): Promise<{
 }
 
 /**
+ * Extracts multiple high-quality keyframes across the video duration for AI optical inspection
+ */
+export async function extractVideoKeyframes(file: File, maxFrames = 5): Promise<string[]> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'auto';
+    video.muted = true;
+    video.playsInline = true;
+    const objectUrl = URL.createObjectURL(file);
+    video.src = objectUrl;
+
+    const frames: string[] = [];
+    const cleanup = () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    video.onloadedmetadata = () => {
+      const dur = video.duration || 2;
+      const timestamps: number[] = [];
+      for (let i = 1; i <= maxFrames; i++) {
+        timestamps.push((dur * i) / (maxFrames + 1));
+      }
+
+      let currentIdx = 0;
+
+      const captureNext = () => {
+        if (currentIdx >= timestamps.length) {
+          cleanup();
+          resolve(frames);
+          return;
+        }
+        video.currentTime = Math.max(0.1, Math.min(dur - 0.1, timestamps[currentIdx]));
+      };
+
+      video.onseeked = () => {
+        const width = video.videoWidth || 640;
+        const height = video.videoHeight || 360;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.min(width, 640);
+        canvas.height = Math.round((height * canvas.width) / width) || 360;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          frames.push(dataUrl);
+        }
+        currentIdx++;
+        captureNext();
+      };
+
+      captureNext();
+    };
+
+    video.onerror = () => {
+      cleanup();
+      resolve(frames);
+    };
+
+    setTimeout(() => {
+      cleanup();
+      resolve(frames);
+    }, 6000);
+  });
+}
+
+/**
  * Extracts duration for audio files in browser
  */
 export async function extractAudioClientMetadata(file: File): Promise<{

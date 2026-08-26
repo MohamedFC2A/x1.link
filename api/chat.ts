@@ -1428,7 +1428,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   let chosenModelName = 'deepseek-v4-flash';
   if (isMediaSpark) {
-    chosenModelName = 'meta/muse-spark-1.2-contributor';
+    chosenModelName = 'google/gemini-2.5-flash';
   } else if (isX1Mode) {
     chosenModelName = 'anthracite-org/magnum-v4-72b';
   } else if (isVision) {
