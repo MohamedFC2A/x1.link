@@ -425,6 +425,122 @@ async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
       });
     }
 
+    // 6. Deep UI Stack & Design Aesthetic Profiling Engine
+    const uiFrameworks: string[] = [];
+    const uiComponentLibs: string[] = [];
+    const designAesthetics: string[] = [];
+    const typographyFonts: string[] = [];
+    const colorPaletteTokens: string[] = [];
+
+    // UI Frameworks & Styling Engines
+    if (html.includes('tailwindcss') || html.includes('tailwind') || /(?:class|className)=["'][^"']*\b(?:flex|grid|hidden|relative|absolute|px-|py-|bg-|text-|rounded-|border-)\b/i.test(html)) {
+      uiFrameworks.push('Tailwind CSS (Utility-First Architecture)');
+    }
+    if (html.includes('@mui') || html.includes('MuiButton') || html.includes('MuiPaper') || html.includes('MuiTypography') || html.includes('MuiBox')) {
+      uiComponentLibs.push('Material UI (MUI - Google Material Design)');
+    }
+    if (html.includes('data-radix') || html.includes('radix-ui') || html.includes('data-state=') || (html.includes('lucide') && html.includes('tailwind'))) {
+      uiComponentLibs.push('Shadcn UI / Radix UI Primitives');
+    }
+    if (html.includes('chakra-') || html.includes('@chakra-ui')) {
+      uiComponentLibs.push('Chakra UI');
+    }
+    if (html.includes('ant-') || html.includes('antd') || html.includes('@ant-design')) {
+      uiComponentLibs.push('Ant Design');
+    }
+    if (html.includes('mantine-') || html.includes('@mantine')) {
+      uiComponentLibs.push('Mantine UI');
+    }
+    if (html.includes('bootstrap') || html.includes('btn-primary') || html.includes('container-fluid')) {
+      uiFrameworks.push('Bootstrap CSS Framework');
+    }
+    if (html.includes('styled-components') || html.includes('sc-') || html.includes('css-') || html.includes('@emotion')) {
+      uiFrameworks.push('CSS-in-JS (Styled-Components / Emotion)');
+    }
+    if (html.includes('framer-motion') || html.includes('framer') || html.includes('data-projection-id')) {
+      uiComponentLibs.push('Framer Motion (Micro-interactions & Spring Physics)');
+    }
+    if (html.includes('gsap') || html.includes('ScrollTrigger')) {
+      uiComponentLibs.push('GSAP (High-Performance Web Animation)');
+    }
+    if (html.includes('lucide') || html.includes('lucide-react') || html.includes('lucide-icon')) {
+      uiComponentLibs.push('Lucide Icons');
+    }
+    if (html.includes('heroicons') || html.includes('heroicon')) {
+      uiComponentLibs.push('Heroicons');
+    }
+    if (html.includes('fa-') || html.includes('fontawesome')) {
+      uiComponentLibs.push('FontAwesome');
+    }
+
+    // Design Aesthetic & Visual Language Detection
+    if (
+      html.includes('backdrop-blur') ||
+      html.includes('backdrop-filter: blur') ||
+      html.includes('bg-opacity') ||
+      html.includes('bg-white/') ||
+      html.includes('bg-black/') ||
+      /rgba\(\d+,\s*\d+,\s*\d+,\s*0\.\d+\)/.test(html)
+    ) {
+      designAesthetics.push('Glassmorphism / Frosted Glass Overlay (شفافية بلورية وزجاجية عاكسة)');
+    }
+
+    if (
+      html.includes('bg-neutral-900') ||
+      html.includes('bg-neutral-950') ||
+      html.includes('bg-zinc-900') ||
+      html.includes('bg-zinc-950') ||
+      html.includes('bg-black') ||
+      html.includes('#09090b') ||
+      html.includes('#000000') ||
+      html.includes('dark:') ||
+      html.includes('theme-dark')
+    ) {
+      designAesthetics.push('Minimalist Dark / Obsidian Cyber (تصميم داكن نقي عالي التباين)');
+    }
+
+    if (
+      html.includes('shadow-[') ||
+      /border-2\s+border-black/.test(html) ||
+      /box-shadow:\s*\d+px\s+\d+px\s+0px/.test(html)
+    ) {
+      designAesthetics.push('Neo-Brutalism / Retro Pop (ظلال حادة، حدود بارزة، وتباين لوني جريء)');
+    }
+
+    if (
+      /box-shadow:[^;]*(?:inset\s+)?-?\d+px\s+-?\d+px\s+\d+px/.test(html) &&
+      !html.includes('backdrop-blur')
+    ) {
+      designAesthetics.push('Neumorphism / Soft UI (بروز وظلال مجسمة ناعمة)');
+    }
+
+    if (
+      html.includes('grid-cols-') ||
+      html.includes('col-span-') ||
+      html.includes('bento') ||
+      (html.includes('rounded-3xl') && html.includes('grid'))
+    ) {
+      designAesthetics.push('Bento Grid Architecture (شبكة بطاقات متباينة الأحجام ومحددة الحواف)');
+    }
+
+    // Typography System
+    const fontMatches = html.match(/font-family:[^;}"']+|fonts\.googleapis\.com\/css2\?family=([^&"']+)/gi) || [];
+    for (const fm of fontMatches.slice(0, 5)) {
+      typographyFonts.push(fm.replace(/font-family:|fonts\.googleapis\.com\/css2\?family=/gi, '').replace(/\+/g, ' ').trim());
+    }
+    if (html.includes('Inter') || html.includes('inter')) typographyFonts.push('Inter (Clean Modern Sans)');
+    if (html.includes('Geist') || html.includes('geist')) typographyFonts.push('Geist Sans / Mono (Vercel Typeface)');
+    if (html.includes('Cairo') || html.includes('cairo')) typographyFonts.push('Cairo Arabic');
+    if (html.includes('Tajawal') || html.includes('tajawal')) typographyFonts.push('Tajawal Arabic');
+    if (html.includes('Roboto') || html.includes('roboto')) typographyFonts.push('Roboto');
+
+    // Color Palette Tokens
+    const hexColors = (html.match(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) || []);
+    const uniqueColors = Array.from(new Set(hexColors)).slice(0, 8);
+    if (uniqueColors.length > 0) {
+      colorPaletteTokens.push(...uniqueColors);
+    }
+
     const secHeaders = {
       hsts: headers['strict-transport-security'] || 'مفقود (غير مفعل) [HIGH RISK]',
       csp: headers['content-security-policy'] || 'مفقود (غير مفعل) [HIGH RISK]',
@@ -444,6 +560,12 @@ async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
 - عنوان الموقع (Title): ${title}
 - كود الاستجابة: ${res ? `${res.status} ${res.statusText}` : 'محجوب / WAF Challenge (تم التجاوز عبر المحرك الرديف)'}
 - توقيع الخادم والتقنيات: Server: ${secHeaders.server} | X-Powered-By: ${secHeaders.poweredBy}
+
+- هندسة وتصميم الواجهات (UI Stack & Design Aesthetic Intelligence):
+  * أطر وتنسيق الـ UI (UI Frameworks & Styling): ${[...uiFrameworks, ...uiComponentLibs].join(' • ') || 'CSS قياسي مخصص'}
+  * النمط والجمالية التصميمية (Design Aesthetic): ${designAesthetics.join(' • ') || 'Modern Minimalist'}
+  * الخطوط والـ Typography: ${Array.from(new Set(typographyFonts)).join(' • ') || 'System Default Font Stack'}
+  * لوحة الألوان ورموز التصميم (Color Tokens): ${colorPaletteTokens.join(' • ') || 'غير معلنة'}
 
 - مصفوفة الثغرات ونقاط الضعف المكتشفة مؤتمتاً (Automated Vulnerability Detection Matrix):
 ${vulnerabilitiesDetected.length > 0
@@ -471,7 +593,7 @@ ${bypassedContent}
 `;
     }
 
-    output += `\n[توجيه أمني استخباراتي]: استخدم بيانات الترويسات والمحتوى المستخرج المباشر أعلاه للإجابة عن استفسار المستخدم والأسعار والبيانات بدقة وموضوعية دون التوقف عند أي حجب، وبأسلوب احترافي باللغة العربية.`;
+    output += `\n[توجيه أمني واستخباراتي]: إذا سأل المستخدم عن تصميم الموقع، أو الـ UI Stack، أو الألوان، أو الخطوط، أو طلب تحليل الواجهة البرمجية، استخدم بيانات الـ UI Stack & Design Aesthetic Intelligence أعلاه وقدم تحليلاً تصميماً دقيقاً مع أكواد Tailwind/CSS مطابقة للاستخدام الفوري. وإذا سأل عن الأمان والثغرات، حلل المصفوفة الأمنية بحلول دفاعية باللغة العربية.`;
 
     return output.trim();
   } catch (err: any) {
