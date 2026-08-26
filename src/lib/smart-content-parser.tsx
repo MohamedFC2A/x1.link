@@ -2,7 +2,7 @@ import React from "react";
 import { Globe, ExternalLink, Phone, PhoneCall } from "lucide-react";
 import { renderSmartTextWithIcons } from "./smart-icons";
 
-// Regex for URLs & Multi-level Domains (e.g. tansik.egypt.gov.eg, https://..., matany.one, www.gov.eg)
+// Regex for URLs & Multi-level Domains (e.g. tansik.egypt.gov.eg, https://..., matany.one, www.gov.eg, moe.gov.eg)
 const URL_PATTERN = /(https?:\/\/[^\s<>"'()]+|(?:www\.)[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\/[^\s<>"'()]*)?|\b[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.(?:com|org|net|gov|edu|mil|info|io|ai|app|dev|link|tech|me|co|xyz|one|online|site|space|store|eg|sa|ae|uk|us|de|fr|ru|cn|jp|in|ca|au|ly|sy|iq|jo|kw|qa|bh|om|ye|sd|ma|dz|tn)(?:\.[a-zA-Z]{2,})?(?:\/[^\s<>"'()]*)?\b)/i;
 
 // Regex for Hotlines & Phone Numbers (e.g. 09007111, 19xxx, 16xxx, 010xxxxxxxx, +2010xxxxxxxx, 0800xxxxxx)
@@ -15,6 +15,10 @@ const COMBINED_SCANNER = new RegExp(
 );
 
 function isValidPhoneNumber(str: string): boolean {
+  if (!str) return false;
+  // If it contains domain dots or slashes, it's a URL not a phone
+  if (str.includes(".") || str.includes("/") || str.includes("www") || str.includes("http")) return false;
+
   const clean = str.replace(/[^\d+]/g, "");
   // Must be between 5 and 15 digits
   if (clean.length < 5 || clean.length > 15) return false;
@@ -64,15 +68,22 @@ export function renderSmartContentWithLinksAndPhones(
     if (isValidPhoneNumber(matchedToken)) {
       const isHotline = /^1[56789]\d{3}$/.test(matchedToken.replace(/[^\d]/g, "")) || matchedToken.startsWith("0900") || matchedToken.startsWith("0800");
       parts.push(
-        <button
+        <span
           key={`phone-${matchIndex}`}
-          type="button"
+          role="button"
+          tabIndex={0}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             onPhoneClick(matchedToken);
           }}
-          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 my-0.5 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/30 hover:border-emerald-400/60 text-white font-mono text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-sm mx-1 align-baseline select-none active:scale-95 group/phone backdrop-blur-md"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onPhoneClick(matchedToken);
+            }
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-1 my-0.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/40 hover:border-emerald-400/80 text-white font-mono text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-lg mx-1 align-baseline select-none active:scale-95 group/phone backdrop-blur-2xl hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]"
           title={`انقر لتأكيد الاتصال برقم: ${matchedToken}`}
         >
           {isHotline ? (
@@ -80,34 +91,41 @@ export function renderSmartContentWithLinksAndPhones(
           ) : (
             <Phone className="size-3.5 text-emerald-400 group-hover/phone:text-emerald-300 shrink-0 inline-block" />
           )}
-          <span className="dir-ltr text-emerald-200 group-hover/phone:text-white font-mono tracking-wide">
+          <span className="dir-ltr text-emerald-100 group-hover/phone:text-white font-mono tracking-wide font-bold">
             {matchedToken}
           </span>
-          <span className="text-[9px] font-sans px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-medium shrink-0">
+          <span className="text-[10px] font-sans px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-medium shrink-0">
             {isHotline ? "خط ساخن" : "اتصال"}
           </span>
-        </button>
+        </span>
       );
     } else {
       // It is a URL / Domain
       parts.push(
-        <button
+        <span
           key={`link-${matchIndex}`}
-          type="button"
+          role="button"
+          tabIndex={0}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             onUrlClick(matchedToken);
           }}
-          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 my-0.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.14] hover:border-white/40 text-zinc-100 hover:text-white font-mono text-xs sm:text-sm font-medium transition-all cursor-pointer shadow-sm mx-1 align-baseline select-none active:scale-95 group/link backdrop-blur-md"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onUrlClick(matchedToken);
+            }
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-1 my-0.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.18] border border-white/[0.18] hover:border-white/40 text-white font-mono text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-lg mx-1 align-baseline select-none active:scale-95 group/link backdrop-blur-2xl hover:shadow-[0_0_20px_rgba(255,255,255,0.12)]"
           title={`انقر لتأكيد الانتقال إلى: ${matchedToken}`}
         >
-          <Globe className="size-3 text-zinc-300 group-hover/link:text-white shrink-0 inline-block" />
-          <span className="break-all dir-ltr underline underline-offset-2 text-zinc-100 group-hover/link:text-white">
+          <Globe className="size-3.5 text-zinc-300 group-hover/link:text-white shrink-0 inline-block" />
+          <span className="break-all dir-ltr underline underline-offset-2 text-white font-semibold">
             {matchedToken}
           </span>
-          <ExternalLink className="size-2.5 opacity-70 group-hover/link:opacity-100 text-zinc-300 group-hover/link:text-white shrink-0 inline-block" />
-        </button>
+          <ExternalLink className="size-2.5 opacity-80 group-hover/link:opacity-100 text-zinc-300 group-hover/link:text-white shrink-0 inline-block" />
+        </span>
       );
     }
 
