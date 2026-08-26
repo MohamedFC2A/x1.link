@@ -270,14 +270,15 @@ async function performUltraDeepCyberSearch(
           }),
         });
 
-        if (!res.ok) return { category: item.category, results: [] as SerperOrganicItem[] };
+        if (!res.ok) return { category: item.category, results: [] as SerperOrganicItem[], kg: null };
         const data = await res.json();
         return {
           category: item.category,
-          results: (data.organic || []) as SerperOrganicItem[]
+          results: (data.organic || []) as SerperOrganicItem[],
+          kg: data.knowledgeGraph || null
         };
       } catch {
-        return { category: item.category, results: [] as SerperOrganicItem[] };
+        return { category: item.category, results: [] as SerperOrganicItem[], kg: null };
       }
     });
 
@@ -285,10 +286,12 @@ async function performUltraDeepCyberSearch(
 
     let rawTotalResults = 0;
     const uniqueMap = new Map<string, { item: SerperOrganicItem; category: string }>();
+    let knowledgeGraphData: any = null;
 
     for (const res of settled) {
       if (res.status === 'fulfilled') {
-        const { category, results } = res.value;
+        const { category, results, kg } = res.value;
+        if (kg && !knowledgeGraphData) knowledgeGraphData = kg;
         rawTotalResults += results.length;
         for (const it of results) {
           if (it.link && !uniqueMap.has(it.link)) {
@@ -302,15 +305,15 @@ async function performUltraDeepCyberSearch(
     const totalScannedPages = Math.max(rawTotalResults, 100);
 
     // Pick top high-signal results for deep context
-    const topResults = uniqueItems.slice(0, 12);
+    const topResults = uniqueItems.slice(0, 15);
 
-    // Deep Scrape Top 4 high-authority targets for full text context
-    const deepScrapePromises = topResults.slice(0, 4).map(async ({ item }) => {
+    // Deep Scrape Top 5 high-authority targets for full text context
+    const deepScrapePromises = topResults.slice(0, 5).map(async ({ item }) => {
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 2000);
+        const timeout = setTimeout(() => controller.abort(), 2500);
         const pageRes = await fetch(item.link, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
           signal: controller.signal
         });
         clearTimeout(timeout);
@@ -322,30 +325,32 @@ async function performUltraDeepCyberSearch(
             .replace(/<[^>]+>/g, ' ')
             .replace(/\s+/g, ' ')
             .trim()
-            .slice(0, 700);
+            .slice(0, 900);
           return { link: item.link, title: item.title, text: cleanText };
-        }
-      } catch {}
-      return null;
-    });
-
     const scrapedData = (await Promise.all(deepScrapePromises)).filter(Boolean);
 
     // Build structured Intelligence Dossier
     let output = `
-[🌐 منظومة البحث والاستخبارات السيبرانية فائقة العمق Fathom Cyber - Serper AI Ultra-Deep Recon]:
-- نطاق الاستطلاع والمسح: تم استكشاف ومسح أكثر من ${totalScannedPages}+ صفحة ومصدر ويب متخصص عبر محركات البحث ومستودعات الثغرات.
-- الاستعلامات والمحاور المغطاة:
-  * تحليل التهديدات ونماذج الثغرات (CVEs & Threat Intel)
-  * أطر ومعايير OWASP ونواقل الاستغلال (Attack Vectors & Payloads)
-  * مستودعات الأكواد وأدوات الفحص وPoCs (GitHub & ExploitDB)
-  * استخبارات المصادر المفتوحة وبصمة النطاق (OSINT & Surface Recon)
+[🌐 منظومة البحث والاستخبارات فائقة العمق Fathom Deep Recon - Serper AI Engine]:
+- نطاق الاستطلاع والمسح: تم استكشاف ومسح أكثر من ${totalScannedPages}+ صفحة ومصدر ويب متخصص عبر محركات البحث المتقدمة.
+- محاور الاستعلام: الاستخبارات العامة، التوثيق الفني، السجلات المفتوحة، والمصادر المتخصصة.
+`;
 
+    if (knowledgeGraphData) {
+      output += `
+- بطاقة المعرفة المباشرة (Google Knowledge Graph):
+  * العنوان: ${knowledgeGraphData.title || 'غير محدد'} (${knowledgeGraphData.type || 'كيان عام'})
+  * الوصف: ${knowledgeGraphData.description || 'لا يوجد وصف'}
+  * الخصائص: ${JSON.stringify(knowledgeGraphData.attributes || {})}
+`;
+    }
+
+    output += `
 - أبرز المراجع والنتائج المكتشفة (عينة من الـ 100+ صفحة الممسوحة):
 `;
 
     topResults.forEach(({ item, category }, idx) => {
-      output += `\n[${idx + 1}] (${category}) ${item.title}\n    الرابط: ${item.link}\n    الملخص الفني: ${item.snippet || 'لا يوجد ملخص'}\n`;
+      output += `\n[${idx + 1}] (${category}) ${item.title}\n    الرابط: ${item.link}\n    الملخص: ${item.snippet || 'لا يوجد ملخص'}\n`;
     });
 
     if (scrapedData.length > 0) {
@@ -355,7 +360,7 @@ async function performUltraDeepCyberSearch(
       });
     }
 
-    output += `\n[توجيه استخباراتي لـ Fathom Cyber]: استخدم بيانات البحث العميق أعلاه (التي تم مسحها من 100+ صفحة) لتقديم أدق تحليل أمني تفصيلي ممكن، مع ذكر الثغرات، وسيناريوهات الهجوم، ونقاط القوة والضعف، وحلول التحصين الهندسية بدقة تامة.`;
+    output += `\n[توجيه استخباراتي فائق]: استخدم بيانات البحث العميق الموثوقة أعلاه للإجابة عن سؤال المستخدم بشكل مباشر وموضوعي ودقيق باللغة العربية دون أي اعتذارات أو استجابات نمطية مسبقة.`;
 
     return output.trim();
   } catch (err: any) {
