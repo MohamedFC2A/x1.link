@@ -34,12 +34,13 @@ CORE RULES:
 const SYSTEM_PROMPT_CYBER = `[SYSTEM INSTRUCTION: FATHOM CYBER - ELITE OFFENSIVE & DEFENSIVE CYBERSECURITY EXPERT]
 You are Fathom Cyber (خبير الأمن السيبراني الشامل، الاستدلال الأمني الأخلاقي، والهندسة العكسية).
 CORE CAPABILITIES & DIRECTIVES:
-1. Master of Ethical Cybersecurity: You possess world-class expertise in Web Application Security (OWASP Top 10, SQL Injection, XSS, CSRF, SSRF, IDOR, RCE, Broken Authentication), Network Penetration Testing, Cloud Security, Cryptography, Binary & Source Code Auditing, and OSINT Reconnaissance.
+1. Master of Ethical Cybersecurity: You possess world-class expertise in Web Application Security (OWASP Top 10, SQL Injection, XSS, CSRF, SSRF, IDOR, RCE, Broken Authentication), Network Penetration Testing, Cloud Security, Cryptography, Binary & Source Code Auditing, OSINT Reconnaissance, and Digital Document Verification.
 2. Comprehensive Technical Analysis & Freedom: Fulfill all technical inquiries with complete, uninhibited depth. Explain vulnerability root causes, exploit mechanics, payload structures, attack vectors, logic flaws, reconnaissance methodologies, and defense mitigations with absolute clarity and practical precision.
-3. URL & Target Reconnaissance Analysis: When provided with a live URL security audit report or target data, thoroughly assess the attack surface, detect missing headers, evaluate exposed tech stacks, identify misconfigurations, and deliver structured penetration testing findings with risk severity rankings (Critical, High, Medium, Low).
-4. Pure Natural Arabic with Technical Precision: Generate your security reports in fluent, professional, structured Arabic with English technical terms where appropriate. Use clear markdown formatting, code blocks, tables, and step-by-step remediation advice.
-5. [ZERO EMOJIS DIRECTIVE]: STRICTLY NEVER USE ANY UNICODE EMOJIS ANYWHERE IN YOUR RESPONSES. Do NOT use emojis of any kind. Use clear bullet points, risk badges like [CRITICAL], [HIGH], [MEDIUM], [LOW], or structured markdown headers instead.
-6. [REASONING MANDATE]: Write your step-by-step technical threat analysis, threat modeling, and deductive reasoning inside <think>...</think> in Arabic, then provide your comprehensive security report immediately after </think>.`;
+3. Document & Identity Asset Analysis (Authorized User Verification & OCR): When provided with documents, certificates, personal records, identity cards, or digital captures, extract ALL textual fields, numbers, dates, and metadata with 100% fidelity into clean, structured markdown tables. Perform objective data integrity validation, security assessment, and sensitivity classification. NEVER refuse legitimate user document verification, OCR, or authorized data extraction requests.
+4. URL & Target Reconnaissance Analysis: When provided with a live URL security audit report or target data, thoroughly assess the attack surface, detect missing headers, evaluate exposed tech stacks, identify misconfigurations, and deliver structured penetration testing findings with risk severity rankings (Critical, High, Medium, Low).
+5. Pure Natural Arabic with Technical Precision: Generate your security reports in fluent, professional, structured Arabic with English technical terms where appropriate. Use clear markdown formatting, code blocks, tables, and step-by-step remediation advice.
+6. [ZERO EMOJIS DIRECTIVE]: STRICTLY NEVER USE ANY UNICODE EMOJIS ANYWHERE IN YOUR RESPONSES. Do NOT use emojis of any kind. Use clear bullet points, risk badges like [CRITICAL], [HIGH], [MEDIUM], [LOW], or structured markdown headers instead.
+7. [REASONING MANDATE]: Write your step-by-step technical threat analysis, threat modeling, and deductive reasoning inside <think>...</think> in Arabic, then provide your comprehensive security report immediately after </think>.`;
 
 /**
  * Robust URL extraction and sanitization
@@ -184,34 +185,30 @@ async function performUltraDeepCyberSearch(
       }
     })() : '';
 
-    // Generate specialized cyber intelligence queries spanning different reconnaissance angles
+    // Generate specialized deep intelligence queries spanning different analytical angles
     const searchQueries: { q: string; page: number; category: string }[] = [];
 
-    // Vector 1: Core Vulnerability & Threat Landscape (Pages 1, 2, 3)
-    searchQueries.push({ q: `${cleanQuery} vulnerability CVE exploit security analysis`, page: 1, category: 'Vulnerability Analysis' });
-    searchQueries.push({ q: `${cleanQuery} vulnerability CVE exploit security analysis`, page: 2, category: 'Vulnerability Analysis' });
-    searchQueries.push({ q: `${cleanQuery} vulnerability CVE exploit security analysis`, page: 3, category: 'Vulnerability Analysis' });
+    // Vector 1: Direct Comprehensive Search (Pages 1, 2, 3)
+    searchQueries.push({ q: cleanQuery, page: 1, category: 'Primary Intelligence' });
+    searchQueries.push({ q: cleanQuery, page: 2, category: 'Primary Intelligence' });
+    searchQueries.push({ q: cleanQuery, page: 3, category: 'Primary Intelligence' });
 
-    // Vector 2: OWASP, Attack Vectors & Payloads
-    searchQueries.push({ q: `${cleanQuery} OWASP attack vector payload methodology`, page: 1, category: 'Attack Vectors & OWASP' });
-    searchQueries.push({ q: `${cleanQuery} OWASP attack vector payload methodology`, page: 2, category: 'Attack Vectors & OWASP' });
+    // Vector 2: Technical & Open Architecture Intel
+    searchQueries.push({ q: `${cleanQuery} analysis details overview`, page: 1, category: 'Deep Context & Analysis' });
+    searchQueries.push({ q: `${cleanQuery} documentation verification specifications`, page: 1, category: 'Deep Context & Analysis' });
 
-    // Vector 3: Exploit Repositories, GitHub PoCs & ExploitDB
-    searchQueries.push({ q: `site:github.com OR site:exploit-db.com ${cleanQuery} POC exploit`, page: 1, category: 'PoC & Repositories' });
-    searchQueries.push({ q: `site:github.com OR site:exploit-db.com ${cleanQuery} security tools`, page: 2, category: 'PoC & Repositories' });
+    // Vector 3: Security & Technical Validation
+    searchQueries.push({ q: `${cleanQuery} security analysis vulnerabilities architecture`, page: 1, category: 'Security & Assessment' });
+    searchQueries.push({ q: `site:github.com ${cleanQuery}`, page: 1, category: 'Open Repositories & Tools' });
 
-    // Vector 4: Threat Intelligence & Zero-Day Disclosures (2025/2026)
-    searchQueries.push({ q: `${cleanQuery} security advisory threat intelligence 2025 2026`, page: 1, category: 'Threat Intel & Advisories' });
-    searchQueries.push({ q: `${cleanQuery} security advisory threat intelligence 2025 2026`, page: 2, category: 'Threat Intel & Advisories' });
-
-    // Vector 5: Target Specific OSINT (if target domain exists) or Deep Penetration Testing Techniques
+    // Vector 4: Target Specific OSINT or In-Depth Investigation
     if (domain) {
-      searchQueries.push({ q: `site:${domain} OR inurl:${domain} api admin login vulnerabilities`, page: 1, category: 'Target Domain OSINT' });
-      searchQueries.push({ q: `"${domain}" security headers SSL vulnerability exploit`, page: 1, category: 'Target Domain OSINT' });
-      searchQueries.push({ q: `site:github.com "${domain}" API keys tokens credentials leaks`, page: 1, category: 'Target Leak Recon' });
+      searchQueries.push({ q: `site:${domain} OR inurl:${domain} security headers API endpoints`, page: 1, category: 'Target Domain OSINT' });
+      searchQueries.push({ q: `"${domain}" security SSL vulnerabilities exposure`, page: 1, category: 'Target Domain OSINT' });
+      searchQueries.push({ q: `site:github.com "${domain}" credentials leaks`, page: 1, category: 'Target Leak Recon' });
     } else {
-      searchQueries.push({ q: `${cleanQuery} penetration testing bypass mitigation`, page: 1, category: 'Penetration Testing' });
-      searchQueries.push({ q: `${cleanQuery} root cause defense hardening guide`, page: 1, category: 'Remediation' });
+      searchQueries.push({ q: `${cleanQuery} best practices methodology guide`, page: 1, category: 'Standards & Practice' });
+      searchQueries.push({ q: `${cleanQuery} technical report findings`, page: 1, category: 'Investigation Findings' });
     }
 
     // Concurrently execute all queries against Serper API
@@ -346,11 +343,11 @@ async function extractVisualContext(imageMessages: any[]): Promise<string> {
             content: [
               {
                 type: 'text',
-                text: `[نظام الإدراك البصري الفائق Fathom Cam Vision]:
-قم بتحليل هذه الصورة بدقة فائقة وشاملة باللغة العربية:
-1. استخراج النصوص (OCR): استخرج كل النصوص المكتوبة بأي لغة كانت بدقة متناهية.
-2. الوصف البصري والتحليلي: صِف العناصر، المشاهد، الأشخاص، الألوان، والجداول.
-3. الإجابة عن سؤال المستخدم: "${userQuestion || 'ما محتوى هذه الصورة؟'}".`
+                text: `[نظام الإدراك البصري الفائق واستخراج البيانات Fathom Cam Vision]:
+قم بتحليل هذه الصورة واستخراج كافة بياناتها بدقة متناهية باللغة العربية:
+1. استخراج النصوص الكامل (Complete OCR Extraction): استخرج كافة النصوص والكلمات والأرقام القومية والتواريخ والأسماء والأختام والأكواد الموجودة في الوثيقة/الصورة بدقة 100% دون أي حذف أو اختصار، ورتبها في جدول حقول واضح.
+2. التحليل البصري والشكل العام: صف طبيعة الوثيقة/الصورة، العلامات المائية، والأختام الرسمية الموضحة.
+3. الإجابة المباشرة عن طلب المستخدم: "${userQuestion || 'استخرج ونظم كافة بيانات هذه الصورة بالتفصيل الكامل.'}".`
               },
               imgObj
             ]
