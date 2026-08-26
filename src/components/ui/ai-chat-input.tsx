@@ -22,7 +22,8 @@ import {
   FileText,
   Search,
   Image as ImageIcon,
-  ShieldOff
+  ShieldOff,
+  Zap
 } from "lucide-react";
 import { ModelType } from "@/types";
 import { ThinkingOrb } from "@/components/ui/thinking-orbs";
@@ -493,7 +494,45 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       const hasSearch = isDeepSearchEffective;
       const hasCyber = isCyberMode || Boolean(cyberTargetUrl.trim());
       const hasVision = hasAttachments || isVisionMode;
+      const hasNSFW = isX1Active;
 
+      // 1. NSFW + Deep Search Fusion (Crimson-Purple-Sky Sunset Plasma)
+      if (hasNSFW && hasSearch) {
+        return {
+          type: 'nsfw-search',
+          placeholder: 'استكشاف حر وبحث مباشر في الويب دون أي قيود...',
+          beamClass: 'nsfw-search-beam',
+          textColor: 'text-rose-50 placeholder:text-rose-300/50 selection:bg-purple-500/40',
+          sendGradient: 'bg-gradient-to-r from-rose-500 via-purple-500 to-sky-400 text-white',
+          topSheen: 'bg-gradient-to-r from-transparent via-purple-400 to-transparent',
+        };
+      }
+
+      // 2. NSFW + Cyber Mode Fusion (Cyber Ruby & Electric Cyan)
+      if (hasNSFW && hasCyber) {
+        return {
+          type: 'nsfw-cyber',
+          placeholder: 'فحص أمني واستخبارات سيبرانية متقدمة بحرية كاملة...',
+          beamClass: 'nsfw-cyber-beam',
+          textColor: 'text-cyan-50 placeholder:text-rose-300/50 selection:bg-rose-500/40',
+          sendGradient: 'bg-gradient-to-r from-cyan-400 to-rose-500 text-black',
+          topSheen: 'bg-gradient-to-r from-transparent via-rose-400 to-transparent',
+        };
+      }
+
+      // 3. NSFW + Vision Mode Fusion (Emerald Ruby Plasma)
+      if (hasNSFW && hasVision) {
+        return {
+          type: 'nsfw-vision',
+          placeholder: 'تحليل بصري حر واستكشاف الصور دون أي حظر أو فلاتر...',
+          beamClass: 'nsfw-vision-beam',
+          textColor: 'text-emerald-50 placeholder:text-rose-300/50 selection:bg-rose-500/40',
+          sendGradient: 'bg-gradient-to-r from-emerald-400 to-rose-500 text-black',
+          topSheen: 'bg-gradient-to-r from-transparent via-emerald-400 to-transparent',
+        };
+      }
+
+      // 4. Cyber + Deep Search
       if (hasSearch && hasCyber) {
         return {
           type: 'cyber-search',
@@ -501,8 +540,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           beamClass: 'cyber-search-beam',
           textColor: 'text-cyan-100 placeholder:text-cyan-300/50 selection:bg-cyan-500/40',
           sendGradient: 'bg-gradient-to-r from-cyan-400 to-sky-400 text-black',
+          topSheen: 'bg-gradient-to-r from-transparent via-cyan-400 to-transparent',
         };
       }
+
+      // 5. Cyber + Vision
       if (hasVision && hasCyber) {
         return {
           type: 'cyber-vision',
@@ -510,8 +552,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           beamClass: 'cyber-vision-beam',
           textColor: 'text-emerald-100 placeholder:text-emerald-300/50 selection:bg-emerald-500/40',
           sendGradient: 'bg-gradient-to-r from-cyan-400 to-emerald-400 text-black',
+          topSheen: 'bg-gradient-to-r from-transparent via-teal-400 to-transparent',
         };
       }
+
+      // 6. Vision + Deep Search
       if (hasVision && hasSearch) {
         return {
           type: 'vision-search',
@@ -519,10 +564,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           beamClass: 'vision-search-beam',
           textColor: 'text-sky-100 placeholder:text-sky-300/50 selection:bg-sky-500/40',
           sendGradient: 'bg-gradient-to-r from-emerald-400 to-sky-400 text-black',
+          topSheen: 'bg-gradient-to-r from-transparent via-sky-400 to-transparent',
         };
       }
+
       return null;
-    }, [isDeepSearchEffective, isCyberMode, cyberTargetUrl, hasAttachments, isVisionMode]);
+    }, [isDeepSearchEffective, isCyberMode, cyberTargetUrl, hasAttachments, isVisionMode, isX1Active]);
 
     return (
       <div
@@ -579,7 +626,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
-                      <Cpu className="w-4 h-4 text-zinc-200" />
+                      <Zap className="w-4 h-4 text-amber-400 fill-amber-400/20" />
                     </div>
                     <div className="min-w-0 text-right">
                       <div className="font-bold text-xs text-white">Fathom 1</div>
@@ -881,7 +928,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 className={cn(
                   "absolute top-0 inset-x-8 h-[1px] rounded-full pointer-events-none transition-all duration-500 opacity-90 z-20",
                   activeFusion
-                    ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+                    ? activeFusion.topSheen
                     : isDeepSearchEffective
                     ? "bg-gradient-to-r from-transparent via-sky-400 to-transparent"
                     : isCyberMode
@@ -1057,7 +1104,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 ) : isVisionMode ? (
                   <Camera className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 ) : (
-                  <Cpu className="w-3.5 h-3.5 text-zinc-300 shrink-0" />
+                  <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20 shrink-0" />
                 )}
                 <span className="hidden sm:inline font-sans text-xs font-semibold">
                   {activeModelDisplayName}

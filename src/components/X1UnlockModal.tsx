@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { triggerBiometricAuthentication, getBiometricDeviceInfo, BiometricDeviceInfo } from '../services/webauthn';
 import { WebAuthnVerificationResult } from '../types';
-import { X, CheckCircle2, Fingerprint, KeyRound } from 'lucide-react';
+import { X, CheckCircle2, Fingerprint, KeyRound, ShieldOff } from 'lucide-react';
 
 interface X1UnlockModalProps {
   isOpen: boolean;
@@ -88,20 +88,15 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
           <X className="w-4 h-4 text-zinc-400" />
         </button>
 
-        {/* NSFW Off Header with Native OS Biometric Badge */}
-        <div className="flex items-center gap-3.5">
-          <div className="size-12 sm:size-14 rounded-2xl bg-gradient-to-br from-rose-500/20 via-rose-500/10 to-transparent border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(244,63,94,0.15)]">
-            {renderBiometricIcon("w-6 h-6 sm:w-7 sm:h-7 text-rose-400")}
+        {/* NSFW Off Header */}
+        <div className="flex items-center gap-3">
+          <div className="size-11 sm:size-12 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-zinc-300 flex items-center justify-center shrink-0">
+            <ShieldOff className="w-5 h-5 sm:w-6 sm:h-6 text-zinc-300" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight font-sans">
-                تفعيل وضع <span className="font-['Space_Grotesk'] font-bold text-white">NSFW Off</span>
-              </h2>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                UNCENSORED
-              </span>
-            </div>
+            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight font-sans">
+              تفعيل وضع <span className="font-['Space_Grotesk'] font-bold text-white">NSFW Off</span>
+            </h2>
             <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 font-sans">
               إلغاء قيود الرقابة وإطلاق العنان للمحادثة الحرة بدون فلاتر
             </p>

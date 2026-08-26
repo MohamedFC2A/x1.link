@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessageItem } from '../types';
 import ChatReasoning from './ui/chat-reasoning';
-import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail } from 'lucide-react';
+import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { detectAndExtractUrl, getFaviconUrl } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -309,7 +309,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
             </div>
           ) : (
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
-              <Sparkles className="w-3.5 h-3.5 text-zinc-300" />
+              <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />
               <span className="font-semibold text-xs text-zinc-100">محرك Fathom 1</span>
             </div>
           )}
