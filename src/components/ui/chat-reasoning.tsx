@@ -16,6 +16,8 @@ export interface ReasoningStep {
   output?: any;
 }
 
+import { DetectedFeatureData, FEATURES_REGISTRY, TimeDetectIcon, MemoryDetectIcon } from "@/lib/featuresRegistry";
+
 export interface ChatReasoningProps {
   reasoningText?: string;
   partsInAccordion?: ReasoningStep[];
@@ -23,6 +25,7 @@ export interface ChatReasoningProps {
   isStreaming?: boolean;
   isX1?: boolean;
   isTimeIntent?: boolean;
+  activeFeatures?: DetectedFeatureData[];
   defaultValue?: string;
   className?: string;
 }
@@ -113,6 +116,7 @@ export default function ChatReasoning({
   isStreaming = false,
   isX1 = false,
   isTimeIntent = false,
+  activeFeatures = [],
   defaultValue,
   className,
 }: ChatReasoningProps) {
@@ -148,6 +152,8 @@ export default function ChatReasoning({
 
   if (!fullText && !isThinking) return null;
 
+  const hasMemoryDetect = activeFeatures.some(f => f.id === 'memory_detect');
+
   return (
     <Accordion
       type="single"
@@ -167,7 +173,7 @@ export default function ChatReasoning({
         )}
       >
         <AccordionTrigger className="text-xs font-medium text-zinc-300 hover:text-white hover:no-underline py-2 w-full flex items-center justify-between cursor-pointer">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <div className="flex items-center justify-center size-5 shrink-0">
               {isThinking ? (
                 <ThinkingOrb state="solving" size={20} theme="dark" speed={1.5} />
@@ -182,32 +188,34 @@ export default function ChatReasoning({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-sans font-semibold text-xs sm:text-sm text-zinc-200">
-                {isThinking
-                  ? isX1
-                    ? "تفكير واستدعاء معمارية X1 MAX..."
-                    : isTimeIntent
-                    ? "استشعار قواعد الوقت والتحليل المنطقي عبر Time Detect..."
-                    : "جاري التفكير والتحليل المنطقي..."
-                  : "التفكير والتحليل المنطقي"}
+                {isThinking ? "جاري التفكير والتحليل المنطقي..." : "التفكير والتحليل المنطقي"}
               </span>
 
-              {isTimeIntent && (
+              {/* Render Active Feature Badges */}
+              {activeFeatures.map((feat) => {
+                const def = FEATURES_REGISTRY[feat.id];
+                const IconComponent = def?.icon || Brain;
+                return (
+                  <span
+                    key={feat.id}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full select-none transition-all text-[11px] font-sans font-black tracking-wide",
+                      def?.glassClassName || "time-detect-glass"
+                    )}
+                  >
+                    <IconComponent size={13} />
+                    <span className={def?.textClassName || "time-detect-text"}>
+                      {feat.badgeLabel}
+                    </span>
+                  </span>
+                );
+              })}
+
+              {!activeFeatures.length && isTimeIntent && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full time-detect-glass select-none transition-all">
-                  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" className="shrink-0">
-                    <defs>
-                      <linearGradient id="reasoningTimeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#67e8f9" />
-                        <stop offset="25%" stopColor="#a5b4fc" />
-                        <stop offset="50%" stopColor="#e879f9" />
-                        <stop offset="75%" stopColor="#fde047" />
-                        <stop offset="100%" stopColor="#6ee7b7" />
-                      </linearGradient>
-                    </defs>
-                    <circle cx="12" cy="12" r="9.5" stroke="url(#reasoningTimeGrad)" strokeWidth="2.4" />
-                    <path d="M12 6.5v5.5l3.5 2" stroke="url(#reasoningTimeGrad)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <TimeDetectIcon size={13} />
                   <span className="time-detect-text text-[11px] font-sans font-black tracking-wide">
                     Time Detect
                   </span>

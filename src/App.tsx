@@ -4,6 +4,7 @@ import { DisclaimerModal } from './components/DisclaimerModal';
 import { X1UnlockModal } from './components/X1UnlockModal';
 import { ArchitectureModal } from './components/ArchitectureModal';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { AuthRequiredModal } from './components/AuthRequiredModal';
 import { LandingPage } from './components/LandingPage';
 import { TopBar } from './components/TopBar';
 import { ChatWindow } from './components/ChatWindow';
@@ -31,6 +32,8 @@ import {
   fetchUserChats,
   fetchChatMessages,
   deleteCloudChat,
+  fetchCrossChatHistoryForMemory,
+  purgeAllLocalChatArtifacts,
   SupabaseChat
 } from './services/supabase';
 
@@ -107,6 +110,7 @@ export const App: React.FC = () => {
   const [isX1ModalOpen, setIsX1ModalOpen] = useState<boolean>(false);
   const [isArchitectureModalOpen, setIsArchitectureModalOpen] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
 
   // Supabase User & Cloud Sync
   const [user, setUser] = useState<User | null>(null);
@@ -130,18 +134,36 @@ export const App: React.FC = () => {
   const loadCloudChats = async (userId: string | null, shouldAutoLoadLatest = false) => {
     const chats = await fetchUserChats(userId);
     setCloudChats(chats);
+    if (chats.length > 0) {
+      memoryEngine.ingestCrossChatSessions(chats);
+      // Preload detailed questions & messages for previous chats in the background
+      fetchCrossChatHistoryForMemory(userId, 20).then(history => {
+        history.forEach(item => {
+          if (item.messages && item.messages.length > 0) {
+            memoryEngine.updateChatMemoryNode(item.chat.id, item.chat.title, item.messages, item.chat.updated_at);
+          }
+        });
+      }).catch(() => {});
+    }
     if (shouldAutoLoadLatest && chats.length > 0) {
       setCurrentChatId(chats[0].id);
       const msgs = await fetchChatMessages(chats[0].id);
       setMessages(msgs);
+      if (msgs.length > 0) {
+        memoryEngine.updateChatMemoryNode(chats[0].id, chats[0].title, msgs, chats[0].updated_at);
+      }
     }
   };
 
   // Initial mount & Supabase Auth & Subscription Listener
   useEffect(() => {
+    // Radically clean and wipe all obsolete local chat remnants
+    purgeAllLocalChatArtifacts();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+      memoryEngine.setUserIdAndLoad(currentUser?.id ?? null);
       loadCloudChats(currentUser?.id ?? null, true);
       fetchUserSubscription(currentUser?.id ?? null).then(plan => setCurrentPlanId(plan));
       fetchRemoteUsage(currentUser?.id ?? null).then(usage => {
@@ -152,6 +174,7 @@ export const App: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+      memoryEngine.setUserIdAndLoad(currentUser?.id ?? null);
       loadCloudChats(currentUser?.id ?? null, false);
       fetchUserSubscription(currentUser?.id ?? null).then(plan => setCurrentPlanId(plan));
       fetchRemoteUsage(currentUser?.id ?? null).then(usage => {
@@ -191,6 +214,12 @@ export const App: React.FC = () => {
     meta?: { model?: string; attachments?: File[]; targetUrl?: string; targetUrls?: string[]; effort?: string; deepSearch?: boolean }
   ) => {
     if (isStreaming) return;
+
+    // Enforce Mandatory Google Sign-In for Cloud-First Security
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
 
     const attachedImagesDataUrls: string[] = [];
     const attachedMediaList: MediaAttachmentItem[] = [];
@@ -393,7 +422,12 @@ export const App: React.FC = () => {
       saveCloudMessage(targetChatId, userId, userMessage);
     }
 
-    const { packedMessages, memoryContextPrompt } = memoryEngine.processMessages(newMessagesList);
+    const {
+      packedMessages,
+      memoryContextPrompt,
+      isMemoryDetectTriggered,
+      memoryDetectSummary
+    } = memoryEngine.processMessages(newMessagesList, targetChatId);
 
     let fullAssistantResponse = '';
     let fullAssistantReasoning = '';
@@ -429,6 +463,8 @@ export const App: React.FC = () => {
                 content: data.content,
                 reasoning: data.reasoning,
                 isThinking: data.isThinking,
+                isMemoryDetectTriggered,
+                memoryDetectSummary,
               }
             ];
           }
@@ -466,6 +502,8 @@ export const App: React.FC = () => {
               {
                 ...last,
                 isThinking: false,
+                isMemoryDetectTriggered,
+                memoryDetectSummary,
               }
             ];
           }
@@ -488,14 +526,19 @@ export const App: React.FC = () => {
         setTotalTokens(updatedUsage.totalTokens);
 
         if (targetChatId && fullAssistantResponse) {
-          saveCloudMessage(targetChatId, userId, {
+          const finalAssistantMsg: ChatMessageItem = {
             id: assistantPlaceholderId,
             role: 'assistant',
             content: fullAssistantResponse,
             reasoning: fullAssistantReasoning,
             isX1: isX1Active,
             timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-          });
+            isMemoryDetectTriggered,
+            memoryDetectSummary,
+          };
+          saveCloudMessage(targetChatId, userId, finalAssistantMsg);
+          const currentChatTitle = cloudChats.find(c => c.id === targetChatId)?.title || text.slice(0, 40);
+          memoryEngine.updateChatMemoryNode(targetChatId, currentChatTitle, [...newMessagesList, finalAssistantMsg]);
         }
       }
     });
@@ -527,6 +570,7 @@ export const App: React.FC = () => {
   };
 
   const handleClearChat = async () => {
+    purgeAllLocalChatArtifacts();
     if (currentChatId) {
       await deleteCloudChat(currentChatId);
       loadCloudChats(user?.id ?? null, false);
@@ -602,6 +646,10 @@ export const App: React.FC = () => {
     setCurrentChatId(chatId);
     const history = await fetchChatMessages(chatId);
     setMessages(history);
+    const targetChat = cloudChats.find(c => c.id === chatId);
+    if (history.length > 0) {
+      memoryEngine.updateChatMemoryNode(chatId, targetChat?.title || 'محادثة سابقة', history);
+    }
     navigateTo('chat');
   };
 
@@ -654,6 +702,12 @@ export const App: React.FC = () => {
         onSuccess={handleBiometricSuccess}
       />
 
+      {/* Mandatory User Authentication Modal */}
+      <AuthRequiredModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
+
       {/* Subscription & Activation Code Modal */}
       <SubscriptionModal
         isOpen={isSubModalOpen}
@@ -699,10 +753,18 @@ export const App: React.FC = () => {
       {viewMode === 'landing' ? (
         <LandingPage
           onStartChat={() => {
+            if (!user) {
+              setIsAuthModalOpen(true);
+              return;
+            }
             localStorage.setItem(STORAGE_KEY_SEEN_LANDING, 'true');
             navigateTo('chat');
           }}
           onSelectPreset={(preset) => {
+            if (!user) {
+              setIsAuthModalOpen(true);
+              return;
+            }
             localStorage.setItem(STORAGE_KEY_SEEN_LANDING, 'true');
             navigateTo('chat');
             handleSendMessage(preset);

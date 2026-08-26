@@ -37,6 +37,8 @@ export interface ChatMessageItem {
   isX1?: boolean;
   model?: ModelType;
   tokensCount?: number;
+  isMemoryDetectTriggered?: boolean;
+  memoryDetectSummary?: string;
 }
 
 export interface WebAuthnVerificationResult {

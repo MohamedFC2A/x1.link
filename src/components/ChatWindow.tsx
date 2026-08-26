@@ -181,34 +181,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               كيف يمكن لـ <span className="brand-shimmer-text font-['Space_Grotesk'] font-black">matany.one</span> مساعدتك؟
             </h2>
             
-            <p className="text-xs sm:text-sm text-zinc-400 max-w-sm mx-auto font-sans leading-relaxed mb-6">
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-sm mx-auto font-sans leading-relaxed">
               ذكاء اصطناعي حر بذاكرة سحابية مليونية وتحليل متعدد الوسائط
             </p>
-
-            {/* Quick Minimalist Starter Chips */}
-            <div className="flex flex-wrap items-center justify-center gap-2 max-w-md mx-auto">
-              <button
-                type="button"
-                onClick={() => onSendPreset('ما هي أحدث قدرات الذكاء الاصطناعي في matany.one؟')}
-                className="px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-zinc-300 hover:text-white text-xs transition-all active:scale-95 cursor-pointer font-sans"
-              >
-                ⚡ قدرات المنظومة
-              </button>
-              <button
-                type="button"
-                onClick={() => onSendPreset('قم بتحليل وتلخيص رابط فيديو بالتفصيل')}
-                className="px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-zinc-300 hover:text-white text-xs transition-all active:scale-95 cursor-pointer font-sans"
-              >
-                🎬 تلخيص وسائط
-              </button>
-              <button
-                type="button"
-                onClick={() => onSendPreset('ساعدني في كتابة وتدقيق كود برمجي احترافي')}
-                className="px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-zinc-300 hover:text-white text-xs transition-all active:scale-95 cursor-pointer font-sans"
-              >
-                💻 كتابة وتدقيق كود
-              </button>
-            </div>
           </div>
         ) : (
           <div ref={messagesListRef} className="max-w-3xl mx-auto space-y-3 sm:space-y-4 pb-20 sm:pb-24">

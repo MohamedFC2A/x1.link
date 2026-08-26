@@ -23,12 +23,47 @@ export interface SupabaseChat {
   updated_at: string;
 }
 
-// Generate or retrieve unique device fingerprint ID for non-logged in guest users
+// Pure 100% Cloud-First Architecture: Purge and wipe all local storage chat remnants
+export function purgeAllLocalChatArtifacts(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      if (
+        key.startsWith('x1_chat') ||
+        key.startsWith('x1_msg') ||
+        key.startsWith('x1_memory') ||
+        key.startsWith('x1_cloud_memory') ||
+        key.startsWith('x1_local') ||
+        key.startsWith('x1_guest') ||
+        key.startsWith('chat_') ||
+        key.startsWith('messages_') ||
+        key.includes('chat_history') ||
+        key.includes('conversation')
+      ) {
+        if (!key.startsWith('sb-')) {
+          keysToRemove.push(key);
+        }
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    if (keysToRemove.length > 0) {
+      console.log(`[Zero Local Storage] Purged (${keysToRemove.length}) obsolete local chat keys.`);
+    }
+  } catch (err) {
+    console.warn('[Zero Local Storage Purge Catch]:', err);
+  }
+}
+
+// Generate or retrieve unique device fingerprint ID for cloud device identification
 export function getOrCreateDeviceId(): string {
-  let deviceId = localStorage.getItem('x1_guest_device_id');
+  purgeAllLocalChatArtifacts();
+  let deviceId = sessionStorage.getItem('x1_session_device_id');
   if (!deviceId) {
     deviceId = 'dev_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-    localStorage.setItem('x1_guest_device_id', deviceId);
+    sessionStorage.setItem('x1_session_device_id', deviceId);
   }
   return deviceId;
 }
@@ -255,5 +290,86 @@ export async function deleteCloudChat(chatId: string): Promise<boolean> {
     return !error;
   } catch {
     return false;
+  }
+}
+
+// Fetch cross-chat summary for up to 50 cloud conversations for the memory engine
+export async function fetchCrossChatHistoryForMemory(
+  userId: string | null,
+  limitCount: number = 50
+): Promise<Array<{ chat: SupabaseChat; messages: ChatMessageItem[] }>> {
+  try {
+    const chats = await fetchUserChats(userId);
+    const targetChats = chats.slice(0, limitCount);
+    
+    // Batch fetch top recent messages for the top chats in parallel
+    const results = await Promise.all(
+      targetChats.slice(0, 30).map(async (chat) => {
+        try {
+          const msgs = await fetchChatMessages(chat.id);
+          return { chat, messages: msgs };
+        } catch {
+          return { chat, messages: [] };
+        }
+      })
+    );
+
+    return results;
+  } catch (err) {
+    console.warn('[Supabase fetchCrossChatHistory Error]:', err);
+    return [];
+  }
+}
+
+// 100% Cloud-First User Memory Graph Sync on Supabase
+export async function fetchCloudUserMemories(userId: string | null): Promise<any | null> {
+  if (!userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('x1_user_memories')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('[Supabase fetchUserMemories Error]:', error.message);
+      return null;
+    }
+    return data || null;
+  } catch (err) {
+    console.warn('[Supabase fetchUserMemories Exception]:', err);
+    return null;
+  }
+}
+
+export async function saveCloudUserMemories(
+  userId: string | null,
+  snapshot: {
+    crossChatNodes: any[];
+    keyInsights: string[];
+    userProfileFacts: string[];
+    targetReconRegistry: string[];
+    indexedChatsCount: number;
+  }
+): Promise<void> {
+  if (!userId) return;
+  try {
+    const { error } = await supabase
+      .from('x1_user_memories')
+      .upsert({
+        user_id: userId,
+        cross_chat_nodes: snapshot.crossChatNodes || [],
+        key_insights: snapshot.keyInsights || [],
+        user_profile_facts: snapshot.userProfileFacts || [],
+        target_recon_registry: snapshot.targetReconRegistry || [],
+        indexed_chats_count: snapshot.indexedChatsCount || 0,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+
+    if (error) {
+      console.warn('[Supabase saveUserMemories Error]:', error.message);
+    }
+  } catch (err) {
+    console.warn('[Supabase saveUserMemories Exception]:', err);
   }
 }

@@ -15,6 +15,9 @@ import { PhoneConfirmModal } from './ui/PhoneConfirmModal';
 import { EmailConfirmModal } from './ui/EmailConfirmModal';
 import { renderSmartContentWithLinksAndPhones } from '@/lib/smart-content-parser';
 import { PlatformLogo } from './ui/PlatformLogo';
+import { FeaturesBar } from './ui/FeaturesBar';
+import { MemoryDetectBadge } from './ui/MemoryDetectBadge';
+import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon } from '@/lib/featuresRegistry';
 
 const YouTubeIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -419,22 +422,6 @@ const AiDetectBadge: React.FC<AiDetectBadgeProps> = ({ verdict = 'AI-Generated',
   );
 };
 
-export const TimeDetectIcon: React.FC<{ className?: string; size?: number }> = ({ className = "w-3.5 h-3.5", size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
-    <defs>
-      <linearGradient id="timeDetectIconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#67e8f9" />
-        <stop offset="25%" stopColor="#a5b4fc" />
-        <stop offset="50%" stopColor="#e879f9" />
-        <stop offset="75%" stopColor="#fde047" />
-        <stop offset="100%" stopColor="#6ee7b7" />
-      </linearGradient>
-    </defs>
-    <circle cx="12" cy="12" r="9.5" stroke="url(#timeDetectIconGrad)" strokeWidth="2.4" />
-    <path d="M12 6.5v5.5l3.5 2" stroke="url(#timeDetectIconGrad)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
 export const TimeDetectBadge: React.FC<{
   title?: string;
   subtitle?: string;
@@ -778,19 +765,19 @@ export const TimeDetectAutoDelete: React.FC<{
   const progressPercent = Math.max(0, Math.min(100, (remaining / (initialSeconds || 600)) * 100));
 
   return (
-    <div className="my-3 p-4 sm:p-5 rounded-2xl time-detect-glass text-right animate-in fade-in duration-200 select-none shadow-2xl border border-rose-500/30" dir="rtl">
+    <div className="my-3 p-4 sm:p-5 rounded-2xl time-detect-glass text-right animate-in fade-in duration-200 select-none shadow-2xl border border-amber-500/30" dir="rtl">
       <div className="flex items-center justify-between gap-3 border-b border-white/[0.1] pb-3 mb-3.5">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-black uppercase px-2.5 py-0.5 rounded-full time-detect-glass text-rose-300 border border-rose-500/40 shadow-sm">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-black uppercase px-2.5 py-0.5 rounded-full time-detect-glass text-amber-300 border border-amber-500/40 shadow-sm">
             <TimeDetectIcon />
             <span className="time-detect-text">TIME DETECT</span>
           </span>
-          <span className="text-xs sm:text-sm font-sans font-bold text-rose-100 flex items-center gap-1.5">
-            <Trash2 className="w-4 h-4 text-rose-400 animate-pulse" />
+          <span className="text-xs sm:text-sm font-sans font-bold text-amber-100 flex items-center gap-1.5">
+            <Trash2 className="w-4 h-4 text-amber-400 animate-pulse" />
             نظام التدمير الذاتي للمحادثة
           </span>
         </div>
-        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-200 font-bold shadow-inner">
+        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-200 font-bold shadow-inner">
           {durationLabel}
         </span>
       </div>
@@ -799,8 +786,8 @@ export const TimeDetectAutoDelete: React.FC<{
         <div className="flex-1 min-w-0">
           <div className="text-xs text-zinc-300 font-sans leading-relaxed">
             {isDestroyed ? (
-              <span className="text-rose-400 font-bold text-sm flex items-center gap-1.5">
-                <span className="inline-block size-2 rounded-full bg-rose-500 animate-ping" />
+              <span className="text-amber-400 font-bold text-sm flex items-center gap-1.5">
+                <span className="inline-block size-2 rounded-full bg-amber-500 animate-ping" />
                 تم تدمير المحادثة ذاتياً بنجاح ومسح السجل...
               </span>
             ) : isCancelled ? (
@@ -812,12 +799,12 @@ export const TimeDetectAutoDelete: React.FC<{
 
           {!isCancelled && !isDestroyed && (
             <div className="flex items-center gap-3 mt-2">
-              <div className="text-2xl sm:text-3xl font-mono font-black text-rose-400 dir-ltr text-right tracking-tight drop-shadow-[0_0_8px_rgba(244,63,94,0.4)]">
+              <div className="text-2xl sm:text-3xl font-mono font-black text-amber-400 dir-ltr text-right tracking-tight drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]">
                 {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
               </div>
               <div className="flex-1 h-2 rounded-full bg-white/[0.08] overflow-hidden border border-white/[0.1]">
                 <div
-                  className="h-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-400 transition-all duration-1000 rounded-full"
+                  className="h-full bg-gradient-to-r from-amber-500 via-cyan-500 to-emerald-400 transition-all duration-1000 rounded-full"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -840,23 +827,7 @@ export const TimeDetectAutoDelete: React.FC<{
 };
 
 function parseCustomBadges(rawContent: string): React.ReactNode | null {
-  // 1. AI Detect
-  const aiMatch = rawContent.match(/(?:\[AI-DETECT-BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|AI-DETECT-BADGE:\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
-  if (aiMatch) {
-    const verdict = (aiMatch[1] || aiMatch[3])?.trim() || 'AI-Generated';
-    const score = (aiMatch[2] || aiMatch[4])?.trim() || '99.9%';
-    return <AiDetectBadge verdict={verdict} score={score} />;
-  }
-
-  // 2. Time Detect Badge
-  const timeDetectMatch = rawContent.match(/(?:\[TIME-DETECT-BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-BADGE:\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
-  if (timeDetectMatch) {
-    const title = (timeDetectMatch[1] || timeDetectMatch[3])?.trim() || 'استشعار وتدقيق المعطيات الزمنية الفائقة';
-    const subtitle = (timeDetectMatch[2] || timeDetectMatch[4])?.trim() || 'مطابقة التوقيت والسنة المعتمدة (2026)';
-    return <TimeDetectBadge title={title} subtitle={subtitle} />;
-  }
-
-  // 3. Time Detect - Timer
+  // 1. Time Detect - Timer (Interactive widget only)
   const timerMatch = rawContent.match(/(?:\[TIME-DETECT-TIMER:\s*(\d+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-TIMER:\s*(\d+))/i);
   if (timerMatch) {
     const seconds = parseInt(timerMatch[1] || timerMatch[4] || '300', 10);
@@ -865,7 +836,7 @@ function parseCustomBadges(rawContent: string): React.ReactNode | null {
     return <TimeDetectTimer initialSeconds={seconds} durationLabel={label} title={title} />;
   }
 
-  // 4. Time Detect - Reminder
+  // 2. Time Detect - Reminder (Interactive widget only)
   const reminderMatch = rawContent.match(/(?:\[TIME-DETECT-REMINDER:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-REMINDER:\s*([^|\n]+))/i);
   if (reminderMatch) {
     const iso = (reminderMatch[1] || reminderMatch[3])?.trim() || '';
@@ -873,7 +844,7 @@ function parseCustomBadges(rawContent: string): React.ReactNode | null {
     return <TimeDetectReminder targetDateIso={iso} reminderText={text} />;
   }
 
-  // 5. Time Detect - Auto Delete
+  // 3. Time Detect - Auto Delete (Interactive widget only)
   const autoDeleteMatch = rawContent.match(/(?:\[TIME-DETECT-AUTODELETE:\s*(\d+)\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-AUTODELETE:\s*(\d+))/i);
   if (autoDeleteMatch) {
     const seconds = parseInt(autoDeleteMatch[1] || autoDeleteMatch[3] || '600', 10);
@@ -881,6 +852,8 @@ function parseCustomBadges(rawContent: string): React.ReactNode | null {
     return <TimeDetectAutoDelete initialSeconds={seconds} durationLabel={label} />;
   }
 
+  // Note: Static verdict badges (AI Detect, Time Detect, Memory Detect) are already elegantly rendered
+  // inside the top FeaturesBar before thinking, so we suppress rendering duplicate static boxes here.
   return null;
 }
 
@@ -906,6 +879,18 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
 
   const hasReasoning = Boolean(message.reasoning && message.reasoning.trim().length > 0);
   const isThinking = Boolean(message.isThinking);
+
+  // Universal Modular Features (نظام الخواص الشامل)
+  const activeFeatures = getActiveDetectedFeatures(
+    previousUserPrompt,
+    message.reasoning,
+    message.content,
+    {
+      isMemoryDetectTriggered: (message as any).isMemoryDetectTriggered,
+      memoryDetectSummary: (message as any).memoryDetectSummary,
+    }
+  );
+  const hasMemoryDetect = activeFeatures.some(f => f.id === 'memory_detect');
 
   // Intent classification on user request
   const promptLower = previousUserPrompt.toLowerCase();
@@ -1157,6 +1142,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             isStreaming={isStreaming}
             isX1={message.isX1}
             isTimeIntent={isTimeIntent}
+            activeFeatures={activeFeatures}
             defaultValue={isStreaming ? "reasoning" : undefined}
           />
         )}
@@ -1165,13 +1151,20 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           <div className="flex items-center gap-2 py-1.5 select-none" dir="rtl">
             <div className="inline-flex h-8 items-center gap-2.5 rounded-full pl-3.5 pr-2.5 time-detect-glass">
               <ThinkingOrb
-                state={isTimeIntent ? "solving" : isMedia ? "weaving" : isCyber ? "searching" : isVision ? (loadingPhase === 'detecting' ? "shaping" : "working") : message.isX1 ? "solving" : "composing"}
+                state={hasMemoryDetect ? "weaving" : isTimeIntent ? "solving" : isMedia ? "weaving" : isCyber ? "searching" : isVision ? (loadingPhase === 'detecting' ? "shaping" : "working") : message.isX1 ? "solving" : "composing"}
                 size={20}
                 theme="dark"
                 speed={1.6}
               />
               <span className="whitespace-nowrap text-xs font-sans font-medium text-zinc-300 flex items-center gap-1.5">
-                {isTimeIntent ? (
+                {hasMemoryDetect ? (
+                  <>
+                    <span>جارِ استدعاء الذاكرة السحابية واسترجاع سياق المحادثات عبر</span>
+                    <MemoryDetectIcon size={14} />
+                    <span className="memory-detect-text font-black text-xs">Memory Detect</span>
+                    <span>...</span>
+                  </>
+                ) : isTimeIntent ? (
                   loadingPhase === 'searching' ? (
                     <>
                       <span>جارِ البحث الزمني العميق والتحقق من التواريخ عبر</span>
@@ -1198,12 +1191,14 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   loadingPhase === 'searching' ? (
                     <>
                       <span>جارِ البحث الجنائي واستخراج طبقات الميتاداتا عبر</span>
+                      <MetadataDetectIcon size={14} />
                       <span className="meta-data-text font-black text-xs">Meta Data</span>
                       <span>...</span>
                     </>
                   ) : (
                     <>
                       <span>جارِ تدقيق بيانات العتاد والموقع الجغرافي عبر</span>
+                      <MetadataDetectIcon size={14} />
                       <span className="meta-data-text font-black text-xs">Meta Data</span>
                       <span>...</span>
                     </>
@@ -1212,12 +1207,14 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   loadingPhase === 'searching' ? (
                     <>
                       <span>جارِ البحث والتحقق العميق من المصادر ونمط التوليد عبر</span>
+                      <AiDetectIcon size={14} />
                       <span className="ai-detect-text font-black text-xs">AI Detect</span>
                       <span>...</span>
                     </>
                   ) : (
                     <>
                       <span>جارِ تدقيق البصمات وتحديد أصالة المعطيات عبر</span>
+                      <AiDetectIcon size={14} />
                       <span className="ai-detect-text font-black text-xs">AI Detect</span>
                       <span>...</span>
                     </>
@@ -1273,14 +1270,12 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                           }
                         }}
                         className={cn(
-                          "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border font-mono text-xs transition-colors cursor-pointer select-none active:scale-95",
-                          isMailto
-                            ? "bg-[#0c1017] hover:bg-[#141b29] border-sky-500/20 hover:border-sky-500/40 text-zinc-200 hover:text-white"
-                            : isTel
-                            ? "bg-[#0c120e] hover:bg-[#121c16] border-emerald-500/20 hover:border-emerald-500/40 text-zinc-200 hover:text-white"
-                            : "bg-[#0e0e12] hover:bg-[#16161c] border-white/[0.1] hover:border-white/[0.22] text-zinc-200 hover:text-white"
+                          "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-150 select-none cursor-pointer group/link",
+                          isMailto ? "bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 border border-sky-500/30 group/email" :
+                          isTel ? "bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 group/phone" :
+                          "bg-white/[0.06] text-zinc-200 hover:bg-white/[0.12] hover:text-white border border-white/[0.1]"
                         )}
-                        title={isMailto ? `انقر لتأكيد مراسلة البريد: ${href}` : isTel ? `انقر لتأكيد الاتصال: ${href}` : `انقر لتأكيد الانتقال إلى: ${href}`}
+                        title={href}
                       >
                         {isMailto ? (
                           <Mail className="size-3 text-sky-400 group-hover/email:text-sky-300 shrink-0" />
@@ -1303,6 +1298,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   if (customBadge) {
                     return customBadge;
                   }
+                  // Suppress empty paragraphs that were generated by stripped badges
+                  if (!rawContent.trim()) return null;
                   return (
                     <p className="mb-2.5 sm:mb-3 last:mb-0 leading-relaxed">
                       {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
@@ -1407,7 +1404,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 }
               }}
             >
-              {message.content}
+              {(message.content || '')
+                .replace(/\[\s*(?:AI|TIME|MEMORY)[-\s]?DETECT[-\s]?BADGE:[^\]]*\]/gi, '')
+                .replace(/(?:AI|TIME|MEMORY)[-\s]?DETECT[-\s]?BADGE:[^\n]*/gi, '')
+                .trim()}
             </ReactMarkdown>
 
             {isStreaming && (

@@ -20,8 +20,11 @@ const METADATA_KEYWORD_REGEX = /\b(Meta[-\s]?Data|Metadata|EXIF)\b|(?:\b(الم�
 // Keywords for Time Detect (Aurora Multi-Color Temporal styling)
 const TIME_KEYWORD_REGEX = /\b(Time[-\s]?Detect|TimeDetect)\b|(?:\b(تايم\s?ديتكت|تايم\s?ديتيكت|استشعار\s?الوقت|استشعار\s?الزمن)\b)/i;
 
+// Keywords for Memory Detect (50-Session Synced Cloud Memory Neural styling)
+const MEMORY_KEYWORD_REGEX = /\b(Memory[-\s]?Detect|MemoryDetect)\b|(?:\b(ميموري\s?ديتكت|ميموري\s?ديتيكت|الذاكرة\s?السحابية|الذاكرة\s?المتزامنة|استرجاع\s?الذاكرة|ذاكرة\s?سحابية)\b)/i;
+
 const COMBINED_SCANNER = new RegExp(
-  `(${EMAIL_REGEX.source})|(${URL_REGEX.source})|(${PHONE_REGEX.source})|(${AI_KEYWORD_REGEX.source})|(${METADATA_KEYWORD_REGEX.source})|(${TIME_KEYWORD_REGEX.source})`,
+  `(${EMAIL_REGEX.source})|(${URL_REGEX.source})|(${PHONE_REGEX.source})|(${AI_KEYWORD_REGEX.source})|(${METADATA_KEYWORD_REGEX.source})|(${TIME_KEYWORD_REGEX.source})|(${MEMORY_KEYWORD_REGEX.source})`,
   "gi"
 );
 
@@ -200,6 +203,17 @@ export function renderSmartContentWithLinksAndPhones(
           className="inline-flex items-center gap-1 px-2 py-0.5 mx-1 rounded-full time-detect-glass select-text align-middle"
         >
           <span className="time-detect-text font-sans font-black text-xs">
+            {matchedToken}
+          </span>
+        </span>
+      );
+    } else if (/^(Memory[-\s]?Detect|MemoryDetect|ميموري\s?ديتكت|ميموري\s?ديتيكت|الذاكرة\s?السحابية|الذاكرة\s?المتزامنة|استرجاع\s?الذاكرة|ذاكرة\s?سحابية)$/i.test(matchedToken)) {
+      parts.push(
+        <span
+          key={`memorydetect-${matchIndex}`}
+          className="inline-flex items-center gap-1 px-2.5 py-0.5 mx-1 rounded-full memory-detect-glass select-text align-middle border border-purple-400/30"
+        >
+          <span className="memory-detect-text font-sans font-black text-xs">
             {matchedToken}
           </span>
         </span>
