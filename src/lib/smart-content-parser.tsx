@@ -1,20 +1,29 @@
 import React from "react";
-import { Globe, ExternalLink, Phone, PhoneCall } from "lucide-react";
+import { Globe, ExternalLink, Phone, PhoneCall, Mail } from "lucide-react";
 import { renderSmartTextWithIcons } from "./smart-icons";
 
-// Regex for URLs & Multi-level Domains
+// Regex for Emails (e.g. ahu@asu.edu.eg, contact@domain.com, etc.)
+const EMAIL_REGEX = /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/i;
+
+// Regex for URLs & Multi-level Domains (excluding emails!)
 const URL_REGEX = /(https?:\/\/[^\s<>"'()]+|(?:www\.)[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\/[^\s<>"'()]*)?|\b[a-zA-Z0-9-]*[a-zA-Z][a-zA-Z0-9-]*\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|gov|edu|mil|info|io|ai|app|dev|link|tech|me|co|xyz|one|online|site|space|store|eg|sa|ae|uk|us|de|fr|ru|cn|jp|in|ca|au|ly|sy|iq|jo|kw|qa|bh|om|ye|sd|ma|dz|tn)(?:\/[^\s<>"'()]*)?\b)/i;
 
 // Regex for Hotlines & Phone numbers
 const PHONE_REGEX = /(\+?[0-9]{1,4}[\s-]?)?(?:(?:\(0[0-9]{1,3}\)|0[0-9]{1,3})[\s-]?)?[0-9]{3,4}[\s-]?[0-9]{3,4}|(?:\b1[56789][0-9]{3}\b)|(?:\b0900[0-9]{4,7}\b)|(?:\b0800[0-9]{4,7}\b)|(?:\b01[0125][0-9]{8}\b)/;
 
 const COMBINED_SCANNER = new RegExp(
-  `(${URL_REGEX.source})|(${PHONE_REGEX.source})`,
+  `(${EMAIL_REGEX.source})|(${URL_REGEX.source})|(${PHONE_REGEX.source})`,
   "gi"
 );
 
+function isValidEmailToken(str: string): boolean {
+  if (!str) return false;
+  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i.test(str);
+}
+
 function isValidUrlToken(str: string): boolean {
   if (!str) return false;
+  if (str.includes("@")) return false; // Emails are not URLs
   if (/^\d+\.?$/.test(str)) return false;
   if (/^https?:\/\//i.test(str)) return true;
   if (/^www\./i.test(str)) return true;
@@ -26,7 +35,7 @@ function isValidUrlToken(str: string): boolean {
 
 function isValidPhoneToken(str: string): boolean {
   if (!str) return false;
-  if (/[a-zA-Z/.]/.test(str)) return false;
+  if (/[a-zA-Z/.@]/.test(str)) return false;
 
   const clean = str.replace(/[^\d+]/g, "");
   if (clean.length < 5 || clean.length > 15) return false;
@@ -43,7 +52,8 @@ function isValidPhoneToken(str: string): boolean {
 export function renderSmartContentWithLinksAndPhones(
   text: string,
   onUrlClick: (url: string) => void,
-  onPhoneClick: (phone: string) => void
+  onPhoneClick: (phone: string) => void,
+  onEmailClick?: (email: string) => void
 ): React.ReactNode {
   if (!text || typeof text !== "string") return text;
 
@@ -62,7 +72,37 @@ export function renderSmartContentWithLinksAndPhones(
       parts.push(renderSmartTextWithIcons(plainChunk));
     }
 
-    if (isValidPhoneToken(matchedToken)) {
+    if (isValidEmailToken(matchedToken)) {
+      parts.push(
+        <bdi key={`email-${matchIndex}`} className="inline-flex align-middle mx-1 my-0.5">
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onEmailClick?.(matchedToken);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onEmailClick?.(matchedToken);
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#0c1017] hover:bg-[#121824] border border-sky-500/20 hover:border-sky-500/40 text-zinc-200 hover:text-white font-mono text-xs sm:text-sm font-medium transition-colors cursor-pointer select-none active:scale-95 group/email"
+            title={`انقر لتأكيد مراسلة البريد: ${matchedToken}`}
+          >
+            <Mail className="size-3.5 text-sky-400 group-hover/email:text-sky-300 shrink-0 inline-block" />
+            <span className="break-all dir-ltr underline underline-offset-2 text-zinc-100 group-hover/email:text-white font-medium">
+              {matchedToken}
+            </span>
+            <span className="text-[10px] font-sans px-1.5 py-0.2 rounded-md bg-sky-500/10 text-sky-400 border border-sky-500/20 font-medium shrink-0">
+              بريد
+            </span>
+          </span>
+        </bdi>
+      );
+    } else if (isValidPhoneToken(matchedToken)) {
       const clean = matchedToken.replace(/[^\d]/g, "");
       const isHotline = /^1[56789]\d{3}$/.test(clean) || matchedToken.startsWith("0900") || matchedToken.startsWith("0800");
       parts.push(

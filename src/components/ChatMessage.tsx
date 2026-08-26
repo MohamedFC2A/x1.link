@@ -3,19 +3,63 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessageItem } from '../types';
 import ChatReasoning from './ui/chat-reasoning';
-import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone } from 'lucide-react';
+import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { detectAndExtractUrl, getFaviconUrl } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { ThinkingOrb } from './ui/thinking-orbs';
 import { LinkConfirmModal } from './ui/LinkConfirmModal';
 import { PhoneConfirmModal } from './ui/PhoneConfirmModal';
+import { EmailConfirmModal } from './ui/EmailConfirmModal';
 import { renderSmartContentWithLinksAndPhones } from '@/lib/smart-content-parser';
 
 interface ChatMessageProps {
   message: ChatMessageItem;
   isStreaming?: boolean;
 }
+
+const PromptCard: React.FC<{ text: string }> = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="my-3 rounded-2xl border border-purple-500/25 bg-[#0e0a16]/90 p-3 sm:p-4 text-right backdrop-blur-xl shadow-lg group/prompt animate-in fade-in duration-150 select-none">
+      <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-purple-500/20">
+        <div className="flex items-center gap-2 text-xs font-semibold text-purple-200">
+          <div className="size-6 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center">
+            <Sparkles className="size-3.5 text-purple-400" />
+          </div>
+          <span>البرومبت المقترح (AI Prompt)</span>
+        </div>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-200 hover:text-white text-xs font-sans font-medium transition-all cursor-pointer select-none active:scale-95 shadow-sm"
+          title="نسخ البرومبت بالكامل"
+        >
+          {copied ? (
+            <>
+              <Check className="size-3.5 text-emerald-400" />
+              <span className="text-emerald-400 font-bold">تم نسخ البرومبت</span>
+            </>
+          ) : (
+            <>
+              <Copy className="size-3.5 text-purple-300" />
+              <span>نسخ البرومبت</span>
+            </>
+          )}
+        </button>
+      </div>
+      <div className="font-mono text-xs sm:text-sm text-zinc-100 whitespace-pre-wrap leading-relaxed select-text dir-ltr text-left p-3 rounded-xl bg-black/70 border border-white/[0.08] shadow-inner font-normal">
+        {text}
+      </div>
+    </div>
+  );
+};
 
 const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming = false }) => {
   const isUser = message.role === 'user';
@@ -24,6 +68,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
   const [faviconFailed, setFaviconFailed] = useState(false);
   const [confirmUrl, setConfirmUrl] = useState<string | null>(null);
   const [confirmPhone, setConfirmPhone] = useState<string | null>(null);
+  const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -135,7 +180,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
 
           {remainingText && (
             <div className="text-xs sm:text-base leading-relaxed whitespace-pre-wrap font-sans break-words text-zinc-100">
-              {renderSmartContentWithLinksAndPhones(remainingText, setConfirmUrl, setConfirmPhone)}
+              {renderSmartContentWithLinksAndPhones(remainingText, setConfirmUrl, setConfirmPhone, setConfirmEmail)}
             </div>
           )}
 
@@ -165,10 +210,12 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
         </div>
         <LinkConfirmModal url={confirmUrl} onClose={() => setConfirmUrl(null)} />
         <PhoneConfirmModal phoneNumber={confirmPhone} onClose={() => setConfirmPhone(null)} />
+        <EmailConfirmModal email={confirmEmail} onClose={() => setConfirmEmail(null)} />
       </motion.div>
     );
   }
 
+  // Assistant Message
   const isCyber = message.model === 'deepseek-v4-flash-cyber';
   const isVision = message.model === 'deepseek-v4-flash-vision-exp' || Boolean(message.image);
 
@@ -238,6 +285,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
               components={{
                 a: ({ href, children }: any) => {
                   const isTel = href?.startsWith('tel:');
+                  const isMailto = href?.startsWith('mailto:');
                   return (
                     <bdi className="inline-flex align-middle mx-1 my-0.5">
                       <span
@@ -246,7 +294,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          if (isTel) {
+                          if (isMailto) {
+                            setConfirmEmail(href.replace('mailto:', ''));
+                          } else if (isTel) {
                             setConfirmPhone(href.replace('tel:', ''));
                           } else if (href) {
                             setConfirmUrl(href);
@@ -255,7 +305,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            if (isTel) {
+                            if (isMailto) {
+                              setConfirmEmail(href.replace('mailto:', ''));
+                            } else if (isTel) {
                               setConfirmPhone(href.replace('tel:', ''));
                             } else if (href) {
                               setConfirmUrl(href);
@@ -264,20 +316,29 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                         }}
                         className={cn(
                           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border font-mono text-xs sm:text-sm transition-colors cursor-pointer select-none active:scale-95",
-                          isTel
+                          isMailto
+                            ? "bg-[#0c1017] hover:bg-[#121824] border-sky-500/20 hover:border-sky-500/40 text-zinc-200 hover:text-white font-medium"
+                            : isTel
                             ? "bg-[#0c120e] hover:bg-[#121c16] border-emerald-500/20 hover:border-emerald-500/40 text-zinc-200 hover:text-white font-semibold"
                             : "bg-[#0e0e12] hover:bg-[#16161c] border-white/[0.1] hover:border-white/[0.22] text-zinc-200 hover:text-white font-medium"
                         )}
-                        title={isTel ? `انقر لتأكيد الاتصال: ${href}` : `انقر لتأكيد الانتقال إلى: ${href}`}
+                        title={isMailto ? `انقر لتأكيد مراسلة البريد: ${href}` : isTel ? `انقر لتأكيد الاتصال: ${href}` : `انقر لتأكيد الانتقال إلى: ${href}`}
                       >
-                        {isTel ? (
+                        {isMailto ? (
+                          <Mail className="size-3.5 text-sky-400 group-hover/email:text-sky-300 shrink-0 inline-block" />
+                        ) : isTel ? (
                           <PhoneCall className="size-3.5 text-emerald-400 group-hover/phone:text-emerald-300 shrink-0 inline-block" />
                         ) : (
                           <Globe className="size-3.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0 inline-block" />
                         )}
                         <span className="break-all dir-ltr underline underline-offset-2 text-zinc-100 group-hover/link:text-white font-medium">{children}</span>
-                        {!isTel && (
+                        {!isTel && !isMailto && (
                           <ExternalLink className="size-2.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0 inline-block" />
+                        )}
+                        {isMailto && (
+                          <span className="text-[10px] font-sans px-1.5 py-0.2 rounded-md bg-sky-500/10 text-sky-400 border border-sky-500/20 font-medium shrink-0">
+                            بريد
+                          </span>
                         )}
                       </span>
                     </bdi>
@@ -285,27 +346,27 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                 },
                 p: ({ children }) => (
                   <p className="mb-2.5 sm:mb-3 last:mb-0 leading-relaxed">
-                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone) : child)}
+                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                   </p>
                 ),
                 h1: ({ children }) => (
                   <h1 className="text-base sm:text-xl font-bold text-white my-2 sm:my-3 border-b border-white/[0.1] pb-1.5">
-                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone) : child)}
+                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                   </h1>
                 ),
                 h2: ({ children }) => (
                   <h2 className="text-sm sm:text-lg font-semibold text-zinc-100 my-2 sm:my-2.5">
-                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone) : child)}
+                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                   </h2>
                 ),
                 h3: ({ children }) => (
                   <h3 className="text-xs sm:text-base font-semibold text-white my-1.5 sm:my-2">
-                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone) : child)}
+                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                   </h3>
                 ),
                 li: ({ children }) => (
                   <li className="my-0.5 leading-relaxed">
-                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone) : child)}
+                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                   </li>
                 ),
                 ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2 text-zinc-300 pr-1 sm:pr-2">{children}</ul>,
@@ -325,11 +386,17 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                 ),
                 td: ({ children }) => (
                   <td className="p-2 border-b border-white/[0.06] text-zinc-300">
-                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone) : child)}
+                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                   </td>
                 ),
                 code: ({ inline, className, children, ...props }: any) => {
                   const match = /language-(\w+)/.exec(className || '');
+                  const lang = match ? match[1].toLowerCase() : '';
+
+                  if (!inline && (lang === 'prompt' || lang === 'prompts')) {
+                    return <PromptCard text={String(children).replace(/\n$/, '')} />;
+                  }
+
                   return !inline ? (
                     <div className="my-2.5 sm:my-3 rounded-xl border border-white/[0.1] bg-black/80 overflow-hidden font-mono text-xs text-left" dir="ltr">
                       <div className="flex justify-between items-center bg-white/[0.04] px-3 py-1.5 border-b border-white/[0.08] text-zinc-400 text-[11px]">
@@ -389,18 +456,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
       </div>
       <LinkConfirmModal url={confirmUrl} onClose={() => setConfirmUrl(null)} />
       <PhoneConfirmModal phoneNumber={confirmPhone} onClose={() => setConfirmPhone(null)} />
+      <EmailConfirmModal email={confirmEmail} onClose={() => setConfirmEmail(null)} />
     </motion.div>
   );
 };
 
-export const ChatMessage = React.memo(ChatMessageComponent, (prevProps, nextProps) => {
-  if (prevProps.isStreaming !== nextProps.isStreaming) return false;
-  if (prevProps.message.id !== nextProps.message.id) return false;
-  if (prevProps.message.content !== nextProps.message.content) return false;
-  if (prevProps.message.reasoning !== nextProps.message.reasoning) return false;
-  if (prevProps.message.isThinking !== nextProps.message.isThinking) return false;
-  if (prevProps.message.model !== nextProps.message.model) return false;
-  if (prevProps.message.isX1 !== nextProps.message.isX1) return false;
-  if (prevProps.message.image !== nextProps.message.image) return false;
-  return true;
-});
+export default ChatMessageComponent;
+export { ChatMessageComponent as ChatMessage };
