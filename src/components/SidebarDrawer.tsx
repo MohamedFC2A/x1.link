@@ -46,9 +46,9 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
         {/* Header */}
         <div className="p-3.5 sm:p-4 border-b border-white/[0.08] flex items-center justify-between">
           <div className="flex flex-col text-right">
-            <div className="flex items-baseline gap-1" dir="ltr">
-              <span className="font-['Space_Grotesk'] font-bold text-sm tracking-tight text-white">
-                Matany
+            <div className="flex items-baseline gap-0.5" dir="ltr">
+              <span className="font-['Space_Grotesk'] font-bold text-sm tracking-tight brand-shimmer-text">
+                matany
               </span>
               <span className="font-['Space_Grotesk'] text-[11px] text-zinc-400 font-mono">
                 .one

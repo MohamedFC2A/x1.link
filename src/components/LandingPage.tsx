@@ -27,9 +27,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           
           {/* Right / Pure Typographic Luxury Brand Wordmark */}
           <div className="flex flex-col text-left justify-center select-none py-0.5" dir="ltr">
-            <div className="flex items-baseline gap-1 leading-none">
-              <span className="font-['Space_Grotesk'] font-black text-xl sm:text-2xl tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">
-                Matany
+            <div className="flex items-baseline gap-0.5 leading-none">
+              <span className="font-['Space_Grotesk'] font-black text-xl sm:text-2xl tracking-tight brand-shimmer-text">
+                matany
               </span>
               <span className="font-['Space_Grotesk'] font-bold text-xs sm:text-sm text-zinc-400 font-mono tracking-tight">
                 .one

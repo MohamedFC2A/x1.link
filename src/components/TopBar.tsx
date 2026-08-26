@@ -35,14 +35,14 @@ export const TopBar: React.FC<TopBarProps> = ({
         <div
           onClick={onGoHome}
           className="flex flex-col text-left justify-center cursor-pointer group shrink-0 select-none py-0.5"
-          title="Matany.one"
+          title="matany.one"
           dir="ltr"
         >
-          <div className="flex items-baseline gap-1 leading-none">
-            <span className="font-['Space_Grotesk'] font-black text-xl sm:text-2xl tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all">
-              Matany
+          <div className="flex items-baseline gap-0.5 leading-none">
+            <span className="font-['Space_Grotesk'] font-black text-xl sm:text-2xl tracking-tight brand-shimmer-text">
+              matany
             </span>
-            <span className="font-['Space_Grotesk'] font-bold text-xs sm:text-sm text-zinc-400 font-mono tracking-tight">
+            <span className="font-['Space_Grotesk'] font-bold text-xs sm:text-sm text-zinc-400 font-mono tracking-tight group-hover:text-zinc-200 transition-colors">
               .one
             </span>
           </div>
