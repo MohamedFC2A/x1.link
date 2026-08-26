@@ -3,16 +3,69 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessageItem } from '../types';
 import ChatReasoning from './ui/chat-reasoning';
-import { ExecutionPipeline } from './ui/execution-pipeline';
-import { Check, Copy, Bot, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe } from 'lucide-react';
+import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { renderSmartTextWithIcons } from '@/lib/smart-icons';
 import { detectAndExtractUrl, getFaviconUrl } from '@/lib/utils';
 import { ThinkingOrb } from './ui/thinking-orbs';
+import { LinkConfirmModal } from './ui/LinkConfirmModal';
 
 interface ChatMessageProps {
   message: ChatMessageItem;
   isStreaming?: boolean;
+}
+
+const URL_REGEX = /(https?:\/\/[^\s<>"'()]+|(?:www\.)[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s<>"'()]*)?|[a-zA-Z0-9-]+\.(?:one|com|org|net|io|ai|app|dev|link|tech|me|co|xyz)(?:\/[^\s<>"'()]*)?)/gi;
+
+function renderSmartTextWithLinks(
+  text: string,
+  onUrlClick: (url: string) => void
+): React.ReactNode {
+  if (!text || typeof text !== 'string') return text;
+  if (!URL_REGEX.test(text)) {
+    return renderSmartTextWithIcons(text);
+  }
+
+  URL_REGEX.lastIndex = 0;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = URL_REGEX.exec(text)) !== null) {
+    const rawUrl = match[0];
+    const matchIndex = match.index;
+
+    if (matchIndex > lastIndex) {
+      const nonUrlChunk = text.slice(lastIndex, matchIndex);
+      parts.push(renderSmartTextWithIcons(nonUrlChunk));
+    }
+
+    parts.push(
+      <button
+        key={`link-${matchIndex}`}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onUrlClick(rawUrl);
+        }}
+        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 my-0.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.16] border border-white/[0.15] hover:border-white/40 text-cyan-300 hover:text-white font-mono text-xs sm:text-sm font-medium transition-all cursor-pointer shadow-sm mx-1 align-baseline select-none active:scale-95 group/link"
+        title={`انقر لتأكيد الانتقال إلى: ${rawUrl}`}
+      >
+        <Globe className="size-3 text-cyan-400 group-hover/link:text-cyan-300 shrink-0 inline-block" />
+        <span className="break-all dir-ltr underline underline-offset-2">{rawUrl}</span>
+        <ExternalLink className="size-2.5 opacity-70 group-hover/link:opacity-100 shrink-0 inline-block" />
+      </button>
+    );
+
+    lastIndex = URL_REGEX.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(renderSmartTextWithIcons(text.slice(lastIndex)));
+  }
+
+  return parts;
 }
 
 const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming = false }) => {
@@ -20,6 +73,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
   const [copied, setCopied] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [faviconFailed, setFaviconFailed] = useState(false);
+  const [confirmUrl, setConfirmUrl] = useState<string | null>(null);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -60,7 +114,11 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                   TARGET URL
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-2.5 bg-zinc-950/80 p-2 sm:p-2.5 rounded-lg border border-white/[0.08] mt-0.5 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setConfirmUrl(extractedUrl)}
+                className="flex items-center justify-between gap-2.5 bg-zinc-950/80 hover:bg-zinc-900/80 p-2 sm:p-2.5 rounded-lg border border-white/[0.08] hover:border-white/[0.2] mt-0.5 shadow-inner w-full text-right cursor-pointer transition-all group/target"
+              >
                 <div className="size-7 rounded-xl bg-zinc-900 border border-white/[0.12] flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
                   {faviconUrl && !faviconFailed ? (
                     <img
@@ -76,17 +134,14 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                     </div>
                   )}
                 </div>
-                <a
-                  href={extractedUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-mono text-xs sm:text-sm text-zinc-200 hover:text-white underline underline-offset-4 decoration-white/20 hover:decoration-white break-all dir-ltr text-left flex-1 transition-colors"
+                <span
+                  className="font-mono text-xs sm:text-sm text-zinc-200 group-hover/target:text-white underline underline-offset-4 decoration-white/20 group-hover/target:decoration-white break-all dir-ltr text-left flex-1 transition-colors"
                   dir="ltr"
                 >
                   {extractedUrl}
-                </a>
-                <ExternalLink className="w-3.5 h-3.5 text-zinc-400 shrink-0 opacity-75 hover:opacity-100" />
-              </div>
+                </span>
+                <ExternalLink className="w-3.5 h-3.5 text-zinc-400 group-hover/target:text-white shrink-0 opacity-75 group-hover/target:opacity-100 transition-opacity" />
+              </button>
             </div>
           )}
 
@@ -133,7 +188,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
 
           {remainingText && (
             <div className="text-xs sm:text-base leading-relaxed whitespace-pre-wrap font-sans break-words text-zinc-100">
-              {renderSmartTextWithIcons(remainingText)}
+              {renderSmartTextWithLinks(remainingText, setConfirmUrl)}
             </div>
           )}
 
@@ -161,51 +216,49 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
             </button>
           </div>
         </div>
+        <LinkConfirmModal url={confirmUrl} onClose={() => setConfirmUrl(null)} />
       </motion.div>
     );
   }
 
   const isCyber = message.model === 'deepseek-v4-flash-cyber';
-  const isVision = message.model === 'deepseek-v4-flash-vision-exp';
+  const isVision = message.model === 'deepseek-v4-flash-vision-exp' || Boolean(message.image);
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
-      className="flex flex-col my-2.5 sm:my-3 w-full"
+      className="flex flex-col items-start my-2 group"
     >
-      
-      <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 px-1 select-none">
-        <div className="flex items-center justify-center size-5 sm:size-6 rounded-lg bg-white/[0.05] text-zinc-200 border border-white/[0.08]">
+      <div className="flex items-center gap-2 mb-1.5 px-1 text-xs text-zinc-300">
+        <div className="flex items-center gap-1.5 font-sans font-medium">
           {isCyber ? (
-            <ShieldCheck className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-zinc-200" />
-          ) : isVision ? (
-            <Camera className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-zinc-200" />
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
+              <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
+              <span className="font-semibold text-xs text-zinc-100">منظومة Fathom Cyber</span>
+            </div>
           ) : message.isX1 ? (
-            <Flame className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-zinc-200 fill-current" />
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
+              <Flame className="w-3.5 h-3.5 text-amber-300" />
+              <span className="font-semibold text-xs text-zinc-100">بروتوكول X1 MAX</span>
+            </div>
+          ) : isVision ? (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
+              <Camera className="w-3.5 h-3.5 text-zinc-300" />
+              <span className="font-semibold text-xs text-zinc-100">محرك Fathom Cam</span>
+            </div>
           ) : (
-            <Sparkles className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-zinc-200" />
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
+              <Sparkles className="w-3.5 h-3.5 text-zinc-300" />
+              <span className="font-semibold text-xs text-zinc-100">محرك Fathom 1</span>
+            </div>
           )}
         </div>
-
-        <span className="font-semibold text-xs text-zinc-200 font-sans">
-          {isCyber
-            ? 'منظومة Fathom Cyber'
-            : isVision
-            ? 'منظومة Fathom Cam'
-            : message.isX1
-            ? 'منظومة matany.one MAX'
-            : 'منظومة Fathom 1'}
-        </span>
-
-        <span className="text-[9px] sm:text-[10px] text-zinc-500 font-mono">
-          {message.timestamp}
-        </span>
+        <span className="text-[10px] font-mono text-zinc-400">{message.timestamp}</span>
       </div>
 
       <div className="w-full rounded-2xl p-3.5 sm:p-5 text-right border transition-all glass-panel text-zinc-100">
-        
         {(hasReasoning || isThinking) && (
           <ChatReasoning
             reasoningText={message.reasoning}
@@ -218,9 +271,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
 
         {isStreaming && !message.content && !isThinking ? (
           <div className="flex items-center gap-2 py-1.5 select-none" dir="rtl">
-            <div
-              className="inline-flex h-8 items-center gap-2.5 rounded-full pl-3.5 pr-2.5 border border-white/[0.08] bg-zinc-950/90 backdrop-blur-md"
-            >
+            <div className="inline-flex h-8 items-center gap-2.5 rounded-full pl-3.5 pr-2.5 border border-white/[0.08] bg-zinc-950/90 backdrop-blur-md">
               <ThinkingOrb
                 state={isCyber ? "searching" : isVision ? "working" : message.isX1 ? "solving" : "composing"}
                 size={20}
@@ -228,13 +279,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                 speed={1.5}
               />
               <span className="whitespace-nowrap text-xs font-sans font-medium text-zinc-300">
-                {isCyber
-                  ? "جاري الاستطلاع الأمني وتدقيق الهدف..."
-                  : isVision
-                  ? "جاري فك وتوليد الإدراك البصري..."
-                  : message.isX1
-                  ? "جاري تحرير المحرك العصبي واستدعاء الرد..."
-                  : "جاري توليد الاستجابة اللغوية الفصحى..."}
+                {isCyber ? "جاري الاستطلاع الأمني وتدقيق الهدف..." : isVision ? "جاري فك وتوليد الإدراك البصري..." : message.isX1 ? "جاري تحرير المحرك العصبي واستدعاء الرد..." : "جاري توليد الاستجابة اللغوية الفصحى..."}
               </span>
             </div>
           </div>
@@ -243,39 +288,45 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
+                a: ({ href, children }: any) => (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (href) setConfirmUrl(href);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 my-0.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.16] border border-white/[0.14] hover:border-white/40 text-cyan-300 hover:text-white font-mono text-xs sm:text-sm font-medium transition-all cursor-pointer shadow-sm mx-1 align-baseline select-none active:scale-95 group/link"
+                    title={`انقر لتأكيد الانتقال إلى: ${href}`}
+                  >
+                    <Globe className="size-3 text-cyan-400 group-hover/link:text-cyan-300 shrink-0 inline-block" />
+                    <span className="break-all underline underline-offset-2">{children}</span>
+                    <ExternalLink className="size-2.5 opacity-70 group-hover/link:opacity-100 shrink-0 inline-block" />
+                  </button>
+                ),
                 p: ({ children }) => (
                   <p className="mb-2.5 sm:mb-3 last:mb-0 leading-relaxed">
-                    {React.Children.map(children, (child) =>
-                      typeof child === 'string' ? renderSmartTextWithIcons(child) : child
-                    )}
+                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartTextWithLinks(child, setConfirmUrl) : child)}
                   </p>
                 ),
                 h1: ({ children }) => (
                   <h1 className="text-base sm:text-xl font-bold text-white my-2 sm:my-3 border-b border-white/[0.1] pb-1.5">
-                    {React.Children.map(children, (child) =>
-                      typeof child === 'string' ? renderSmartTextWithIcons(child) : child
-                    )}
+                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartTextWithLinks(child, setConfirmUrl) : child)}
                   </h1>
                 ),
                 h2: ({ children }) => (
                   <h2 className="text-sm sm:text-lg font-semibold text-zinc-100 my-2 sm:my-2.5">
-                    {React.Children.map(children, (child) =>
-                      typeof child === 'string' ? renderSmartTextWithIcons(child) : child
-                    )}
+                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartTextWithLinks(child, setConfirmUrl) : child)}
                   </h2>
                 ),
                 h3: ({ children }) => (
                   <h3 className="text-xs sm:text-base font-semibold text-white my-1.5 sm:my-2">
-                    {React.Children.map(children, (child) =>
-                      typeof child === 'string' ? renderSmartTextWithIcons(child) : child
-                    )}
+                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartTextWithLinks(child, setConfirmUrl) : child)}
                   </h3>
                 ),
                 li: ({ children }) => (
                   <li className="my-0.5 leading-relaxed">
-                    {React.Children.map(children, (child) =>
-                      typeof child === 'string' ? renderSmartTextWithIcons(child) : child
-                    )}
+                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartTextWithLinks(child, setConfirmUrl) : child)}
                   </li>
                 ),
                 ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2 text-zinc-300 pr-1 sm:pr-2">{children}</ul>,
@@ -312,15 +363,11 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                         </button>
                       </div>
                       <pre className="p-3 sm:p-3.5 overflow-x-auto text-zinc-200 text-xs leading-relaxed">
-                        <code className={className} {...props}>
-                          {children}
-                        </code>
+                        <code className={className} {...props}>{children}</code>
                       </pre>
                     </div>
                   ) : (
-                    <code className="bg-white/[0.08] text-zinc-200 border border-white/[0.1] px-1.5 py-0.5 rounded font-mono text-xs" {...props}>
-                      {children}
-                    </code>
+                    <code className="bg-white/[0.08] text-zinc-200 border border-white/[0.1] px-1.5 py-0.5 rounded font-mono text-xs" {...props}>{children}</code>
                   );
                 }
               }}
@@ -334,17 +381,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
           </div>
         )}
 
-        {/* Footer Actions */}
         {message.content && !isStreaming && (
           <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-500">
             <span className="text-[10px] sm:text-[11px] font-mono text-zinc-400">
-              {isCyber
-                ? 'منظومة Fathom Cyber'
-                : message.isX1
-                ? 'بروتوكول X1 MAX'
-                : message.image
-                ? 'محرك Fathom Cam'
-                : 'محرك Fathom 1'}
+              {isCyber ? 'منظومة Fathom Cyber' : message.isX1 ? 'بروتوكول X1 MAX' : message.image ? 'محرك Fathom Cam' : 'محرك Fathom 1'}
             </span>
             <button
               type="button"
@@ -365,8 +405,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
             </button>
           </div>
         )}
-
       </div>
+      <LinkConfirmModal url={confirmUrl} onClose={() => setConfirmUrl(null)} />
     </motion.div>
   );
 };
