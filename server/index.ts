@@ -358,7 +358,7 @@ async function performUltraDeepCyberSearch(
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ONLINE',
-    protocol: 'X1-CORE',
+    protocol: 'MATANY-CORE',
     text_engine: 'anthracite-org/magnum-v4-72b (NSFW NANO +21 MAX Architecture)',
     vision_extractor: 'Fathom Cam Vision Multi-Tier (Gemini 2.5 Flash / Qwen 2.5 VL / GPT-4o Mini)',
     timestamp: new Date().toISOString()
@@ -444,8 +444,8 @@ async function extractVisualContext(
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'HTTP-Referer': 'https://x1.link',
-            'X-Title': 'X1 AI Vision',
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI Vision',
           },
           body: JSON.stringify({
             model: vModel,
@@ -667,8 +667,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     : {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://x1.link',
-        'X-Title': 'X1 AI',
+        'HTTP-Referer': 'https://matany.one',
+        'X-Title': 'Matany AI',
       };
 
   let requestPayload: any = {
@@ -703,8 +703,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://x1.link',
-          'X-Title': 'X1 AI',
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
         };
         requestPayload.model = isX1Mode ? 'anthracite-org/magnum-v4-72b' : 'deepseek/deepseek-chat';
         response = await executeFetchWithRetry(targetUrl, {

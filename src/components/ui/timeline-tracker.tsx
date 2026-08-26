@@ -34,9 +34,9 @@ export const TimelineTracker: React.FC<TimelineTrackerProps> = ({ steps, classNa
                   className={cn(
                     "absolute right-[15px] top-[32px] w-[2px] h-[calc(100%+8px)] transition-all duration-300",
                     isCompleted
-                      ? "bg-rose-500"
+                      ? "bg-white/40"
                       : isInProgress
-                      ? "bg-gradient-to-b from-rose-500 to-zinc-800"
+                      ? "bg-gradient-to-b from-white/40 to-zinc-800"
                       : "bg-zinc-800"
                   )}
                 />
@@ -46,8 +46,8 @@ export const TimelineTracker: React.FC<TimelineTrackerProps> = ({ steps, classNa
               <div
                 className={cn(
                   "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200 font-mono",
-                  isCompleted && "bg-rose-600 text-white border border-rose-500",
-                  isInProgress && "bg-zinc-900 border-2 border-rose-500 text-rose-400",
+                  isCompleted && "bg-white text-zinc-950 border border-white font-bold",
+                  isInProgress && "bg-zinc-900 border-2 border-white text-white",
                   step.status === 'pending' && "bg-zinc-900 border border-zinc-700 text-zinc-500"
                 )}
               >
@@ -66,7 +66,7 @@ export const TimelineTracker: React.FC<TimelineTrackerProps> = ({ steps, classNa
                   <div className="text-[11px] font-mono text-zinc-500 mb-1 flex items-center gap-1.5">
                     <span>{step.timestamp}</span>
                     {isInProgress && (
-                      <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-rose-950 text-rose-400 border border-rose-800">
+                      <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-white/[0.08] text-white border border-white/[0.15]">
                         جاري التنفيذ
                       </span>
                     )}
@@ -76,7 +76,7 @@ export const TimelineTracker: React.FC<TimelineTrackerProps> = ({ steps, classNa
                 <h4
                   className={cn(
                     "text-sm font-bold tracking-tight font-sans transition-colors",
-                    isCompleted ? "text-white group-hover:text-rose-300" : isInProgress ? "text-rose-400" : "text-zinc-400"
+                    isCompleted ? "text-white group-hover:text-zinc-200" : isInProgress ? "text-white font-bold" : "text-zinc-400"
                   )}
                 >
                   {step.title}

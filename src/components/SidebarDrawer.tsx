@@ -116,7 +116,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 <button
                   type="button"
                   onClick={(e) => onDeleteChat(chat.id, e)}
-                  className="p-1 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-white/[0.08] transition-colors"
+                  className="p-1 rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.08] transition-colors"
                   title="حذف المحادثة"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -137,7 +137,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           </div>
           <div className="w-full bg-white/[0.06] h-1.5 rounded-full overflow-hidden">
             <div
-              className="bg-rose-500 h-full rounded-full transition-all duration-300"
+              className="bg-white h-full rounded-full transition-all duration-300"
               style={{ width: `${Math.min(Math.max((totalTokens / 1000000) * 100, 1), 100)}%` }}
             />
           </div>
@@ -151,7 +151,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           {user ? (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="size-8 rounded-full bg-rose-600/20 text-rose-400 flex items-center justify-center font-bold text-xs border border-rose-500/30 shrink-0">
+                <div className="size-8 rounded-full bg-white/[0.08] text-white flex items-center justify-center font-bold text-xs border border-white/[0.15] shrink-0">
                   {user.email?.[0].toUpperCase() || 'U'}
                 </div>
                 <div className="truncate text-xs">
@@ -162,7 +162,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
               <button
                 type="button"
                 onClick={onSignOut}
-                className="p-2 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition-colors"
+                className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                 title="تسجيل الخروج"
               >
                 <LogOut className="w-4 h-4" />

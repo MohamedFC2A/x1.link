@@ -181,8 +181,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
             : isVision
             ? 'منظومة Fathom Cam'
             : message.isX1
-            ? 'منظومة X1 MAX'
-            : 'منظومة Fathom 1'}
+            ? 'منظومة matany.one MAX'
+            : 'منظومة matany.one Core'}
         </span>
 
         <span className="text-[9px] sm:text-[10px] text-zinc-500 font-mono">

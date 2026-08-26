@@ -376,9 +376,9 @@ export const App: React.FC = () => {
       
       {/* Dynamic Ambient Atmospheric Glow for Visual Vitality */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] h-[320px] bg-gradient-to-b from-rose-950/25 via-rose-900/10 to-transparent rounded-full blur-[100px] opacity-75" />
-        <div className="absolute top-1/4 -right-32 w-[400px] h-[400px] bg-cyan-950/20 rounded-full blur-[110px] opacity-60" />
-        <div className="absolute -bottom-32 -left-32 w-[450px] h-[450px] bg-rose-950/15 rounded-full blur-[120px] opacity-50" />
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] h-[320px] bg-gradient-to-b from-zinc-800/15 via-zinc-900/10 to-transparent rounded-full blur-[100px] opacity-75" />
+        <div className="absolute top-1/4 -right-32 w-[400px] h-[400px] bg-cyan-950/15 rounded-full blur-[110px] opacity-60" />
+        <div className="absolute -bottom-32 -left-32 w-[450px] h-[450px] bg-zinc-900/15 rounded-full blur-[120px] opacity-50" />
       </div>
 
       {/* 18+ Mandatory Age Disclaimer Modal */}

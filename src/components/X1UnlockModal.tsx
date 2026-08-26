@@ -49,7 +49,7 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
 
         {/* Silicon Chip Header */}
         <div className="flex items-center gap-3">
-          <div className="size-11 sm:size-12 rounded-2xl bg-rose-950/60 border border-rose-800/80 text-rose-400 flex items-center justify-center shrink-0">
+          <div className="size-11 sm:size-12 rounded-2xl bg-white/[0.06] border border-white/[0.14] text-zinc-200 flex items-center justify-center shrink-0">
             <Cpu className="w-6 h-6" />
           </div>
           <div>
@@ -57,7 +57,7 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
               <h2 className="text-base sm:text-lg font-bold text-white tracking-tight font-mono">
                 تفعيل شريحة NSFW NANO
               </h2>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800/80">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/[0.08] text-white border border-white/[0.15]">
                 MAX
               </span>
             </div>
@@ -74,11 +74,11 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
           </p>
           <div className="space-y-1.5 pt-2 border-t border-zinc-800/80 text-xs text-zinc-400">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-rose-500 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>حرية تعبير مطلقة وصراحة تامة دون أي وعظ أو اعتذار.</span>
             </div>
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-rose-500 shrink-0" />
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>يلزم تأكيد بصمة الإصبع أو Face ID في كل عملية تفعيل لحماية خصوصيتك.</span>
             </div>
           </div>
@@ -86,7 +86,7 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
 
         {/* Error message if any */}
         {errorMsg && (
-          <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800 text-rose-300 text-xs font-sans">
+          <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-300 text-xs font-sans">
             {errorMsg}
           </div>
         )}
@@ -96,7 +96,7 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
           type="button"
           onClick={handleStartBiometrics}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2.5 py-3 sm:py-3.5 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm transition-all active:scale-[0.98] cursor-pointer shadow-lg"
+          className="w-full flex items-center justify-center gap-2.5 py-3 sm:py-3.5 px-4 rounded-2xl bg-white hover:bg-zinc-200 disabled:opacity-50 text-zinc-950 font-bold text-xs sm:text-sm transition-all active:scale-[0.98] cursor-pointer shadow-lg"
         >
           <Fingerprint className="w-5 h-5 shrink-0" />
           <span>

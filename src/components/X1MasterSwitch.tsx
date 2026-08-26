@@ -28,23 +28,23 @@ export const X1MasterSwitch: React.FC<X1MasterSwitchProps> = ({
       onClick={handleClick}
       className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all duration-200 select-none ${
         isX1Active
-          ? 'bg-rose-600 text-white border-rose-500 shadow-sm'
+          ? 'bg-white text-zinc-950 border-white shadow-sm font-bold'
           : isX1Unlocked
           ? 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-zinc-500 hover:text-white'
           : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-zinc-200'
       }`}
-      title={isX1Active ? "وضع X1 مفعّل (انقر للتعطيل)" : "تفعيل وضع X1 MAX"}
+      title={isX1Active ? "وضع Matany MAX مفعّل (انقر للتعطيل)" : "تفعيل وضع Matany MAX"}
     >
       <span className={`inline-block w-2 h-2 rounded-full transition-colors ${
-        isX1Active ? 'bg-white' : isX1Unlocked ? 'bg-rose-500' : 'bg-zinc-600'
+        isX1Active ? 'bg-zinc-950' : isX1Unlocked ? 'bg-white' : 'bg-zinc-600'
       }`} />
 
       <span className="font-sans text-xs font-medium">
-        {isX1Active ? 'وضع X1 مفعّل (MAX)' : isX1Unlocked ? 'تفعيل X1' : 'فتح وضع X1 MAX'}
+        {isX1Active ? 'وضع Matany MAX مفعّل' : isX1Unlocked ? 'تفعيل Matany MAX' : 'فتح وضع Matany MAX'}
       </span>
 
       <Zap className={`w-3.5 h-3.5 transition-transform ${
-        isX1Active ? 'text-white fill-current scale-105' : 'text-rose-500'
+        isX1Active ? 'text-zinc-950 fill-current scale-105' : 'text-zinc-400'
       }`} />
     </button>
   );

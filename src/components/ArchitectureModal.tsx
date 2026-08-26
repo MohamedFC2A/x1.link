@@ -61,12 +61,12 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
 
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="size-11 sm:size-12 rounded-2xl bg-rose-950 border border-rose-600 text-rose-400 flex items-center justify-center shrink-0">
+          <div className="size-11 sm:size-12 rounded-2xl bg-white/[0.06] border border-white/[0.14] text-zinc-200 flex items-center justify-center shrink-0">
             <Zap className="w-6 h-6" />
           </div>
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight font-sans">
-              خريطة معمارية منظومة Matany.one
+              خريطة معمارية منظومة matany.one
             </h2>
             <p className="text-[11px] sm:text-xs text-zinc-400 font-sans mt-0.5">
               كيف تتم معالجة الأفكار والصور والتوليد الفصيح في أجزاء من الثانية
@@ -87,7 +87,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
               onClose();
               onStartChat();
             }}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm transition-all active:scale-95 cursor-pointer shadow-md"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs sm:text-sm transition-all active:scale-95 cursor-pointer shadow-md"
           >
             <span>بدء التجربة الآن</span>
             <ArrowLeft className="w-4 h-4" />

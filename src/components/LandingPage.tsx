@@ -19,9 +19,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   user,
 }) => {
   return (
-    <div className="min-h-full flex flex-col justify-between bg-[#000000] text-[#f8fafc] overflow-y-auto smooth-scroll selection:bg-rose-600 selection:text-white" dir="rtl">
+    <div className="min-h-full flex flex-col justify-between bg-[#000000] text-[#f8fafc] overflow-y-auto smooth-scroll selection:bg-zinc-700 selection:text-white" dir="rtl">
       
-      {/* Top Reception Navbar */}
+      {/* Header */}
       <header className="sticky top-0 z-30 w-full bg-[#000000]/95 border-b border-white/[0.08] px-3.5 sm:px-8 py-3 backdrop-blur-xl pt-safe">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
           
@@ -50,7 +50,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             >
               <MessageSquare className="w-4 h-4 text-zinc-300" />
               <span className="hidden sm:inline font-sans">سجل المحادثات</span>
-              {user && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
             </button>
 
             <button
@@ -71,21 +70,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         
         {/* Top Minimal Pill Badge */}
         <div className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full glass-button text-zinc-300 text-xs sm:text-sm font-medium mb-4 sm:mb-6 select-none">
-          <span className="flex h-2 w-2 rounded-full bg-rose-500" />
+          <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
           <span className="font-sans">بنية سيليكونية فائقة الأداء • معمارية 0 قيود</span>
         </div>
 
         {/* Large Hero Headline */}
         <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-3 sm:mb-4 leading-[1.25] sm:leading-[1.15] font-sans px-2">
           عصر جديد من الذكاء <br className="hidden sm:inline" />
-          <span className="bg-gradient-to-r from-rose-400 via-red-400 to-rose-600 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
             غير المقيّد بذاكرة مليونية
           </span>
         </h1>
 
         {/* Subtitle */}
         <p className="text-xs sm:text-base lg:text-lg text-zinc-400 max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed font-sans font-normal px-2">
-          منظومة محادثة فائقة الذكاء تجمع بين محرك <strong className="text-zinc-200 font-semibold">Fathom 1</strong> للتوليد اللغوي الحر، وإدراك <strong className="text-zinc-200 font-semibold">Fathom Cam</strong> البصري، وتدقيق <strong className="text-cyan-300 font-semibold">Fathom Cyber</strong> الأمني، وشريحة <strong className="text-rose-400 font-semibold">NSFW NANO</strong> المحمية بيومترياً.
+          منظومة محادثة فائقة الذكاء تجمع بين محرك <strong className="text-zinc-200 font-semibold">Matany Core</strong> للتوليد اللغوي الحر، وإدراك <strong className="text-zinc-200 font-semibold">Fathom Cam</strong> البصري، وتدقيق <strong className="text-cyan-300 font-semibold">Fathom Cyber</strong> الأمني، وشريحة <strong className="text-zinc-200 font-semibold">NSFW NANO</strong> المحمية بيومترياً.
         </p>
 
         {/* Primary CTA Buttons */}
@@ -117,7 +116,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-right">
             
-            {/* Card 1: Fathom 1 Core */}
+            {/* Card 1: Matany Core */}
             <motion.div
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.97 }}
@@ -130,12 +129,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/[0.04] text-zinc-300 border border-white/[0.08]">
-                  FATHOM 1
+                  MATANY CORE
                 </span>
               </div>
 
               <div>
-                <h3 className="text-sm sm:text-base font-bold text-white mb-1 group-hover:text-rose-300 transition-colors font-sans">
+                <h3 className="text-sm sm:text-base font-bold text-white mb-1 group-hover:text-zinc-200 transition-colors font-sans">
                   المحرك اللغوي الفصيح
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed font-sans line-clamp-2 sm:line-clamp-3">
@@ -221,7 +220,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.97 }}
               transition={{ type: "spring", stiffness: 450, damping: 25 }}
-              onClick={() => onSelectPreset('افحص هذا الرابط أمنياً واستخرج كافة المعلومات والترويسات ونقاط السطح الهجومي https://x1-link.vercel.app')}
+              onClick={() => onSelectPreset('افحص هذا الرابط أمنياً واستخرج كافة المعلومات والترويسات ونقاط السطح الهجومي https://matany.one')}
               className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl glass-card transition-colors cursor-pointer flex flex-col justify-between group min-h-[190px] sm:min-h-[240px] select-none"
             >
               <div className="flex items-center justify-between mb-3">

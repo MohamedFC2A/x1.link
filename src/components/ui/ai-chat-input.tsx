@@ -174,7 +174,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       ? "Fathom Cam"
       : isCyberMode
       ? "Fathom Cyber"
-      : "Fathom 1";
+      : "Matany Core";
 
     const activeBackendModel = effectiveModel;
 
@@ -419,7 +419,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     </div>
                     <div className="min-w-0 text-right">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-white">Fathom 1</span>
+                        <span className="font-bold text-xs text-white">Matany Core</span>
                         <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08]">CORE</span>
                       </div>
                       <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
@@ -505,7 +505,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             >
               <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/[0.08] mb-2">
                 <span className="text-xs font-sans font-bold text-white tracking-wide">أدوات الإدخال والاستخبارات</span>
-                <span className="text-[9px] font-mono text-zinc-400 font-semibold tracking-wider">X1 CORE MATRIX</span>
+                <span className="text-[9px] font-mono text-zinc-400 font-semibold tracking-wider">MATANY MATRIX</span>
               </div>
 
               <div className="space-y-1.5">
@@ -644,14 +644,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   />
                 ) : (
                   <div className="size-full flex flex-col items-center justify-center p-1 bg-zinc-850 text-zinc-300">
-                    <FileText className="w-5 h-5 text-rose-400" />
+                    <FileText className="w-5 h-5 text-zinc-300" />
                     <span className="text-[8px] truncate max-w-[48px] mt-0.5">{attachment.name}</span>
                   </div>
                 )}
                 <button
                   type="button"
                   onClick={(e) => removeAttachment(attachment.id, e)}
-                  className="absolute top-1 left-1 size-4 rounded-full bg-zinc-950/80 text-zinc-300 hover:text-white hover:bg-rose-600 flex items-center justify-center transition-colors shadow"
+                  className="absolute top-1 left-1 size-4 rounded-full bg-zinc-950/80 text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center justify-center transition-colors shadow"
                   title="حذف المرفق"
                 >
                   <X className="w-2.5 h-2.5" />
@@ -677,7 +677,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             isCyberMode
               ? "border-cyan-500/50 shadow-[inset_0_1px_1px_rgba(6,182,212,0.45),0_0_0_1px_rgba(6,182,212,0.25),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-cyan-400 focus-within:shadow-[inset_0_1px_2px_rgba(6,182,212,0.7),0_0_0_1.5px_rgba(6,182,212,0.5),0_18px_50px_rgba(0,0,0,0.9)]"
               : isX1Active
-              ? "border-rose-500/50 shadow-[inset_0_1px_1px_rgba(244,63,94,0.45),0_0_0_1px_rgba(244,63,94,0.25),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-rose-400 focus-within:shadow-[inset_0_1px_2px_rgba(244,63,94,0.7),0_0_0_1.5px_rgba(244,63,94,0.5),0_18px_50px_rgba(0,0,0,0.9)]"
+              ? "border-white/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_0_0_1px_rgba(255,255,255,0.2),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white focus-within:shadow-[inset_0_1px_2px_rgba(255,255,255,0.6),0_0_0_1.5px_rgba(255,255,255,0.4),0_18px_50px_rgba(0,0,0,0.9)]"
               : "border-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white/[0.3] focus-within:shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_0_0_1px_rgba(255,255,255,0.15),0_18px_50px_rgba(0,0,0,0.9)]"
           )}
         >
@@ -688,7 +688,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               isCyberMode
                 ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
                 : isX1Active
-                ? "bg-gradient-to-r from-transparent via-rose-400 to-transparent"
+                ? "bg-gradient-to-r from-transparent via-white/60 to-transparent"
                 : "bg-gradient-to-r from-transparent via-white/40 to-transparent"
             )}
           />
@@ -767,8 +767,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     : isVisionMode
                     ? "أرفق صورة أو اسأل Fathom Cam لتحليل وتفريغ الصور..."
                     : isX1Active
-                    ? "اسأل X1 MAX أي شيء بحرية تامة..."
-                    : (placeholder || "اسأل Fathom AI أي شيء...")
+                    ? "اسأل matany.one أي شيء بحرية تامة..."
+                    : (placeholder || "اسأل matany.one أي شيء...")
                 }
                 rows={1}
                 className="w-full bg-transparent text-zinc-100 text-[15px] sm:text-base leading-relaxed resize-none outline-none placeholder:text-zinc-500 font-sans max-h-44 min-h-[38px] py-1 px-1 smooth-scroll no-scrollbar"

@@ -164,13 +164,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             
             {/* Top Pill */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-button text-zinc-300 text-[11px] sm:text-xs font-medium mb-4 sm:mb-5 select-none">
-              <span className="flex h-1.5 w-1.5 rounded-full bg-rose-500" />
-              <span className="font-sans">جلسة محادثة مباشرة • محرك Fathom 1</span>
+              <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="font-sans">جلسة محادثة مباشرة • منظومة matany.one</span>
             </div>
 
             {/* Title */}
             <h2 className="text-xl sm:text-3xl font-extrabold text-white mb-2 font-sans">
-              كيف يمكن لـ <span className="text-rose-500">X1</span> مساعدتك اليوم؟
+              كيف يمكن لـ <span className="brand-shimmer-text font-['Space_Grotesk'] font-black">matany.one</span> مساعدتك اليوم؟
             </h2>
             
             <p className="text-xs sm:text-sm text-zinc-400 max-w-md mx-auto mb-6 sm:mb-8 font-sans px-2">
@@ -193,14 +193,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-white/[0.05] text-zinc-300 border border-white/[0.08]">
-                    FATHOM 1
+                    MATANY CORE
                   </span>
                 </div>
                 <div className="text-xs sm:text-sm font-semibold text-white group-hover:text-zinc-200 transition-colors mb-1 font-sans">
                   تحليل فلسفي بلاغي
                 </div>
                 <div className="text-[11px] sm:text-xs text-zinc-400 font-sans line-clamp-2 leading-relaxed">
-                  طرح عميق وصياغة عربية فصيحة بمحرك Fathom 1.
+                  طرح عميق وصياغة عربية فصيحة بمحرك الذكاء الاصطناعي.
                 </div>
               </motion.button>
 
@@ -310,11 +310,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             >
               {isStreaming ? (
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
               ) : (
-                <ArrowDown className="w-3.5 h-3.5 text-rose-500 group-hover:translate-y-0.5 transition-transform" />
+                <ArrowDown className="w-3.5 h-3.5 text-zinc-300 group-hover:translate-y-0.5 transition-transform" />
               )}
               <span>{isStreaming ? 'جاري التوليد • انقر للنزول' : 'الانتقال لأحدث رسالة'}</span>
               <ChevronDown className="w-3 h-3 text-zinc-400" />

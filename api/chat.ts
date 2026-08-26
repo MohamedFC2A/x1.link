@@ -426,8 +426,8 @@ async function extractVisualContext(imageMessages: any[]): Promise<string> {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'HTTP-Referer': 'https://x1.link',
-            'X-Title': 'X1 AI Vision',
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI Vision',
           },
           body: JSON.stringify({
             model: vModel,
@@ -637,8 +637,8 @@ export default async function handler(req: Request): Promise<Response> {
     : {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://x1.link',
-        'X-Title': 'X1 AI',
+        'HTTP-Referer': 'https://matany.one',
+        'X-Title': 'Matany AI',
       };
 
   let requestPayload: any = {
@@ -672,8 +672,8 @@ export default async function handler(req: Request): Promise<Response> {
         headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://x1.link',
-          'X-Title': 'X1 AI',
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
         };
         requestPayload.model = isX1Mode ? 'anthracite-org/magnum-v4-72b' : 'deepseek/deepseek-chat';
         try {
