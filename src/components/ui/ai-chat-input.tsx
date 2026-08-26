@@ -279,6 +279,30 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       }
     }, [onSelectModel, showUrlLimitToast]);
 
+    const triggerFileInput = useCallback((acceptType?: 'all' | 'video' | 'audio' | 'image' | 'doc') => {
+      if (!fileInputRef.current) return;
+      if (acceptType === 'video') {
+        fileInputRef.current.accept = "video/*";
+        setInternalModel('meta/muse-spark-1.2-contributor');
+        onSelectModel?.('meta/muse-spark-1.2-contributor');
+      } else if (acceptType === 'audio') {
+        fileInputRef.current.accept = "audio/*";
+        setInternalModel('meta/muse-spark-1.2-contributor');
+        onSelectModel?.('meta/muse-spark-1.2-contributor');
+      } else if (acceptType === 'doc') {
+        fileInputRef.current.accept = ".pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.py,.js,.ts,.tsx,.jsx,.html,.css,.sql,.yaml,.yml,.zip";
+        setInternalModel('meta/muse-spark-1.2-contributor');
+        onSelectModel?.('meta/muse-spark-1.2-contributor');
+      } else if (acceptType === 'image') {
+        fileInputRef.current.accept = "image/*";
+        setInternalModel('deepseek-v4-flash-vision-exp');
+        onSelectModel?.('deepseek-v4-flash-vision-exp');
+      } else {
+        fileInputRef.current.accept = "image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.py,.js,.ts,.tsx,.jsx,.html,.css,.sql,.yaml,.yml,.zip";
+      }
+      fileInputRef.current.click();
+    }, [onSelectModel]);
+
     const handleValueChange = useCallback(
       (val: string) => {
         if (!isControlled) setLocalValue(val);
@@ -552,9 +576,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     const handleFilesChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files ?? []);
       e.target.value = "";
+      if (fileInputRef.current) {
+        fileInputRef.current.accept = "image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.py,.js,.ts,.tsx,.jsx,.html,.css,.sql,.yaml,.yml,.zip";
+      }
 
       if (files.length === 0) return;
-      const processed = await Promise.all(files.map((f, idx) => processFileToAttachment(f, `صورة مرفقة ${idx + 1}`)));
+      const processed = await Promise.all(files.map((f, idx) => processFileToAttachment(f, `ملف مرفق ${idx + 1}`)));
       setAttachments((prev) => {
         const existingKeys = new Set(prev.map((a) => `${a.file.name}-${a.file.size}`));
         const nonDuplicate = processed.filter((a) => !existingKeys.has(`${a.file.name}-${a.file.size}`));
@@ -880,24 +907,78 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               </div>
 
               <div className="space-y-1">
-                {/* Action 1: Upload Image */}
+                {/* Action 1: Upload Video */}
                 <button
                   type="button"
                   onClick={() => {
-                    fileInputRef.current?.click();
+                    triggerFileInput('video');
+                    setIsActionsMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.06] text-xs font-sans text-zinc-200 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-white/[0.08]"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-violet-400 group-hover:text-violet-300 shrink-0">
+                      <Video className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-semibold text-xs text-white">رفع فيديو</span>
+                  </div>
+                  <span className="text-[10px] font-sans px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 text-violet-300 font-medium">Spark</span>
+                </button>
+
+                {/* Action 2: Upload Audio */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerFileInput('audio');
+                    setIsActionsMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.06] text-xs font-sans text-zinc-200 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-white/[0.08]"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-violet-400 group-hover:text-violet-300 shrink-0">
+                      <Music className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-semibold text-xs text-white">رفع صوت أو تسجيل</span>
+                  </div>
+                  <span className="text-[10px] font-sans px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 text-violet-300 font-medium">Spark</span>
+                </button>
+
+                {/* Action 3: Upload Image */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerFileInput('image');
+                    setIsActionsMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.06] text-xs font-sans text-zinc-200 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-white/[0.08]"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-emerald-400 group-hover:text-emerald-300 shrink-0">
+                      <Camera className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-semibold text-xs text-white">رفع صورة وفحص بصري</span>
+                  </div>
+                  <span className="text-[10px] font-sans px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-medium">Cam</span>
+                </button>
+
+                {/* Action 4: Upload Document / Code */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerFileInput('doc');
                     setIsActionsMenuOpen(false);
                   }}
                   className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.06] text-xs font-sans text-zinc-200 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-white/[0.08]"
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="size-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300 group-hover:text-white shrink-0">
-                      <Camera className="w-3.5 h-3.5" />
+                      <FileText className="w-3.5 h-3.5" />
                     </div>
-                    <span className="font-semibold text-xs text-white">رفع صورة أو مستند</span>
+                    <span className="font-semibold text-xs text-white">رفع مستند أو كود</span>
                   </div>
                 </button>
 
-                {/* Action 2: Target URL Scanner */}
+                {/* Action 5: Target URL Scanner */}
                 <button
                   type="button"
                   onClick={() => {
@@ -920,20 +1001,22 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       "size-7 rounded-lg flex items-center justify-center shrink-0 border transition-all",
                       isCyberMode || attachedUrls.length > 0
                         ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300"
-                        : "bg-white/[0.04] border-white/[0.08] text-zinc-300"
+                        : "bg-white/[0.04] border-white/[0.08] text-cyan-400"
                     )}>
                       <Globe className="w-3.5 h-3.5" />
                     </div>
                     <span className="font-semibold text-xs text-white">فحص واستطلاع رابط (URL)</span>
                   </div>
-                  {attachedUrls.length > 0 && (
+                  {attachedUrls.length > 0 ? (
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0 bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-bold">
                       {attachedUrls.length} روابط
                     </span>
+                  ) : (
+                    <span className="text-[10px] font-sans px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-medium">Cyber</span>
                   )}
                 </button>
 
-                {/* Action 2: Deep Search Toggle */}
+                {/* Action 6: Deep Search Toggle */}
                 <button
                   type="button"
                   onClick={() => {
@@ -952,7 +1035,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       "size-7 rounded-lg flex items-center justify-center shrink-0 border transition-all",
                       isDeepSearchEffective
                         ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
-                        : "bg-white/[0.04] border-white/[0.08] text-zinc-300"
+                        : "bg-white/[0.04] border-white/[0.08] text-emerald-400"
                     )}>
                       <Search className="w-3.5 h-3.5" />
                     </div>
@@ -968,7 +1051,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   </span>
                 </button>
 
-                {/* Action 3: NSFW Off Toggle */}
+                {/* Action 7: NSFW Off Toggle */}
                 <button
                   type="button"
                   onClick={() => {
@@ -987,7 +1070,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       "size-7 rounded-lg flex items-center justify-center shrink-0 border transition-all",
                       isX1Active
                         ? "bg-rose-500/20 border-rose-500/40 text-rose-300"
-                        : "bg-white/[0.04] border-white/[0.08] text-zinc-300"
+                        : "bg-white/[0.04] border-white/[0.08] text-rose-400"
                     )}>
                       <ShieldOff className="w-3.5 h-3.5" />
                     </div>
