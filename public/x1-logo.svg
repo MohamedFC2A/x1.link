@@ -1,60 +1,63 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%" fill="none">
   <defs>
-    <!-- Deep Obsidian / Pitch Black Chassis Gradient -->
-    <radialGradient id="chassisGrad" cx="50%" cy="30%" r="85%">
-      <stop offset="0%" stop-color="#1c1c20" />
-      <stop offset="50%" stop-color="#0c0c0e" />
+    <!-- Deep Obsidian Matte Glass Gradient -->
+    <radialGradient id="chassisGrad" cx="50%" cy="20%" r="90%">
+      <stop offset="0%" stop-color="#18181b" />
+      <stop offset="45%" stop-color="#09090b" />
       <stop offset="100%" stop-color="#000000" />
     </radialGradient>
 
-    <!-- Diamond Pure White to Platinum Gradient -->
-    <linearGradient id="pureWhiteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Diamond Brilliant White Gradient (Primary Blade) -->
+    <linearGradient id="bladeLeft" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="40%" stop-color="#f4f4f5" />
-      <stop offset="80%" stop-color="#e4e4e7" />
+      <stop offset="60%" stop-color="#f4f4f5" />
       <stop offset="100%" stop-color="#d4d4d8" />
     </linearGradient>
 
-    <!-- Liquid Titanium / Satin Silver Gradient -->
-    <linearGradient id="titaniumGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Liquid Titanium Metallic Gradient (Secondary Blade) -->
+    <linearGradient id="bladeRight" x1="100%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="50%" stop-color="#a1a1aa" />
+      <stop offset="40%" stop-color="#e4e4e7" />
+      <stop offset="100%" stop-color="#a1a1aa" />
+    </linearGradient>
+
+    <!-- Hyper-Contrast Center Vertex Gradient -->
+    <linearGradient id="vertexGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#d4d4d8" />
       <stop offset="100%" stop-color="#71717a" />
     </linearGradient>
 
-    <!-- Micro Bevel Stroke Gradient -->
-    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4" />
-      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.1" />
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.25" />
+    <!-- Precision Laser Hairline Rim -->
+    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5" />
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.3" />
     </linearGradient>
   </defs>
 
-  <!-- Squircle Outer Chassis -->
-  <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#chassisGrad)" stroke="url(#borderGrad)" stroke-width="1.75" />
+  <!-- Luxurious Frosted Squircle Frame -->
+  <rect x="5" y="5" width="118" height="118" rx="30" fill="url(#chassisGrad)" stroke="url(#rimGrad)" stroke-width="1.5" />
   
-  <!-- Subtle Inner Glass Inset -->
-  <rect x="8" y="8" width="112" height="112" rx="26" fill="none" stroke="#ffffff" stroke-width="1" stroke-opacity="0.06" />
+  <!-- Subtle Internal Specular Horizon -->
+  <rect x="7" y="7" width="114" height="114" rx="28" fill="none" stroke="#ffffff" stroke-width="1" stroke-opacity="0.04" />
 
-  <!-- Smart Geometric Matany 'M' Monogram (Pure Monochrome Precision) -->
+  <!-- Iconic Monolithic 'M' Emblem (Stealth Quantum Geometry) -->
   <g>
-    <!-- Left Pillar of M -->
-    <rect x="26" y="34" width="13" height="60" rx="3" fill="url(#pureWhiteGrad)" />
+    <!-- Left Ascending Monolith Blade -->
+    <polygon points="26,94 40,94 40,46 56,76 64,76 38,28 26,28" fill="url(#bladeLeft)" />
 
-    <!-- Right Pillar of M -->
-    <rect x="89" y="34" width="13" height="60" rx="3" fill="url(#pureWhiteGrad)" />
+    <!-- Right Ascending Monolith Blade -->
+    <polygon points="102,94 88,94 88,46 72,76 64,76 90,28 102,28" fill="url(#bladeRight)" />
 
-    <!-- Left Diagonal Chevron of M -->
-    <polygon points="37,34 51,34 67,68 53,68" fill="url(#pureWhiteGrad)" />
+    <!-- Central Floating Diamond Nexus (The Core Intelligence Apex) -->
+    <polygon points="64,48 72,62 64,76 56,62" fill="url(#vertexGrad)" opacity="0.95" />
 
-    <!-- Right Diagonal Chevron of M -->
-    <polygon points="91,34 77,34 61,68 75,68" fill="url(#pureWhiteGrad)" />
-
-    <!-- Center Apex Core of M -->
-    <polygon points="64,58 71,72 57,72" fill="url(#titaniumGrad)" opacity="0.9" />
+    <!-- Bottom Anchor Accent Line -->
+    <rect x="58" y="86" width="12" height="3" rx="1.5" fill="#ffffff" opacity="0.6" />
   </g>
 
-  <!-- High-Tech Micro Precision Dots (White / Silver Accent) -->
-  <circle cx="104" cy="24" r="2.5" fill="#ffffff" opacity="0.8" />
-  <circle cx="24" cy="104" r="2.5" fill="#ffffff" opacity="0.35" />
+  <!-- Optical Micro Balance Flares -->
+  <circle cx="104" cy="22" r="2" fill="#ffffff" opacity="0.85" />
+  <circle cx="24" cy="106" r="1.5" fill="#ffffff" opacity="0.3" />
 </svg>

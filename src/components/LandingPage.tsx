@@ -25,20 +25,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <header className="sticky top-0 z-30 w-full bg-[#000000]/95 border-b border-white/[0.08] px-3.5 sm:px-8 py-3 backdrop-blur-xl pt-safe">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
           
-          {/* Right / Logo */}
-          <div className="flex items-center gap-2.5">
-            <img
-              src="/x1-logo.svg"
-              alt="Matany Logo"
-              className="w-8 h-8 rounded-xl object-contain shadow-sm"
-            />
-            <div className="flex flex-col text-right">
-              <span className="font-['Space_Grotesk'] font-black text-base tracking-tight leading-none">
-                <span className="bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">Matany</span>
-                <span className="text-zinc-500 font-semibold text-xs sm:text-sm">.one</span>
-              </span>
-              <span className="text-[9px] text-zinc-400 font-mono mt-0.5 tracking-wider uppercase">
-                MATANY AI SYSTEM
+          {/* Right / Luxury Brand Lockup */}
+          <div className="flex items-center gap-3 select-none">
+            <div className="size-9 sm:size-10 rounded-2xl bg-zinc-950/90 border border-white/[0.12] p-1 shadow-md shadow-black/50 flex items-center justify-center">
+              <img
+                src="/x1-logo.svg"
+                alt="Matany Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="flex flex-col text-right justify-center">
+              <div className="flex items-center gap-1.5 leading-none">
+                <span className="font-['Space_Grotesk'] font-extrabold text-base sm:text-lg tracking-wide text-white uppercase">
+                  MATANY
+                </span>
+                <span className="px-1.5 py-0.5 rounded-md bg-white/[0.07] border border-white/[0.12] text-[9px] sm:text-[10px] font-mono font-bold tracking-wider text-zinc-300 shadow-inner">
+                  .ONE
+                </span>
+              </div>
+              <span className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono mt-1 font-semibold tracking-[0.18em] uppercase">
+                INTELLIGENCE SYSTEMS
               </span>
             </div>
           </div>

@@ -31,28 +31,34 @@ export const TopBar: React.FC<TopBarProps> = ({
     <header className="sticky top-0 z-40 w-full glass-header px-4 sm:px-6 py-2.5 sm:py-3.5 select-none transition-colors pt-safe">
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
         
-        {/* Right / Brand */}
+        {/* Right / Luxury Brand Lockup */}
         <div
           onClick={onGoHome}
-          className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group shrink-0"
+          className="flex items-center gap-3 cursor-pointer group shrink-0 select-none"
           title="Matany.one"
         >
-          <img
-            src="/x1-logo.svg"
-            alt="Matany Logo"
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm group-hover:scale-105 transition-transform"
-          />
-          <div className="flex flex-col text-right">
-            <span className="font-['Space_Grotesk'] font-black text-base sm:text-lg tracking-tight leading-none transition-colors">
-              <span className="bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">Matany</span>
-              <span className="text-zinc-500 font-semibold text-xs sm:text-sm">.one</span>
-            </span>
-            <span className="text-[9px] sm:text-[10px] text-zinc-400 font-mono mt-1 font-semibold tracking-wider uppercase">
+          <div className="size-9 sm:size-10 rounded-2xl bg-zinc-950/90 border border-white/[0.12] p-1 shadow-md shadow-black/50 group-hover:border-white/30 group-hover:scale-105 transition-all flex items-center justify-center">
+            <img
+              src="/x1-logo.svg"
+              alt="Matany Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <div className="flex flex-col text-right justify-center">
+            <div className="flex items-center gap-1.5 leading-none">
+              <span className="font-['Space_Grotesk'] font-extrabold text-base sm:text-lg tracking-wide text-white uppercase group-hover:text-zinc-200 transition-colors">
+                MATANY
+              </span>
+              <span className="px-1.5 py-0.5 rounded-md bg-white/[0.07] border border-white/[0.12] text-[9px] sm:text-[10px] font-mono font-bold tracking-wider text-zinc-300 shadow-inner">
+                .ONE
+              </span>
+            </div>
+            <span className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono mt-1 font-semibold tracking-[0.18em] uppercase">
               {activeModel === 'deepseek-v4-flash-cyber'
-                ? 'FATHOM CYBER'
+                ? 'CYBER INTELLIGENCE'
                 : activeModel === 'deepseek-v4-flash-vision-exp'
-                ? 'FATHOM CAM'
-                : 'FATHOM AI'}
+                ? 'VISION PERCEPTION'
+                : 'FATHOM CORE'}
             </span>
           </div>
         </div>
