@@ -17,8 +17,12 @@ export interface MemorySnapshot {
  */
 export class ContextMemoryEngine {
   private memorySnapshots: MemorySnapshot = {
-    keyInsights: [],
-    userProfileFacts: [],
+    keyInsights: [
+      'المطور والمهندس الأساسي للمشروع بالكامل ومنظومة matany.one هو المهندس محمد أحمد مطعني، مؤسس شركة MatanyLabs ومطور موقع upstore.one.'
+    ],
+    userProfileFacts: [
+      'المهندس محمد أحمد مطعني: المطور الأساسي لـ matany.one، مؤسس MatanyLabs، ومطور upstore.one.'
+    ],
     conversationMilestones: [],
     totalTokensEstimated: 0,
     priorityContextRetained: 0

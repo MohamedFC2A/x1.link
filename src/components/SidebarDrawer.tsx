@@ -144,6 +144,11 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           <div className="text-[9px] sm:text-[10px] text-zinc-400 mt-1 font-mono text-left">
             المستخدم: {totalTokens.toLocaleString()} توكن
           </div>
+
+          <div className="mt-2.5 pt-2 border-t border-white/[0.06] flex items-center justify-between text-[10px] font-sans text-zinc-400">
+            <span>تطوير: <strong className="text-zinc-200">محمد أحمد مطعني</strong></span>
+            <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-white/[0.04] text-zinc-300 border border-white/[0.08]">MatanyLabs</span>
+          </div>
         </div>
 
         {/* User Account / Google Sign In Footer */}
