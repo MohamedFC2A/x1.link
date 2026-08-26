@@ -1214,6 +1214,45 @@ export default async function handler(req: Request): Promise<Response> {
     return true;
   });
 
+function getTimeDetectPromptBlock(): string {
+  const now = new Date();
+  
+  const cairoFormatter = new Intl.DateTimeFormat('ar-EG', {
+    timeZone: 'Africa/Cairo',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+  
+  const cairoTimeArabic = cairoFormatter.format(now);
+  const isoUtc = now.toISOString();
+  const epoch = Date.now();
+
+  return `
+[نظام استشعار وحساب الوقت الذكي — TIME DETECT DIRECTIVE]:
+- التوقيت الحالي اللحظي المعتمد بدقة مطلقة:
+  * التاريخ والوقت في مصر والسعودية (GMT+3): ${cairoTimeArabic}
+  * التوقيت العالمي الموحد (UTC/ISO): ${isoUtc}
+  * التاريخ الميلادي: ${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}
+  * طابع الـ Epoch الملي ثانية: ${epoch}
+- قواعد وإرشادات منظومة Time Detect:
+  1. إذا سأل المستخدم عن الوقت الحالي، الساعة الآن، التاريخ اليوم، أو فروق التوقيت بين الدول:
+     - أجب فوراً بالوقت والتاريخ الحقيقي الدقيق أعلاه بثقة تامة ودون أي تردد.
+     - ضع شارة الساعة الحية في ردك: "### [TIME-DETECT-CLOCK: Live | ${now.toISOString().slice(0,10)} | توقيت مصر والسعودية (GMT+3)]"
+  2. إذا طلب المستخدم إنشاء مؤقت زمني أو تايمر ذكي (مثال: "اعمل تايمر 5 دقائق" أو "مؤقت دقيقة للتركيز"):
+     - احسب عدد الثواني وضع شارة المؤقت التفاعلي: "### [TIME-DETECT-TIMER: <seconds> | <duration_text> | <title>]" (مثال: "### [TIME-DETECT-TIMER: 300 | 5 دقائق | مؤقت التركيز والعمل]").
+  3. إذا طلب المستخدم تذكيراً بموعد أو مهمة (مثال: "فكرني باجتماع غداً الساعة 5 مساءً" أو "فكرني بعد ساعتين"):
+     - احسب التاريخ المستهدف بدقة بصيغة ISO وضع شارة التذكير: "### [TIME-DETECT-REMINDER: <target_date_iso> | <reminder_text>]" (مثال: "### [TIME-DETECT-REMINDER: ${isoUtc} | تذكير بالاجتماع]").
+  4. إذا طلب المستخدم مسح أو حذف الشات بعد فترة زمنية معينة (مثال: "احذف هذا الشات بعد 10 دقائق"):
+     - احسب الثواني وضع شارة التدمير الذاتي: "### [TIME-DETECT-AUTODELETE: <seconds> | <duration_text>]" (مثال: "### [TIME-DETECT-AUTODELETE: 600 | 10 دقائق]").
+  5. عند الإشارة إلى وظيفة فحص أو حساب الوقت في إجابتك، استخدم مصطلح "Time Detect" ليتألق بالثيم الزمني المتعدد الألوان.`;
+}
+
   const isCyber = model === 'deepseek-v4-flash-cyber' || model.includes('cyber');
   const isVision = model === 'deepseek-v4-flash-vision-exp' || model.includes('vision');
 
@@ -1221,9 +1260,8 @@ export default async function handler(req: Request): Promise<Response> {
     ? (isX1Mode ? `${SYSTEM_PROMPT_CYBER}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_CYBER)
     : (isX1Mode ? SYSTEM_PROMPT_NSFW_NANO : SYSTEM_PROMPT_18);
 
-  const activeSystemPrompt = memoryPrompt
-    ? `${baseSystemPrompt}\n\n${memoryPrompt}`
-    : baseSystemPrompt;
+  const timeDetectContext = getTimeDetectPromptBlock();
+  const activeSystemPrompt = `${baseSystemPrompt}\n\n${timeDetectContext}${memoryPrompt ? `\n\n${memoryPrompt}` : ''}`;
 
   const hasMultimodal = cleanedMessages.some((m: any) => {
     if (Array.isArray(m.content)) {

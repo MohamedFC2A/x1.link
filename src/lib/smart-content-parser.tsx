@@ -17,8 +17,11 @@ const AI_KEYWORD_REGEX = /\b(AI[-\s]?DETECT|AI[-\s]?GENERATED)\b|(?:\b(نعم)\b
 // Keywords for Meta Data / EXIF styling (Blue & White radiant styling)
 const METADATA_KEYWORD_REGEX = /\b(Meta[-\s]?Data|Metadata|EXIF)\b|(?:\b(الميتا\s?داتا|الميتاداتا|ميتا\s?داتا|ميتاداتا)\b)/;
 
+// Keywords for Time Detect (Aurora Multi-Color Temporal styling)
+const TIME_KEYWORD_REGEX = /\b(Time[-\s]?Detect|TimeDetect)\b|(?:\b(تايم\s?ديتكت|تايم\s?ديتيكت|استشعار\s?الوقت|استشعار\s?الزمن)\b)/i;
+
 const COMBINED_SCANNER = new RegExp(
-  `(${EMAIL_REGEX.source})|(${URL_REGEX.source})|(${PHONE_REGEX.source})|(${AI_KEYWORD_REGEX.source})|(${METADATA_KEYWORD_REGEX.source})`,
+  `(${EMAIL_REGEX.source})|(${URL_REGEX.source})|(${PHONE_REGEX.source})|(${AI_KEYWORD_REGEX.source})|(${METADATA_KEYWORD_REGEX.source})|(${TIME_KEYWORD_REGEX.source})`,
   "gi"
 );
 
@@ -186,6 +189,15 @@ export function renderSmartContentWithLinksAndPhones(
         <span
           key={`metadata-${matchIndex}`}
           className="inline-flex items-center px-1.5 py-0.5 mx-1 rounded bg-zinc-900 border border-sky-400/20 meta-data-text font-mono font-black text-xs align-middle select-text"
+        >
+          {matchedToken}
+        </span>
+      );
+    } else if (/^(Time[-\s]?Detect|TimeDetect|تايم\s?ديتكت|تايم\s?ديتيكت|استشعار\s?الوقت|استشعار\s?الزمن)$/i.test(matchedToken)) {
+      parts.push(
+        <span
+          key={`timedetect-${matchIndex}`}
+          className="inline-flex items-center px-1.5 py-0.5 mx-1 rounded bg-zinc-900 border border-amber-500/30 time-detect-text font-mono font-black text-xs align-middle select-text"
         >
           {matchedToken}
         </span>

@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessageItem, ResolvedLinkInfo } from '../types';
 import ChatReasoning from './ui/chat-reasoning';
-import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Zap, Loader2, Play, Video, Music, FileText, FileCode, FileType } from 'lucide-react';
+import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Zap, Loader2, Play, Pause, Video, Music, FileText, FileCode, FileType, Clock, RotateCcw, Bell, Trash2, Calendar, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { detectAndExtractUrl, extractAllCleanUrls, getFaviconUrl, extractYouTubeVideoId, getYouTubeThumbnailUrl } from '@/lib/utils';
 import { formatMediaDuration, formatFileSize } from '@/lib/mediaExtractor';
@@ -419,6 +419,450 @@ const AiDetectBadge: React.FC<AiDetectBadgeProps> = ({ verdict = 'AI-Generated',
   );
 };
 
+// Synthetic Web Audio beep generator (zero external mp3 dependency)
+function playTimerChime() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const now = ctx.currentTime;
+    
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(659.25, now); // E5
+    gain1.gain.setValueAtTime(0.25, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.5);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880, now + 0.25); // A5
+    gain2.gain.setValueAtTime(0.3, now + 0.25);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.25);
+    osc2.stop(now + 0.9);
+  } catch (err) {
+    // Ignore audio restrictions
+  }
+}
+
+export const TimeDetectClock: React.FC<{ timezoneLabel?: string }> = ({ timezoneLabel = 'توقيت مكة والقاهرة (GMT+3)' }) => {
+  const [now, setNow] = useState<Date>(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const timeStr = now.toLocaleTimeString('ar-EG', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+
+  const dateStr = now.toLocaleDateString('ar-EG', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  return (
+    <div className="my-3 p-3.5 sm:p-4 rounded-2xl time-detect-badge border border-amber-500/20 text-right animate-in fade-in duration-200 select-none shadow-xl" dir="rtl">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-2.5 mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono font-black uppercase px-2.5 py-0.5 rounded-md bg-zinc-900 border border-amber-500/30 time-detect-text">
+            TIME DETECT
+          </span>
+          <span className="text-xs sm:text-sm font-sans font-bold text-zinc-100 flex items-center gap-1.5">
+            <Clock className="w-4 h-4 text-amber-400" />
+            استشعار التوقيت اللحظي المباشر
+          </span>
+        </div>
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-zinc-300">
+          Live Sync
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+        <div className="flex flex-col gap-1">
+          <div className="text-2xl sm:text-3xl font-black font-mono text-white tracking-tight dir-ltr text-right">
+            {timeStr}
+          </div>
+          <div className="text-xs text-zinc-300 font-sans font-medium">
+            {dateStr}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5 text-xs text-zinc-400 bg-white/[0.03] p-2.5 rounded-xl border border-white/[0.06]">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-zinc-400">النطاق الزمني:</span>
+            <span className="font-semibold text-zinc-200">{timezoneLabel}</span>
+          </div>
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-zinc-400">توقيت غرينتش (UTC):</span>
+            <span className="font-mono text-zinc-300 dir-ltr">{now.toUTCString().slice(17, 25)} UTC</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const TimeDetectTimer: React.FC<{
+  initialSeconds?: number;
+  durationLabel?: string;
+  title?: string;
+}> = ({
+  initialSeconds = 300,
+  durationLabel = '5 دقائق',
+  title = 'مؤقت ذكي تفاعلي'
+}) => {
+  const [totalSeconds] = useState<number>(Math.max(1, initialSeconds));
+  const [remaining, setRemaining] = useState<number>(Math.max(1, initialSeconds));
+  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [isCompleted, setIsCompleted] = useState<boolean>(false);
+
+  useEffect(() => {
+    let interval: any = null;
+    if (isRunning && remaining > 0) {
+      interval = setInterval(() => {
+        setRemaining((prev) => {
+          if (prev <= 1) {
+            setIsRunning(false);
+            setIsCompleted(true);
+            playTimerChime();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRunning, remaining]);
+
+  const handleTogglePlay = () => {
+    if (isCompleted) {
+      setRemaining(totalSeconds);
+      setIsCompleted(false);
+      setIsRunning(true);
+    } else {
+      setIsRunning(!isRunning);
+    }
+  };
+
+  const handleReset = () => {
+    setIsRunning(false);
+    setIsCompleted(false);
+    setRemaining(totalSeconds);
+  };
+
+  const minutes = Math.floor(remaining / 60);
+  const seconds = remaining % 60;
+  const progressPercent = totalSeconds > 0 ? ((totalSeconds - remaining) / totalSeconds) * 100 : 0;
+
+  return (
+    <div className="my-3 p-3.5 sm:p-4 rounded-2xl time-detect-badge border border-amber-500/20 text-right animate-in fade-in duration-200 select-none shadow-xl" dir="rtl">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-2.5 mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono font-black uppercase px-2.5 py-0.5 rounded-md bg-zinc-900 border border-amber-500/30 time-detect-text">
+            TIME DETECT
+          </span>
+          <span className="text-xs sm:text-sm font-sans font-bold text-zinc-100 flex items-center gap-1.5">
+            <Clock className="w-4 h-4 text-amber-400" />
+            {title}
+          </span>
+        </div>
+        <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-zinc-300">
+          {durationLabel}
+        </span>
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+          <div className="text-3xl sm:text-4xl font-black font-mono tracking-wider dir-ltr text-white">
+            {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleTogglePlay}
+              className={cn(
+                "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer select-none active:scale-95 border",
+                isRunning
+                  ? "bg-amber-500/20 hover:bg-amber-500/30 border-amber-500/40 text-amber-200"
+                  : isCompleted
+                  ? "bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/40 text-emerald-200"
+                  : "bg-white/[0.1] hover:bg-white/[0.16] border-white/[0.2] text-white"
+              )}
+            >
+              {isRunning ? (
+                <>
+                  <Pause className="w-3.5 h-3.5 fill-current" />
+                  <span>إيقاف مؤقت</span>
+                </>
+              ) : isCompleted ? (
+                <>
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>إعادة تشغيل</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>بدء المؤقت</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleReset}
+              className="p-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-all border border-white/[0.08] cursor-pointer"
+              title="إعادة ضبط"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {isCompleted && (
+          <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/30 animate-bounce">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>انتهى وقت المؤقت!</span>
+          </div>
+        )}
+      </div>
+
+      {/* Progress Bar */}
+      <div className="w-full bg-white/[0.06] h-1.5 rounded-full overflow-hidden mt-3">
+        <div
+          className="h-full bg-gradient-to-r from-amber-400 via-emerald-400 to-cyan-400 transition-all duration-300"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+export const TimeDetectReminder: React.FC<{
+  targetDateIso?: string;
+  reminderText?: string;
+}> = ({
+  targetDateIso = '',
+  reminderText = 'تذكير بموعد مهم'
+}) => {
+  const [targetDate] = useState<Date>(() => {
+    if (targetDateIso) {
+      const d = new Date(targetDateIso);
+      if (!isNaN(d.getTime())) return d;
+    }
+    const fallback = new Date();
+    fallback.setHours(fallback.getHours() + 1);
+    return fallback;
+  });
+
+  const [timeLeft, setTimeLeft] = useState<string>('');
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const diff = targetDate.getTime() - Date.now();
+      if (diff <= 0) {
+        setTimeLeft('حان موعد التذكير!');
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+
+      const parts = [];
+      if (days > 0) parts.push(`${days} يوم`);
+      if (hours > 0) parts.push(`${hours} ساعة`);
+      if (minutes > 0) parts.push(`${minutes} دقيقة`);
+      if (days === 0 && hours === 0) parts.push(`${seconds} ثانية`);
+      setTimeLeft(parts.join(' و ') || 'أقل من دقيقة');
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  const dateStr = targetDate.toLocaleDateString('ar-EG', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  return (
+    <div className="my-3 p-3.5 sm:p-4 rounded-2xl time-detect-badge border border-amber-500/20 text-right animate-in fade-in duration-200 select-none shadow-xl" dir="rtl">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-2.5 mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono font-black uppercase px-2.5 py-0.5 rounded-md bg-zinc-900 border border-amber-500/30 time-detect-text">
+            TIME DETECT
+          </span>
+          <span className="text-xs sm:text-sm font-sans font-bold text-zinc-100 flex items-center gap-1.5">
+            <Bell className="w-4 h-4 text-amber-400" />
+            تذكير زمني ذكي مجدول
+          </span>
+        </div>
+        <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold">
+          مجدول
+        </span>
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <div className="text-sm sm:text-base font-bold text-white">
+            {reminderText}
+          </div>
+          <div className="text-xs text-zinc-400 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-zinc-400" />
+            <span>{dateStr}</span>
+          </div>
+          <div className="text-xs text-amber-300 font-medium mt-1">
+            ⏳ متبقي: <span className="font-bold text-white">{timeLeft}</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsSaved(true)}
+          className={cn(
+            "px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border select-none active:scale-95 shrink-0",
+            isSaved
+              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+              : "bg-white/[0.08] hover:bg-white/[0.14] text-white border-white/[0.16]"
+          )}
+        >
+          {isSaved ? "✓ تم حفظ التذكير" : "تأكيد الجدولة"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export const TimeDetectAutoDelete: React.FC<{
+  initialSeconds?: number;
+  durationLabel?: string;
+}> = ({
+  initialSeconds = 600,
+  durationLabel = '10 دقائق'
+}) => {
+  const [remaining, setRemaining] = useState<number>(Math.max(5, initialSeconds));
+  const [isCancelled, setIsCancelled] = useState(false);
+
+  useEffect(() => {
+    if (isCancelled || remaining <= 0) return;
+    const interval = setInterval(() => {
+      setRemaining((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isCancelled, remaining]);
+
+  const minutes = Math.floor(remaining / 60);
+  const seconds = remaining % 60;
+
+  return (
+    <div className="my-3 p-3.5 sm:p-4 rounded-2xl time-detect-badge border border-rose-500/30 text-right animate-in fade-in duration-200 select-none shadow-xl" dir="rtl">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-2.5 mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono font-black uppercase px-2.5 py-0.5 rounded-md bg-zinc-900 border border-rose-500/30 text-rose-300">
+            TIME DETECT
+          </span>
+          <span className="text-xs sm:text-sm font-sans font-bold text-rose-200 flex items-center gap-1.5">
+            <Trash2 className="w-4 h-4 text-rose-400" />
+            التدمير الذاتي للمحادثة مؤقت
+          </span>
+        </div>
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 font-bold">
+          {durationLabel}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-xs text-zinc-300 font-sans">
+            {isCancelled ? 'تم إلغاء التدمير الذاتي بنجاح.' : 'سيتم مسح هذه المحادثة تلقائياً بعد انتهاء الوقت المتبقي:'}
+          </div>
+          {!isCancelled && (
+            <div className="text-xl sm:text-2xl font-mono font-black text-rose-400 mt-1 dir-ltr text-right">
+              {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+            </div>
+          )}
+        </div>
+
+        {!isCancelled && (
+          <button
+            type="button"
+            onClick={() => setIsCancelled(true)}
+            className="px-3 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-zinc-200 hover:text-white text-xs font-bold border border-white/[0.14] transition-all cursor-pointer active:scale-95"
+          >
+            إلغاء الحذف
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+function parseCustomBadges(rawContent: string): React.ReactNode | null {
+  // 1. AI Detect
+  const aiMatch = rawContent.match(/(?:\[AI-DETECT-BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|AI-DETECT-BADGE:\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
+  if (aiMatch) {
+    const verdict = (aiMatch[1] || aiMatch[3])?.trim() || 'AI-Generated';
+    const score = (aiMatch[2] || aiMatch[4])?.trim() || '99.9%';
+    return <AiDetectBadge verdict={verdict} score={score} />;
+  }
+
+  // 2. Time Detect - Clock
+  const clockMatch = rawContent.match(/(?:\[TIME-DETECT-CLOCK:\s*([^|\]]+)?(?:\s*\|\s*([^|\]]+))?(?:\s*\|\s*([^\]]+))?\]|TIME-DETECT-CLOCK:\s*([^|\n]+)?)/i);
+  if (clockMatch) {
+    const tz = (clockMatch[3] || clockMatch[1] || clockMatch[4])?.trim() || 'توقيت مكة والقاهرة (GMT+3)';
+    return <TimeDetectClock timezoneLabel={tz} />;
+  }
+
+  // 3. Time Detect - Timer
+  const timerMatch = rawContent.match(/(?:\[TIME-DETECT-TIMER:\s*(\d+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-TIMER:\s*(\d+))/i);
+  if (timerMatch) {
+    const seconds = parseInt(timerMatch[1] || timerMatch[4] || '300', 10);
+    const label = timerMatch[2]?.trim() || `${Math.round(seconds / 60)} دقائق`;
+    const title = timerMatch[3]?.trim() || 'مؤقت ذكي تفاعلي';
+    return <TimeDetectTimer initialSeconds={seconds} durationLabel={label} title={title} />;
+  }
+
+  // 4. Time Detect - Reminder
+  const reminderMatch = rawContent.match(/(?:\[TIME-DETECT-REMINDER:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-REMINDER:\s*([^|\n]+))/i);
+  if (reminderMatch) {
+    const iso = (reminderMatch[1] || reminderMatch[3])?.trim() || '';
+    const text = (reminderMatch[2] || 'تذكير بموعد مهم')?.trim();
+    return <TimeDetectReminder targetDateIso={iso} reminderText={text} />;
+  }
+
+  // 5. Time Detect - Auto Delete
+  const autoDeleteMatch = rawContent.match(/(?:\[TIME-DETECT-AUTODELETE:\s*(\d+)\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-AUTODELETE:\s*(\d+))/i);
+  if (autoDeleteMatch) {
+    const seconds = parseInt(autoDeleteMatch[1] || autoDeleteMatch[3] || '600', 10);
+    const label = autoDeleteMatch[2]?.trim() || `${Math.round(seconds / 60)} دقائق`;
+    return <TimeDetectAutoDelete initialSeconds={seconds} durationLabel={label} />;
+  }
+
+  return null;
+}
+
 const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   message,
   previousUserPrompt = '',
@@ -446,6 +890,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const promptLower = previousUserPrompt.toLowerCase();
   const isMetadataIntent = /(?:meta[-\s]?data|metadata|exif|ميتاداتا|الميتاداتا|ميتا\s?داتا|الميتا\s?داتا|كاميرا|نوع الجوال|جوال|هاتف|موقع جغرافي|تاريخ الالتقاط|بيانات الصورة|تاريخ الصورة|حجم الصورة)/i.test(promptLower);
   const isAiDetectIntent = /(?:ai[-\s]?detect|ذكاء\s?اصطناعي|توليد|مولدة|حقيقية|مزيفة|fake|deepfake|synthetic|بوت|فوتوشوب)/i.test(promptLower);
+  const isTimeIntent = /(?:time[-\s]?detect|timedetect|الوقت|الساعة|التوقيت|الزمن|تايمر|مؤقت|تذكير|فكرني|احذف الشات|تدمير ذاتي|تاريخ اليوم|اليوم كام|كم الساعة|كم الوقت|كم باقي|كم مر|متبقي على)/i.test(promptLower);
 
   // Dynamic 2-second detection status phase
   const [loadingPhase, setLoadingPhase] = useState<'perceiving' | 'detecting'>('perceiving');
@@ -738,6 +1183,12 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   )
                 ) : message.isX1 ? (
                   "جاري تحرير المحرك العصبي واستدعاء الرد..."
+                ) : isTimeIntent ? (
+                  <>
+                    <span>جاري استشعار التوقيت وحساب المعطيات الزمنية عبر</span>
+                    <span className="time-detect-text font-black text-xs">Time Detect</span>
+                    <span>...</span>
+                  </>
                 ) : (
                   "جاري توليد الاستجابة اللغوية الفصحى..."
                 )}
@@ -807,11 +1258,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 },
                 p: ({ children }) => {
                   const rawContent = React.Children.toArray(children).map(c => typeof c === 'string' ? c : '').join('');
-                  const badgeMatch = rawContent.match(/(?:\[AI-DETECT-BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|AI-DETECT-BADGE:\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
-                  if (badgeMatch) {
-                    const verdict = (badgeMatch[1] || badgeMatch[3])?.trim() || 'AI-Generated';
-                    const score = (badgeMatch[2] || badgeMatch[4])?.trim() || '99.9%';
-                    return <AiDetectBadge verdict={verdict} score={score} />;
+                  const customBadge = parseCustomBadges(rawContent);
+                  if (customBadge) {
+                    return customBadge;
                   }
                   return (
                     <p className="mb-2.5 sm:mb-3 last:mb-0 leading-relaxed">
@@ -821,11 +1270,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 },
                 h1: ({ children }) => {
                   const rawContent = React.Children.toArray(children).map(c => typeof c === 'string' ? c : '').join('');
-                  const badgeMatch = rawContent.match(/(?:\[AI-DETECT-BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|AI-DETECT-BADGE:\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
-                  if (badgeMatch) {
-                    const verdict = (badgeMatch[1] || badgeMatch[3])?.trim() || 'AI-Generated';
-                    const score = (badgeMatch[2] || badgeMatch[4])?.trim() || '99.9%';
-                    return <AiDetectBadge verdict={verdict} score={score} />;
+                  const customBadge = parseCustomBadges(rawContent);
+                  if (customBadge) {
+                    return customBadge;
                   }
                   return (
                     <h1 className="text-base sm:text-xl font-bold text-white my-2 sm:my-3 border-b border-white/[0.1] pb-1.5">
@@ -835,11 +1282,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 },
                 h2: ({ children }) => {
                   const rawContent = React.Children.toArray(children).map(c => typeof c === 'string' ? c : '').join('');
-                  const badgeMatch = rawContent.match(/(?:\[AI-DETECT-BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|AI-DETECT-BADGE:\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
-                  if (badgeMatch) {
-                    const verdict = (badgeMatch[1] || badgeMatch[3])?.trim() || 'AI-Generated';
-                    const score = (badgeMatch[2] || badgeMatch[4])?.trim() || '99.9%';
-                    return <AiDetectBadge verdict={verdict} score={score} />;
+                  const customBadge = parseCustomBadges(rawContent);
+                  if (customBadge) {
+                    return customBadge;
                   }
                   return (
                     <h2 className="text-sm sm:text-lg font-semibold text-zinc-100 my-2 sm:my-2.5">
@@ -849,11 +1294,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 },
                 h3: ({ children }) => {
                   const rawContent = React.Children.toArray(children).map(c => typeof c === 'string' ? c : '').join('');
-                  const badgeMatch = rawContent.match(/(?:\[AI-DETECT-BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|AI-DETECT-BADGE:\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
-                  if (badgeMatch) {
-                    const verdict = (badgeMatch[1] || badgeMatch[3])?.trim() || 'AI-Generated';
-                    const score = (badgeMatch[2] || badgeMatch[4])?.trim() || '99.9%';
-                    return <AiDetectBadge verdict={verdict} score={score} />;
+                  const customBadge = parseCustomBadges(rawContent);
+                  if (customBadge) {
+                    return customBadge;
                   }
                   return (
                     <h3 className="text-xs sm:text-base font-semibold text-white my-1.5 sm:my-2">

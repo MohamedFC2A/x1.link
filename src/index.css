@@ -296,6 +296,40 @@
   }
 
   /* ==========================================================================
+     Time Detect Temporal Multi-Color Aurora Shimmer (Amber/Emerald/Cyan/Violet)
+     ========================================================================== */
+  .time-detect-badge {
+    background: rgba(18, 20, 26, 0.8);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    box-shadow: none;
+  }
+
+  .time-detect-text {
+    background: linear-gradient(
+      90deg,
+      #f59e0b 0%,
+      #fbbf24 14%,
+      #10b981 28%,
+      #06b6d4 44%,
+      #3b82f6 60%,
+      #8b5cf6 74%,
+      #ec4899 88%,
+      #f59e0b 100%
+    );
+    background-size: 270% auto;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: ai-detect-rainbow 3.2s linear infinite;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    filter: none;
+    text-shadow: none;
+  }
+
+  /* ==========================================================================
      Dynamic Mode Ambient Lighting & Orbit Beams (GPU-Accelerated)
      ========================================================================== */
   @keyframes border-beam-spin {
