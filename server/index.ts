@@ -1250,20 +1250,27 @@ async function processSingleLinkIntelligence(
     try {
       const socialResult = await fetchSocialVideoData(url);
       let visionResult: VideoVisionResult | null = null;
-      const keyframes = ('videoId' in socialResult && socialResult.videoId)
-        ? [
-            {
-              timestampSec: 0,
-              timestampFormatted: '00:00',
-              url: socialResult.thumbnailUrl || '',
-              label: 'صورة المنشور / الغلاف الأساسي'
-            }
-          ]
-        : [];
+      const keyframes = ('mediaUrls' in socialResult && socialResult.mediaUrls && socialResult.mediaUrls.length > 0)
+        ? socialResult.mediaUrls.slice(0, 4).map((imgUrl, i) => ({
+            timestampSec: i * 5,
+            timestampFormatted: `00:0${i * 5}`,
+            url: imgUrl,
+            label: `صورة رقم (${i + 1}) من المنشور`
+          }))
+        : (('thumbnailUrl' in socialResult && socialResult.thumbnailUrl)
+            ? [
+                {
+                  timestampSec: 0,
+                  timestampFormatted: '00:00',
+                  url: socialResult.thumbnailUrl,
+                  label: 'صورة المنشور / الغلاف الأساسي'
+                }
+              ]
+            : []);
 
       if (keyframes.length > 0 && DEEPSEEK_API_KEY && 'author' in socialResult) {
         visionResult = await performVideoVisionPerception(
-          socialResult.videoId || 'social_video',
+          socialResult.videoId || 'social_post_media',
           socialInfo.platform,
           keyframes,
           {

@@ -15,13 +15,22 @@
 
 import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildMasterVideoIntelligenceBlock, type VideoKeyframe, type VideoVisionResult } from './videoVisionService.js';
 
+export interface PostComment {
+  author: string;
+  text: string;
+  time?: string;
+  likes?: number;
+}
+
 export interface SocialVideoMetadata {
   platform: 'instagram' | 'facebook' | 'twitter' | 'youtube' | 'tiktok' | 'generic';
+  postType?: 'video' | 'reel' | 'photo' | 'post' | 'album' | 'story';
   canonicalUrl: string;
   originalUrl: string;
   videoId?: string;
   title: string;
   description: string;
+  fullContent?: string;
   author: {
     username: string;
     displayName: string;
@@ -36,6 +45,8 @@ export interface SocialVideoMetadata {
   };
   thumbnailUrl?: string;
   videoUrl?: string;
+  mediaUrls?: string[];
+  commentsList?: PostComment[];
   durationSeconds?: number;
   hashtags: string[];
   extractedAt: number;
@@ -210,7 +221,7 @@ export async function fetchInstagramVideoData(url: string): Promise<SocialVideoR
   }
 }
 
-// ─── Facebook Video Extractor ─────────────────────────────────────────────────
+// ─── Facebook Post, Media & Video Forensic Extractor ─────────────────────────
 
 export async function fetchFacebookVideoData(url: string): Promise<SocialVideoResult> {
   const cached = getCached(url);
@@ -220,7 +231,7 @@ export async function fetchFacebookVideoData(url: string): Promise<SocialVideoRe
     let currentUrl = url;
     let html = '';
 
-    // Fetch following redirects with Facebook bot headers
+    // Step 1: Follow redirects with Facebook Bot Headers to resolve canonical URL
     const res = await fetch(currentUrl, {
       headers: BOT_HEADERS,
       redirect: 'follow',
@@ -231,29 +242,191 @@ export async function fetchFacebookVideoData(url: string): Promise<SocialVideoRe
       html = await res.text();
     }
 
-    const ogTitle = decodeHtmlEntities(html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["'](.*?)["']/i)?.[1] || '');
-    const ogDesc = decodeHtmlEntities(html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["'](.*?)["']/i)?.[1] || '');
-    const ogImg = decodeHtmlEntities(html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1] || '');
-    const ogVideo = decodeHtmlEntities(html.match(/<meta[^>]+property=["']og:video(?::url)?["'][^>]+content=["']([^"']+)["']/i)?.[1] || '');
+    // Step 2: Fallback to mobile fetch if main body is small or missing rich content
+    let mobileHtml = '';
+    if (html.length < 5000 || !html.includes('og:description')) {
+      try {
+        const mobileUrl = currentUrl
+          .replace(/www\.facebook\.com/i, 'm.facebook.com')
+          .replace(/mbasic\.facebook\.com/i, 'm.facebook.com');
+        const mRes = await fetch(mobileUrl, {
+          headers: STEALTH_HEADERS,
+          redirect: 'follow',
+        });
+        if (mRes.ok) {
+          mobileHtml = await mRes.text();
+        }
+      } catch {}
+    }
 
-    // Extract Video ID if present
-    const idMatch = currentUrl.match(/(?:videos|reel|watch\/\?v=)\/?([0-9]+)/i);
+    const combinedHtml = `${html}\n${mobileHtml}`;
+
+    // Step 3: OpenGraph Extractions
+    const ogTitle = decodeHtmlEntities(combinedHtml.match(/<meta[^>]+property=["']og:title["'][^>]+content=["'](.*?)["']/i)?.[1] || '');
+    const ogDesc = decodeHtmlEntities(combinedHtml.match(/<meta[^>]+property=["']og:description["'][^>]+content=["'](.*?)["']/i)?.[1] || '');
+    const metaDesc = decodeHtmlEntities(combinedHtml.match(/<meta[^>]+name=["']description["'][^>]+content=["'](.*?)["']/i)?.[1] || '');
+    const ogImg = decodeHtmlEntities(combinedHtml.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i)?.[1] || '');
+    const ogVideo = decodeHtmlEntities(combinedHtml.match(/<meta[^>]+property=["']og:video(?::secure_url|:url)?["'][^>]+content=["']([^"']+)["']/i)?.[1] || '');
+    const ogType = combinedHtml.match(/<meta[^>]+property=["']og:type["'][^>]+content=["'](.*?)["']/i)?.[1] || '';
+
+    // Step 4: Deep JSON-LD Extraction (articleBody, text, author, images, video, comments, stats)
+    let jsonLdBody = '';
+    let jsonLdAuthor = '';
+    const jsonLdImages: string[] = [];
+    let jsonLdVideoUrl = '';
+    const jsonLdComments: PostComment[] = [];
+    let likesCount: number | undefined;
+    let commentsCount: number | undefined;
+    let sharesCount: number | undefined;
+
+    const ldMatches = combinedHtml.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+    for (const match of ldMatches) {
+      try {
+        const parsed = JSON.parse(match[1].trim());
+        const items = Array.isArray(parsed) ? parsed : [parsed];
+        for (const item of items) {
+          if (item.articleBody && typeof item.articleBody === 'string') {
+            jsonLdBody = item.articleBody;
+          } else if (item.text && typeof item.text === 'string') {
+            jsonLdBody = item.text;
+          } else if (item.description && typeof item.description === 'string' && !jsonLdBody) {
+            jsonLdBody = item.description;
+          }
+
+          if (item.author) {
+            const aName = typeof item.author === 'string' ? item.author : item.author.name;
+            if (aName) jsonLdAuthor = aName;
+          }
+
+          if (item.image) {
+            if (Array.isArray(item.image)) {
+              jsonLdImages.push(...item.image.map((img: any) => typeof img === 'string' ? img : img.url).filter(Boolean));
+            } else if (typeof item.image === 'string') {
+              jsonLdImages.push(item.image);
+            } else if (item.image.url) {
+              jsonLdImages.push(item.image.url);
+            }
+          }
+
+          if (item.video) {
+            jsonLdVideoUrl = item.video.contentUrl || item.video.embedUrl || '';
+          }
+
+          // Comments inside JSON-LD
+          if (item.comment && Array.isArray(item.comment)) {
+            for (const c of item.comment) {
+              const cText = c.text || c.commentText || '';
+              const cAuthor = typeof c.author === 'string' ? c.author : (c.author?.name || 'مستخدم فيسبوك');
+              if (cText.trim()) {
+                jsonLdComments.push({
+                  author: cAuthor,
+                  text: decodeHtmlEntities(cText.trim()),
+                  time: c.dateCreated,
+                });
+              }
+            }
+          }
+
+          // Interaction stats
+          if (item.interactionStatistic && Array.isArray(item.interactionStatistic)) {
+            for (const stat of item.interactionStatistic) {
+              const type = stat.interactionType?.['@type'] || stat.interactionType || '';
+              const count = parseInt(stat.userInteractionCount || '0', 10);
+              if (type.includes('LikeAction')) likesCount = count;
+              if (type.includes('CommentAction')) commentsCount = count;
+              if (type.includes('ShareAction')) sharesCount = count;
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // Step 5: HTML Microdata & Regex Extraction for Post Message Text
+    let rawPostText = '';
+    const postMessageMatch = combinedHtml.match(/data-testid=["']post_message["'][^>]*>([\s\S]*?)<\/div>/i) ||
+                             combinedHtml.match(/data-ad-preview=["']message["'][^>]*>([\s\S]*?)<\/div>/i) ||
+                             combinedHtml.match(/class=["'][^"']*_5rgt[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) ||
+                             combinedHtml.match(/class=["'][^"']*story_body_container[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+    if (postMessageMatch) {
+      rawPostText = decodeHtmlEntities(postMessageMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+    }
+
+    // Step 6: HTML Microdata Extraction for Comments
+    const htmlComments: PostComment[] = [];
+    const commentBlockMatches = combinedHtml.matchAll(/(?:aria-label=["']Comment by ([^"']+)["'][^>]*>|data-testid=["']UFI2Comment\/body["'][^>]*>|data-sigil=["']comment-body["'][^>]*>)([\s\S]*?)<\/(?:div|span)>/gi);
+    for (const cMatch of commentBlockMatches) {
+      const cAuthor = cMatch[1] ? decodeHtmlEntities(cMatch[1].trim()) : 'معلق فيسبوك';
+      const cContent = decodeHtmlEntities(cMatch[2]?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || '');
+      if (cContent && cContent.length > 2 && !htmlComments.some(x => x.text === cContent)) {
+        htmlComments.push({ author: cAuthor, text: cContent });
+      }
+      if (htmlComments.length >= 8) break;
+    }
+
+    const allComments = jsonLdComments.length > 0 ? jsonLdComments : htmlComments;
+
+    // Step 7: Harvest all high-resolution photos
+    const allMediaUrls: string[] = [];
+    if (ogImg) allMediaUrls.push(ogImg);
+    jsonLdImages.forEach(img => {
+      if (!allMediaUrls.includes(img)) allMediaUrls.push(img);
+    });
+
+    const cdnImgMatches = combinedHtml.matchAll(/https:\/\/(?:scontent|external)[^\s"'<>]+\.fbcdn\.net\/[^\s"'<>]+(?:\.jpg|\.png|\.webp|\.jpeg)[^\s"'<>]*/gi);
+    for (const m of cdnImgMatches) {
+      const cleanImg = decodeHtmlEntities(m[0].replace(/&amp;/g, '&'));
+      if (!cleanImg.includes('/rsrc.php') && !cleanImg.includes('16x16') && !cleanImg.includes('32x32') && !allMediaUrls.includes(cleanImg)) {
+        allMediaUrls.push(cleanImg);
+      }
+      if (allMediaUrls.length >= 6) break;
+    }
+
+    // Determine author name
+    let authorName = jsonLdAuthor || '';
+    if (!authorName && ogTitle) {
+      if (ogTitle.includes('|')) {
+        authorName = ogTitle.split('|')[0].trim();
+      } else if (ogTitle.includes(' - ')) {
+        authorName = ogTitle.split(' - ')[0].trim();
+      } else if (ogTitle.toLowerCase().includes('on facebook')) {
+        authorName = ogTitle.split(/on facebook/i)[0].trim();
+      }
+    }
+    if (!authorName) authorName = 'Facebook Page / User';
+
+    // Determine full text content
+    const bestFullContent = jsonLdBody || rawPostText || ogDesc || metaDesc || ogTitle || 'محتوى منشور فيسبوك';
+    const isVideo = Boolean(ogVideo || jsonLdVideoUrl || ogType.includes('video') || /(?:videos|reel|watch)\//i.test(currentUrl));
+    const isPhoto = Boolean(!isVideo && (allMediaUrls.length > 0 || ogType.includes('photo')));
+    const postType: SocialVideoMetadata['postType'] = isVideo ? 'video' : isPhoto ? 'photo' : 'post';
+
+    // Extract ID
+    const idMatch = currentUrl.match(/(?:videos|reel|watch\/\?v=|posts\/|photos\/|permalink\/|fbid=)([0-9]+|[a-zA-Z0-9_-]+)/i);
     const videoId = idMatch ? idMatch[1] : undefined;
 
     const result: SocialVideoMetadata = {
       platform: 'facebook',
+      postType,
       canonicalUrl: currentUrl,
       originalUrl: url,
       videoId,
-      title: ogTitle || 'فيديو فيسبوك',
-      description: ogDesc || ogTitle || 'محتوى فيديو من فيسبوك',
+      title: ogTitle || `منشور فيسبوك بواسطة ${authorName}`,
+      description: ogDesc || bestFullContent,
+      fullContent: bestFullContent,
       author: {
-        username: 'facebook_page',
-        displayName: ogTitle.includes('|') ? ogTitle.split('|')[0].trim() : 'فيسبوك',
+        username: authorName.toLowerCase().replace(/\s+/g, '_'),
+        displayName: authorName,
       },
-      thumbnailUrl: ogImg || undefined,
-      videoUrl: ogVideo || undefined,
-      hashtags: extractHashtags(`${ogTitle} ${ogDesc}`),
+      metrics: {
+        likes: likesCount,
+        comments: commentsCount || (allComments.length > 0 ? allComments.length : undefined),
+        shares: sharesCount,
+      },
+      thumbnailUrl: ogImg || allMediaUrls[0] || undefined,
+      videoUrl: ogVideo || jsonLdVideoUrl || undefined,
+      mediaUrls: allMediaUrls,
+      commentsList: allComments.slice(0, 10),
+      hashtags: extractHashtags(`${ogTitle} ${bestFullContent}`),
       extractedAt: Date.now(),
     };
 
@@ -262,7 +435,7 @@ export async function fetchFacebookVideoData(url: string): Promise<SocialVideoRe
   } catch (err: any) {
     return {
       error: true,
-      message: err?.message || 'Failed to extract Facebook metadata',
+      message: err?.message || 'Failed to extract Facebook post and media metadata',
       platform: 'facebook',
       originalUrl: url,
     };
@@ -304,6 +477,7 @@ export async function fetchTwitterVideoData(url: string): Promise<SocialVideoRes
       videoId: statusId || undefined,
       title: ogTitle || `منشور ومقطع فيديو على منصة X (@${username})`,
       description: ogDesc || ogTitle || 'منشور وسائط من منصة X',
+      fullContent: ogDesc || ogTitle || '',
       author: {
         username,
         displayName: ogTitle.includes('on X') ? ogTitle.split('on X')[0].trim() : username,
@@ -340,46 +514,76 @@ export async function fetchSocialVideoData(url: string): Promise<SocialVideoResu
   };
 }
 
-// ─── Master AI Context Builder for Social Videos ──────────────────────────────
+// ─── Master AI Context Builder for Social Videos & Posts ──────────────────────
 
 export function buildSocialVideoContextBlock(
   metadata: SocialVideoMetadata,
   visionResult?: VideoVisionResult | null
 ): string {
-  const bar = '━'.repeat(45);
+  const bar = '━'.repeat(55);
   const parts: string[] = [];
 
   const platformNames: Record<string, string> = {
-    instagram: 'إنستغرام (Instagram Reels / Video)',
-    facebook: 'فيسبوك (Facebook Watch / Reels)',
-    twitter: 'منصة إكس / تويتر (X / Twitter Media)',
+    instagram: 'إنستغرام (Instagram Reels / Post)',
+    facebook: 'فيسبوك (Facebook Post / Video / Photos)',
+    twitter: 'منصة إكس / تويتر (X / Twitter Post)',
     youtube: 'يوتيوب (YouTube)',
     tiktok: 'تيك توك (TikTok)',
   };
 
-  parts.push(`🎬 [استخبارات الفيديو والوسائط الاجتماعية الشاملة — ${platformNames[metadata.platform] || metadata.platform}]`);
+  const pName = platformNames[metadata.platform] || metadata.platform;
+
+  parts.push(`📘 [استخبارات وتحليل وسائط ومنشورات ${pName}]`);
   parts.push(bar);
-  parts.push(`• المنصة: ${platformNames[metadata.platform] || metadata.platform}`);
-  parts.push(`• الرابط الأصلي: ${metadata.canonicalUrl}`);
-  parts.push(`• صانع المحتوى / الحساب: ${metadata.author.displayName} (@${metadata.author.username})`);
-  parts.push(`• عنوان / نص المنشور: "${metadata.title}"`);
-  if (metadata.description && metadata.description !== metadata.title) {
-    parts.push(`• الوصف والمحتوى الكامل: "${metadata.description}"`);
+  parts.push(`• المنصة: ${pName}`);
+  parts.push(`• نوع المنشور: ${metadata.postType === 'video' ? 'فيديو / ريلز (Video / Reel)' : metadata.postType === 'photo' ? 'منشور بصري / صور (Photo / Gallery)' : 'منشور وسائط اجتماعية (Social Post)'}`);
+  parts.push(`• الرابط الأصلي المعتمد: ${metadata.canonicalUrl}`);
+  parts.push(`• صاحب المنشور / الصفحة: ${metadata.author.displayName} (@${metadata.author.username})`);
+  parts.push(`• عنوان المنشور: "${metadata.title}"`);
+  
+  if (metadata.fullContent && metadata.fullContent !== metadata.title) {
+    parts.push(`\n📝 [نص المنشور / البوست كاملاً بالتفصيل]:\n"""\n${metadata.fullContent}\n"""`);
+  } else if (metadata.description && metadata.description !== metadata.title) {
+    parts.push(`\n📝 [نص ووصف المنشور]:\n"""\n${metadata.description}\n"""`);
   }
-  if (metadata.hashtags.length > 0) {
-    parts.push(`• الهاشتاجات: ${metadata.hashtags.join(' ')}`);
+
+  if (metadata.mediaUrls && metadata.mediaUrls.length > 0) {
+    parts.push(`\n🖼️ [الصور والمرفقات البصرية المستخرجة — إجمالي (${metadata.mediaUrls.length}) صور عالية الدقة]:`);
+    metadata.mediaUrls.forEach((img, i) => {
+      parts.push(`  ${i + 1}. [صورة ${i + 1}]: ${img}`);
+    });
   }
+
+  if (metadata.videoUrl) {
+    parts.push(`\n🎬 [بث ورابط الفيديو المستخرج]: ${metadata.videoUrl}`);
+  }
+
+  if (metadata.metrics && (metadata.metrics.likes || metadata.metrics.comments || metadata.metrics.shares)) {
+    parts.push(`\n📊 [إحصائيات التفاعل على المنشور]: ${metadata.metrics.likes ? `${metadata.metrics.likes} إعجاب | ` : ''}${metadata.metrics.comments ? `${metadata.metrics.comments} تعليق | ` : ''}${metadata.metrics.shares ? `${metadata.metrics.shares} مشاركة` : ''}`);
+  }
+
+  if (metadata.commentsList && metadata.commentsList.length > 0) {
+    parts.push(`\n💬 [أبرز التعليقات والردود الواردة على المنشور — تم رصد (${metadata.commentsList.length}) تعليقات]:`);
+    metadata.commentsList.forEach((c, idx) => {
+      parts.push(`  ${idx + 1}. [${c.author}]: "${c.text}"${c.time ? ` (${c.time})` : ''}`);
+    });
+  }
+
+  if (metadata.hashtags && metadata.hashtags.length > 0) {
+    parts.push(`\n🏷️ [الهاشتاجات]: ${metadata.hashtags.join(' ')}`);
+  }
+
   parts.push(bar);
 
   if (visionResult && visionResult.visualAnalysisAr) {
-    parts.push(`\n👁️ [التحليل البصري الفعلي والميكرو-OCR للأدوات والتفاصيل غير المنطوقة في الفيديو]:\n`);
+    parts.push(`\n👁️ [الإدراك والتحليل البصري الفعلي والميكرو-OCR للصور والمشاهد المرفقة بالبوست]:\n`);
     parts.push(visionResult.visualAnalysisAr);
+    parts.push(bar);
   }
 
-  parts.push(bar);
-  parts.push(`[توجيه استخباراتي صارم للرد — FATHOM MULTIMODAL SOCIAL DIRECTIVE]:`);
-  parts.push(`1. لقد تم تفكيك وتحليل هذا الفيديو بصرياً واستخباراتياً من منصة ${platformNames[metadata.platform] || metadata.platform}.`);
-  parts.push(`2. أجب عن سؤال المستخدم وادمج بين المشاهد المرئية الدقيقة، النصوص (Micro-OCR)، والمحتوى المكتوب بدقة مطلقة وباللغة العربية الفصحى المنظمة.`);
+  parts.push(`[توجيه استخباراتي صارم للرد — FATHOM SOCIAL & FACEBOOK POST DIRECTIVE]:`);
+  parts.push(`1. لقد تم استخراج وتفكيك هذا المنشور والوسائط وكافة النصوص والتعليقات المرفقة أعلاه بنجاح تام.`);
+  parts.push(`2. أجب عن سؤال المستخدم معتمداً على نص البوست الكامل، الصور، التعليقات والآراء الواردة، وقدّم تحليلاً شاملاً وفصيحاً.`);
   parts.push(bar);
 
   return parts.join('\n');
