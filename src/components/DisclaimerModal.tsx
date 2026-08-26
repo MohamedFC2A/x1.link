@@ -19,7 +19,7 @@ export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen = true,
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white tracking-tight font-sans">
-              تأكيد الوصول والاستخدام (+18)
+              تأكيد الوصول وشروط الاستخدام
             </h2>
             <p className="text-[11px] sm:text-xs text-zinc-400 font-sans">
               منصة الذكاء الاصطناعي التجريدي X1.link
@@ -34,7 +34,7 @@ export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen = true,
           </p>
           <div className="flex items-center gap-2 text-zinc-400 text-xs pt-1.5 border-t border-zinc-800">
             <CheckCircle2 className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>يتطلب الاستخدام أن يكون عمرك 18 عاماً فأكثر.</span>
+            <span>الموافقة على شروط الاستخدام والأمان.</span>
           </div>
         </div>
 
@@ -44,7 +44,7 @@ export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen = true,
           onClick={onAccept}
           className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm transition-all shadow-lg active:scale-[0.98] cursor-pointer"
         >
-          <span>أوافق وأقر بأن عمري +18 عاماً</span>
+          <span>أوافق وأتابع إلى المنصة</span>
           <ArrowRight className="w-4 h-4 rotate-180" />
         </button>
 

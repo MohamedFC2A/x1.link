@@ -28,8 +28,8 @@ export async function triggerBiometricAuthentication(): Promise<WebAuthnVerifica
           },
           user: {
             id: userId,
-            name: 'x1_operator_21plus',
-            displayName: 'X1 Operator (+21 Authorized)'
+            name: 'x1_operator',
+            displayName: 'X1 Operator (Authorized)'
           },
           pubKeyCredParams: [
             { alg: -7, type: 'public-key' },  // ES256

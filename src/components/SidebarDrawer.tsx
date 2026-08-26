@@ -41,10 +41,10 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
       />
 
       {/* Drawer Content */}
-      <div className="relative w-[85vw] max-w-xs sm:max-w-sm bg-zinc-950 border-l border-zinc-800 text-zinc-100 flex flex-col h-full z-10 shadow-2xl animate-in slide-in-from-right duration-300 pt-safe pb-safe">
+      <div className="relative w-[85vw] max-w-xs sm:max-w-sm bg-[#08080d]/85 backdrop-blur-2xl border-l border-white/[0.08] text-zinc-100 flex flex-col h-full z-10 shadow-2xl animate-in slide-in-from-right duration-300 pt-safe pb-safe">
         
         {/* Header */}
-        <div className="p-3.5 sm:p-4 border-b border-zinc-800/80 flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 border-b border-white/[0.08] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img
               src="/x1-logo.svg"
@@ -64,36 +64,36 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors active:scale-95"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors active:scale-95"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-zinc-400" />
           </button>
         </div>
 
         {/* Action: New Chat */}
-        <div className="p-2.5 sm:p-3 border-b border-zinc-800/50">
+        <div className="p-2.5 sm:p-3 border-b border-white/[0.06]">
           <button
             type="button"
             onClick={() => {
               onNewChat();
               onClose();
             }}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white font-medium text-xs transition-all shadow-sm active:scale-95 cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl glass-button text-white font-medium text-xs shadow-sm active:scale-95 cursor-pointer"
           >
-            <Plus className="w-4 h-4 text-rose-400" />
-            <span>بدء محادثة جديدة</span>
+            <Plus className="w-4 h-4 text-zinc-300" />
+            <span className="font-sans">بدء محادثة جديدة</span>
           </button>
         </div>
 
         {/* Chat List */}
         <div className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-1.5 smooth-scroll">
-          <div className="text-[10px] sm:text-[11px] font-medium text-zinc-400 px-2 py-1">
+          <div className="text-[10px] sm:text-[11px] font-medium text-zinc-400 px-2 py-1 font-sans">
             سجل المحادثات
           </div>
 
           {chats.length === 0 ? (
-            <div className="p-4 text-center text-xs text-zinc-400 bg-zinc-900/40 rounded-xl border border-zinc-850 my-2">
-              <MessageSquare className="w-5 h-5 mx-auto mb-2 opacity-50 text-zinc-500" />
+            <div className="p-4 text-center text-xs text-zinc-400 glass-card rounded-xl my-2">
+              <MessageSquare className="w-5 h-5 mx-auto mb-2 opacity-50 text-zinc-400" />
               لا توجد محادثات سابقة حتى الآن.
             </div>
           ) : (
@@ -106,19 +106,19 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 }}
                 className={`group flex items-center justify-between p-2.5 rounded-xl text-xs font-medium cursor-pointer border transition-all active:scale-[0.98] ${
                   currentChatId === chat.id
-                    ? 'bg-zinc-800 text-white border-zinc-700 shadow-sm'
-                    : 'bg-zinc-900/50 text-zinc-300 border-zinc-850 hover:bg-zinc-850 hover:text-white'
+                    ? 'bg-white/[0.08] text-white border-white/[0.2] shadow-sm'
+                    : 'glass-card text-zinc-300 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate flex-1 min-w-0">
-                  <MessageSquare className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                  <MessageSquare className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                   <span className="truncate font-sans">{chat.title || 'محادثة جديدة'}</span>
                 </div>
 
                 <button
                   type="button"
                   onClick={(e) => onDeleteChat(chat.id, e)}
-                  className="p-1 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition-colors"
+                  className="p-1 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-white/[0.08] transition-colors"
                   title="حذف المحادثة"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -129,15 +129,15 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
         </div>
 
         {/* Memory Ledger Metrics */}
-        <div className="p-3 bg-zinc-900/60 border-t border-zinc-800/80">
+        <div className="p-3 bg-black/40 border-t border-white/[0.08]">
           <div className="flex items-center justify-between text-xs text-zinc-400 mb-1.5">
             <span className="flex items-center gap-1.5 font-sans">
-              <Database className="w-3.5 h-3.5 text-rose-500" />
+              <Database className="w-3.5 h-3.5 text-zinc-400" />
               الذاكرة الافتراضية
             </span>
-            <span className="font-mono text-zinc-200">1M Token</span>
+            <span className="font-mono text-zinc-300">1M Token</span>
           </div>
-          <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+          <div className="w-full bg-white/[0.06] h-1.5 rounded-full overflow-hidden">
             <div
               className="bg-rose-500 h-full rounded-full transition-all duration-300"
               style={{ width: `${Math.min(Math.max((totalTokens / 1000000) * 100, 1), 100)}%` }}
@@ -149,7 +149,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
         </div>
 
         {/* User Account / Google Sign In Footer */}
-        <div className="p-3 border-t border-zinc-800 bg-zinc-950">
+        <div className="p-3 border-t border-white/[0.08] bg-[#000000]">
           {user ? (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">

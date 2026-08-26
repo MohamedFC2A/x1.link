@@ -1,6 +1,7 @@
 import React from 'react';
 import { Cpu, Fingerprint, Lock, ShieldAlert } from 'lucide-react';
 import { soundFx } from '../services/soundFx';
+import { motion } from 'framer-motion';
 
 interface NsfwNanoChipProps {
   isActive: boolean;
@@ -24,12 +25,14 @@ export const NsfwNanoChip: React.FC<NsfwNanoChipProps> = ({
   };
 
   return (
-    <button
+    <motion.button
       type="button"
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.96 }}
       onClick={handleClick}
-      className={`group relative flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[10px] sm:text-xs font-mono font-bold transition-all duration-200 select-none overflow-hidden cursor-pointer active:scale-95 shrink-0 ${
+      className={`group relative flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[10px] sm:text-xs font-mono font-bold transition-colors duration-200 select-none overflow-hidden cursor-pointer shrink-0 ${
         isActive
-          ? 'bg-rose-950/90 border-rose-600 text-white'
+          ? 'bg-rose-950/80 border-rose-800/80 text-white'
           : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200'
       }`}
       title={
@@ -38,6 +41,7 @@ export const NsfwNanoChip: React.FC<NsfwNanoChipProps> = ({
           : 'تفعيل شريحة NSFW NANO (يتطلب بصمة الإصبع أو Face ID في كل مرة)'
       }
     >
+
       {/* Silicon Chip Micro-Pins */}
       <div className="absolute top-0 inset-x-2 h-[1.5px] flex justify-between pointer-events-none opacity-30">
         <span className="w-1 h-full bg-amber-400" />
@@ -50,7 +54,7 @@ export const NsfwNanoChip: React.FC<NsfwNanoChipProps> = ({
       <div
         className={`relative flex items-center justify-center size-4 sm:size-5 rounded-md border transition-all shrink-0 ${
           isActive
-            ? 'bg-rose-600 border-rose-500 text-white'
+            ? 'bg-rose-600 border-rose-400 text-white shadow-sm'
             : 'bg-zinc-800 border-zinc-700 text-zinc-400 group-hover:text-rose-400'
         }`}
       >
@@ -58,7 +62,7 @@ export const NsfwNanoChip: React.FC<NsfwNanoChipProps> = ({
       </div>
 
       {/* Chip Label & Badge */}
-      <div className="flex items-center gap-1 sm:gap-1.5 text-right">
+      <div className="flex items-center gap-1 sm:gap-1.5 text-right relative z-10">
         <span className="tracking-wider uppercase text-[9px] sm:text-[11px] font-bold">
           {isActive ? 'NSFW NANO' : 'NSFW NANO'}
         </span>
@@ -67,14 +71,14 @@ export const NsfwNanoChip: React.FC<NsfwNanoChipProps> = ({
         <span
           className={`flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold border transition-colors ${
             isActive
-              ? 'bg-rose-900 border-rose-500 text-rose-200'
+              ? 'bg-rose-900 border-rose-400 text-rose-100'
               : 'bg-zinc-800 border-zinc-700 text-zinc-400'
           }`}
         >
           <Fingerprint className="w-2 sm:w-2.5 h-2 sm:h-2.5" />
-          <span>+21</span>
+          <span>BIO</span>
         </span>
       </div>
-    </button>
+    </motion.button>
   );
 };

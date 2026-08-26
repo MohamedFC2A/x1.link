@@ -8,14 +8,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#09090b',
+        background: '#000000',
         foreground: '#f8fafc',
         card: {
-          DEFAULT: '#121215',
+          DEFAULT: '#060608',
           foreground: '#f8fafc',
         },
         popover: {
-          DEFAULT: '#18181b',
+          DEFAULT: '#09090c',
           foreground: '#f8fafc',
         },
         primary: {
@@ -24,23 +24,23 @@ export default {
           hover: '#be123c',
         },
         secondary: {
-          DEFAULT: '#18181b',
+          DEFAULT: '#0d0d12',
           foreground: '#f8fafc',
-          hover: '#27272a',
+          hover: '#171720',
         },
         muted: {
-          DEFAULT: '#1e1e24',
+          DEFAULT: '#14141c',
           foreground: '#94a3b8',
         },
         accent: {
-          DEFAULT: '#27272a',
+          DEFAULT: '#171720',
           foreground: '#f8fafc',
         },
         destructive: {
           DEFAULT: '#dc2626',
           foreground: '#ffffff',
         },
-        border: '#27272a',
+        border: 'rgba(255, 255, 255, 0.08)',
         ring: '#e11d48',
       },
       fontFamily: {

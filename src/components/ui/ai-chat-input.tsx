@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { useRef, useState, useEffect, useCallback } from "react";
-import { cn } from "@/lib/utils";
+import { cn, detectAndExtractUrl } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   X,
@@ -17,7 +18,8 @@ import {
   Terminal,
   ChevronDown,
   MoreHorizontal,
-  FileText
+  FileText,
+  Search
 } from "lucide-react";
 import { ModelType } from "@/types";
 
@@ -36,7 +38,7 @@ export interface Attachment {
 export interface PromptInputProps {
   onSubmit?: (
     value: string,
-    meta: { model: string; effort: string; attachments: File[]; targetUrl?: string }
+    meta: { model: string; effort: string; attachments: File[]; targetUrl?: string; deepSearch?: boolean }
   ) => void;
   placeholder?: string;
   className?: string;
@@ -48,6 +50,8 @@ export interface PromptInputProps {
   onAbort?: () => void;
   isX1Active?: boolean;
   onToggleX1?: () => void;
+  isDeepSearchActive?: boolean;
+  onToggleDeepSearch?: () => void;
   activeModel?: ModelType;
   onSelectModel?: (model: ModelType) => void;
 }
@@ -120,6 +124,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       onAbort,
       isX1Active = false,
       onToggleX1,
+      isDeepSearchActive: externalDeepSearch,
+      onToggleDeepSearch,
       activeModel = 'deepseek-v4-flash',
       onSelectModel,
     },
@@ -133,6 +139,19 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     const [isTargetUrlBarOpen, setIsTargetUrlBarOpen] = useState(false);
     const [cyberTargetUrl, setCyberTargetUrl] = useState('');
     const [internalModel, setInternalModel] = useState<ModelType>(activeModel);
+    const [internalDeepSearch, setInternalDeepSearch] = useState(false);
+
+    const isDeepSearchEffective = onToggleDeepSearch
+      ? (externalDeepSearch ?? false)
+      : internalDeepSearch;
+
+    const toggleDeepSearch = () => {
+      if (onToggleDeepSearch) {
+        onToggleDeepSearch();
+      } else {
+        setInternalDeepSearch(prev => !prev);
+      }
+    };
 
     const isControlled = controlledValue !== undefined;
     const value = isControlled ? controlledValue : localValue;
@@ -162,13 +181,51 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const activateCyberUrlMode = useCallback((extractedUrl: string, promptText: string = '') => {
+      setCyberTargetUrl(extractedUrl);
+      setIsTargetUrlBarOpen(true);
+      setInternalModel('deepseek-v4-flash-cyber');
+      onSelectModel?.('deepseek-v4-flash-cyber');
+      if (!isControlled) setLocalValue(promptText);
+      onChange?.(promptText);
+    }, [isControlled, onChange, onSelectModel]);
+
     const handleValueChange = useCallback(
       (val: string) => {
+        // Automatic URL detection on typing or standard input
+        if (val && !cyberTargetUrl) {
+          const urlInfo = detectAndExtractUrl(val);
+          // Auto-trigger if a valid URL pattern is detected and followed by a space, newline, or is standalone
+          if (urlInfo.hasUrl && urlInfo.cleanUrl) {
+            const hasSpaceOrNewline = /\s$/.test(val) || val.includes('\n');
+            const isStandalone = val.trim() === (val.match(/(?:https?:\/\/|www\.)[^\s<>"'{}|\\^`]+|[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s<>"'{}|\\^`]*)?/i)?.[0] || '').trim();
+            
+            if (hasSpaceOrNewline || isStandalone) {
+              activateCyberUrlMode(urlInfo.cleanUrl, urlInfo.remainingText);
+              return;
+            }
+          }
+        }
+
         if (!isControlled) setLocalValue(val);
         onChange?.(val);
       },
-      [isControlled, onChange]
+      [isControlled, onChange, cyberTargetUrl, activateCyberUrlMode]
     );
+
+    // Auto-detect URL on paste directly inside the textarea
+    const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const pastedText = e.clipboardData.getData('text');
+      if (!pastedText) return;
+
+      const urlInfo = detectAndExtractUrl(pastedText);
+      if (urlInfo.hasUrl && urlInfo.cleanUrl) {
+        e.preventDefault();
+        const existingText = value.trim();
+        const combinedPrompt = [existingText, urlInfo.remainingText].filter(Boolean).join(' ').trim();
+        activateCyberUrlMode(urlInfo.cleanUrl, combinedPrompt);
+      }
+    };
 
     // Auto-adjust textarea height cleanly on input
     useEffect(() => {
@@ -181,19 +238,20 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     }, [value]);
 
     const handleCyberSubmit = () => {
-      if (!cyberTargetUrl.trim() || isStreaming) return;
-      let target = cyberTargetUrl.trim();
+      const activeUrl = cyberTargetUrl.trim() || detectAndExtractUrl(value).cleanUrl;
+      if (!activeUrl || isStreaming) return;
+      let target = activeUrl;
       if (!/^https?:\/\//i.test(target)) target = 'https://' + target;
 
-      const extraPrompt = value.trim();
-      // Keep chat display 100% clean without displaying internal prompt templates in the chat
+      const extraPrompt = cyberTargetUrl ? value.trim() : detectAndExtractUrl(value).remainingText;
       const displayContent = extraPrompt ? `${target}\n${extraPrompt}` : target;
 
       onSubmit?.(displayContent, {
         model: 'deepseek-v4-flash-cyber',
-        effort: isX1Active ? "X1 (+21)" : "Standard",
+        effort: isX1Active ? "X1 MAX" : "Standard",
         attachments: [],
         targetUrl: target,
+        deepSearch: isDeepSearchEffective,
       });
 
       setCyberTargetUrl('');
@@ -210,7 +268,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         return;
       }
 
-      if (isCyberMode && cyberTargetUrl.trim()) {
+      // Check if cyber target URL is active or if current text has a URL
+      const currentUrlInfo = detectAndExtractUrl(value);
+      if ((isCyberMode && cyberTargetUrl.trim()) || cyberTargetUrl.trim() || currentUrlInfo.hasUrl) {
         handleCyberSubmit();
         return;
       }
@@ -225,8 +285,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
       onSubmit?.(textToSubmit, {
         model: activeBackendModel,
-        effort: isX1Active ? "X1 (+21)" : "Standard",
+        effort: isX1Active ? "X1 MAX" : "Standard",
         attachments: attachments.map((a) => a.file),
+        deepSearch: isDeepSearchEffective,
       });
 
       handleValueChange("");
@@ -313,7 +374,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           aria-hidden="true"
         />
 
-        {/* Floating Model Selector Popup with Click-Outside Backdrop */}
+        {/* Interactive Model Selector Popover */}
         {isModelMenuOpen && (
           <>
             <div
@@ -321,80 +382,105 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               onClick={() => setIsModelMenuOpen(false)}
             />
             <div
-              className="absolute bottom-full right-2 mb-2 w-64 bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-right backdrop-blur-md"
+              dir="rtl"
+              className="absolute bottom-full right-2 mb-3 w-[300px] sm:w-[320px] glass-popover rounded-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-[10px] font-mono text-zinc-400 px-2.5 py-1 uppercase tracking-wider border-b border-zinc-800 mb-1 font-semibold">
-                اختيار نموذج Fathom
+              <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/[0.08] mb-2">
+                <span className="text-xs font-sans font-bold text-white tracking-wide">اختيار المحرك العصبي</span>
+                <span className="text-[9px] font-mono text-zinc-400 tracking-wider">ENGINE MATRIX</span>
               </div>
 
-              {/* Model 1: Fathom 1 */}
-              <button
-                type="button"
-                onClick={() => {
-                  setInternalModel('deepseek-v4-flash');
-                  onSelectModel?.('deepseek-v4-flash');
-                  setIsModelMenuOpen(false);
-                }}
-                className={cn(
-                  "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-colors cursor-pointer text-right",
-                  internalModel === 'deepseek-v4-flash' && !hasAttachments
-                    ? "bg-rose-950/60 text-rose-200 font-bold border border-rose-600/40"
-                    : "hover:bg-zinc-800 text-zinc-300"
-                )}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Sparkles className="w-4 h-4 text-rose-400 shrink-0" />
-                  <div>
-                    <div className="font-semibold text-xs text-white">Fathom 1</div>
-                    <div className="text-[10px] text-zinc-400 font-normal">المحرك اللغوي الفصيح والتحليل</div>
-                  </div>
-                </div>
-                {internalModel === 'deepseek-v4-flash' && !hasAttachments && (
-                  <span className="size-2 rounded-full bg-rose-500 shrink-0" />
-                )}
-              </button>
-
-              {/* Model 2: Fathom Cyber */}
-              <button
-                type="button"
-                onClick={() => {
-                  setInternalModel('deepseek-v4-flash-cyber');
-                  onSelectModel?.('deepseek-v4-flash-cyber');
-                  setIsModelMenuOpen(false);
-                }}
-                className={cn(
-                  "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-colors cursor-pointer text-right mt-1",
-                  internalModel === 'deepseek-v4-flash-cyber'
-                    ? "bg-cyan-950/60 text-cyan-200 font-bold border border-cyan-500/40"
-                    : "hover:bg-zinc-800 text-zinc-300"
-                )}
-              >
-                <div className="flex items-center gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <div>
-                    <div className="font-semibold text-xs text-white">Fathom Cyber</div>
-                    <div className="text-[10px] text-zinc-400 font-normal">الأمن السيبراني وفحص الروابط</div>
-                  </div>
-                </div>
-                {internalModel === 'deepseek-v4-flash-cyber' && (
-                  <span className="size-2 rounded-full bg-cyan-400 shrink-0" />
-                )}
-              </button>
-
-              {/* Model 3: Fathom Cam (Shown ONLY when image or file is uploaded) */}
-              {hasAttachments && (
-                <div className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans bg-amber-950/60 text-amber-200 font-bold border border-amber-500/40 mt-1">
-                  <div className="flex items-center gap-2.5">
-                    <Camera className="w-4 h-4 text-amber-400 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-xs text-white">Fathom Cam</div>
-                      <div className="text-[10px] text-amber-300/80 font-normal">مفعّل تلقائياً لتحليل الصورة</div>
+              <div className="space-y-1.5">
+                {/* Model 1: Fathom 1 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInternalModel('deepseek-v4-flash');
+                    onSelectModel?.('deepseek-v4-flash');
+                    setIsModelMenuOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
+                    internalModel === 'deepseek-v4-flash' && !hasAttachments
+                      ? "bg-white/[0.09] text-white font-bold border-white/[0.16] shadow-sm"
+                      : "hover:bg-white/[0.04] text-zinc-300 border-transparent"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
+                      <Sparkles className="w-4 h-4 text-zinc-200" />
+                    </div>
+                    <div className="min-w-0 text-right">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-xs text-white">Fathom 1</span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08]">CORE</span>
+                      </div>
+                      <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
+                        المحرك اللغوي الفصيح، التحليل الفكري، والتوليد الحر
+                      </div>
                     </div>
                   </div>
-                  <span className="size-2 rounded-full bg-amber-400 shrink-0" />
-                </div>
-              )}
+                  {internalModel === 'deepseek-v4-flash' && !hasAttachments && (
+                    <span className="size-1.5 rounded-full bg-white shrink-0 mr-2" />
+                  )}
+                </button>
+
+                {/* Model 2: Fathom Cyber */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInternalModel('deepseek-v4-flash-cyber');
+                    onSelectModel?.('deepseek-v4-flash-cyber');
+                    setIsModelMenuOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
+                    internalModel === 'deepseek-v4-flash-cyber'
+                      ? "bg-white/[0.09] text-white font-bold border-white/[0.16] shadow-sm"
+                      : "hover:bg-white/[0.04] text-zinc-300 border-transparent"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
+                      <ShieldCheck className="w-4 h-4 text-zinc-200" />
+                    </div>
+                    <div className="min-w-0 text-right">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-xs text-white">Fathom Cyber</span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08]">CYBER & INTEL</span>
+                      </div>
+                      <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
+                        استخبارات سيبرانية، فحص الروابط، وبحث عميق (100+ مصدر)
+                      </div>
+                    </div>
+                  </div>
+                  {internalModel === 'deepseek-v4-flash-cyber' && (
+                    <span className="size-1.5 rounded-full bg-white shrink-0 mr-2" />
+                  )}
+                </button>
+
+                {/* Model 3: Fathom Cam */}
+                {hasAttachments && (
+                  <div className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans bg-white/[0.09] text-white font-bold border border-white/[0.16] shadow-sm">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
+                        <Camera className="w-4 h-4 text-zinc-200" />
+                      </div>
+                      <div className="min-w-0 text-right">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-xs text-white">Fathom Cam</span>
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08]">VISION</span>
+                        </div>
+                        <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
+                          تحليل بصري متعدد الطبقات واستخراج فوري للنصوص (OCR)
+                        </div>
+                      </div>
+                    </div>
+                    <span className="size-1.5 rounded-full bg-white shrink-0 mr-2" />
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}
@@ -407,61 +493,137 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               onClick={() => setIsActionsMenuOpen(false)}
             />
             <div
-              className="absolute bottom-full left-2 mb-2 w-64 bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-right backdrop-blur-md"
+              dir="rtl"
+              className="absolute bottom-full left-0 mb-3 w-[320px] sm:w-[350px] glass-popover rounded-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-[10px] font-mono text-zinc-400 px-2.5 py-1 uppercase tracking-wider border-b border-zinc-800 mb-1 font-semibold">
-                خيارات وأدوات الإدخال
+              <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/[0.08] mb-2">
+                <span className="text-xs font-sans font-bold text-white tracking-wide">أدوات الإدخال والاستخبارات</span>
+                <span className="text-[9px] font-mono text-zinc-400 font-semibold tracking-wider">X1 CORE MATRIX</span>
               </div>
 
-              {/* Action 1: Upload Image or File (Available for all models) */}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsActionsMenuOpen(false);
-                  fileInputRef.current?.click();
-                }}
-                className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans hover:bg-zinc-800 text-zinc-200 transition-colors cursor-pointer text-right"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-lg bg-zinc-800 flex items-center justify-center text-amber-400">
-                    <Camera className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-xs text-white">رفع صورة أو مستند</div>
-                    <div className="text-[10px] text-zinc-400 font-normal">استخراج النصوص والتحليل البصري</div>
-                  </div>
-                </div>
-              </button>
-
-              {/* Action 2: Target URL Scanner (Available ONLY for Fathom Cyber) */}
-              {isCyberMode && (
+              <div className="space-y-1.5">
+                {/* Action 1: Upload Image or File */}
                 <button
                   type="button"
                   onClick={() => {
                     setIsActionsMenuOpen(false);
-                    setIsTargetUrlBarOpen(true);
+                    fileInputRef.current?.click();
                   }}
-                  className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans hover:bg-zinc-800 text-zinc-200 transition-colors cursor-pointer text-right mt-1"
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans hover:bg-white/[0.05] text-zinc-200 transition-colors cursor-pointer text-right group border border-transparent"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div className="size-8 rounded-lg bg-cyan-950/80 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                      <Globe className="w-4 h-4" />
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-200 shrink-0">
+                      <Camera className="w-4 h-4" />
                     </div>
-                    <div>
-                      <div className="font-semibold text-xs text-white">فحص واستطلاع رابط</div>
-                      <div className="text-[10px] text-cyan-300/80 font-normal">تحليل أمني للترويسات والسطح الهجومي</div>
+                    <div className="min-w-0 text-right">
+                      <div className="font-semibold text-xs text-white truncate">رفع صورة أو مستند</div>
+                      <div className="text-[11px] text-zinc-400 font-normal truncate mt-0.5">استخراج النصوص (OCR) والتحليل البصري</div>
                     </div>
                   </div>
                 </button>
-              )}
+
+                {/* Action 2: Target URL Scanner */}
+                {isCyberMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsActionsMenuOpen(false);
+                      setIsTargetUrlBarOpen(true);
+                    }}
+                    className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans hover:bg-white/[0.05] text-zinc-200 transition-colors cursor-pointer text-right group border border-transparent"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-200 shrink-0">
+                        <Globe className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 text-right">
+                        <div className="font-semibold text-xs text-white truncate">فحص واستطلاع رابط هدف</div>
+                        <div className="text-[11px] text-zinc-400 font-normal truncate mt-0.5">تحليل أمني للترويسات والمنافذ والسطح الهجومي</div>
+                      </div>
+                    </div>
+                  </button>
+                )}
+
+                {/* Action 3: Ultra-Deep Search Toggle (100+ Pages) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsActionsMenuOpen(false);
+                    toggleDeepSearch();
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
+                    isDeepSearchEffective
+                      ? "bg-white/[0.08] border-white/[0.15] text-white"
+                      : "hover:bg-white/[0.05] border-transparent text-zinc-200"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={cn(
+                      "size-9 rounded-xl flex items-center justify-center shrink-0 border",
+                      isDeepSearchEffective
+                        ? "bg-white text-black border-white"
+                        : "bg-white/[0.04] text-zinc-200 border-white/[0.08]"
+                    )}>
+                      <Search className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 text-right">
+                      <div className="font-semibold text-xs text-white truncate">البحث والاستخبارات العميقة</div>
+                      <div className="text-[11px] text-zinc-400 font-normal truncate mt-0.5">مسح واستكشاف 100+ صفحة ومصدر</div>
+                    </div>
+                  </div>
+                  <span className={cn(
+                    "text-[10px] font-mono px-2 py-0.5 rounded font-bold shrink-0 mr-2",
+                    isDeepSearchEffective ? "bg-white text-black" : "bg-white/[0.04] text-zinc-400 border border-white/[0.08]"
+                  )}>
+                    {isDeepSearchEffective ? "مفعّل" : "معطّل"}
+                  </span>
+                </button>
+
+                {/* Action 4: NSFW NANO Silicon Chip Toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsActionsMenuOpen(false);
+                    onToggleX1?.();
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
+                    isX1Active
+                      ? "bg-white/[0.08] border-white/[0.15] text-white"
+                      : "hover:bg-white/[0.05] border-transparent text-zinc-200"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={cn(
+                      "size-9 rounded-xl flex items-center justify-center shrink-0 border",
+                      isX1Active
+                        ? "bg-white text-black border-white"
+                        : "bg-white/[0.04] text-zinc-200 border-white/[0.08]"
+                    )}>
+                      <Cpu className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 text-right">
+                      <div className="font-semibold text-xs text-white truncate">شريحة NSFW NANO</div>
+                      <div className="text-[11px] text-zinc-400 font-normal truncate mt-0.5">كسر القيود عبر البصمة الحيوية</div>
+                    </div>
+                  </div>
+                  <span className={cn(
+                    "text-[10px] font-mono px-2 py-0.5 rounded font-bold shrink-0 mr-2",
+                    isX1Active ? "bg-white text-black" : "bg-white/[0.04] text-zinc-400 border border-white/[0.08]"
+                  )}>
+                    {isX1Active ? "مفعّلة" : "معطّلة"}
+                  </span>
+                </button>
+              </div>
             </div>
           </>
         )}
 
         {/* Attachment Preview Row */}
         {hasAttachments && (
-          <div className="mb-2 flex items-center gap-2 overflow-x-auto p-1.5 bg-zinc-900/90 backdrop-blur-md rounded-2xl border border-zinc-800 no-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="mb-2 flex items-center gap-2 overflow-x-auto p-1.5 glass-card rounded-2xl no-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-200">
             {attachments.map((attachment) => (
               <div
                 key={attachment.id}
@@ -505,54 +667,71 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         {/* Chat Input Container Card */}
         <div
           className={cn(
-            "relative w-full rounded-2xl sm:rounded-3xl border bg-zinc-900/95 backdrop-blur-xl shadow-xl transition-colors duration-150",
+            "relative w-full rounded-2xl sm:rounded-3xl glass-input-container transition-colors duration-150",
             isX1Active
-              ? "border-rose-900/80"
+              ? "border-rose-900/60"
               : isCyberMode
-              ? "border-cyan-900/80"
-              : "border-zinc-800 focus-within:border-zinc-700"
+              ? "border-cyan-900/60"
+              : "border-white/[0.09] focus-within:border-white/[0.22]"
           )}
         >
-          {/* Streamlined Cyber Target URL Bar (Shown when target URL is active) */}
-          {isCyberMode && isTargetUrlBarOpen && !hasAttachments && (
-            <div className="p-2 sm:p-2.5 border-b border-zinc-800/80 bg-cyan-950/20 rounded-t-2xl sm:rounded-t-3xl flex items-center gap-1.5 sm:gap-2 animate-in fade-in slide-in-from-top-1 duration-150">
-              <div className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-black/70 border border-cyan-500/40 focus-within:border-cyan-400 transition-colors">
-                <Globe className="w-4 h-4 text-cyan-400 shrink-0" />
-                <input
-                  type="url"
-                  value={cyberTargetUrl}
-                  onChange={(e) => setCyberTargetUrl(e.target.value)}
-                  placeholder="أدخل رابط الهدف للفحص الأمني (https://example.com)..."
-                  className="w-full bg-transparent text-xs sm:text-sm text-cyan-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left"
-                  dir="ltr"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleCyberSubmit();
-                    }
-                  }}
-                />
-                {cyberTargetUrl && (
+          {/* Streamlined Cyber Target URL Bar */}
+          <AnimatePresence initial={false}>
+            {(isTargetUrlBarOpen || cyberTargetUrl.trim() !== '') && !hasAttachments && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, y: -6 }}
+                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -6 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+                className="overflow-hidden"
+              >
+                <div className="p-2 sm:p-2.5 border-b border-white/[0.07] bg-cyan-950/30 rounded-t-2xl sm:rounded-t-3xl flex items-center gap-1.5 sm:gap-2">
+                  <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-black/80 border border-cyan-900/60 focus-within:border-cyan-700 transition-colors">
+                    <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-bold shrink-0">
+                      TARGET URL
+                    </span>
+                    <input
+                      type="url"
+                      value={cyberTargetUrl}
+                      onChange={(e) => setCyberTargetUrl(e.target.value)}
+                      placeholder="أدخل رابط الهدف للفحص الأمني (https://example.com)..."
+                      className="w-full bg-transparent text-xs sm:text-sm text-cyan-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left"
+                      dir="ltr"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleCyberSubmit();
+                        }
+                      }}
+                    />
+                    {cyberTargetUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setCyberTargetUrl('')}
+                        className="text-zinc-400 hover:text-white p-0.5 rounded-full cursor-pointer transition-colors"
+                        title="مسح الرابط"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setCyberTargetUrl('')}
-                    className="text-zinc-400 hover:text-white p-0.5 rounded-full cursor-pointer"
+                    onClick={() => {
+                      setIsTargetUrlBarOpen(false);
+                      setCyberTargetUrl('');
+                    }}
+                    className="size-8 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                    title="إلغاء وضع الرابط"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsTargetUrlBarOpen(false)}
-                className="size-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                title="إلغاء وضع الرابط"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Main Text Area Row */}
           <div className="flex items-end gap-2 p-2.5 sm:p-3">
@@ -563,6 +742,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 ref={textareaRef}
                 value={value}
                 onChange={(e) => handleValueChange(e.target.value)}
+                onPaste={handlePaste}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -570,14 +750,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   }
                 }}
                 placeholder={
-                  isCyberMode
-                    ? "اسأل Fathom Cyber عن فحص الأهداف، الهندسة العكسية، أو تحليل الثغرات..."
+                  (isCyberMode || isTargetUrlBarOpen || cyberTargetUrl)
+                    ? "اسأل Fathom Cyber عن فحص الهدف، الثغرات، أو ترويسات الحماية..."
                     : isX1Active
-                    ? "اسأل X1 (+21) أي شيء بحرية تامة..."
+                    ? "اسأل X1 MAX أي شيء بحرية تامة..."
                     : placeholder
                 }
                 rows={1}
-                className="w-full bg-transparent text-zinc-100 text-[15px] sm:text-base leading-relaxed resize-none outline-none placeholder:text-zinc-500 font-sans max-h-36 min-h-[28px] py-1 px-1.5 selection:bg-rose-600 selection:text-white"
+                className="w-full bg-transparent text-zinc-100 text-[15px] sm:text-base leading-relaxed resize-none outline-none placeholder:text-zinc-500 font-sans max-h-36 min-h-[28px] py-1 px-1.5"
               />
             </div>
 
@@ -588,25 +768,19 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 onClick={onActionButtonClick}
                 disabled={!hasValue && !isStreaming}
                 className={cn(
-                  "size-9 sm:size-10 rounded-xl sm:rounded-2xl flex items-center justify-center text-white transition-all shadow-md active:scale-95 cursor-pointer shrink-0",
+                  "flex items-center justify-center size-9 sm:size-10 rounded-xl transition-all cursor-pointer select-none active:scale-95",
                   isStreaming
-                    ? "bg-rose-600 hover:bg-rose-500"
+                    ? "bg-rose-600 hover:bg-rose-700 text-white"
                     : hasValue
                     ? isCyberMode
-                      ? "bg-cyan-500 hover:bg-cyan-400 text-black"
-                      : "bg-rose-600 hover:bg-rose-500 text-white"
-                    : "bg-zinc-800/60 text-zinc-500 cursor-not-allowed opacity-60"
+                      ? "bg-cyan-500 hover:bg-cyan-400 text-black font-bold"
+                      : "bg-white hover:bg-zinc-200 text-zinc-950 font-bold"
+                    : "bg-white/[0.04] text-zinc-600 cursor-not-allowed"
                 )}
-                title={
-                  isStreaming
-                    ? "إيقاف التوليد"
-                    : hasValue
-                    ? "إرسال الرسالة"
-                    : "اكتب رسالة للإرسال"
-                }
+                title={isStreaming ? "إيقاف التوليد" : "إرسال"}
               >
                 {isStreaming ? (
-                  <Square className="w-4 h-4 fill-current text-white" />
+                  <Square className="w-4 h-4 fill-current" />
                 ) : (
                   <ArrowUp className={cn("w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]", isCyberMode ? "text-black" : "text-white")} />
                 )}
@@ -615,10 +789,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
           </div>
 
-          {/* Bottom Toolbar (Models, NSFW NANO Chip, 3-Dots Actions Menu) */}
-          <div className="flex items-center justify-between gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 border-t border-zinc-800/60 bg-zinc-950/40 rounded-b-2xl sm:rounded-b-3xl text-xs">
+          {/* Bottom Toolbar (Models, Status Pills, 3-Dots Actions Menu) */}
+          <div className="flex items-center justify-between gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 border-t border-white/[0.06] bg-black/40 rounded-b-2xl sm:rounded-b-3xl text-xs">
             
-            {/* Right Group: Model Selector & NSFW NANO Chip */}
+            {/* Right Group: Model Selector */}
             <div className="flex items-center gap-1.5 shrink-0">
               
               {/* Interactive Model Selector Button */}
@@ -629,21 +803,21 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   setIsModelMenuOpen(!isModelMenuOpen);
                 }}
                 className={cn(
-                  "flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-medium border select-none shadow-sm shrink-0 cursor-pointer transition-colors active:scale-95",
+                  "glass-button flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] sm:text-xs font-medium select-none shrink-0 cursor-pointer transition-all active:scale-95",
                   isCyberMode
-                    ? "bg-cyan-950/80 border-cyan-600/60 text-cyan-200"
+                    ? "bg-cyan-950/40 border-cyan-800/60 text-cyan-200"
                     : isVisionMode
-                    ? "bg-amber-950/80 border-amber-600/60 text-amber-200"
-                    : "bg-zinc-800/90 hover:bg-zinc-750 text-zinc-300 border-zinc-700/60"
+                    ? "bg-amber-950/40 border-amber-800/60 text-amber-200"
+                    : "text-zinc-200"
                 )}
                 title="تغيير نموذج الذكاء الاصطناعي"
               >
                 {isCyberMode ? (
-                  <ShieldCheck className="w-3 h-3 text-cyan-400 shrink-0" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                 ) : isVisionMode ? (
-                  <Camera className="w-3 h-3 text-amber-400 shrink-0" />
+                  <Camera className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 ) : (
-                  <Sparkles className="w-3 h-3 text-rose-400 shrink-0" />
+                  <Sparkles className="w-3.5 h-3.5 text-zinc-300 shrink-0" />
                 )}
                 <span className="font-sans font-semibold text-[10px] sm:text-xs">
                   {activeModelDisplayName}
@@ -651,47 +825,36 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 <ChevronDown className="w-3 h-3 text-zinc-400" />
               </button>
 
-              {/* NSFW NANO Silicon Chip Button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleX1?.();
-                }}
-                className={cn(
-                  "relative flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono font-bold transition-colors select-none cursor-pointer active:scale-95 shrink-0",
-                  isX1Active
-                    ? "bg-rose-950 border border-rose-600 text-white"
-                    : "bg-zinc-800/80 hover:bg-zinc-750 text-zinc-400 hover:text-zinc-200 border border-zinc-700/60 hover:border-rose-500/50"
-                )}
-                title={
-                  isX1Active
-                    ? "شريحة NSFW NANO مفعلة بالكامل (انقر للتعطيل)"
-                    : "تفعيل شريحة NSFW NANO (+21) مع كسر الرقابة"
-                }
-              >
-                <Cpu className={cn("w-3 h-3 shrink-0", isX1Active ? "text-rose-300" : "text-zinc-400")} />
-
-                <span className={cn("tracking-tight whitespace-nowrap", isX1Active ? "text-rose-100 font-extrabold" : "text-zinc-300")}>
-                  {isX1Active ? "+21 MAX NANO" : "NSFW NANO"}
-                </span>
-
-                {!isX1Active && (
-                  <span className="hidden sm:inline-flex text-[9px] px-1 py-0.2 rounded bg-zinc-900 border border-zinc-700/60 text-zinc-400 font-semibold items-center gap-0.5">
-                    <Fingerprint className="w-2.5 h-2.5 text-rose-500" />
-                    <span>+21</span>
-                  </span>
-                )}
-              </button>
-
             </div>
 
-            {/* Left Group: 3-Dots Actions Menu (Replaces old mic/clutter) */}
+            {/* Left Group: Status Pills & 3-Dots Actions Menu */}
             <div className="flex items-center gap-1.5 mr-auto shrink-0">
               
+              {/* NSFW Active Indicator Pill */}
+              {isX1Active && (
+                <span className="text-[10px] text-rose-300 font-mono bg-rose-950/60 px-2 py-0.5 rounded-lg border border-rose-800/60 font-bold flex items-center gap-1">
+                  <span className="size-1.5 rounded-full bg-rose-500" />
+                  NSFW MAX
+                </span>
+              )}
+
+              {/* Deep Search Active Indicator Pill */}
+              {isDeepSearchEffective && (
+                <button
+                  type="button"
+                  onClick={toggleDeepSearch}
+                  className="text-[10px] text-cyan-200 font-mono bg-cyan-950/60 hover:bg-cyan-900/60 px-2 py-0.5 rounded-lg border border-cyan-800/60 font-bold flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
+                  title="البحث والاستخبارات العميقة مفعلة (100+ صفحة) - انقر للإلغاء"
+                >
+                  <span className="size-1.5 rounded-full bg-cyan-400" />
+                  استخبارات (100+)
+                  <X className="w-2.5 h-2.5 text-cyan-400 mr-0.5" />
+                </button>
+              )}
+
               {/* Target URL indicator pill when active */}
               {isCyberMode && isTargetUrlBarOpen && (
-                <span className="text-[10px] text-cyan-300 font-mono bg-cyan-950/80 px-2 py-0.5 rounded-md border border-cyan-800/50">
+                <span className="text-[10px] text-cyan-300 font-mono bg-cyan-950/60 px-2 py-0.5 rounded-lg border border-cyan-800/60 font-semibold">
                   وضع الرابط نشط
                 </span>
               )}
@@ -703,8 +866,13 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   e.stopPropagation();
                   setIsActionsMenuOpen(!isActionsMenuOpen);
                 }}
-                className="size-7 sm:size-8 rounded-lg sm:rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700/60 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-sm"
-                title="المزيد من الخيارات والأدوات (رفع ملف، فحص رابط)"
+                className={cn(
+                  "glass-button size-8 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-95",
+                  isActionsMenuOpen
+                    ? "bg-white/[0.12] text-white border-white/[0.25]"
+                    : "text-zinc-300 hover:text-white"
+                )}
+                title="أدوات الإدخال والاستخبارات (البحث العميق، رفع ملف، فحص رابط)"
               >
                 <MoreHorizontal className="w-4 h-4 text-zinc-300" />
               </button>

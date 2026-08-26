@@ -10,6 +10,7 @@ export interface SendMessageOptions {
   messages: ChatMessageItem[];
   model: ModelType;
   isX1Mode: boolean;
+  deepSearch?: boolean;
   memoryPrompt?: string;
   targetUrl?: string;
   onChunk: (data: StreamChunkData) => void;
@@ -21,6 +22,7 @@ export async function streamChatCompletion({
   messages,
   model,
   isX1Mode,
+  deepSearch = false,
   memoryPrompt = '',
   targetUrl = '',
   onChunk,
@@ -61,6 +63,7 @@ export async function streamChatCompletion({
         messages: formattedMessages,
         model,
         isX1Mode,
+        deepSearch,
         memoryPrompt,
         targetUrl,
       }),

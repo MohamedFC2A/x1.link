@@ -184,7 +184,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         {/* Bottom Sub-Telemetry (Mobile Compact) */}
         <div className="flex items-center justify-between mt-1 text-[9px] sm:text-[10px] font-mono text-muted">
           <span>
-            {isX1Active ? 'PROTOCOL: X1 (+21)' : 'PROTOCOL: BASE (+18)'}
+            {isX1Active ? 'PROTOCOL: X1 MAX' : 'PROTOCOL: BASE'}
           </span>
           <span>
             MEM_VIRTUAL: 1M_TOKENS // USED: {totalTokens}

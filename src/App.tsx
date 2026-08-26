@@ -13,6 +13,7 @@ import { Square } from 'lucide-react';
 import { streamChatCompletion } from './services/api';
 import { memoryEngine } from './services/memoryManager';
 import { compressImageFile } from './lib/imageCompressor';
+import { detectAndExtractUrl } from './lib/utils';
 import {
   supabase,
   signInWithGoogle,
@@ -28,10 +29,13 @@ import {
 const STORAGE_KEY_18 = 'x1_auth_age_18';
 const STORAGE_KEY_21 = 'x1_auth_age_21_biometric';
 const STORAGE_KEY_MSGS = 'x1_chat_history';
+const STORAGE_KEY_SEEN_LANDING = 'x1_has_seen_landing';
 
 export const App: React.FC = () => {
-  // Page Navigation State: 'landing' (Reception Page) vs 'chat' (AI Chat Room)
-  const [viewMode, setViewMode] = useState<'landing' | 'chat'>('landing');
+  // Page Navigation State: 'landing' (Shown only for first-time visitor) vs 'chat' (AI Chat Room)
+  const [viewMode, setViewMode] = useState<'landing' | 'chat'>(() => {
+    return localStorage.getItem(STORAGE_KEY_SEEN_LANDING) === 'true' ? 'chat' : 'landing';
+  });
 
   // Authentication & Mode State
   const [hasAccepted18, setHasAccepted18] = useState<boolean>(() => {
@@ -120,7 +124,7 @@ export const App: React.FC = () => {
     const systemNotice: ChatMessageItem = {
       id: 'sys-' + Date.now(),
       role: 'assistant',
-      content: `⚡ تم تفعيل شريحة NSFW NANO (+21 MAX) بنجاح عبر التحقق الحيوي (${result.type.toUpperCase()}).\n\nتم تحرير المحرك العصبي بالكامل وكسر كافة الحواجز. اسأل وناقش ما يحلو لك بحرية مطلقة.`,
+      content: `⚡ تم تفعيل شريحة NSFW NANO (MAX) بنجاح عبر التحقق الحيوي (${result.type.toUpperCase()}).\n\nتم تحرير المحرك العصبي بالكامل وكسر كافة الحواجز. اسأل وناقش ما يحلو لك بحرية مطلقة.`,
       timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
       isX1: true,
     };
@@ -129,7 +133,7 @@ export const App: React.FC = () => {
 
   const handleSendMessage = async (
     text: string,
-    meta?: { model?: string; attachments?: File[]; targetUrl?: string; effort?: string }
+    meta?: { model?: string; attachments?: File[]; targetUrl?: string; effort?: string; deepSearch?: boolean }
   ) => {
     if (isStreaming) return;
 
@@ -154,9 +158,23 @@ export const App: React.FC = () => {
     const effectivePrompt = trimmedText || (attachedImageDataUrl ? 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.' : '');
     if (!effectivePrompt && !attachedImageDataUrl) return;
 
-    const chosenModel: ModelType = attachedImageDataUrl
-      ? 'deepseek-v4-flash-vision-exp'
-      : (meta?.model as ModelType) || activeModel;
+    const detectedUrlInfo = detectAndExtractUrl(effectivePrompt);
+    const resolvedTargetUrl = meta?.targetUrl || (detectedUrlInfo.hasUrl ? detectedUrlInfo.cleanUrl : undefined);
+
+    let chosenModel: ModelType;
+    if (attachedImageDataUrl) {
+      chosenModel = 'deepseek-v4-flash-vision-exp';
+    } else if (meta?.model) {
+      chosenModel = meta.model as ModelType;
+    } else if (resolvedTargetUrl) {
+      chosenModel = 'deepseek-v4-flash-cyber';
+    } else {
+      chosenModel = activeModel;
+    }
+
+    if (chosenModel !== activeModel) {
+      setActiveModel(chosenModel);
+    }
 
     const userMessage: ChatMessageItem = {
       id: 'user-' + Date.now(),
@@ -205,8 +223,9 @@ export const App: React.FC = () => {
       messages: packedMessages,
       model: attachedImageDataUrl ? 'deepseek-v4-flash-vision-exp' : chosenModel,
       isX1Mode: isX1Active,
+      deepSearch: meta?.deepSearch ?? false,
       memoryPrompt: memoryContextPrompt,
-      targetUrl: meta?.targetUrl,
+      targetUrl: resolvedTargetUrl || undefined,
       onChunk: (data) => {
         fullAssistantResponse = data.content;
         fullAssistantReasoning = data.reasoning;
@@ -381,15 +400,17 @@ export const App: React.FC = () => {
       {/* View Switch: Standalone Reception Landing Page vs Active AI Chat */}
       {viewMode === 'landing' ? (
         <LandingPage
-          onStartChat={() => setViewMode('chat')}
+          onStartChat={() => {
+            localStorage.setItem(STORAGE_KEY_SEEN_LANDING, 'true');
+            setViewMode('chat');
+          }}
           onSelectPreset={(preset) => {
+            localStorage.setItem(STORAGE_KEY_SEEN_LANDING, 'true');
             setViewMode('chat');
             handleSendMessage(preset);
           }}
           onOpenArchitecture={() => setIsArchitectureModalOpen(true)}
           onOpenSidebar={() => setIsSidebarOpen(true)}
-          isX1Active={isX1Active}
-          onToggleX1={handleToggleX1}
           user={user}
         />
       ) : (
@@ -434,7 +455,7 @@ export const App: React.FC = () => {
                 activeModel === 'deepseek-v4-flash-cyber'
                   ? "اسأل Fathom Cyber عن فحص الروابط أو تدقيق الحماية..."
                   : isX1Active
-                  ? "اسأل X1 (+21) أي شيء تريده..."
+                  ? "اسأل X1 MAX أي شيء تريده..."
                   : "اسأل Fathom 1 أي شيء..."
               }
             />

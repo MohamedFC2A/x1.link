@@ -38,12 +38,7 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
   return (
     <div
       className={cn(
-        "w-full mb-3 rounded-xl border p-2 sm:p-2.5 backdrop-blur-sm select-none transition-colors",
-        isCyber
-          ? "border-cyan-900/40 bg-cyan-950/15"
-          : isX1
-          ? "border-rose-900/40 bg-rose-950/15"
-          : "border-zinc-800/80 bg-zinc-950/50",
+        "w-full mb-3 rounded-xl border border-white/[0.08] bg-black/40 p-2 sm:p-2.5 select-none transition-colors",
         className
       )}
       dir="rtl"
@@ -51,15 +46,15 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
       <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs overflow-x-auto no-scrollbar py-0.5">
         {/* Step 1 */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <div className="flex size-4 sm:size-5 items-center justify-center rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/40">
+          <div className="flex size-4 sm:size-5 items-center justify-center rounded-full text-[10px] font-mono font-bold bg-white/[0.08] text-white border border-white/[0.15]">
             <CheckCircle2 className="size-3 sm:size-3.5" />
           </div>
           <span className="text-zinc-300 font-sans font-medium text-[10px] sm:text-xs">
-            {isCyber ? "استطلاع الهدف والمنافذ" : "معالجة المدخلات"}
+            {isCyber ? "استخبارات ومسح 100+ صفحة" : "معالجة المدخلات"}
           </span>
         </div>
 
-        <div className="h-[1px] w-3 sm:w-6 bg-zinc-800 shrink-0" />
+        <div className="h-[1px] w-3 sm:w-6 bg-white/[0.08] shrink-0" />
 
         {/* Step 2 */}
         <div className="flex items-center gap-1.5 shrink-0">
@@ -67,18 +62,14 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
             className={cn(
               "flex size-4 sm:size-5 items-center justify-center rounded-full text-[10px] font-mono font-bold transition-all",
               step2Active
-                ? isCyber
-                  ? "bg-cyan-950 text-cyan-400 border border-cyan-500 animate-pulse"
-                  : isX1
-                  ? "bg-rose-950 text-rose-400 border border-rose-500 animate-pulse"
-                  : "bg-amber-950 text-amber-400 border border-amber-500 animate-pulse"
+                ? "bg-white text-black border border-white"
                 : step2Done
-                ? "bg-emerald-950 text-emerald-400 border border-emerald-500/40"
-                : "bg-zinc-900 text-zinc-600 border border-zinc-800"
+                ? "bg-white/[0.08] text-white border border-white/[0.15]"
+                : "bg-white/[0.04] text-zinc-500 border border-white/[0.08]"
             )}
           >
             {step2Active ? (
-              <Loader2 className="size-2.5 sm:size-3 animate-spin" />
+              <Loader2 className="size-2.5 sm:size-3 animate-spin text-black" />
             ) : step2Done ? (
               <CheckCircle2 className="size-3 sm:size-3.5" />
             ) : (
@@ -88,22 +79,18 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
           <span
             className={cn(
               "font-sans font-medium text-[10px] sm:text-xs",
-              step2Active
-                ? isCyber
-                  ? "text-cyan-300 font-bold"
-                  : isX1
-                  ? "text-rose-300 font-bold"
-                  : "text-amber-300 font-bold"
-                : step2Done
-                ? "text-zinc-300"
-                : "text-zinc-500"
+              step2Active ? "text-white font-semibold" : step2Done ? "text-zinc-200" : "text-zinc-500"
             )}
           >
-            {isCyber ? "الاستدلال الأمني الذكي" : "التفكير المنطقي العميق"}
+            {isCyber
+              ? "تحليل ومطابقة الأدلة"
+              : isX1
+              ? "استدعاء خوارزميات X1 MAX"
+              : "التفكير والتحليل المنطقي"}
           </span>
         </div>
 
-        <div className="h-[1px] w-3 sm:w-6 bg-zinc-800 shrink-0" />
+        <div className="h-[1px] w-3 sm:w-6 bg-white/[0.08] shrink-0" />
 
         {/* Step 3 */}
         <div className="flex items-center gap-1.5 shrink-0">
@@ -111,16 +98,14 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
             className={cn(
               "flex size-4 sm:size-5 items-center justify-center rounded-full text-[10px] font-mono font-bold transition-all",
               step3Active
-                ? isCyber
-                  ? "bg-cyan-950 text-cyan-400 border border-cyan-500 animate-pulse"
-                  : "bg-rose-950 text-rose-400 border border-rose-500 animate-pulse"
+                ? "bg-white text-black border border-white"
                 : step3Done
-                ? "bg-emerald-950 text-emerald-400 border border-emerald-500/40"
-                : "bg-zinc-900 text-zinc-600 border border-zinc-800"
+                ? "bg-white/[0.08] text-white border border-white/[0.15]"
+                : "bg-white/[0.04] text-zinc-500 border border-white/[0.08]"
             )}
           >
             {step3Active ? (
-              <Loader2 className="size-2.5 sm:size-3 animate-spin" />
+              <Loader2 className="size-2.5 sm:size-3 animate-spin text-black" />
             ) : step3Done ? (
               <CheckCircle2 className="size-3 sm:size-3.5" />
             ) : (
@@ -130,14 +115,14 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
           <span
             className={cn(
               "font-sans font-medium text-[10px] sm:text-xs",
-              step3Active
-                ? "text-rose-300 font-bold"
-                : step3Done
-                ? "text-zinc-300"
-                : "text-zinc-500"
+              step3Active ? "text-white font-semibold" : step3Done ? "text-zinc-200" : "text-zinc-500"
             )}
           >
-            {isCyber ? "التقرير الأمني المتكامل" : "صياغة الرد النهائي"}
+            {isStreaming && step3Active
+              ? "توليد الرد المباشر..."
+              : step3Done
+              ? "اكتمل التوليد"
+              : "التوليد النهائي"}
           </span>
         </div>
       </div>

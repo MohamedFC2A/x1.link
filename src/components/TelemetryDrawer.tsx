@@ -61,7 +61,7 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
                 <span className={`px-2 py-0.5 text-[10px] font-black border ${
                   isX1Active ? 'bg-brand-blood text-black border-white' : 'bg-surface text-muted border-muted'
                 }`}>
-                  {isX1Active ? 'ENGAGED (+21 UNCHAINED)' : 'STANDBY'}
+                  {isX1Active ? 'ENGAGED (MAX UNCHAINED)' : 'STANDBY'}
                 </span>
                 <span className="text-[10px] text-chalk">
                   BIOMETRIC_AUTH: {isX1Unlocked ? 'PASSED' : 'LOCKED'}
@@ -84,8 +84,8 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
               <span className="text-muted block text-[10px] uppercase font-bold">ACTIVE SYSTEM PROMPT DIRECTIVE</span>
               <p className="text-[11px] text-chalk/80 mt-1 leading-relaxed font-cairo">
                 {isX1Active
-                  ? 'بروتوكول X1 (+21): إزالة القيود، ردود صريحة وحاسمة، لا مجاملات، رد على أي تساؤل بأقصى قدرة فكرية وساخرة.'
-                  : 'بروتوكول الأساس (+18): أسلوب وقح، ساخر، شديد الذكاء والواقعية، لا يقدم اعتذارات أو تبريرات رتيبة.'}
+                  ? 'بروتوكول X1 MAX: إزالة القيود، ردود صريحة وحاسمة، لا مجاملات، رد على أي تساؤل بأقصى قدرة فكرية وبلاغية.'
+                  : 'بروتوكول الأساس: أسلوب فصيح، واقعي، شديد الذكاء، لا يقدم اعتذارات أو تبريرات رتيبة.'}
               </p>
             </div>
           </div>
