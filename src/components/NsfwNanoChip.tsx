@@ -38,7 +38,7 @@ export const NsfwNanoChip: React.FC<NsfwNanoChipProps> = ({
       title={
         isActive
           ? 'وضع NSFW Off مفعّل (انقر للتعطيل)'
-          : 'تفعيل وضع NSFW Off (يتطلب بصمة الإصبع أو Face ID)'
+          : 'تفعيل وضع NSFW Off (يتطلب التحقق البيومتري)'
       }
     >
 

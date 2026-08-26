@@ -1,13 +1,38 @@
-import React, { useState } from 'react';
-import { triggerBiometricAuthentication } from '../services/webauthn';
+import React, { useState, useMemo } from 'react';
+import { triggerBiometricAuthentication, getBiometricDeviceInfo, BiometricDeviceInfo } from '../services/webauthn';
 import { WebAuthnVerificationResult } from '../types';
-import { Fingerprint, X, ShieldOff, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { X, CheckCircle2, Fingerprint, KeyRound } from 'lucide-react';
 
 interface X1UnlockModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (result: WebAuthnVerificationResult) => void;
 }
+
+// ----------------------------------------------------------------------
+// Dedicated Native OS Biometric Icons
+// ----------------------------------------------------------------------
+const FaceIdIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M4 8V6a2 2 0 0 1 2-2h2" />
+    <path d="M4 16v2a2 2 0 0 0 2 2h2" />
+    <path d="M16 4h2a2 2 0 0 1 2 2v2" />
+    <path d="M16 20h2a2 2 0 0 0 2-2v-2" />
+    <circle cx="9" cy="9.5" r="1.2" fill="currentColor" />
+    <circle cx="15" cy="9.5" r="1.2" fill="currentColor" />
+    <path d="M12 11.5v2.5" />
+    <path d="M8.5 16.5c1 1.2 2.2 1.8 3.5 1.8s2.5-.6 3.5-1.8" />
+  </svg>
+);
+
+const WindowsHelloIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M3 4.5 10.5 3.5v7.5H3V4.5z" fill="currentColor" fillOpacity="0.25" />
+    <path d="M12.5 3.2 21 2v9h-8.5V3.2z" fill="currentColor" fillOpacity="0.25" />
+    <path d="M3 13h7.5v7.5L3 19.5V13z" fill="currentColor" fillOpacity="0.25" />
+    <path d="M12.5 13H21v9l-8.5-1.2V13z" fill="currentColor" fillOpacity="0.25" />
+  </svg>
+);
 
 export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
   isOpen,
@@ -17,7 +42,23 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const deviceInfo: BiometricDeviceInfo = useMemo(() => getBiometricDeviceInfo(), []);
+
   if (!isOpen) return null;
+
+  const renderBiometricIcon = (className?: string) => {
+    switch (deviceInfo.iconType) {
+      case 'face-id':
+        return <FaceIdIcon className={className} />;
+      case 'windows-hello':
+        return <WindowsHelloIcon className={className} />;
+      case 'touch-id':
+      case 'fingerprint':
+        return <Fingerprint className={className} />;
+      default:
+        return <KeyRound className={className} />;
+    }
+  };
 
   const handleStartBiometrics = async () => {
     setLoading(true);
@@ -47,17 +88,17 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
           <X className="w-4 h-4 text-zinc-400" />
         </button>
 
-        {/* NSFW Off Header */}
-        <div className="flex items-center gap-3">
-          <div className="size-11 sm:size-12 rounded-2xl bg-white/[0.06] border border-white/[0.14] text-zinc-200 flex items-center justify-center shrink-0 shadow-inner">
-            <ShieldOff className="w-6 h-6" />
+        {/* NSFW Off Header with Native OS Biometric Badge */}
+        <div className="flex items-center gap-3.5">
+          <div className="size-12 sm:size-14 rounded-2xl bg-gradient-to-br from-rose-500/20 via-rose-500/10 to-transparent border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(244,63,94,0.15)]">
+            {renderBiometricIcon("w-6 h-6 sm:w-7 sm:h-7 text-rose-400")}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-bold text-white tracking-tight font-sans">
                 تفعيل وضع <span className="font-['Space_Grotesk'] font-bold text-white">NSFW Off</span>
               </h2>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white/[0.1] text-white border border-white/[0.2]">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
                 UNCENSORED
               </span>
             </div>
@@ -67,19 +108,21 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
           </div>
         </div>
 
-        {/* Feature Highlights Card */}
-        <div className="p-3.5 sm:p-4 rounded-2xl glass-card text-xs sm:text-sm text-zinc-300 space-y-2.5 sm:space-y-3 leading-relaxed font-sans">
+        {/* Feature Highlights Card with Exact Detected OS Requirement */}
+        <div className="p-3.5 sm:p-4 rounded-2xl glass-card text-xs sm:text-sm text-zinc-300 space-y-2.5 sm:space-y-3 leading-relaxed font-sans border border-white/[0.08]">
           <p className="text-zinc-200 font-medium">
             تفعيل وضع NSFW Off يحرر المحرك العصبي تماماً ليتحدث في أي موضوع نفسي، فكري، فلسفي، أو حواري جريء بلا أي حواجز أو قيود مسبقة.
           </p>
-          <div className="space-y-1.5 pt-2 border-t border-zinc-800/80 text-xs text-zinc-400">
+          <div className="space-y-2 pt-2 border-t border-white/[0.08] text-xs text-zinc-400">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>حرية تعبير كاملة وصراحة تامة دون وعظ أو اعتذار أو رفض.</span>
             </div>
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>يلزم تأكيد بصمة الإصبع أو Face ID في كل عملية تفعيل لحماية خصوصيتك.</span>
+              <div className="shrink-0 text-emerald-400">
+                {renderBiometricIcon("w-4 h-4")}
+              </div>
+              <span className="text-zinc-300 font-medium">{deviceInfo.requirementText}</span>
             </div>
           </div>
         </div>
@@ -91,16 +134,20 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
           </div>
         )}
 
-        {/* Biometric trigger button */}
+        {/* Dynamic Biometric Trigger Button tailored to specific OS */}
         <button
           type="button"
           onClick={handleStartBiometrics}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2.5 py-3 sm:py-3.5 px-4 rounded-2xl bg-white hover:bg-zinc-200 disabled:opacity-50 text-zinc-950 font-bold text-xs sm:text-sm transition-all active:scale-[0.98] cursor-pointer shadow-lg"
+          className="w-full flex items-center justify-center gap-2.5 py-3 sm:py-3.5 px-4 rounded-2xl bg-white hover:bg-zinc-100 disabled:opacity-50 text-zinc-950 font-bold text-xs sm:text-sm transition-all active:scale-[0.98] cursor-pointer shadow-xl border border-white/20"
         >
-          <Fingerprint className="w-5 h-5 shrink-0" />
+          {loading ? (
+            <div className="size-4 rounded-full border-2 border-zinc-950 border-t-transparent animate-spin shrink-0" />
+          ) : (
+            renderBiometricIcon("w-5 h-5 shrink-0 text-zinc-950")
+          )}
           <span>
-            {loading ? 'جاري التحقق عبر البصمة / Face ID...' : 'تأكيد البصمة أو Face ID لتفعيل وضع NSFW Off'}
+            {loading ? deviceInfo.verifyingText : deviceInfo.actionText}
           </span>
         </button>
 
