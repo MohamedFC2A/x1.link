@@ -306,11 +306,12 @@
     background: conic-gradient(
       from 0deg,
       transparent 0deg,
-      transparent 270deg,
-      rgba(16, 185, 129, 0.25) 300deg,
-      rgba(52, 211, 153, 0.9) 340deg,
-      rgba(110, 231, 183, 1) 355deg,
-      rgba(255, 255, 255, 1) 360deg
+      transparent 190deg,
+      rgba(5, 150, 105, 0.35) 230deg,
+      rgba(16, 185, 129, 0.75) 270deg,
+      rgba(34, 197, 94, 0.95) 320deg,
+      rgba(74, 222, 128, 1) 350deg,
+      rgba(255, 255, 255, 0.95) 360deg
     );
   }
 
@@ -356,7 +357,7 @@
       transparent 180deg,
       rgba(244, 63, 94, 0.5) 230deg,
       rgba(236, 72, 153, 0.95) 290deg,
-      rgba(52, 211, 153, 1) 345deg,
+      rgba(34, 197, 94, 1) 345deg,
       rgba(255, 255, 255, 1) 360deg
     );
   }
@@ -389,11 +390,12 @@
     background: conic-gradient(
       from 0deg,
       transparent 0deg,
-      transparent 220deg,
-      rgba(6, 182, 212, 0.4) 260deg,
-      rgba(34, 211, 238, 0.95) 300deg,
-      rgba(56, 189, 248, 1) 340deg,
-      rgba(255, 255, 255, 1) 360deg
+      transparent 200deg,
+      rgba(6, 182, 212, 0.4) 240deg,
+      rgba(34, 211, 238, 0.8) 280deg,
+      rgba(34, 197, 94, 0.95) 330deg,
+      rgba(74, 222, 128, 1) 350deg,
+      rgba(255, 255, 255, 0.95) 360deg
     );
   }
 
@@ -413,11 +415,12 @@
     background: conic-gradient(
       from 0deg,
       transparent 0deg,
-      transparent 220deg,
-      rgba(16, 185, 129, 0.4) 260deg,
-      rgba(56, 189, 248, 0.95) 300deg,
-      rgba(129, 140, 248, 1) 340deg,
-      rgba(255, 255, 255, 1) 360deg
+      transparent 200deg,
+      rgba(16, 185, 129, 0.4) 240deg,
+      rgba(34, 197, 94, 0.8) 280deg,
+      rgba(74, 222, 128, 0.95) 330deg,
+      rgba(134, 239, 172, 1) 350deg,
+      rgba(255, 255, 255, 0.95) 360deg
     );
   }
 }
