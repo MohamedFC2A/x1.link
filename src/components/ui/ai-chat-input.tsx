@@ -462,9 +462,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               className="absolute bottom-full right-2 mb-3 w-[300px] sm:w-[320px] glass-popover rounded-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/[0.08] mb-2">
+              <div className="px-2.5 py-1.5 border-b border-white/[0.08] mb-2">
                 <span className="text-xs font-sans font-bold text-white tracking-wide">اختيار المحرك العصبي</span>
-                <span className="text-[9px] font-mono text-zinc-400 tracking-wider">ENGINE MATRIX</span>
               </div>
 
               <div className="space-y-1.5">
@@ -488,10 +487,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       <Sparkles className="w-4 h-4 text-zinc-200" />
                     </div>
                     <div className="min-w-0 text-right">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-white">Fathom 1</span>
-                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08]">CORE</span>
-                      </div>
+                      <div className="font-bold text-xs text-white">Fathom 1</div>
                       <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
                         المحرك اللغوي الفصيح، التحليل الفكري، والتوليد الحر
                       </div>
@@ -522,10 +518,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       <ShieldCheck className="w-4 h-4 text-zinc-200" />
                     </div>
                     <div className="min-w-0 text-right">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-white">Fathom Cyber</span>
-                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08]">CYBER & INTEL</span>
-                      </div>
+                      <div className="font-bold text-xs text-white">Fathom Cyber</div>
                       <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
                         استخبارات سيبرانية، فحص الروابط، وبحث عميق (100+ مصدر)
                       </div>
@@ -544,16 +537,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         <Camera className="w-4 h-4 text-zinc-200" />
                       </div>
                       <div className="min-w-0 text-right">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-xs text-white">Fathom Cam</span>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08]">VISION</span>
-                        </div>
+                        <div className="font-bold text-xs text-white">Fathom Cam</div>
                         <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
-                          تحليل بصري متعدد الطبقات واستخراج فوري للنصوص (OCR)
+                          معالجة وتحليل الصور والرؤية البصرية الفورية
                         </div>
                       </div>
                     </div>
-                    <span className="size-1.5 rounded-full bg-white shrink-0 mr-2" />
                   </div>
                 )}
               </div>
