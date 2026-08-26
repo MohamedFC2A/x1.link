@@ -227,15 +227,20 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       }
     };
 
-    // Auto-adjust textarea height cleanly on input
-    useEffect(() => {
+    // Auto-adjust textarea height cleanly on input with zero scroll jumping
+    const adjustTextareaHeight = useCallback(() => {
       const el = textareaRef.current;
       if (!el) return;
-      el.style.height = "auto";
+      el.style.height = "0px";
       const scrollHeight = el.scrollHeight;
-      const newHeight = Math.min(Math.max(scrollHeight, 38), 160);
+      const newHeight = Math.min(Math.max(scrollHeight, 38), 180);
       el.style.height = `${newHeight}px`;
-    }, [value]);
+      el.style.overflowY = scrollHeight > 180 ? 'auto' : 'hidden';
+    }, []);
+
+    useEffect(() => {
+      adjustTextareaHeight();
+    }, [value, adjustTextareaHeight]);
 
     const handleCyberSubmit = () => {
       const activeUrl = cyberTargetUrl.trim() || detectAndExtractUrl(value).cleanUrl;
@@ -667,12 +672,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         {/* Chat Input Container Card */}
         <div
           className={cn(
-            "relative w-full rounded-2xl sm:rounded-3xl glass-input-container transition-colors duration-150",
+            "relative w-full rounded-3xl glass-input-container transition-all duration-200 shadow-[0_16px_45px_rgba(0,0,0,0.85)]",
             isX1Active
-              ? "border-rose-900/60"
+              ? "border-rose-800/60 focus-within:border-rose-500/80 focus-within:shadow-[0_0_35px_rgba(244,63,94,0.15)]"
               : isCyberMode
-              ? "border-cyan-900/60"
-              : "border-white/[0.09] focus-within:border-white/[0.22]"
+              ? "border-cyan-800/60 focus-within:border-cyan-500/80 focus-within:shadow-[0_0_35px_rgba(6,182,212,0.15)]"
+              : "border-white/[0.12] focus-within:border-white/[0.3] focus-within:shadow-[0_0_35px_rgba(255,255,255,0.08)]"
           )}
         >
           {/* Streamlined Cyber Target URL Bar */}
@@ -685,8 +690,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 transition={{ type: 'spring', stiffness: 420, damping: 30 }}
                 className="overflow-hidden"
               >
-                <div className="p-2 sm:p-2.5 border-b border-white/[0.07] bg-cyan-950/30 rounded-t-2xl sm:rounded-t-3xl flex items-center gap-1.5 sm:gap-2">
-                  <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-black/80 border border-cyan-900/60 focus-within:border-cyan-700 transition-colors">
+                <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-cyan-950/20 rounded-t-3xl flex items-center gap-1.5 sm:gap-2">
+                  <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-black/80 border border-cyan-900/60 focus-within:border-cyan-500 transition-colors">
                     <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
                     <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-bold shrink-0">
                       TARGET URL
@@ -734,7 +739,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           </AnimatePresence>
 
           {/* Main Text Area Row */}
-          <div className="flex items-end gap-2 p-2.5 sm:p-3">
+          <div className="flex items-end gap-2.5 px-3 sm:px-4 pt-2.5 sm:pt-3 pb-2">
             
             {/* Auto-growing Textarea */}
             <div className="flex-1 relative min-h-[38px] flex items-center">
@@ -757,32 +762,33 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     : placeholder
                 }
                 rows={1}
-                className="w-full bg-transparent text-zinc-100 text-[15px] sm:text-base leading-relaxed resize-none outline-none placeholder:text-zinc-500 font-sans max-h-36 min-h-[28px] py-1 px-1.5"
+                className="w-full bg-transparent text-zinc-100 text-[15px] sm:text-base leading-relaxed resize-none outline-none placeholder:text-zinc-500 font-sans max-h-44 min-h-[38px] py-1 px-1 smooth-scroll no-scrollbar"
+                style={{ overscrollBehavior: 'contain' }}
               />
             </div>
 
             {/* Action Button: Send / Stop */}
-            <div className="shrink-0 flex items-center gap-1.5 pb-0.5">
+            <div className="shrink-0 flex items-center pb-0.5">
               <button
                 type="button"
                 onClick={onActionButtonClick}
                 disabled={!hasValue && !isStreaming}
                 className={cn(
-                  "flex items-center justify-center size-9 sm:size-10 rounded-xl transition-all cursor-pointer select-none active:scale-95",
+                  "flex items-center justify-center size-9 sm:size-10 rounded-2xl transition-all duration-200 cursor-pointer select-none active:scale-90",
                   isStreaming
-                    ? "bg-rose-600 hover:bg-rose-700 text-white"
+                    ? "bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_20px_rgba(225,29,72,0.4)] animate-pulse"
                     : hasValue
                     ? isCyberMode
-                      ? "bg-cyan-500 hover:bg-cyan-400 text-black font-bold"
-                      : "bg-white hover:bg-zinc-200 text-zinc-950 font-bold"
-                    : "bg-white/[0.04] text-zinc-600 cursor-not-allowed"
+                      ? "bg-cyan-400 hover:bg-cyan-300 text-black font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-105"
+                      : "bg-white hover:bg-zinc-100 text-zinc-950 font-bold shadow-[0_0_25px_rgba(255,255,255,0.25)] hover:scale-105"
+                    : "bg-white/[0.04] text-zinc-600 cursor-not-allowed border border-white/[0.04]"
                 )}
                 title={isStreaming ? "إيقاف التوليد" : "إرسال"}
               >
                 {isStreaming ? (
                   <Square className="w-4 h-4 fill-current" />
                 ) : (
-                  <ArrowUp className={cn("w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]", isCyberMode ? "text-black" : "text-white")} />
+                  <ArrowUp className={cn("w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]", isCyberMode ? "text-black" : hasValue ? "text-zinc-950" : "text-zinc-600")} />
                 )}
               </button>
             </div>
@@ -790,7 +796,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           </div>
 
           {/* Bottom Toolbar (Models, Status Pills, 3-Dots Actions Menu) */}
-          <div className="flex items-center justify-between gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 border-t border-white/[0.06] bg-black/40 rounded-b-2xl sm:rounded-b-3xl text-xs">
+          <div className="flex items-center justify-between gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 border-t border-white/[0.06] bg-black/40 rounded-b-3xl text-xs">
             
             {/* Right Group: Model Selector */}
             <div className="flex items-center gap-1.5 shrink-0">
@@ -803,12 +809,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   setIsModelMenuOpen(!isModelMenuOpen);
                 }}
                 className={cn(
-                  "glass-button flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] sm:text-xs font-medium select-none shrink-0 cursor-pointer transition-all active:scale-95",
+                  "glass-button flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] sm:text-xs font-semibold select-none shrink-0 cursor-pointer transition-all active:scale-95",
                   isCyberMode
-                    ? "bg-cyan-950/40 border-cyan-800/60 text-cyan-200"
+                    ? "bg-cyan-950/40 border-cyan-800/60 text-cyan-200 hover:text-white"
                     : isVisionMode
-                    ? "bg-amber-950/40 border-amber-800/60 text-amber-200"
-                    : "text-zinc-200"
+                    ? "bg-amber-950/40 border-amber-800/60 text-amber-200 hover:text-white"
+                    : "text-zinc-200 hover:text-white"
                 )}
                 title="تغيير نموذج الذكاء الاصطناعي"
               >

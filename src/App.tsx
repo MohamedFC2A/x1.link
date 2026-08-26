@@ -356,8 +356,15 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-[#09090b] text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-rose-600 selection:text-white" dir="rtl">
+    <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-black text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-white selection:text-black relative" dir="rtl">
       
+      {/* Dynamic Ambient Atmospheric Glow for Visual Vitality */}
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none">
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] h-[320px] bg-gradient-to-b from-rose-950/25 via-rose-900/10 to-transparent rounded-full blur-[100px] opacity-75" />
+        <div className="absolute top-1/4 -right-32 w-[400px] h-[400px] bg-cyan-950/20 rounded-full blur-[110px] opacity-60" />
+        <div className="absolute -bottom-32 -left-32 w-[450px] h-[450px] bg-rose-950/15 rounded-full blur-[120px] opacity-50" />
+      </div>
+
       {/* 18+ Mandatory Age Disclaimer Modal */}
       <DisclaimerModal
         isOpen={!hasAccepted18}
@@ -414,7 +421,7 @@ export const App: React.FC = () => {
           user={user}
         />
       ) : (
-        <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden animate-in fade-in duration-200">
+        <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative z-10 animate-in fade-in duration-200">
           
           {/* Top Bar for Chat Room */}
           <TopBar
@@ -442,7 +449,7 @@ export const App: React.FC = () => {
           </main>
 
           {/* Floating AI Chat Input */}
-          <div className="sticky bottom-0 z-30 w-full px-2.5 sm:px-3 pb-2.5 sm:pb-3 pt-1.5 bg-[#09090b]/95 backdrop-blur-md border-t border-zinc-850 pb-safe">
+          <div className="sticky bottom-0 z-30 w-full px-3 sm:px-6 pb-3 sm:pb-4 pt-1 bg-gradient-to-t from-black via-black/80 to-transparent pb-safe max-w-4xl mx-auto">
             <PromptInput
               onSubmit={(val, meta) => handleSendMessage(val, meta)}
               isStreaming={isStreaming}
