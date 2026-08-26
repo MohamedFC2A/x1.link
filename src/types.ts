@@ -38,3 +38,45 @@ export interface SystemStatus {
   verifiedAge21: boolean;
   totalTokensProcessed: number;
 }
+
+export interface ResolvedLinkInfo {
+  inputUrl: string;
+  originalUrl: string;
+  canonicalUrl?: string | null;
+  domain: string;
+  title: string;
+  description?: string;
+  isShortened: boolean;
+  brandAssets: {
+    favicon: string | null;
+    appleTouchIcon: string | null;
+    ogImage: string | null;
+    twitterImage: string | null;
+    bestLogoUrl: string | null;
+  };
+  frameworks?: {
+    coreFramework: string[];
+    componentLibraries: string[];
+    iconsAndAnimations: string[];
+    stateAndDataFetching: string[];
+    infrastructure: string[];
+  };
+  designProfile?: {
+    primaryAesthetic: string;
+    designStyles: string[];
+    colorPalette?: {
+      brandPrimary?: string;
+      background?: string;
+    };
+    borderRadius?: {
+      style: string;
+      sampleValues: string[];
+    };
+    typography?: {
+      fontFamilies: string[];
+      hasMonospace: boolean;
+    };
+  };
+  rawAnalysisSummaryAr?: string;
+}
+

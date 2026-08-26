@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ChatMessageItem } from '../types';
+import { ChatMessageItem, ResolvedLinkInfo } from '../types';
 import ChatReasoning from './ui/chat-reasoning';
-import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Zap } from 'lucide-react';
+import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Zap, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { detectAndExtractUrl, getFaviconUrl } from '@/lib/utils';
+import { resolveLinkTarget } from '../services/api';
 import { cn } from '@/lib/utils';
 import { ThinkingOrb } from './ui/thinking-orbs';
 import { LinkConfirmModal } from './ui/LinkConfirmModal';
@@ -147,8 +148,43 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
     const urlInfo = detectAndExtractUrl(message.content);
     const extractedUrl = urlInfo.cleanUrl;
     const remainingText = urlInfo.remainingText;
-    const faviconUrl = extractedUrl ? getFaviconUrl(extractedUrl) : null;
     const domainName = urlInfo.domain;
+    const [resolvedInfo, setResolvedInfo] = useState<ResolvedLinkInfo | null>(null);
+    const [isResolving, setIsResolving] = useState(false);
+
+    useEffect(() => {
+      if (!extractedUrl) return;
+      let isMounted = true;
+      const controller = new AbortController();
+      setIsResolving(true);
+
+      resolveLinkTarget(extractedUrl, controller.signal)
+        .then(data => {
+          if (isMounted && data) {
+            setResolvedInfo(data);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (isMounted) setIsResolving(false);
+        });
+
+      return () => {
+        isMounted = false;
+        controller.abort();
+      };
+    }, [extractedUrl]);
+
+    // Compute effective display URL and true logo
+    const displayUrl = resolvedInfo?.originalUrl || extractedUrl;
+    const displayDomain = resolvedInfo?.domain || domainName;
+    const isRedirected = Boolean(
+      resolvedInfo && (resolvedInfo.isShortened || (resolvedInfo.originalUrl && resolvedInfo.originalUrl !== extractedUrl))
+    );
+    const faviconUrl = resolvedInfo?.brandAssets?.bestLogoUrl ||
+                       resolvedInfo?.brandAssets?.favicon ||
+                       (displayUrl ? getFaviconUrl(displayUrl) : null);
+
     const allImages = (message.images && message.images.length > 0)
       ? message.images
       : (message.image ? [message.image] : []);
@@ -166,23 +202,44 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
             <div className="mb-2.5 flex flex-col gap-1.5 p-2.5 sm:p-3 rounded-xl bg-white/[0.03] border border-white/[0.12] text-right animate-in fade-in duration-150 backdrop-blur-2xl shadow-xl">
               <div className="flex items-center justify-between text-[11px] text-zinc-300 font-medium">
                 <span className="flex items-center gap-1.5 font-sans font-semibold text-zinc-200">
-                  <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
-                  <span>رابط الهدف المستطلع للفحص:</span>
+                  <ShieldCheck className={cn("w-3.5 h-3.5", isRedirected ? "text-emerald-400" : "text-zinc-300")} />
+                  <span>
+                    {isRedirected ? "تم فك الشفرة واستطلاع الهدف الأصلي:" : "رابط الهدف المستطلع للفحص:"}
+                  </span>
                 </span>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08] font-bold">
-                  TARGET URL
+                <span className={cn(
+                  "text-[9px] font-mono px-1.5 py-0.5 rounded border font-bold flex items-center gap-1 transition-all",
+                  isRedirected
+                    ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                    : isResolving
+                    ? "bg-cyan-500/15 text-cyan-300 border-cyan-500/30 animate-pulse"
+                    : "bg-white/[0.06] text-zinc-300 border-white/[0.08]"
+                )}>
+                  {isRedirected ? (
+                    <>
+                      <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+                      <span>DECODED TARGET</span>
+                    </>
+                  ) : isResolving ? (
+                    <>
+                      <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                      <span>UNSHORTENING...</span>
+                    </>
+                  ) : (
+                    <span>TARGET URL</span>
+                  )}
                 </span>
               </div>
               <button
                 type="button"
-                onClick={() => setConfirmUrl(extractedUrl)}
+                onClick={() => setConfirmUrl(displayUrl || extractedUrl)}
                 className="flex items-center justify-between gap-2.5 bg-black/60 hover:bg-black/80 p-2 sm:p-2.5 rounded-lg border border-white/[0.08] hover:border-white/[0.22] mt-0.5 shadow-inner w-full text-right cursor-pointer transition-all group/target backdrop-blur-md"
               >
                 <div className="size-7 rounded-xl bg-zinc-950 border border-white/[0.12] flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
                   {faviconUrl && !faviconFailed ? (
                     <img
                       src={faviconUrl}
-                      alt={domainName || 'Site Logo'}
+                      alt={displayDomain || 'Site Logo'}
                       className="size-4 object-contain rounded"
                       onError={() => setFaviconFailed(true)}
                     />
@@ -190,14 +247,43 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                     <Globe className="w-3.5 h-3.5 text-zinc-400" />
                   )}
                 </div>
-                <span
-                  className="font-mono text-xs sm:text-sm text-zinc-100 group-hover/target:text-white underline underline-offset-4 decoration-white/30 group-hover/target:decoration-white break-all dir-ltr text-left flex-1 transition-colors"
-                  dir="ltr"
-                >
-                  {extractedUrl}
-                </span>
+                <div className="flex flex-col flex-1 min-w-0 text-left dir-ltr">
+                  <span
+                    className="font-mono text-xs sm:text-sm text-zinc-100 group-hover/target:text-white underline underline-offset-4 decoration-white/30 group-hover/target:decoration-white break-all dir-ltr text-left flex-1 transition-colors font-medium"
+                    dir="ltr"
+                  >
+                    {displayUrl}
+                  </span>
+                  {isRedirected && (
+                    <span className="text-[10px] text-zinc-400 font-mono flex items-center gap-1 mt-0.5 truncate dir-rtl text-right">
+                      <span className="text-zinc-500">الرابط المختصر:</span>
+                      <span className="truncate dir-ltr text-zinc-400">{extractedUrl}</span>
+                    </span>
+                  )}
+                </div>
                 <ExternalLink className="w-3.5 h-3.5 text-zinc-400 group-hover/target:text-white shrink-0 opacity-75 group-hover/target:opacity-100 transition-opacity" />
               </button>
+
+              {/* Badges for title and detected frameworks when resolved */}
+              {resolvedInfo && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px] text-zinc-300 font-sans">
+                  {resolvedInfo.title && (
+                    <span className="truncate max-w-[260px] sm:max-w-[360px] text-zinc-300 font-medium bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.06]" title={resolvedInfo.title}>
+                      {resolvedInfo.title}
+                    </span>
+                  )}
+                  {resolvedInfo.frameworks?.coreFramework?.map((fw, idx) => (
+                    <span key={`fw-${idx}`} className="bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 px-1.5 py-0.5 rounded text-[9px] font-mono font-medium">
+                      {fw}
+                    </span>
+                  ))}
+                  {resolvedInfo.frameworks?.componentLibraries?.map((lib, idx) => (
+                    <span key={`lib-${idx}`} className="bg-purple-500/10 text-purple-300 border border-purple-500/20 px-1.5 py-0.5 rounded text-[9px] font-mono font-medium">
+                      {lib}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

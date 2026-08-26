@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { resolveAndProfileUrl } from './linkResolver';
 
 dotenv.config();
 
@@ -730,6 +731,35 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
+// Automated Link Resolution, Unshortening, & UI Framework / Design System Profiler
+app.post('/api/resolve-link', async (req: Request, res: Response) => {
+  try {
+    const { url } = req.body || {};
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ error: 'Missing or invalid url parameter' });
+    }
+    const resolved = await resolveAndProfileUrl(url);
+    return res.json(resolved);
+  } catch (err: any) {
+    console.error('[API /api/resolve-link Error]:', err);
+    return res.status(500).json({ error: err?.message || 'Failed to resolve link' });
+  }
+});
+
+app.get('/api/resolve-link', async (req: Request, res: Response) => {
+  try {
+    const url = req.query.url as string;
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ error: 'Missing url query parameter' });
+    }
+    const resolved = await resolveAndProfileUrl(url);
+    return res.json(resolved);
+  } catch (err: any) {
+    console.error('[API /api/resolve-link Error]:', err);
+    return res.status(500).json({ error: err?.message || 'Failed to resolve link' });
+  }
+});
+
 // Helper function for automatic retry if provider returns 429 rate limit
 async function executeFetchWithRetry(url: string, options: any, maxRetries = 3): Promise<globalThis.Response | null> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -974,8 +1004,25 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   const extractedTargetUrl = extractCleanUrl(explicitTargetUrl || rawUserContent);
 
   if (deepSearch || isCyber || Boolean(extractedTargetUrl)) {
+    let effectiveTargetUrl = extractedTargetUrl;
+    let linkReconSummary = '';
+
+    if (extractedTargetUrl) {
+      try {
+        console.log(`[LINK RESOLVER] Unshortening and profiling target URL: ${extractedTargetUrl}...`);
+        const resolvedLink = await resolveAndProfileUrl(extractedTargetUrl);
+        if (resolvedLink) {
+          effectiveTargetUrl = resolvedLink.originalUrl || extractedTargetUrl;
+          linkReconSummary = resolvedLink.rawAnalysisSummaryAr || '';
+          console.log(`[LINK RESOLVER] Resolved: ${extractedTargetUrl} -> ${effectiveTargetUrl} (${resolvedLink.title})`);
+        }
+      } catch (linkErr: any) {
+        console.warn('[LINK RESOLVER Notice]:', linkErr?.message);
+      }
+    }
+
     const shouldSearch = Boolean(deepSearch || isCyber);
-    const shouldAuditUrl = Boolean(extractedTargetUrl && (isCyber || Boolean(explicitTargetUrl)));
+    const shouldAuditUrl = Boolean(effectiveTargetUrl && (isCyber || Boolean(explicitTargetUrl) || Boolean(extractedTargetUrl)));
 
     if (deepSearch) {
       console.log(`[FATHOM SEARCH PIPELINE] Initiating Live Web Intelligence for: "${rawUserContent.slice(0, 80)}..."`);
@@ -983,17 +1030,17 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
     const [deepSearchResults, urlAuditResults] = await Promise.allSettled([
       shouldSearch
-        ? performUltraDeepCyberSearch(rawUserContent, extractedTargetUrl || undefined, upstreamAbortController.signal)
+        ? performUltraDeepCyberSearch(rawUserContent, effectiveTargetUrl || undefined, upstreamAbortController.signal)
         : Promise.resolve(''),
-      shouldAuditUrl
-        ? fetchUrlSecurityAudit(extractedTargetUrl)
+      shouldAuditUrl && effectiveTargetUrl
+        ? fetchUrlSecurityAudit(effectiveTargetUrl)
         : Promise.resolve('')
     ]);
 
     const deepSearchText = deepSearchResults.status === 'fulfilled' ? deepSearchResults.value : '';
     const urlAuditText = urlAuditResults.status === 'fulfilled' ? urlAuditResults.value : '';
 
-    const combinedContext = [urlAuditText, deepSearchText].filter(Boolean).join('\n\n');
+    const combinedContext = [linkReconSummary, urlAuditText, deepSearchText].filter(Boolean).join('\n\n');
 
     if (combinedContext) {
       processedMessages = processedMessages.map((m: any) => {

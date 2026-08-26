@@ -1,4 +1,4 @@
-import { ChatMessageItem, ModelType } from '../types';
+import { ChatMessageItem, ModelType, ResolvedLinkInfo } from '../types';
 
 export interface StreamChunkData {
   content: string;
@@ -255,10 +255,46 @@ export async function streamChatCompletion({
     if (err.name === 'AbortError' || controller.signal.aborted) {
       console.log('[Stream Aborted by User]');
     } else {
-      onError(err.message || 'انقطع الاتصال ببروتوكول الذكاء الاصطناعي.');
+      const isFailedFetch = err?.message === 'Failed to fetch' || err?.name === 'TypeError' || err?.message?.includes('NetworkError');
+      const errorMsg = isFailedFetch
+        ? 'تعذر الاتصال بالخادم الخلفي (Failed to fetch). يرجى التأكد من تشغيل خادم التطبيق عبر أمر: npm run dev'
+        : (err?.message || 'انقطع الاتصال ببروتوكول الذكاء الاصطناعي.');
+      onError(errorMsg);
     }
     onComplete();
   }
 
   return () => controller.abort();
 }
+
+const linkResolveCache = new Map<string, ResolvedLinkInfo>();
+
+/**
+ * Resolves, unshortens, and profiles a target URL with instant in-memory caching.
+ */
+export async function resolveLinkTarget(rawUrl: string, signal?: AbortSignal): Promise<ResolvedLinkInfo | null> {
+  if (!rawUrl || typeof rawUrl !== 'string') return null;
+  const cleanUrl = rawUrl.trim();
+  if (linkResolveCache.has(cleanUrl)) {
+    return linkResolveCache.get(cleanUrl)!;
+  }
+
+  try {
+    const res = await fetch('/api/resolve-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: cleanUrl }),
+      signal,
+    });
+    if (!res.ok) return null;
+    const data: ResolvedLinkInfo = await res.json();
+    if (data && data.originalUrl) {
+      linkResolveCache.set(cleanUrl, data);
+      return data;
+    }
+  } catch (err) {
+    console.warn('[API resolveLinkTarget Notice]:', err);
+  }
+  return null;
+}
+

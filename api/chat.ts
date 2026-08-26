@@ -1,3 +1,5 @@
+import { resolveAndProfileUrl } from '../server/linkResolver';
+
 export const config = {
   runtime: 'edge',
 };
@@ -915,22 +917,37 @@ export default async function handler(req: Request): Promise<Response> {
   const extractedTargetUrl = extractCleanUrl(explicitTargetUrl || rawUserContent);
 
   if (deepSearch || isCyber || Boolean(extractedTargetUrl)) {
+    let effectiveTargetUrl = extractedTargetUrl;
+    let linkReconSummary = '';
+
+    if (extractedTargetUrl) {
+      try {
+        const resolvedLink = await resolveAndProfileUrl(extractedTargetUrl);
+        if (resolvedLink) {
+          effectiveTargetUrl = resolvedLink.originalUrl || extractedTargetUrl;
+          linkReconSummary = resolvedLink.rawAnalysisSummaryAr || '';
+        }
+      } catch (linkErr: any) {
+        console.warn('[LINK RESOLVER Edge Notice]:', linkErr?.message);
+      }
+    }
+
     const shouldSearch = Boolean(deepSearch || isCyber);
-    const shouldAuditUrl = Boolean(extractedTargetUrl && (isCyber || Boolean(explicitTargetUrl)));
+    const shouldAuditUrl = Boolean(effectiveTargetUrl && (isCyber || Boolean(explicitTargetUrl) || Boolean(extractedTargetUrl)));
 
     const [deepSearchResults, urlAuditResults] = await Promise.allSettled([
       shouldSearch
-        ? performUltraDeepCyberSearch(rawUserContent, extractedTargetUrl || undefined)
+        ? performUltraDeepCyberSearch(rawUserContent, effectiveTargetUrl || undefined)
         : Promise.resolve(''),
-      shouldAuditUrl && extractedTargetUrl
-        ? fetchUrlSecurityAudit(extractedTargetUrl)
+      shouldAuditUrl && effectiveTargetUrl
+        ? fetchUrlSecurityAudit(effectiveTargetUrl)
         : Promise.resolve('')
     ]);
 
     const deepSearchText = deepSearchResults.status === 'fulfilled' ? deepSearchResults.value : '';
     const urlAuditText = urlAuditResults.status === 'fulfilled' ? urlAuditResults.value : '';
 
-    const combinedContext = [urlAuditText, deepSearchText].filter(Boolean).join('\n\n');
+    const combinedContext = [linkReconSummary, urlAuditText, deepSearchText].filter(Boolean).join('\n\n');
 
     if (combinedContext) {
       processedMessages = processedMessages.map((m: any) => {
