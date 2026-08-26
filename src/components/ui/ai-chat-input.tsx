@@ -673,14 +673,29 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         {/* Chat Input Container Card */}
         <div
           className={cn(
-            "relative w-full rounded-3xl glass-input-container transition-all duration-200 shadow-[0_16px_45px_rgba(0,0,0,0.85)]",
-            isX1Active
-              ? "border-rose-800/60 focus-within:border-rose-500/80 focus-within:shadow-[0_0_35px_rgba(244,63,94,0.15)]"
-              : isCyberMode
-              ? "border-cyan-800/60 focus-within:border-cyan-500/80 focus-within:shadow-[0_0_35px_rgba(6,182,212,0.15)]"
-              : "border-white/[0.12] focus-within:border-white/[0.3] focus-within:shadow-[0_0_35px_rgba(255,255,255,0.08)]"
+            "relative w-full rounded-3xl glass-input-container transition-all duration-300",
+            isCyberMode
+              ? "border-cyan-500/50 shadow-[inset_0_1px_1px_rgba(6,182,212,0.45),0_0_0_1px_rgba(6,182,212,0.25),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-cyan-400 focus-within:shadow-[inset_0_1px_2px_rgba(6,182,212,0.7),0_0_0_1.5px_rgba(6,182,212,0.5),0_18px_50px_rgba(0,0,0,0.9)]"
+              : isX1Active
+              ? "border-rose-500/50 shadow-[inset_0_1px_1px_rgba(244,63,94,0.45),0_0_0_1px_rgba(244,63,94,0.25),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-rose-400 focus-within:shadow-[inset_0_1px_2px_rgba(244,63,94,0.7),0_0_0_1.5px_rgba(244,63,94,0.5),0_18px_50px_rgba(0,0,0,0.9)]"
+              : isVisionMode
+              ? "border-amber-500/50 shadow-[inset_0_1px_1px_rgba(245,158,11,0.45),0_0_0_1px_rgba(245,158,11,0.25),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-amber-400 focus-within:shadow-[inset_0_1px_2px_rgba(245,158,11,0.7),0_0_0_1.5px_rgba(245,158,11,0.5),0_18px_50px_rgba(0,0,0,0.9)]"
+              : "border-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white/[0.3] focus-within:shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_0_0_1px_rgba(255,255,255,0.15),0_18px_50px_rgba(0,0,0,0.9)]"
           )}
         >
+          {/* Smart Edge Sheen Highlight on Top Border */}
+          <div
+            className={cn(
+              "absolute top-0 inset-x-8 h-[1px] rounded-full pointer-events-none transition-all duration-500 opacity-90",
+              isCyberMode
+                ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+                : isX1Active
+                ? "bg-gradient-to-r from-transparent via-rose-400 to-transparent"
+                : isVisionMode
+                ? "bg-gradient-to-r from-transparent via-amber-400 to-transparent"
+                : "bg-gradient-to-r from-transparent via-white/40 to-transparent"
+            )}
+          />
           {/* Streamlined Cyber Target URL Bar */}
           <AnimatePresence initial={false}>
             {(isTargetUrlBarOpen || cyberTargetUrl.trim() !== '') && !hasAttachments && (
