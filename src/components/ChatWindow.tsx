@@ -27,7 +27,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const isPinnedToBottomRef = useRef(true);
   const touchStartYRef = useRef(0);
 
-  // Instant scroll to absolute bottom
+  // Instant or smooth scroll to absolute bottom
   const scrollToBottom = useCallback((smooth = false) => {
     const container = containerRef.current;
     if (!container) return;
@@ -45,19 +45,36 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, []);
 
+  // Handle scroll events cleanly (user scroll vs auto scroll)
+  const handleScroll = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    
+    // If within 70px from bottom, consider user pinned to the bottom
+    if (distFromBottom <= 70) {
+      isPinnedToBottomRef.current = true;
+      setShowScrollBottom(false);
+    } else {
+      // User scrolled up! Immediately detach pinning so user can read earlier text peacefully
+      isPinnedToBottomRef.current = false;
+      setShowScrollBottom(true);
+    }
+  }, []);
+
   // Detect explicit user mouse wheel intent
   const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     const container = containerRef.current;
     if (!container) return;
 
     if (e.deltaY < 0) {
-      // User is scrolling UP intentionally
+      // Scrolling up intentionally
       isPinnedToBottomRef.current = false;
       setShowScrollBottom(true);
     } else if (e.deltaY > 0) {
-      // User is scrolling DOWN
       const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (dist <= 60) {
+      if (dist <= 70) {
         isPinnedToBottomRef.current = true;
         setShowScrollBottom(false);
       }
@@ -79,35 +96,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const currentY = e.touches[0].clientY;
     const deltaY = currentY - touchStartYRef.current; // positive means swipe DOWN -> scroll content UP
 
-    if (deltaY > 10) {
-      // Scrolling up to view older messages
+    if (deltaY > 8) {
+      // Scrolling up to view older messages -> unpin immediately
       isPinnedToBottomRef.current = false;
       setShowScrollBottom(true);
-    } else if (deltaY < -10) {
+    } else if (deltaY < -8) {
       // Scrolling down toward newest
       const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (dist <= 60) {
+      if (dist <= 70) {
         isPinnedToBottomRef.current = true;
         setShowScrollBottom(false);
       }
     }
   }, []);
 
-  // Scroll listener for standard checks
-  const handleScroll = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
-    if (dist <= 40) {
-      isPinnedToBottomRef.current = true;
-      setShowScrollBottom(false);
-    } else if (dist > 180 && !isStreaming) {
-      setShowScrollBottom(true);
-    }
-  }, [isStreaming]);
-
-  // Lock to bottom immediately on new user message or streaming start
+  // Lock to bottom immediately on new user message
   useEffect(() => {
     if (messages.length > 0) {
       const lastMsg = messages[messages.length - 1];
@@ -117,7 +120,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, [messages.length, scrollToBottom]);
 
-  // ResizeObserver: Guaranteed sticky pinning whenever AI adds tokens/expands height
+  // ResizeObserver: Only auto-scroll if the user is actively pinned at the bottom
   useEffect(() => {
     const messagesEl = messagesListRef.current;
     const container = containerRef.current;
@@ -132,16 +135,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     observer.observe(messagesEl);
     return () => observer.disconnect();
   }, []);
-
-  // Also enforce pin on streaming token ticks
-  useEffect(() => {
-    if (isStreaming && isPinnedToBottomRef.current) {
-      const container = containerRef.current;
-      if (container) {
-        container.scrollTop = container.scrollHeight;
-      }
-    }
-  }, [messages, isStreaming]);
 
   return (
     <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">

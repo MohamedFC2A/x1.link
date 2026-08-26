@@ -28,13 +28,13 @@ export const TopBar: React.FC<TopBarProps> = ({
   onGoHome,
 }) => {
   return (
-    <header className="sticky top-0 z-40 w-full glass-header px-4 sm:px-8 py-2.5 sm:py-3 select-none transition-colors pt-safe">
+    <header className="sticky top-0 z-40 w-full glass-header px-4 sm:px-8 py-2.5 sm:py-3 select-none transition-colors pt-safe" dir="rtl">
       <div className="w-full max-w-7xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
         
         {/* Right / Pure Typographic Luxury Brand Wordmark */}
         <div
           onClick={onGoHome}
-          className="flex flex-col text-left justify-center cursor-pointer group shrink-0 select-none py-0.5"
+          className="flex items-center cursor-pointer group shrink-0 select-none py-1"
           title="matany.one"
           dir="ltr"
         >
@@ -46,13 +46,6 @@ export const TopBar: React.FC<TopBarProps> = ({
               .one
             </span>
           </div>
-          <span className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono mt-1 font-semibold tracking-[0.22em] uppercase">
-            {activeModel === 'deepseek-v4-flash-cyber'
-              ? 'CYBER INTELLIGENCE'
-              : activeModel === 'deepseek-v4-flash-vision-exp'
-              ? 'VISION PERCEPTION'
-              : 'FATHOM AI CORE'}
-          </span>
         </div>
 
         {/* Left / History & New Chat Actions */}

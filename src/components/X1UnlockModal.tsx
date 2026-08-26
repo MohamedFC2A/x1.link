@@ -70,7 +70,7 @@ export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
         {/* Feature Highlights Card */}
         <div className="p-3.5 sm:p-4 rounded-2xl glass-card text-xs sm:text-sm text-zinc-300 space-y-2.5 sm:space-y-3 leading-relaxed font-sans">
           <p className="text-zinc-200 font-medium">
-            تفعيل هذه الشريحة يحرر المحرك العصبي تماماً ليتحدث في أي موضوع حميمي، نفسي، جنسي، أو فكري جريء بلا أي حواجز أو قيود.
+            تفعيل هذه الشريحة يحرر المحرك العصبي تماماً ليتحدث في أي موضوع نفسي، فكري، فلسفي، أو حواري جريء بلا أي حواجز أو قيود.
           </p>
           <div className="space-y-1.5 pt-2 border-t border-zinc-800/80 text-xs text-zinc-400">
             <div className="flex items-center gap-2">
