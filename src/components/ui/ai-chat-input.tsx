@@ -742,6 +742,42 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   </div>
                 </button>
 
+                {/* Action 2: Target URL Scanner */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isCyberMode) {
+                      setInternalModel('deepseek-v4-flash-cyber');
+                      onSelectModel?.('deepseek-v4-flash-cyber');
+                    }
+                    setIsTargetUrlBarOpen(true);
+                    setIsActionsMenuOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between p-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
+                    isCyberMode && (isTargetUrlBarOpen || cyberTargetUrl.trim() !== '')
+                      ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-200"
+                      : "hover:bg-white/[0.06] text-zinc-200 hover:text-white border-transparent hover:border-white/[0.08]"
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className={cn(
+                      "size-7 rounded-lg flex items-center justify-center shrink-0 border transition-all",
+                      isCyberMode && (isTargetUrlBarOpen || cyberTargetUrl.trim() !== '')
+                        ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300"
+                        : "bg-white/[0.04] border-white/[0.08] text-zinc-300"
+                    )}>
+                      <Globe className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-semibold text-xs text-white">فحص واستطلاع رابط (URL)</span>
+                  </div>
+                  {isCyberMode && (isTargetUrlBarOpen || cyberTargetUrl.trim() !== '') && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0 bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-bold">
+                      مفعّل
+                    </span>
+                  )}
+                </button>
+
                 {/* Action 2: Deep Search Toggle */}
                 <button
                   type="button"
