@@ -10,6 +10,7 @@ import {
   ArrowUp,
   Square,
   Sparkles,
+  Bot,
   Camera,
   Cpu,
   Fingerprint,
@@ -578,7 +579,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
-                      <Sparkles className="w-4 h-4 text-zinc-200" />
+                      <Bot className="w-4 h-4 text-zinc-200" />
                     </div>
                     <div className="min-w-0 text-right">
                       <div className="font-bold text-xs text-white">Fathom 1</div>
@@ -1048,26 +1049,15 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   e.stopPropagation();
                   setIsModelMenuOpen(!isModelMenuOpen);
                 }}
-                className={cn(
-                  "glass-button flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold select-none shrink-0 cursor-pointer transition-all active:scale-95",
-                  activeFusion
-                    ? "bg-white/[0.12] border-white/30 text-white shadow-sm"
-                    : isCyberMode
-                    ? "bg-cyan-950/60 border-cyan-500/40 text-cyan-200 hover:text-white shadow-[0_0_12px_rgba(6,182,212,0.15)]"
-                    : isDeepSearchEffective
-                    ? "bg-sky-950/60 border-sky-500/40 text-sky-200 hover:text-white shadow-[0_0_12px_rgba(56,189,248,0.15)]"
-                    : hasAttachments
-                    ? "bg-emerald-950/60 border-emerald-500/40 text-emerald-200 hover:text-white shadow-[0_0_12px_rgba(16,185,129,0.15)]"
-                    : "text-zinc-200 hover:text-white"
-                )}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium select-none shrink-0 cursor-pointer transition-all bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.16] text-zinc-300 hover:text-white active:scale-95 shadow-none"
                 title={`النموذج النشط: ${activeModelDisplayName} (انقر للتغيير)`}
               >
                 {isCyberMode ? (
-                  <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                 ) : isVisionMode ? (
-                  <Camera className="w-4 h-4 text-zinc-300 shrink-0" />
+                  <Camera className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 ) : (
-                  <Sparkles className="w-4 h-4 text-zinc-300 shrink-0" />
+                  <Bot className="w-3.5 h-3.5 text-zinc-300 shrink-0" />
                 )}
                 <span className="hidden sm:inline font-sans text-xs font-semibold">
                   {activeModelDisplayName}
