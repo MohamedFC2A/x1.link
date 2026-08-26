@@ -310,17 +310,20 @@
     animation: vision-sensor-pulse 2.2s ease-in-out infinite;
   }
 
-  .x1-liquid-platinum {
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.1) 0%,
-      rgba(255, 255, 255, 0.7) 25%,
-      rgba(244, 63, 94, 0.8) 50%,
-      rgba(255, 255, 255, 0.7) 75%,
-      rgba(255, 255, 255, 0.1) 100%
+  .nsfw-plasma-beam {
+    position: absolute;
+    inset: -150%;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      transparent 200deg,
+      rgba(225, 29, 72, 0.4) 240deg,
+      rgba(244, 63, 94, 0.95) 280deg,
+      rgba(168, 85, 247, 1) 330deg,
+      rgba(255, 255, 255, 1) 360deg
     );
-    background-size: 200% 200%;
-    animation: x1-platinum-flow 3s ease infinite;
+    animation: border-beam-spin 2.6s linear infinite;
+    pointer-events: none;
   }
 
   /* ==========================================================================

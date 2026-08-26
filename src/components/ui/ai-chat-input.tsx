@@ -492,68 +492,36 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       const hasSearch = isDeepSearchEffective;
       const hasCyber = isCyberMode || Boolean(cyberTargetUrl.trim());
       const hasVision = hasAttachments || isVisionMode;
-      const hasX1 = isX1Active;
 
-      const activeCount = [hasSearch, hasCyber, hasVision].filter(Boolean).length;
-
-      if (activeCount >= 3 || (activeCount >= 2 && hasX1)) {
-        return {
-          type: 'omni',
-          name: 'Omni Fusion',
-          arabicName: 'اندماج عصبي هجين شامل',
-          description: 'تكامل فوري بين البحث المباشر، التحليل الجنائي، والإدراك البصري',
-          placeholder: 'المحرك العصبي الهجين الشامل: اسأل، افحص الأهداف، حلل الصور، وابحث في الويب معاً...',
-          beamClass: 'omni-prism-beam',
-          badgeText: 'Omni Mode • اندماج شامل',
-          badgeGradient: 'from-amber-400 via-rose-500 to-cyan-400',
-          textColor: 'text-amber-100 placeholder:text-amber-200/40 selection:bg-amber-500/40',
-          sendGradient: 'bg-gradient-to-r from-amber-400 via-rose-500 to-cyan-400 text-black',
-        };
-      }
       if (hasSearch && hasCyber) {
         return {
           type: 'cyber-search',
-          name: 'Cyber OSINT',
-          arabicName: 'استخبارات سيبرانية شاملة',
-          description: 'فحص الهدف الأمني مع استكشاف السجلات وقواعد البيانات المفتوحة عالمياً',
-          placeholder: 'وضع الاستخبارات السيبرانية المشتركة: فحص الهدف والبحث في السجلات وقواعد البيانات الحية...',
+          placeholder: 'استخبارات سيبرانية: افحص الهدف واستكشف الويب...',
           beamClass: 'cyber-search-beam',
-          badgeText: 'Cyber OSINT • استخبارات سيبرانية',
-          badgeGradient: 'from-cyan-400 to-sky-400',
-          textColor: 'text-cyan-100 placeholder:text-cyan-200/40 selection:bg-cyan-500/40',
-          sendGradient: 'bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400 text-black',
+          textColor: 'text-cyan-100 placeholder:text-cyan-300/50 selection:bg-cyan-500/40',
+          sendGradient: 'bg-gradient-to-r from-cyan-400 to-sky-400 text-black',
         };
       }
       if (hasVision && hasCyber) {
         return {
           type: 'cyber-vision',
-          name: 'Visual Forensics',
-          arabicName: 'تحليل جنائي بصري للأهداف',
-          description: 'فحص الشاشات والأكواد المستخرجة من الصور مع تدقيق الروابط المستهدفة',
-          placeholder: 'وضع التحليل الجنائي البصري: فحص الشاشات، استخراج الأكواد من الصور، وتدقيق الثغرات...',
+          placeholder: 'تحليل جنائي: افحص الأكواد والصور المستهدفة...',
           beamClass: 'cyber-vision-beam',
-          badgeText: 'Visual Forensics • جنائي بصري',
-          badgeGradient: 'from-cyan-400 to-emerald-400',
-          textColor: 'text-emerald-100 placeholder:text-emerald-200/40 selection:bg-emerald-500/40',
+          textColor: 'text-emerald-100 placeholder:text-emerald-300/50 selection:bg-emerald-500/40',
           sendGradient: 'bg-gradient-to-r from-cyan-400 to-emerald-400 text-black',
         };
       }
       if (hasVision && hasSearch) {
         return {
           type: 'vision-search',
-          name: 'Visual Web Search',
-          arabicName: 'بحث واستكشاف بصري مباشر',
-          description: 'تحليل مكونات الصورة والبحث الفوري عن مصادرها وتفاصيلها عبر محركات الويب',
-          placeholder: 'وضع البحث البصري المباشر: تحليل الصورة والبحث الفوري عن مصادرها في الويب...',
+          placeholder: 'بحث بصري: حلل الصورة واستكشف الويب...',
           beamClass: 'vision-search-beam',
-          badgeText: 'Visual Web Scan • استكشاف بصري',
-          badgeGradient: 'from-emerald-400 to-sky-400',
-          textColor: 'text-sky-100 placeholder:text-sky-200/40 selection:bg-sky-500/40',
-          sendGradient: 'bg-gradient-to-r from-emerald-400 via-teal-400 to-sky-400 text-black',
+          textColor: 'text-sky-100 placeholder:text-sky-300/50 selection:bg-sky-500/40',
+          sendGradient: 'bg-gradient-to-r from-emerald-400 to-sky-400 text-black',
         };
       }
       return null;
-    }, [isDeepSearchEffective, isCyberMode, cyberTargetUrl, hasAttachments, isVisionMode, isX1Active]);
+    }, [isDeepSearchEffective, isCyberMode, cyberTargetUrl, hasAttachments, isVisionMode]);
 
     return (
       <div
@@ -871,66 +839,60 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           </div>
         )}
 
-        {/* Chat Input Container Card with Dynamic Mode Lighting & Emergent Tool Fusion */}
+        {/* Chat Input Container Card */}
         <div
           className={cn(
-            "relative w-full rounded-3xl transition-all duration-500 overflow-hidden",
-            activeFusion
-              ? "p-[1.5px] shadow-[0_0_40px_rgba(255,255,255,0.22),0_20px_50px_rgba(0,0,0,0.95)]"
-              : isDeepSearchEffective
-              ? "p-[1.5px] shadow-[0_0_35px_rgba(56,189,248,0.2),0_20px_50px_rgba(0,0,0,0.95)]"
-              : isCyberMode
-              ? "p-[1.5px] shadow-[0_0_35px_rgba(6,182,212,0.22),0_20px_50px_rgba(0,0,0,0.95)]"
-              : isX1Active
-              ? "p-[1.5px] shadow-[0_0_40px_rgba(255,255,255,0.25),0_20px_50px_rgba(0,0,0,0.95)]"
-              : hasAttachments
-              ? "p-[1.5px] shadow-[0_0_30px_rgba(16,185,129,0.2),0_20px_50px_rgba(0,0,0,0.95)]"
-              : "p-[1px] shadow-[0_16px_45px_rgba(0,0,0,0.85)]"
+            "relative w-full rounded-3xl transition-all duration-300",
+            (activeFusion || isDeepSearchEffective || isCyberMode || isX1Active || hasAttachments)
+              ? "p-[1.5px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.95)]"
+              : "bg-[#09090d]/80 backdrop-blur-2xl border border-white/[0.12] hover:border-white/[0.22] focus-within:border-white/[0.45] shadow-[0_16px_45px_rgba(0,0,0,0.85)]"
           )}
         >
-          {/* Dynamic Mode & Hybrid Fusion Ambient Orbit Beam Layer */}
-          {activeFusion ? (
-            <div className={activeFusion.beamClass} />
-          ) : isDeepSearchEffective ? (
-            <div className="orbit-beam-search" />
-          ) : isCyberMode ? (
-            <div className="cyber-radar-beam" />
-          ) : isX1Active ? (
-            <div className="absolute inset-0 x1-liquid-platinum" />
-          ) : hasAttachments ? (
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/40 via-teal-400/80 to-emerald-500/40 vision-aperture-glow" />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-white/10 to-white/20" />
+          {/* Dynamic Mode & Hybrid Orbit Beams (ONLY rendered when a special mode is active) */}
+          {(activeFusion || isDeepSearchEffective || isCyberMode || isX1Active || hasAttachments) && (
+            <>
+              {activeFusion ? (
+                <div className={activeFusion.beamClass} />
+              ) : isDeepSearchEffective ? (
+                <div className="orbit-beam-search" />
+              ) : isCyberMode ? (
+                <div className="cyber-radar-beam" />
+              ) : isX1Active ? (
+                <div className="nsfw-plasma-beam" />
+              ) : hasAttachments ? (
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/40 via-teal-400/80 to-emerald-500/40 vision-aperture-glow" />
+              ) : null}
+            </>
           )}
 
-          {/* Inner Content Card */}
+          {/* Inner Content Container */}
           <div
             className={cn(
-              "relative w-full h-full rounded-[23px] transition-all duration-300 backdrop-blur-3xl z-10",
-              isCyberMode
-                ? "bg-[#08080c]/98 focus-within:bg-[#09090e]"
-                : isX1Active
-                ? "bg-[#090910]/98 focus-within:bg-[#0b0b14]"
-                : "bg-[#09090e]/98 focus-within:bg-[#0c0c14]"
+              "relative w-full h-full rounded-[23px] transition-all duration-200",
+              (activeFusion || isDeepSearchEffective || isCyberMode || isX1Active || hasAttachments)
+                ? "bg-[#09090d]/95 backdrop-blur-3xl z-10"
+                : "bg-transparent"
             )}
           >
-            {/* Top Sheen Edge Line */}
-            <div
-              className={cn(
-                "absolute top-0 inset-x-8 h-[1px] rounded-full pointer-events-none transition-all duration-500 opacity-90 z-20",
-                activeFusion
-                  ? "bg-gradient-to-r from-transparent via-white to-transparent"
-                  : isDeepSearchEffective
-                  ? "bg-gradient-to-r from-transparent via-sky-400 to-transparent"
-                  : isCyberMode
-                  ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
-                  : isX1Active
-                  ? "bg-gradient-to-r from-transparent via-white/80 to-transparent"
-                  : hasAttachments
-                  ? "bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
-                  : "bg-gradient-to-r from-transparent via-white/50 to-transparent"
-              )}
-            />
+            {/* Top Sheen Edge Line (ONLY when a special mode is active) */}
+            {(activeFusion || isDeepSearchEffective || isCyberMode || isX1Active || hasAttachments) && (
+              <div
+                className={cn(
+                  "absolute top-0 inset-x-8 h-[1px] rounded-full pointer-events-none transition-all duration-500 opacity-90 z-20",
+                  activeFusion
+                    ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+                    : isDeepSearchEffective
+                    ? "bg-gradient-to-r from-transparent via-sky-400 to-transparent"
+                    : isCyberMode
+                    ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+                    : isX1Active
+                    ? "bg-gradient-to-r from-transparent via-rose-500 to-transparent"
+                    : hasAttachments
+                    ? "bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
+                    : "bg-gradient-to-r from-transparent via-white/50 to-transparent"
+                )}
+              />
+            )}
             {/* Streamlined Cyber Target URL Bar (ONLY visible in Cyber Mode) */}
             <AnimatePresence initial={false}>
               {isCyberMode && (isTargetUrlBarOpen || cyberTargetUrl.trim() !== '') && !hasAttachments && (
@@ -1012,13 +974,13 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   activeFusion
                     ? activeFusion.placeholder
                     : isDeepSearchEffective
-                    ? "ابحث واستكشف الويب مباشرة مع Fathom Search..."
+                    ? "ابحث في الويب مباشرة مع Fathom Search..."
                     : isCyberMode
-                    ? "اسأل Fathom Cyber للفحص الأمني واستطلاع الأهداف..."
+                    ? "أدخل رابط الهدف أو اسأل Fathom Cyber..."
                     : isVisionMode || hasAttachments
-                    ? "اسأل Fathom Cam أو أرفق صور للتحليل البصري..."
+                    ? "اسأل Fathom Cam عن الصورة المرفقة..."
                     : isX1Active
-                    ? "اسأل matany.one في أي شيء بحرية كاملة..."
+                    ? "اسأل matany.one في أي شيء..."
                     : (placeholder || "اسأل Fathom 1 في أي شيء...")
                 }
                 rows={1}
@@ -1027,14 +989,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   activeFusion
                     ? activeFusion.textColor
                     : isDeepSearchEffective
-                    ? "text-sky-50 placeholder:text-sky-300/40 selection:bg-sky-500/40"
+                    ? "text-sky-50 placeholder:text-sky-300/50 selection:bg-sky-500/40"
                     : isCyberMode
-                    ? "text-cyan-50 placeholder:text-cyan-300/40 selection:bg-cyan-500/40"
+                    ? "text-cyan-50 placeholder:text-cyan-300/50 selection:bg-cyan-500/40"
                     : hasAttachments
-                    ? "text-emerald-50 placeholder:text-emerald-300/40 selection:bg-emerald-500/40"
+                    ? "text-emerald-50 placeholder:text-emerald-300/50 selection:bg-emerald-500/40"
                     : isX1Active
-                    ? "text-zinc-100 placeholder:text-zinc-400 selection:bg-white/40"
-                    : "text-zinc-100 placeholder:text-zinc-500 selection:bg-white/30"
+                    ? "text-zinc-100 placeholder:text-zinc-400 selection:bg-rose-500/40"
+                    : "text-zinc-100 placeholder:text-zinc-400 selection:bg-white/30"
                 )}
                 style={{ overscrollBehavior: 'contain' }}
               />
@@ -1115,25 +1077,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
             </div>
 
-            {/* Left Group: Icon-Only Status Badges, Emergent Fusion Pill & 3-Dots Actions Menu */}
+            {/* Left Group: Icon-Only Status Badges & 3-Dots Actions Menu */}
             <div className="flex items-center gap-1.5 mr-auto shrink-0">
               
-              {/* Emergent Hybrid Tool Fusion Badge */}
-              {activeFusion && (
-                <div
-                  className={cn(
-                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gradient-to-r text-[10px] sm:text-[11px] font-sans font-bold text-black shadow-md animate-in fade-in zoom-in-95 duration-200 shrink-0",
-                    activeFusion.badgeGradient
-                  )}
-                  title={activeFusion.description}
-                >
-                  <Sparkles className="w-3 h-3 text-black fill-black" />
-                  <span className="font-semibold">{activeFusion.badgeText}</span>
-                </div>
-              )}
-
               {/* NSFW Active Icon Indicator */}
-              {isX1Active && !activeFusion && (
+              {isX1Active && (
                 <div
                   title="وضع NSFW Off (Uncensored) مفعل"
                   className="size-7 rounded-xl bg-white/[0.06] border border-white/[0.12] flex items-center justify-center text-zinc-200 shrink-0"
@@ -1143,7 +1091,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               )}
 
               {/* Deep Search Active Icon Indicator */}
-              {isDeepSearchEffective && !activeFusion && (
+              {isDeepSearchEffective && (
                 <button
                   type="button"
                   onClick={toggleDeepSearch}
