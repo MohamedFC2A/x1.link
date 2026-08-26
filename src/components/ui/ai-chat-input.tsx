@@ -87,23 +87,25 @@ function AttachmentGalleryModal({
       <button
         type="button"
         onClick={onClose}
-        className="fixed top-4 left-4 z-10 flex size-10 items-center justify-center rounded-full bg-zinc-900/90 border border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer shadow-lg"
+        className="fixed top-4 left-4 z-10 flex size-10 items-center justify-center rounded-full bg-zinc-900/90 border border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer shadow-lg active:scale-95"
       >
         <X className="w-5 h-5" />
       </button>
 
       <div
-        className="relative max-w-4xl max-h-[85vh] overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-950 shadow-2xl"
+        className="relative max-w-4xl max-h-[85vh] overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-950 shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <img
-          src={attachment.url}
-          alt={attachment.name}
-          className="max-h-[80vh] w-auto max-w-full object-contain mx-auto"
-        />
-        <div className="p-3 bg-zinc-900/90 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-300 font-mono">
+        <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-3 bg-black/40">
+          <img
+            src={attachment.url}
+            alt={attachment.name}
+            className="max-h-[75vh] w-auto max-w-full object-contain rounded-lg shadow-md"
+          />
+        </div>
+        <div className="p-3 bg-zinc-900/95 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-300 font-mono">
           <span className="truncate max-w-[200px] sm:max-w-md">{attachment.name}</span>
-          <span className="text-zinc-500">{attachment.width}x{attachment.height}</span>
+          <span className="text-zinc-400 font-mono">{attachment.width && attachment.height ? `${attachment.width}x${attachment.height}` : 'صورة'}</span>
         </div>
       </div>
     </div>
@@ -231,6 +233,64 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       [isControlled, onChange, cyberTargetUrl, activateCyberUrlMode]
     );
 
+    // Helper to convert any File to a persistent Attachment with real natural dimensions
+    const processFileToAttachment = useCallback((file: File, fallbackName?: string): Promise<Attachment> => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = (e.target?.result as string) || '';
+          if (file.type.startsWith('image/')) {
+            const img = new Image();
+            img.onload = () => {
+              const id = `${file.name || 'image'}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+              resolve({
+                id,
+                file,
+                url: dataUrl,
+                name: file.name || fallbackName || 'صورة مرفقة',
+                width: img.naturalWidth || 800,
+                height: img.naturalHeight || 600,
+              });
+            };
+            img.onerror = () => {
+              const id = `${file.name || 'image'}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+              resolve({
+                id,
+                file,
+                url: dataUrl,
+                name: file.name || fallbackName || 'صورة مرفقة',
+                width: 800,
+                height: 600,
+              });
+            };
+            img.src = dataUrl;
+          } else {
+            const id = `${file.name}-${file.size}-${Date.now()}`;
+            resolve({
+              id,
+              file,
+              url: dataUrl,
+              name: file.name || fallbackName || 'ملف مرفق',
+              width: 0,
+              height: 0,
+            });
+          }
+        };
+        reader.onerror = () => {
+          const objectUrl = URL.createObjectURL(file);
+          resolve({
+            id: `${file.name}-${Date.now()}`,
+            file,
+            url: objectUrl,
+            name: file.name || fallbackName || 'صورة مرفقة',
+            width: 800,
+            height: 600,
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    }, []);
+
     // Image and URL Paste Handler
     const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement> | ClipboardEvent) => {
       const clipboardData = 'clipboardData' in e ? e.clipboardData : null;
@@ -238,7 +298,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
       // 1. Check for Image Files in Clipboard
       const imageFiles: File[] = [];
-      const seen = new Set<string>();
+      const seenInThisEvent = new Set<string>();
 
       if (clipboardData.items && clipboardData.items.length > 0) {
         for (let i = 0; i < clipboardData.items.length; i++) {
@@ -247,8 +307,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             const file = item.getAsFile();
             if (file) {
               const key = `${file.name}-${file.size}-${file.type}`;
-              if (!seen.has(key)) {
-                seen.add(key);
+              if (!seenInThisEvent.has(key)) {
+                seenInThisEvent.add(key);
                 imageFiles.push(file);
               }
             }
@@ -259,8 +319,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           const file = clipboardData.files[i];
           if (file.type && file.type.startsWith('image/')) {
             const key = `${file.name}-${file.size}-${file.type}`;
-            if (!seen.has(key)) {
-              seen.add(key);
+            if (!seenInThisEvent.has(key)) {
+              seenInThisEvent.add(key);
               imageFiles.push(file);
             }
           }
@@ -272,17 +332,16 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         if ('stopPropagation' in e && typeof e.stopPropagation === 'function') {
           e.stopPropagation();
         }
-        setAttachments((prev) => {
-          const currentCount = prev.length;
-          const remainingSlots = Math.max(0, 5 - currentCount);
-          if (remainingSlots <= 0) return prev;
-          const accepted = imageFiles.slice(0, remainingSlots);
-          const newAttachments = accepted.map((file, idx) => {
-            const url = URL.createObjectURL(file);
-            const id = `${file.name || 'pasted-image'}-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`;
-            return { id, file, url, name: file.name || `صورة مرفقة ${currentCount + idx + 1}`, width: 800, height: 600 };
+        
+        Promise.all(imageFiles.map((f, idx) => processFileToAttachment(f, `صورة ملصقة ${idx + 1}`))).then((newAtts) => {
+          setAttachments((prev) => {
+            const existingKeys = new Set(prev.map((a) => `${a.file.name}-${a.file.size}`));
+            const nonDuplicate = newAtts.filter((a) => !existingKeys.has(`${a.file.name}-${a.file.size}`));
+            const currentCount = prev.length;
+            const remainingSlots = Math.max(0, 5 - currentCount);
+            if (remainingSlots <= 0 || nonDuplicate.length === 0) return prev;
+            return [...prev, ...nonDuplicate.slice(0, remainingSlots)];
           });
-          return [...prev, ...newAttachments];
         });
         return;
       }
@@ -300,7 +359,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           activateCyberUrlMode(urlInfo.cleanUrl, value.trim());
         }
       }
-    }, [value, cyberTargetUrl, activateCyberUrlMode]);
+    }, [value, cyberTargetUrl, activateCyberUrlMode, processFileToAttachment]);
 
     // Global paste listener so pasting images works from anywhere on page without duplicating textarea paste
     useEffect(() => {
@@ -390,7 +449,6 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       });
 
       handleValueChange("");
-      attachments.forEach((a) => URL.revokeObjectURL(a.url));
       setAttachments([]);
 
       if (textareaRef.current) {
@@ -403,44 +461,20 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       e.target.value = "";
 
       if (files.length === 0) return;
-      const room = Math.max(0, maxAttachments - attachments.length);
-      const accepted = files.slice(0, room);
-
-      for (const file of accepted) {
-        const url = URL.createObjectURL(file);
-        if (file.type.startsWith("image/")) {
-          const img = new Image();
-          img.onload = () => addAttachment(file, url, img.naturalWidth, img.naturalHeight);
-          img.onerror = () => addAttachment(file, url, 800, 600);
-          img.src = url;
-        } else {
-          addAttachment(file, url, 0, 0);
-        }
-      }
-    };
-
-    const addAttachment = (
-      file: File,
-      url: string,
-      width: number,
-      height: number
-    ) => {
-      const id = `${file.name}-${file.lastModified}-${Math.random()
-        .toString(36)
-        .slice(2, 8)}`;
-      setAttachments((prev) => [
-        ...prev,
-        { id, file, url, name: file.name, width, height },
-      ]);
+      const processed = await Promise.all(files.map((f, idx) => processFileToAttachment(f, `صورة مرفقة ${idx + 1}`)));
+      setAttachments((prev) => {
+        const existingKeys = new Set(prev.map((a) => `${a.file.name}-${a.file.size}`));
+        const nonDuplicate = processed.filter((a) => !existingKeys.has(`${a.file.name}-${a.file.size}`));
+        const currentCount = prev.length;
+        const remainingSlots = Math.max(0, maxAttachments - currentCount);
+        if (remainingSlots <= 0 || nonDuplicate.length === 0) return prev;
+        return [...prev, ...nonDuplicate.slice(0, remainingSlots)];
+      });
     };
 
     const removeAttachment = (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      setAttachments((prev) => {
-        const target = prev.find((a) => a.id !== id);
-        if (target) URL.revokeObjectURL(target.url);
-        return prev.filter((a) => a.id !== id);
-      });
+      setAttachments((prev) => prev.filter((a) => a.id !== id));
     };
 
     const onActionButtonClick = (e: React.MouseEvent) => {

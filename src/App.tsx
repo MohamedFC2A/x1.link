@@ -157,9 +157,12 @@ export const App: React.FC = () => {
       }
     }
 
+    // Deduplicate images to protect against redundant tokens and storage
+    const uniqueImagesDataUrls = Array.from(new Set(attachedImagesDataUrls));
+
     const trimmedText = text.trim();
-    const effectivePrompt = trimmedText || (attachedImagesDataUrls.length > 0 ? (attachedImagesDataUrls.length > 1 ? `حلل هذه الـ ${attachedImagesDataUrls.length} صور وقارن بينها واستخرج كافة التفاصيل والمعلومات بدقة.` : 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.') : '');
-    if (!effectivePrompt && attachedImagesDataUrls.length === 0) return;
+    const effectivePrompt = trimmedText || (uniqueImagesDataUrls.length > 0 ? (uniqueImagesDataUrls.length > 1 ? `حلل هذه الـ ${uniqueImagesDataUrls.length} صور وقارن بينها واستخرج كافة التفاصيل والمعلومات بدقة.` : 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.') : '');
+    if (!effectivePrompt && uniqueImagesDataUrls.length === 0) return;
 
     const detectedUrlInfo = detectAndExtractUrl(effectivePrompt);
     const resolvedTargetUrl = meta?.targetUrl || (detectedUrlInfo.hasUrl ? detectedUrlInfo.cleanUrl : undefined);
@@ -183,8 +186,8 @@ export const App: React.FC = () => {
       id: 'user-' + Date.now(),
       role: 'user',
       content: effectivePrompt,
-      image: attachedImagesDataUrls[0],
-      images: attachedImagesDataUrls,
+      image: uniqueImagesDataUrls[0],
+      images: uniqueImagesDataUrls,
       timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
       isX1: isX1Active,
       model: chosenModel,
