@@ -51,7 +51,7 @@ export class ContextMemoryEngine {
     }
 
     // High priority: Multimodal image messages
-    if (m.image) {
+    if (m.image || (m.images && m.images.length > 0)) {
       weight += 0.6;
     }
 
@@ -65,7 +65,7 @@ export class ContextMemoryEngine {
     return messages
       .filter(m => {
         const hasContent = Boolean(m.content && m.content.trim() !== '');
-        const hasImage = Boolean(m.image);
+        const hasImage = Boolean(m.image || (m.images && m.images.length > 0));
         if (!hasContent && !hasImage) return false;
         if (m.content && (m.content.startsWith('خطأ في الاتصال:') || m.content.includes('[SERVER ERROR') || m.content.startsWith('[خطأ]:'))) return false;
         

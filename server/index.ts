@@ -439,7 +439,7 @@ async function executeFetchWithRetry(url: string, options: any, maxRetries = 3):
   return null;
 }
 
-// Multi-Tier Fathom Cam Vision Perception: Extracts comprehensive OCR and visual analysis from images
+// Multi-Tier Fathom Cam Vision Perception: Supports up to 5 images with distinct indexing & OCR
 async function extractVisualContext(
   imageMessages: any[],
   signal: AbortSignal
@@ -455,24 +455,34 @@ async function extractVisualContext(
 
     for (const msg of imageMessages) {
       if (Array.isArray(msg.content)) {
-        const imgObj = msg.content.find((c: any) => c.type === 'image_url' || c.image_url);
+        const imgObjs = msg.content.filter((c: any) => c.type === 'image_url' || c.image_url);
         const textObj = msg.content.find((c: any) => c.type === 'text')?.text || '';
         if (textObj) userQuestion = textObj;
 
-        if (imgObj) {
+        if (imgObjs.length > 0) {
+          const contentParts: any[] = [
+            {
+              type: 'text',
+              text: `[نظام الإدراك البصري الفائق واستخراج البيانات متعدد الصور Fathom Cam Multi-Vision]:
+تم رفع عدد (${imgObjs.length}) صور من قبل المستخدم. قم بتحليل كل صورة على حدة وترقيمها وفهم محتواها بدقة استثنائية باللغة العربية:
+1. استخراج النصوص الكامل والفهرسة المنفصلة (Full OCR & Indexing): لكل صورة [صورة رقم X]، استخرج كافة النصوص والكلمات والأرقام القومية والتواريخ والأسماء والأختام والأكواد والجداول بدقة 100% دون أي حذف.
+2. التمييز والفهرسة المستقلة: اربط كل جزء من التحليل برقم الصورة الخاص به [صورة 1]، [صورة 2]، [صورة 3]، [صورة 4]، [صورة 5] بدقة مطلقة، ليفهم النظام والمستخدم بوضوح تام أي صورة يشير إليها المستخدم حتى في أطول السياقات المحادثية.
+3. التحليل والمقارنة الشاملة: قارن بين الوثائق/الصور المرفوعة واستخرج الفروقات ونقاط الاتفاق والتحليل المترابط.
+4. الإجابة المباشرة عن طلب المستخدم: "${userQuestion || 'حلل ونظم وقارن كافة بيانات هذه الصور بالتفصيل الكامل.'}".`
+            }
+          ];
+
+          imgObjs.forEach((imgObj: any, idx: number) => {
+            contentParts.push({
+              type: 'text',
+              text: `\n=== [بيانات وفحص: صورة رقم ${idx + 1}] ===`
+            });
+            contentParts.push(imgObj);
+          });
+
           formattedVisionItems.push({
             role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `[نظام الإدراك البصري الفائق Fathom Cam Vision]:
-قم بتحليل هذه الصورة بدقة فائقة وشاملة باللغة العربية:
-1. استخراج النصوص (OCR): استخرج كل النصوص المكتوبة بأي لغة كانت (عربية، إنجليزية، أرقام، جداول، رموز) بدقة متناهية.
-2. تفاصيل المشهد والعناصر: صف الأشخاص، الأماكن، الألوان، الكائنات، التصميم، والرسوم بدقة تفصيلية.
-3. الإجابة المباشرة على السؤال: ${userQuestion || 'حلل المشهد واستخرج جوهره ومعلوماته بالكامل.'}`
-              },
-              imgObj
-            ]
+            content: contentParts
           });
         }
       }

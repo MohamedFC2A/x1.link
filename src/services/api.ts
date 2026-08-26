@@ -43,20 +43,34 @@ export async function streamChatCompletion({
   try {
     // Format messages for API (convert multimodal items with images if present)
     const formattedMessages = messages.map(msg => {
-      if (msg.image) {
+      const allImages = (msg.images && msg.images.length > 0)
+        ? msg.images
+        : (msg.image ? [msg.image] : []);
+
+      if (allImages.length > 0) {
+        const contentParts: any[] = [
+          { type: 'text', text: msg.content || 'حلل هذه الصور واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.' }
+        ];
+
+        allImages.forEach((imgUrl, idx) => {
+          contentParts.push({
+            type: 'text',
+            text: `\n--- [صورة رقم ${idx + 1} المرفوعة من المستخدم] ---`
+          });
+          contentParts.push({
+            type: 'image_url',
+            image_url: {
+              url: imgUrl
+            }
+          });
+        });
+
         return {
           role: msg.role,
-          content: [
-            { type: 'text', text: msg.content || 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.' },
-            {
-              type: 'image_url',
-              image_url: {
-                url: msg.image
-              }
-            }
-          ]
+          content: contentParts
         };
       }
+
       return {
         role: msg.role,
         content: msg.content || 'متابعة'

@@ -19,7 +19,8 @@ import {
   ChevronDown,
   MoreHorizontal,
   FileText,
-  Search
+  Search,
+  Image as ImageIcon
 } from "lucide-react";
 import { ModelType } from "@/types";
 
@@ -227,9 +228,49 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       [isControlled, onChange, cyberTargetUrl, activateCyberUrlMode]
     );
 
-    // Auto-detect URL on paste directly inside the textarea
-    const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-      const pastedText = e.clipboardData.getData('text');
+    // Image and URL Paste Handler
+    const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement> | ClipboardEvent) => {
+      const clipboardData = 'clipboardData' in e ? e.clipboardData : null;
+      if (!clipboardData) return;
+
+      // 1. Check for Image Files in Clipboard
+      const imageFiles: File[] = [];
+      if (clipboardData.items && clipboardData.items.length > 0) {
+        for (let i = 0; i < clipboardData.items.length; i++) {
+          const item = clipboardData.items[i];
+          if (item.type && item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            if (file) imageFiles.push(file);
+          }
+        }
+      } else if (clipboardData.files && clipboardData.files.length > 0) {
+        for (let i = 0; i < clipboardData.files.length; i++) {
+          const file = clipboardData.files[i];
+          if (file.type && file.type.startsWith('image/')) {
+            imageFiles.push(file);
+          }
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        setAttachments((prev) => {
+          const currentCount = prev.length;
+          const remainingSlots = Math.max(0, 5 - currentCount);
+          if (remainingSlots <= 0) return prev;
+          const accepted = imageFiles.slice(0, remainingSlots);
+          const newAttachments = accepted.map((file, idx) => {
+            const url = URL.createObjectURL(file);
+            const id = `${file.name || 'pasted-image'}-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`;
+            return { id, file, url, name: file.name || `صورة مرفقة ${currentCount + idx + 1}`, width: 800, height: 600 };
+          });
+          return [...prev, ...newAttachments];
+        });
+        return;
+      }
+
+      // 2. Check for URLs in Text
+      const pastedText = clipboardData.getData('text');
       if (!pastedText) return;
 
       const urlInfo = detectAndExtractUrl(pastedText);
@@ -239,7 +280,20 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         const combinedPrompt = [existingText, urlInfo.remainingText].filter(Boolean).join(' ').trim();
         activateCyberUrlMode(urlInfo.cleanUrl, combinedPrompt);
       }
-    };
+    }, [value, activateCyberUrlMode]);
+
+    // Global paste listener so pasting images works from anywhere on page
+    useEffect(() => {
+      const handleGlobalPaste = (e: ClipboardEvent) => {
+        // If the focused element is another input/textarea, let it handle its own
+        if (document.activeElement && document.activeElement !== textareaRef.current && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+          return;
+        }
+        handlePaste(e);
+      };
+      window.addEventListener('paste', handleGlobalPaste);
+      return () => window.removeEventListener('paste', handleGlobalPaste);
+    }, [handlePaste]);
 
     // Auto-adjust textarea height cleanly on input with zero scroll jumping
     const adjustTextareaHeight = useCallback(() => {
@@ -641,46 +695,62 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           </>
         )}
 
-        {/* Attachment Preview Row */}
+        {/* Attachment Preview Row (Up to 5 images) */}
         {hasAttachments && (
-          <div className="mb-2 flex items-center gap-2 overflow-x-auto p-1.5 glass-card rounded-2xl no-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-200">
-            {attachments.map((attachment) => (
-              <div
-                key={attachment.id}
-                onClick={() => setActiveAttachment(attachment)}
-                className="relative group shrink-0 size-14 rounded-xl overflow-hidden border border-zinc-700 bg-zinc-800 cursor-pointer shadow-md"
-              >
-                {attachment.file.type.startsWith("image/") ? (
-                  <img
-                    src={attachment.url}
-                    alt={attachment.name}
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  <div className="size-full flex flex-col items-center justify-center p-1 bg-zinc-850 text-zinc-300">
-                    <FileText className="w-5 h-5 text-zinc-300" />
-                    <span className="text-[8px] truncate max-w-[48px] mt-0.5">{attachment.name}</span>
+          <div className="mb-2.5 p-2 glass-card rounded-2xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="flex items-center justify-between mb-1.5 px-1 text-[11px] font-sans font-medium text-zinc-400">
+              <span className="flex items-center gap-1.5 text-zinc-300">
+                <ImageIcon className="w-3.5 h-3.5 text-zinc-300" />
+                <span>الصور المرفقة للتحليل البصري:</span>
+              </span>
+              <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] text-zinc-300 border border-white/[0.08]">
+                {attachments.length} من 5 صور
+              </span>
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+              {attachments.map((attachment, idx) => (
+                <div
+                  key={attachment.id}
+                  onClick={() => setActiveAttachment(attachment)}
+                  className="relative group shrink-0 size-16 rounded-xl overflow-hidden border border-white/[0.12] bg-zinc-900 cursor-pointer shadow-md hover:border-white/40 transition-all"
+                >
+                  {attachment.file.type.startsWith("image/") ? (
+                    <img
+                      src={attachment.url}
+                      alt={attachment.name}
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <div className="size-full flex flex-col items-center justify-center p-1 bg-zinc-850 text-zinc-300">
+                      <FileText className="w-5 h-5 text-zinc-300" />
+                      <span className="text-[8px] truncate max-w-[48px] mt-0.5">{attachment.name}</span>
+                    </div>
+                  )}
+                  {/* Number Badge */}
+                  <div className="absolute top-1 right-1 px-1.5 py-0.2 rounded-md bg-black/85 text-white font-mono text-[9px] font-bold border border-white/20 shadow-sm backdrop-blur-md">
+                    {idx + 1}
                   </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={(e) => removeAttachment(attachment.id, e)}
+                    className="absolute top-1 left-1 size-5 rounded-full bg-black/80 text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center justify-center transition-colors shadow border border-white/15"
+                    title="حذف الصورة"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              {attachments.length < 5 && (
                 <button
                   type="button"
-                  onClick={(e) => removeAttachment(attachment.id, e)}
-                  className="absolute top-1 left-1 size-4 rounded-full bg-zinc-950/80 text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center justify-center transition-colors shadow"
-                  title="حذف المرفق"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="shrink-0 size-16 rounded-xl border border-dashed border-white/[0.15] hover:border-white/40 bg-white/[0.02] hover:bg-white/[0.06] flex flex-col items-center justify-center text-zinc-400 hover:text-white text-[10px] gap-1 transition-all cursor-pointer font-sans"
                 >
-                  <X className="w-2.5 h-2.5" />
+                  <Plus className="w-4 h-4 text-zinc-300" />
+                  <span>إضافة صورة</span>
                 </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={attachments.length >= maxAttachments}
-              className="shrink-0 size-14 rounded-xl border border-dashed border-zinc-700 hover:border-zinc-500 bg-zinc-900/50 hover:bg-zinc-850 flex flex-col items-center justify-center text-zinc-400 hover:text-white text-[10px] gap-0.5 transition-colors cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>إضافة</span>
-            </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -689,7 +759,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           className={cn(
             "relative w-full rounded-3xl glass-input-container transition-all duration-300",
             isCyberMode
-              ? "bg-[#09090d]/95 backdrop-blur-2xl border-white/[0.16] shadow-[inset_0_1px_1px_rgba(255,255,255,0.18),0_18px_45px_rgba(0,0,0,0.92)] focus-within:border-cyan-400/40 focus-within:shadow-[inset_0_1px_1px_rgba(6,182,212,0.25),0_0_0_1px_rgba(6,182,212,0.15),0_20px_50px_rgba(0,0,0,0.95)]"
+              ? "bg-[#09090d]/90 backdrop-blur-3xl border-white/[0.16] shadow-[inset_0_1px_1px_rgba(255,255,255,0.18),0_20px_50px_rgba(0,0,0,0.95)] focus-within:border-cyan-400/40 focus-within:shadow-[inset_0_1px_1px_rgba(6,182,212,0.25),0_0_0_1px_rgba(6,182,212,0.15),0_24px_55px_rgba(0,0,0,0.95)]"
               : isX1Active
               ? "border-white/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_0_0_1px_rgba(255,255,255,0.2),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white focus-within:shadow-[inset_0_1px_2px_rgba(255,255,255,0.6),0_0_0_1.5px_rgba(255,255,255,0.4),0_18px_50px_rgba(0,0,0,0.9)]"
               : "border-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_16px_45px_rgba(0,0,0,0.85)] focus-within:border-white/[0.3] focus-within:shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_0_0_1px_rgba(255,255,255,0.15),0_18px_50px_rgba(0,0,0,0.9)]"
@@ -716,9 +786,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 transition={{ type: 'spring', stiffness: 420, damping: 30 }}
                 className="overflow-hidden"
               >
-                <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-black/50 rounded-t-3xl flex items-center gap-2 px-3 sm:px-3.5">
+                <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl rounded-t-3xl flex items-center gap-2.5 px-3 sm:px-4">
                   {/* Smart Cyber Website Logo Badge */}
-                  <div className="size-7 rounded-xl bg-zinc-900/90 border border-white/[0.12] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                  <div className="size-7 rounded-xl bg-zinc-900/90 border border-white/[0.14] flex items-center justify-center overflow-hidden shrink-0 shadow-inner backdrop-blur-md">
                     {activeFaviconUrl && !faviconError ? (
                       <img
                         src={activeFaviconUrl}
@@ -742,7 +812,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       setFaviconError(false);
                     }}
                     placeholder="أدخل رابط الهدف للفحص والتحليل (https://example.com)..."
-                    className="w-full bg-transparent text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left"
+                    className="w-full bg-transparent text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left selection:bg-cyan-500/30"
                     dir="ltr"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {

@@ -140,29 +140,32 @@ export const App: React.FC = () => {
     // Switch to Chat room mode when sending message
     setViewMode('chat');
 
-    let attachedImageDataUrl: string | undefined = undefined;
+    const attachedImagesDataUrls: string[] = [];
     if (meta?.attachments && meta.attachments.length > 0) {
-      const file = meta.attachments[0];
-      try {
-        attachedImageDataUrl = await compressImageFile(file);
-      } catch {
-        attachedImageDataUrl = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.readAsDataURL(file);
-        });
+      for (const file of meta.attachments.slice(0, 5)) {
+        try {
+          const dataUrl = await compressImageFile(file);
+          attachedImagesDataUrls.push(dataUrl);
+        } catch {
+          const fallbackUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.readAsDataURL(file);
+          });
+          attachedImagesDataUrls.push(fallbackUrl);
+        }
       }
     }
 
     const trimmedText = text.trim();
-    const effectivePrompt = trimmedText || (attachedImageDataUrl ? 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.' : '');
-    if (!effectivePrompt && !attachedImageDataUrl) return;
+    const effectivePrompt = trimmedText || (attachedImagesDataUrls.length > 0 ? (attachedImagesDataUrls.length > 1 ? `حلل هذه الـ ${attachedImagesDataUrls.length} صور وقارن بينها واستخرج كافة التفاصيل والمعلومات بدقة.` : 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.') : '');
+    if (!effectivePrompt && attachedImagesDataUrls.length === 0) return;
 
     const detectedUrlInfo = detectAndExtractUrl(effectivePrompt);
     const resolvedTargetUrl = meta?.targetUrl || (detectedUrlInfo.hasUrl ? detectedUrlInfo.cleanUrl : undefined);
 
     let chosenModel: ModelType;
-    if (attachedImageDataUrl) {
+    if (attachedImagesDataUrls.length > 0) {
       chosenModel = 'deepseek-v4-flash-vision-exp';
     } else if (meta?.model) {
       chosenModel = meta.model as ModelType;
@@ -180,7 +183,8 @@ export const App: React.FC = () => {
       id: 'user-' + Date.now(),
       role: 'user',
       content: effectivePrompt,
-      image: attachedImageDataUrl,
+      image: attachedImagesDataUrls[0],
+      images: attachedImagesDataUrls,
       timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
       isX1: isX1Active,
       model: chosenModel,
@@ -230,7 +234,7 @@ export const App: React.FC = () => {
 
     await streamChatCompletion({
       messages: packedMessages,
-      model: attachedImageDataUrl ? 'deepseek-v4-flash-vision-exp' : chosenModel,
+      model: attachedImagesDataUrls.length > 0 ? 'deepseek-v4-flash-vision-exp' : chosenModel,
       isX1Mode: isX1Active,
       deepSearch: meta?.deepSearch ?? false,
       memoryPrompt: memoryContextPrompt,

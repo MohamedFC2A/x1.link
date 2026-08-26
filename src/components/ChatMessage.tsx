@@ -17,7 +17,7 @@ interface ChatMessageProps {
 const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming = false }) => {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
-  const [isImageOpen, setIsImageOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [faviconFailed, setFaviconFailed] = useState(false);
 
   const handleCopy = () => {
@@ -35,6 +35,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
     const remainingText = urlInfo.remainingText;
     const faviconUrl = extractedUrl ? getFaviconUrl(extractedUrl) : null;
     const domainName = urlInfo.domain;
+    const allImages = (message.images && message.images.length > 0)
+      ? message.images
+      : (message.image ? [message.image] : []);
 
     return (
       <motion.div
@@ -86,39 +89,45 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
             </div>
           )}
 
-          {message.image && (
-            <>
-              <div
-                onClick={() => setIsImageOpen(true)}
-                className="mb-2 rounded-xl overflow-hidden border border-white/[0.1] bg-black/60 p-1 cursor-pointer hover:opacity-90 transition-opacity"
-              >
-                <img
-                  src={message.image}
-                  alt="Uploaded attachment"
-                  className="max-h-52 sm:max-h-60 object-contain rounded-lg w-auto mx-auto"
-                />
-              </div>
-
-              {isImageOpen && (
+          {allImages.length > 0 && (
+            <div className="mb-2.5 flex flex-wrap gap-2">
+              {allImages.map((imgSrc, idx) => (
                 <div
-                  className="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-6 bg-black/95 backdrop-blur-md animate-in fade-in duration-200"
-                  onClick={() => setIsImageOpen(false)}
+                  key={idx}
+                  onClick={() => setSelectedImage(imgSrc)}
+                  className="relative group rounded-xl overflow-hidden border border-white/[0.12] bg-zinc-900/80 p-1 cursor-pointer hover:border-white/40 transition-all shadow-md"
                 >
-                  <button
-                    type="button"
-                    onClick={() => setIsImageOpen(false)}
-                    className="fixed top-4 left-4 z-10 flex size-10 items-center justify-center rounded-full bg-[#0e0e14] border border-white/[0.15] text-zinc-300 hover:text-white"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
                   <img
-                    src={message.image}
-                    alt="Enlarged preview"
-                    className="max-h-[85vh] w-auto max-w-full object-contain rounded-xl shadow-2xl"
+                    src={imgSrc}
+                    alt={`مرفق ${idx + 1}`}
+                    className="max-h-48 sm:max-h-56 max-w-full rounded-lg object-contain"
                   />
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/85 text-white font-mono text-[10px] font-bold border border-white/20 backdrop-blur-md shadow">
+                    صورة #{idx + 1}
+                  </div>
                 </div>
-              )}
-            </>
+              ))}
+            </div>
+          )}
+
+          {selectedImage && (
+            <div
+              className="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-6 bg-black/95 backdrop-blur-md animate-in fade-in duration-200"
+              onClick={() => setSelectedImage(null)}
+            >
+              <button
+                type="button"
+                onClick={() => setSelectedImage(null)}
+                className="fixed top-4 left-4 z-10 flex size-10 items-center justify-center rounded-full bg-[#0e0e14] border border-white/[0.15] text-zinc-300 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <img
+                src={selectedImage}
+                alt="Enlarged preview"
+                className="max-h-[85vh] w-auto max-w-full object-contain rounded-xl shadow-2xl"
+              />
+            </div>
           )}
 
           {remainingText && (

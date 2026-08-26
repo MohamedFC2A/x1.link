@@ -13,6 +13,7 @@ export interface ChatMessageItem {
   reasoning?: string;
   isThinking?: boolean;
   image?: string;
+  images?: string[];
   timestamp: string;
   isX1?: boolean;
   model?: ModelType;
