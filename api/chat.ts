@@ -4,9 +4,7 @@ import { fetchTikTokData, buildTikTokContextBlock, isTikTokUrl, extractTikTokUrl
 import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildMasterVideoIntelligenceBlock, type VideoVisionResult } from '../server/videoVisionService';
 import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatform, extractSocialUrlFromText, type SocialVideoMetadata, type SocialVideoFailure } from '../server/socialVideoService';
 
-export const config = {
-  runtime: 'edge',
-};
+export const maxDuration = 60;
 
 // Primary & Fallback API Keys
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
@@ -52,7 +50,7 @@ Whenever the user asks you to write, generate, or formulate:
 - An AI Prompt (برومبت للصور أو النصوص / Midjourney / Flux / ChatGPT / Claude / SD / etc.): wrap the exact prompt inside \`\`\`prompt ... \`\`\`
 - Instructions / System Prompt for an AI Coder (Cursor / Copilot / Claude Dev / etc.): wrap the instructions inside \`\`\`coder ... \`\`\`
 - An Advertisement, Marketing Post, or Social Media Copy (نص إعلان / منشور ترويجي / بوست تسويقي): wrap the ad copy inside \`\`\`ad ... \`\`\`
-- A Video Script or Scenario (سيناريو / سكربت فيديو): wrap the script inside ```script ... ```
+- A Video Script or Scenario (سيناريو / سكربت فيديو): wrap the script inside \`\`\`script ... \`\`\`
 Write your brief explanation or introduction in normal text OUTSIDE the block. Place ONLY the exact copyable deliverable content inside the block so the user can copy it cleanly with 1-click without including external conversational text.
 9. [SMART FEATURE RECOGNITION & MEMORY DETECT DIRECTIVE]:
    - In your <think> reasoning phase, autonomously evaluate if the query matches one of the 4 intelligent features:
@@ -1299,6 +1297,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   const isCyber = model === 'deepseek-v4-flash-cyber' || model.includes('cyber');
   const isVision = model === 'deepseek-v4-flash-vision-exp' || model.includes('vision');
+  const isMediaSpark = model === 'meta/muse-spark-1.2-contributor' || model.includes('muse-spark') || model.includes('spark');
 
   const baseSystemPrompt = isCyber
     ? (isX1Mode ? `${SYSTEM_PROMPT_CYBER}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_CYBER)

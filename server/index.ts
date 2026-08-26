@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { resolveAndProfileUrl } from './linkResolver';
 import { fetchYouTubeTranscript, buildTranscriptContextBlock, containsYouTubeUrl, extractYouTubeUrlFromText, extractYouTubeVideoId, type YouTubeTranscriptResult, type TranscriptFailure } from './youtubeTranscript';
 import { fetchTikTokData, buildTikTokContextBlock, isTikTokUrl, extractTikTokUrlFromText, type TikTokResult, type TikTokFailure } from './tiktokService';
-import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildVideoVisionContextBlock, buildMasterVideoIntelligenceBlock, type VideoVisionResult } from './videoVisionService';
+import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildMasterVideoIntelligenceBlock, type VideoVisionResult } from './videoVisionService';
 import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatform, extractSocialUrlFromText, type SocialVideoMetadata, type SocialVideoFailure } from './socialVideoService';
 import { extractImageForensics, buildForensicReportMarkdown, isForensicAnalysisRequested, type ForensicReport } from './imageForensicsService';
 
@@ -1261,9 +1261,9 @@ async function processSingleLinkIntelligence(
       const ttResult = await fetchTikTokData(url);
       let visionResult: VideoVisionResult | null = null;
 
-      const extraFrames = ('extraFrames' in ttResult && ttResult.extraFrames) ? ttResult.extraFrames : undefined;
-      const keyframes = ('videoId' in ttResult && ttResult.videoId)
-        ? extractTikTokKeyframes(ttResult.videoId, ttResult.thumbnailUrl, extraFrames)
+      const extraFrames = ('extraFrames' in ttResult && typeof ttResult.extraFrames === 'object' && ttResult.extraFrames !== null) ? ttResult.extraFrames as { dynamicCover?: string; originCover?: string; avatarUrl?: string } : undefined;
+      const keyframes = ('thumbnailUrl' in ttResult && typeof ttResult.thumbnailUrl === 'string' && ttResult.thumbnailUrl)
+        ? extractTikTokKeyframes(ttResult.thumbnailUrl, extraFrames)
         : [];
 
       if (keyframes.length > 0 && DEEPSEEK_API_KEY && 'author' in ttResult) {
@@ -1592,7 +1592,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           for (const item of lastMsg.content) {
             const url = item?.image_url?.url || item?.image_url || '';
             if (url && typeof url === 'string' && url.startsWith('data:image')) {
-              forensicPromises.push(runComprehensive5LayerForensics(url, upstreamAbortController.signal));
+              forensicPromises.push(extractImageForensics(url));
             }
           }
         }
@@ -1602,7 +1602,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           const validReports = reports.filter(Boolean);
           if (validReports.length > 0) {
             forensicBlock = validReports.map((r, i) => buildForensicReportMarkdown(r)).join('\n\n');
-            console.log(`[X1-PIPELINE] [FORENSICS] ✓ 5-layer forensics complete for ${validReports.length} image(s). Score: ${validReports[0].consensusProbability}%`);
+            console.log(`[X1-PIPELINE] [FORENSICS] ✓ 5-layer forensics complete for ${validReports.length} image(s). Score: ${validReports[0].authenticity.overallAiConfidenceScore}%`);
           }
         }
       } catch (fErr: any) {
