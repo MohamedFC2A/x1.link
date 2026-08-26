@@ -1162,6 +1162,9 @@ function buildMultiLinkMatrixBlock(processedLinks: ProcessedLinkData[]): string 
   sections.push(`3. توجيه الإجابة المباشرة: إذا سأل المستخدم عن تفاصيل في رابط (مثل "اي لون شعره" أو "ما السعر" أو "ما ملخصه") وكان هناك رابط أحدث أو رابط مقصود، أجب بدقة بالغة بالرجوع إلى بيانات الرابط المفحوصة والمطابقة بصرياً وصوتياً بدون أي تردد أو خلط بين الروابط.`);
   sections.push(bar);
 
+  return sections.join('\n');
+}
+
 function getTimeDetectPromptBlock(): string {
   const now = new Date();
   
