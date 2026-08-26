@@ -935,16 +935,29 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   }
                 }}
                 placeholder={
-                  isCyberMode
-                    ? "اسأل Fathom Cyber في أي شيء..."
-                    : isVisionMode
-                    ? "اسأل Fathom Cam أو أرفق صور..."
+                  isDeepSearchEffective
+                    ? "ابحث واستكشف الويب مباشرة مع Fathom Search..."
+                    : isCyberMode
+                    ? "اسأل Fathom Cyber للفحص الأمني واستطلاع الأهداف..."
+                    : isVisionMode || hasAttachments
+                    ? "اسأل Fathom Cam أو أرفق صور للتحليل البصري..."
                     : isX1Active
-                    ? "اسأل matany.one في أي شيء..."
+                    ? "اسأل matany.one في أي شيء بحرية كاملة..."
                     : (placeholder || "اسأل Fathom 1 في أي شيء...")
                 }
                 rows={1}
-                className="w-full bg-transparent text-zinc-100 text-[15px] sm:text-base leading-relaxed resize-none outline-none placeholder:text-zinc-500 font-sans max-h-44 min-h-[38px] py-1 px-1 smooth-scroll no-scrollbar"
+                className={cn(
+                  "w-full bg-transparent text-[15px] sm:text-base leading-relaxed resize-none outline-none font-sans max-h-44 min-h-[38px] py-1 px-1 smooth-scroll no-scrollbar transition-colors",
+                  isDeepSearchEffective
+                    ? "text-sky-50 placeholder:text-sky-300/40 selection:bg-sky-500/40"
+                    : isCyberMode
+                    ? "text-cyan-50 placeholder:text-cyan-300/40 selection:bg-cyan-500/40"
+                    : hasAttachments
+                    ? "text-emerald-50 placeholder:text-emerald-300/40 selection:bg-emerald-500/40"
+                    : isX1Active
+                    ? "text-zinc-100 placeholder:text-zinc-400 selection:bg-white/40"
+                    : "text-zinc-100 placeholder:text-zinc-500 selection:bg-white/30"
+                )}
                 style={{ overscrollBehavior: 'contain' }}
               />
             </div>
@@ -956,13 +969,17 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 onClick={onActionButtonClick}
                 disabled={!hasValue && !isStreaming}
                 className={cn(
-                  "flex items-center justify-center size-9 sm:size-10 rounded-2xl transition-all duration-150 cursor-pointer select-none active:scale-90",
+                  "flex items-center justify-center size-9 sm:size-10 rounded-2xl transition-all duration-200 cursor-pointer select-none active:scale-90 shadow-lg",
                   isStreaming
-                    ? "bg-white hover:bg-zinc-200 text-zinc-950"
+                    ? "bg-white hover:bg-zinc-200 text-zinc-950 shadow-white/20"
                     : hasValue
-                    ? isCyberMode
-                      ? "bg-cyan-400 hover:bg-cyan-300 text-black font-bold hover:scale-105"
-                      : "bg-white hover:bg-zinc-100 text-zinc-950 font-bold hover:scale-105"
+                    ? isDeepSearchEffective
+                      ? "bg-gradient-to-r from-sky-400 to-indigo-400 hover:from-sky-300 hover:to-indigo-300 text-slate-950 font-bold hover:scale-105 shadow-sky-500/30"
+                      : isCyberMode
+                      ? "bg-cyan-400 hover:bg-cyan-300 text-black font-bold hover:scale-105 shadow-cyan-400/30"
+                      : hasAttachments
+                      ? "bg-emerald-400 hover:bg-emerald-300 text-black font-bold hover:scale-105 shadow-emerald-500/30"
+                      : "bg-white hover:bg-zinc-100 text-zinc-950 font-bold hover:scale-105 shadow-white/20"
                     : "bg-white/[0.04] text-zinc-600 cursor-not-allowed border border-white/[0.04]"
                 )}
                 title={isStreaming ? "إيقاف التوليد" : "إرسال"}
@@ -970,7 +987,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 {isStreaming ? (
                   <Square className="w-4 h-4 fill-current text-zinc-950" />
                 ) : (
-                  <ArrowUp className={cn("w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]", isCyberMode ? "text-black" : hasValue ? "text-zinc-950" : "text-zinc-600")} />
+                  <ArrowUp className={cn("w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]", (isCyberMode || isDeepSearchEffective || hasAttachments) ? "text-black" : hasValue ? "text-zinc-950" : "text-zinc-600")} />
                 )}
               </button>
             </div>
@@ -992,7 +1009,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 className={cn(
                   "glass-button flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold select-none shrink-0 cursor-pointer transition-all active:scale-95",
                   isCyberMode
-                    ? "bg-cyan-950/40 border-cyan-800/60 text-cyan-200 hover:text-white"
+                    ? "bg-cyan-950/60 border-cyan-500/40 text-cyan-200 hover:text-white shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+                    : isDeepSearchEffective
+                    ? "bg-sky-950/60 border-sky-500/40 text-sky-200 hover:text-white shadow-[0_0_12px_rgba(56,189,248,0.15)]"
+                    : hasAttachments
+                    ? "bg-emerald-950/60 border-emerald-500/40 text-emerald-200 hover:text-white shadow-[0_0_12px_rgba(16,185,129,0.15)]"
                     : "text-zinc-200 hover:text-white"
                 )}
                 title={`النموذج النشط: ${activeModelDisplayName} (انقر للتغيير)`}
