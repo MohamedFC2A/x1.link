@@ -706,45 +706,40 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 transition={{ type: 'spring', stiffness: 420, damping: 30 }}
                 className="overflow-hidden"
               >
-                <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-cyan-950/20 rounded-t-3xl flex items-center gap-1.5 sm:gap-2">
-                  <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-black/80 border border-cyan-900/60 focus-within:border-cyan-500 transition-colors">
-                    <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-bold shrink-0">
-                      TARGET URL
-                    </span>
-                    <input
-                      type="url"
-                      value={cyberTargetUrl}
-                      onChange={(e) => setCyberTargetUrl(e.target.value)}
-                      placeholder="أدخل رابط الهدف للفحص الأمني (https://example.com)..."
-                      className="w-full bg-transparent text-xs sm:text-sm text-cyan-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left"
-                      dir="ltr"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleCyberSubmit();
-                        }
-                      }}
-                    />
-                    {cyberTargetUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setCyberTargetUrl('')}
-                        className="text-zinc-400 hover:text-white p-0.5 rounded-full cursor-pointer transition-colors"
-                        title="مسح الرابط"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
+                <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-cyan-950/20 rounded-t-3xl flex items-center gap-2 px-3">
+                  <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <input
+                    type="url"
+                    value={cyberTargetUrl}
+                    onChange={(e) => setCyberTargetUrl(e.target.value)}
+                    placeholder="أدخل رابط الهدف للفحص الأمني (https://example.com)..."
+                    className="w-full bg-transparent text-xs sm:text-sm text-cyan-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left"
+                    dir="ltr"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleCyberSubmit();
+                      }
+                    }}
+                  />
+                  {cyberTargetUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setCyberTargetUrl('')}
+                      className="text-zinc-400 hover:text-white p-1 rounded-full cursor-pointer transition-colors shrink-0"
+                      title="مسح الرابط"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
                       setIsTargetUrlBarOpen(false);
                       setCyberTargetUrl('');
                     }}
-                    className="size-8 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                    className="size-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
                     title="إلغاء وضع الرابط"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -811,13 +806,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
           </div>
 
-          {/* Bottom Toolbar (Models, Status Pills, 3-Dots Actions Menu) */}
+          {/* Bottom Toolbar: Clean, 100% Icon-First Architecture */}
           <div className="flex items-center justify-between gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 border-t border-white/[0.06] bg-black/40 rounded-b-3xl text-xs">
             
-            {/* Right Group: Model Selector */}
+            {/* Right Group: Compact Model Selector */}
             <div className="flex items-center gap-1.5 shrink-0">
               
-              {/* Interactive Model Selector Button */}
               <button
                 type="button"
                 onClick={(e) => {
@@ -825,23 +819,23 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   setIsModelMenuOpen(!isModelMenuOpen);
                 }}
                 className={cn(
-                  "glass-button flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] sm:text-xs font-semibold select-none shrink-0 cursor-pointer transition-all active:scale-95",
+                  "glass-button flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold select-none shrink-0 cursor-pointer transition-all active:scale-95",
                   isCyberMode
                     ? "bg-cyan-950/40 border-cyan-800/60 text-cyan-200 hover:text-white"
                     : isVisionMode
                     ? "bg-amber-950/40 border-amber-800/60 text-amber-200 hover:text-white"
                     : "text-zinc-200 hover:text-white"
                 )}
-                title="تغيير نموذج الذكاء الاصطناعي"
+                title={`النموذج النشط: ${activeModelDisplayName} (انقر للتغيير)`}
               >
                 {isCyberMode ? (
-                  <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
                 ) : isVisionMode ? (
-                  <Camera className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <Camera className="w-4 h-4 text-amber-400 shrink-0" />
                 ) : (
-                  <Sparkles className="w-3.5 h-3.5 text-zinc-300 shrink-0" />
+                  <Sparkles className="w-4 h-4 text-zinc-300 shrink-0" />
                 )}
-                <span className="font-sans font-semibold text-[10px] sm:text-xs">
+                <span className="hidden sm:inline font-sans text-xs font-semibold">
                   {activeModelDisplayName}
                 </span>
                 <ChevronDown className="w-3 h-3 text-zinc-400" />
@@ -849,36 +843,29 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
             </div>
 
-            {/* Left Group: Status Pills & 3-Dots Actions Menu */}
+            {/* Left Group: Icon-Only Status Badges & 3-Dots Actions Menu */}
             <div className="flex items-center gap-1.5 mr-auto shrink-0">
               
-              {/* NSFW Active Indicator Pill */}
+              {/* NSFW Active Icon Indicator */}
               {isX1Active && (
-                <span className="text-[10px] text-rose-300 font-mono bg-rose-950/60 px-2 py-0.5 rounded-lg border border-rose-800/60 font-bold flex items-center gap-1">
-                  <span className="size-1.5 rounded-full bg-rose-500" />
-                  NSFW MAX
-                </span>
+                <div
+                  title="شريحة كسر القيود (NSFW MAX) مفعلة"
+                  className="size-7 rounded-xl bg-white/[0.06] border border-white/[0.12] flex items-center justify-center text-zinc-200 shrink-0"
+                >
+                  <Cpu className="w-3.5 h-3.5 text-zinc-200" />
+                </div>
               )}
 
-              {/* Deep Search Active Indicator Pill */}
+              {/* Deep Search Active Icon Indicator */}
               {isDeepSearchEffective && (
                 <button
                   type="button"
                   onClick={toggleDeepSearch}
-                  className="text-[10px] text-cyan-200 font-mono bg-cyan-950/60 hover:bg-cyan-900/60 px-2 py-0.5 rounded-lg border border-cyan-800/60 font-bold flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
-                  title="البحث والاستخبارات العميقة مفعلة (100+ صفحة) - انقر للإلغاء"
+                  className="size-7 rounded-xl bg-cyan-950/70 border border-cyan-700/60 text-cyan-300 hover:bg-cyan-900/60 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0"
+                  title="البحث والاستخبارات العميقة (100+ صفحة) مفعلة - انقر للإلغاء"
                 >
-                  <span className="size-1.5 rounded-full bg-cyan-400" />
-                  استخبارات (100+)
-                  <X className="w-2.5 h-2.5 text-cyan-400 mr-0.5" />
+                  <Search className="w-3.5 h-3.5 text-cyan-300" />
                 </button>
-              )}
-
-              {/* Target URL indicator pill when active */}
-              {isCyberMode && isTargetUrlBarOpen && (
-                <span className="text-[10px] text-cyan-300 font-mono bg-cyan-950/60 px-2 py-0.5 rounded-lg border border-cyan-800/60 font-semibold">
-                  وضع الرابط نشط
-                </span>
               )}
 
               {/* 3-Dots Action Button */}
@@ -889,7 +876,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   setIsActionsMenuOpen(!isActionsMenuOpen);
                 }}
                 className={cn(
-                  "glass-button size-8 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-95",
+                  "glass-button size-8 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-95 shrink-0",
                   isActionsMenuOpen
                     ? "bg-white/[0.12] text-white border-white/[0.25]"
                     : "text-zinc-300 hover:text-white"
