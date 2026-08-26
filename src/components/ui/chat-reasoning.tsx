@@ -158,21 +158,25 @@ export default function ChatReasoning({
       <AccordionItem
         value="reasoning"
         className={cn(
-          "w-full border rounded-2xl px-3 sm:px-4 py-1 transition-all duration-200 glass-card",
+          "w-full border rounded-2xl px-3 sm:px-4 py-1 transition-all duration-200",
           isThinking
-            ? "border-white/[0.2] bg-white/[0.04] shadow-[0_0_15px_rgba(255,255,255,0.03)]"
-            : "border-white/[0.08] bg-black/40 hover:bg-black/60"
+            ? "border-white/[0.12] bg-white/[0.02]"
+            : "border-white/[0.06] bg-black/40 hover:bg-black/60"
         )}
       >
         <AccordionTrigger className="text-xs font-medium text-zinc-300 hover:text-white hover:no-underline py-2 w-full flex items-center justify-between cursor-pointer">
           <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center size-5 rounded-md border bg-white/[0.05] border-white/[0.08] text-zinc-200">
+            <div className="flex items-center justify-center size-5 shrink-0">
               {isThinking ? (
-                <ThinkingOrb state="solving" size={20} theme="dark" />
+                <ThinkingOrb state="solving" size={20} theme="dark" speed={1.5} />
               ) : isX1 ? (
-                <Cpu className="size-3 text-zinc-200" />
+                <div className="flex items-center justify-center size-5 rounded-md border bg-white/[0.05] border-white/[0.08] text-zinc-200">
+                  <Cpu className="size-3 text-zinc-200" />
+                </div>
               ) : (
-                <Brain className="size-3 text-zinc-200" />
+                <div className="flex items-center justify-center size-5 rounded-md border bg-white/[0.05] border-white/[0.08] text-zinc-200">
+                  <Brain className="size-3 text-zinc-200" />
+                </div>
               )}
             </div>
 
@@ -183,13 +187,6 @@ export default function ChatReasoning({
                   : "جاري التفكير والتحليل المنطقي..."
                 : "التفكير والتحليل المنطقي"}
             </span>
-
-            {isThinking && (
-              <span className="flex h-2 w-2 relative mr-1">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-              </span>
-            )}
           </div>
         </AccordionTrigger>
 
@@ -218,8 +215,8 @@ export default function ChatReasoning({
                           <Check className="size-3 text-zinc-100 stroke-[2.5]" />
                         </div>
                       ) : isProgress ? (
-                        <div className="size-5 rounded-full bg-zinc-950 border border-white/60 flex items-center justify-center shadow-[0_0_12px_rgba(255,255,255,0.3)]">
-                          <ThinkingOrb state="solving" size={20} theme="dark" />
+                        <div className="size-5 rounded-full flex items-center justify-center bg-transparent">
+                          <ThinkingOrb state="solving" size={20} theme="dark" speed={1.5} />
                         </div>
                       ) : (
                         <div className="size-5 rounded-full bg-zinc-950 border border-zinc-800" />

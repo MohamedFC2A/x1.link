@@ -790,9 +790,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               >
                 <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl rounded-t-3xl flex items-center gap-2.5 px-3 sm:px-4">
                   {/* Smart Cyber Website Logo / Live Orb Badge */}
-                  <div className="size-7 rounded-xl bg-zinc-900/90 border border-white/[0.14] flex items-center justify-center overflow-hidden shrink-0 shadow-inner backdrop-blur-md">
+                  <div className="size-7 rounded-xl bg-zinc-950 border border-white/[0.1] flex items-center justify-center overflow-hidden shrink-0">
                     {cyberTargetUrl.trim() ? (
-                      <ThinkingOrb state="working" size={20} theme="dark" />
+                      <ThinkingOrb state="working" size={20} theme="dark" speed={1.5} />
                     ) : activeFaviconUrl && !faviconError ? (
                       <img
                         src={activeFaviconUrl}
@@ -803,7 +803,6 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     ) : (
                       <div className="relative flex items-center justify-center">
                         <Globe className="w-3.5 h-3.5 text-zinc-400" />
-                        <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-cyan-400/80" />
                       </div>
                     )}
                   </div>
@@ -967,10 +966,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 <button
                   type="button"
                   onClick={toggleDeepSearch}
-                  className="size-7 rounded-xl bg-cyan-950/70 border border-cyan-700/60 text-cyan-300 hover:bg-cyan-900/60 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 overflow-hidden"
+                  className="size-8 rounded-xl bg-zinc-950 border border-white/[0.12] hover:border-white/[0.22] flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0"
                   title="البحث والاستخبارات العميقة (100+ صفحة) مفعلة - انقر للإلغاء"
                 >
-                  <ThinkingOrb state="searching" size={20} theme="dark" />
+                  <ThinkingOrb state="searching" size={20} theme="dark" speed={1.6} />
                 </button>
               )}
 

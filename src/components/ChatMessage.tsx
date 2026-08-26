@@ -219,12 +219,13 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
         {isStreaming && !message.content && !isThinking ? (
           <div className="flex items-center gap-2 py-1.5 select-none" dir="rtl">
             <div
-              className="inline-flex h-8 items-center gap-2.5 rounded-full pl-3.5 pr-2.5 border border-white/[0.12] bg-zinc-900/70 shadow-[inset_0_0_20px_rgba(255,255,255,0.02)] backdrop-blur-md"
+              className="inline-flex h-8 items-center gap-2.5 rounded-full pl-3.5 pr-2.5 border border-white/[0.08] bg-zinc-950/90 backdrop-blur-md"
             >
               <ThinkingOrb
                 state={isCyber ? "searching" : isVision ? "working" : message.isX1 ? "solving" : "composing"}
                 size={20}
                 theme="dark"
+                speed={1.5}
               />
               <span className="whitespace-nowrap text-xs font-sans font-medium text-zinc-300">
                 {isCyber
