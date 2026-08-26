@@ -6,7 +6,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { Brain, Cpu, Check, Loader2, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Brain, Cpu, Check, ChevronRight } from "lucide-react";
 import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 
 export interface ReasoningStep {
@@ -28,9 +28,8 @@ export interface ChatReasoningProps {
 
 interface Milestone {
   id: string;
-  title: string;
-  detail?: string;
-  status: 'completed' | 'in-progress' | 'pending';
+  text: string;
+  status: 'completed' | 'in-progress';
 }
 
 function parseReasoningMilestones(rawText: string, isThinking: boolean): Milestone[] {
@@ -39,8 +38,7 @@ function parseReasoningMilestones(rawText: string, isThinking: boolean): Milesto
       return [
         {
           id: 'step-1',
-          title: 'بدء تفكيك فرضيات السؤال وتحليل المعطيات',
-          detail: 'جاري استدعاء المعارف والروابط المنطقية في الوقت الفعلي...',
+          text: 'تفكيك فرضيات السؤال واستدعاء المعارف والروابط المنطقية',
           status: 'in-progress',
         },
       ];
@@ -83,9 +81,8 @@ function parseReasoningMilestones(rawText: string, isThinking: boolean): Milesto
 
   // Fallback if still 1 block: create progressive milestones from the content
   if (rawSteps.length <= 1) {
-    const textSample = cleaned.slice(0, 100);
     rawSteps = [
-      textSample.length > 55 ? textSample.slice(0, 55) + '...' : textSample,
+      cleaned.slice(0, 140) + (cleaned.length > 140 ? '...' : ''),
       'تدقيق المعطيات واستخلاص النتائج وصياغة الطرح'
     ];
   }
@@ -97,25 +94,12 @@ function parseReasoningMilestones(rawText: string, isThinking: boolean): Milesto
   return sliced.map((stepText, idx) => {
     // Strip leading markers like "1. ", "- ", "* "
     const cleanStep = stepText.replace(/^[-*•–—\d+.)\]]+\s*/, '').trim();
-    const words = cleanStep.split(/\s+/);
-    
-    let title = cleanStep;
-    let detail: string | undefined = undefined;
-
-    if (words.length > 8) {
-      title = words.slice(0, 7).join(' ') + '...';
-      detail = cleanStep;
-    } else {
-      title = cleanStep;
-    }
-
     const isLast = idx === sliced.length - 1;
     const status: 'completed' | 'in-progress' = (isThinking && isLast) ? 'in-progress' : 'completed';
 
     return {
       id: `milestone-${idx}`,
-      title,
-      detail: detail !== title ? detail : undefined,
+      text: cleanStep,
       status,
     };
   });
@@ -196,19 +180,14 @@ export default function ChatReasoning({
               {isThinking
                 ? isX1
                   ? "تفكير واستدعاء معمارية X1 MAX..."
-                  : "تفكير وتحليل منطقي مستمر..."
-                : `مسار التحليل والتفكير المنطقي (${milestones.length} محطات)`}
+                  : "جاري التفكير والتحليل المنطقي..."
+                : "التفكير والتحليل المنطقي"}
             </span>
 
-            {isThinking ? (
+            {isThinking && (
               <span className="flex h-2 w-2 relative mr-1">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 mr-1">
-                <CheckCircle2 className="size-2.5" />
-                <span>مكتمل</span>
               </span>
             )}
           </div>
@@ -217,8 +196,8 @@ export default function ChatReasoning({
         <AccordionContent className="p-0 pt-3 pb-3 border-t border-white/[0.06]">
           <div className="pt-1 px-1 text-right">
             
-            {/* Vertical Smart Milestones Path (Image 2 style) */}
-            <div className="relative pr-1 space-y-4">
+            {/* Vertical Smart Milestones Path (Ultra Clean Image 2 style) */}
+            <div className="relative pr-1 space-y-3.5">
               {milestones.map((step, idx) => {
                 const isLast = idx === milestones.length - 1;
                 const isProgress = step.status === 'in-progress';
@@ -229,13 +208,13 @@ export default function ChatReasoning({
                     
                     {/* Vertical Connecting Line */}
                     {!isLast && (
-                      <div className="absolute right-[9px] top-5 bottom-[-16px] w-[1.5px] bg-zinc-800 group-hover:bg-zinc-700 transition-colors" />
+                      <div className="absolute right-[9px] top-5 bottom-[-14px] w-[1.5px] bg-zinc-800" />
                     )}
 
                     {/* Node Icon Circle */}
-                    <div className="relative z-10 shrink-0">
+                    <div className="relative z-10 shrink-0 mt-0.5">
                       {isDone ? (
-                        <div className="size-5 rounded-full bg-zinc-900 border border-zinc-500/80 flex items-center justify-center text-white shadow-sm">
+                        <div className="size-5 rounded-full bg-zinc-900 border border-zinc-500/70 flex items-center justify-center text-white shadow-sm">
                           <Check className="size-3 text-zinc-100 stroke-[2.5]" />
                         </div>
                       ) : isProgress ? (
@@ -247,28 +226,14 @@ export default function ChatReasoning({
                       )}
                     </div>
 
-                    {/* Milestone Text & Detail */}
+                    {/* Milestone Single Clean Point */}
                     <div className="flex-1 min-w-0 pt-0.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className={cn(
-                          "text-xs font-semibold font-sans tracking-tight",
-                          isProgress ? "text-white" : "text-zinc-200"
-                        )}>
-                          {step.title}
-                        </h4>
-                        <span className={cn(
-                          "text-[10px] font-sans font-medium shrink-0",
-                          isProgress ? "text-cyan-300 animate-pulse" : "text-zinc-500"
-                        )}>
-                          {isProgress ? "جاري التحليل..." : "مكتمل"}
-                        </span>
-                      </div>
-
-                      {step.detail && (
-                        <p className="text-[11px] text-zinc-400 font-sans mt-1 leading-relaxed break-words">
-                          {step.detail}
-                        </p>
-                      )}
+                      <p className={cn(
+                        "text-xs font-sans leading-relaxed break-words",
+                        isProgress ? "text-white font-medium" : "text-zinc-300"
+                      )}>
+                        {step.text}
+                      </p>
                     </div>
                   </div>
                 );
@@ -284,7 +249,7 @@ export default function ChatReasoning({
                   className="text-[11px] font-sans text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-white/[0.04]"
                 >
                   <ChevronRight className={cn("size-3 transition-transform", showRawText && "rotate-90")} />
-                  <span>{showRawText ? "إخفاء التفاصيل النصية الكاملة" : "عرض مسار الاستدلال الخام للتفكير"}</span>
+                  <span>{showRawText ? "إخفاء النص التفصيلي الكامل" : "عرض مسار الاستدلال الخام للتفكير"}</span>
                 </button>
 
                 {showRawText && (

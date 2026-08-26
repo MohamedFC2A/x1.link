@@ -206,17 +206,6 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
 
       <div className="w-full rounded-2xl p-3.5 sm:p-5 text-right border transition-all glass-panel text-zinc-100">
         
-        {(isStreaming || hasReasoning || isThinking) && (
-          <ExecutionPipeline
-            model={message.model}
-            isX1={message.isX1}
-            isStreaming={isStreaming}
-            isThinking={isThinking}
-            hasReasoning={hasReasoning}
-            hasContent={Boolean(message.content && message.content.trim().length > 0)}
-          />
-        )}
-
         {(hasReasoning || isThinking) && (
           <ChatReasoning
             reasoningText={message.reasoning}
