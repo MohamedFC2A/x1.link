@@ -1400,15 +1400,18 @@ function getTimeDetectPromptBlock(): string {
 
   // Fast Intelligent Gateway Selection:
   const isMediaSpark = model === 'meta/muse-spark-1.2-contributor' || model.includes('muse-spark') || model.includes('spark');
+  const isVision = model === 'deepseek-v4-flash-vision-exp' || model.includes('vision');
   const useDeepSeekPrimary = !isX1Mode && !isMediaSpark && !!DEEPSEEK_API_KEY;
 
-  let chosenModelName = 'deepseek-chat';
+  let chosenModelName = 'deepseek-v4-flash';
   if (isMediaSpark) {
     chosenModelName = 'meta/muse-spark-1.2-contributor';
   } else if (isX1Mode) {
     chosenModelName = 'anthracite-org/magnum-v4-72b';
+  } else if (isVision) {
+    chosenModelName = 'deepseek-v4-flash-vision-exp';
   } else if (useDeepSeekPrimary) {
-    chosenModelName = 'deepseek-chat';
+    chosenModelName = 'deepseek-v4-flash';
   } else {
     chosenModelName = 'deepseek/deepseek-chat';
   }
@@ -1454,7 +1457,24 @@ function getTimeDetectPromptBlock(): string {
 
     // Failover if primary gateway failed
     if ((!response || !response.ok)) {
-      if (useDeepSeekPrimary && OPENROUTER_API_KEY) {
+      if (useDeepSeekPrimary && DEEPSEEK_API_KEY) {
+        console.log('[Vercel Edge] DeepSeek alias failover (deepseek-chat)...');
+        requestPayload.model = 'deepseek-chat';
+        try {
+          response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+            },
+            body: JSON.stringify(requestPayload),
+          });
+        } catch (failErr) {
+          console.warn('[Vercel Edge] DeepSeek chat alias failover failed:', failErr);
+        }
+      }
+
+      if ((!response || !response.ok) && OPENROUTER_API_KEY) {
         console.log('[Vercel Edge] Failover to OpenRouter (deepseek/deepseek-chat)...');
         targetUrl = `${OPENROUTER_BASE_URL}/chat/completions`;
         headers = {
@@ -1472,23 +1492,6 @@ function getTimeDetectPromptBlock(): string {
           });
         } catch (failErr) {
           console.warn('[Vercel Edge] OpenRouter failover failed:', failErr);
-        }
-      } else if (!useDeepSeekPrimary && DEEPSEEK_API_KEY) {
-        console.log('[Vercel Edge] Failover to DeepSeek API...');
-        targetUrl = `${DEEPSEEK_BASE_URL}/chat/completions`;
-        headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        };
-        requestPayload.model = 'deepseek-chat';
-        try {
-          response = await fetch(targetUrl, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(requestPayload),
-          });
-        } catch (failErr) {
-          console.warn('[Vercel Edge] DeepSeek failover failed:', failErr);
         }
       }
     }

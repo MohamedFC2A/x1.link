@@ -1666,10 +1666,24 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       });
     }
 
-    // Candidate 2: DeepSeek Direct (Fastest for standard chat)
+    // Candidate 2: DeepSeek Direct (Primary for Fathom 1, Fathom Cam, Fathom Cyber via https://api.deepseek.com)
     if (!isX1Mode && !isMediaSpark && DEEPSEEK_API_KEY) {
       gateCandidates.push({
-        name: 'DeepSeek Direct',
+        name: isVision ? 'DeepSeek Direct Vision (deepseek-v4-flash-vision-exp)' : 'DeepSeek Direct (deepseek-v4-flash)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: {
+          ...basePayload,
+          model: isVision ? 'deepseek-v4-flash-vision-exp' : 'deepseek-v4-flash',
+        }
+      });
+
+      // DeepSeek Direct fallback with standard alias
+      gateCandidates.push({
+        name: 'DeepSeek Direct Chat Fallback (deepseek-chat)',
         url: `${DEEPSEEK_BASE_URL}/chat/completions`,
         headers: {
           'Content-Type': 'application/json',
@@ -1699,7 +1713,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         }
       });
 
-      // Candidate 3: OpenRouter Fallback Model (DeepSeek R1 / Free tier)
+      // Candidate 4: OpenRouter Fallback Model (DeepSeek R1 / non-free slug)
       if (!isX1Mode) {
         gateCandidates.push({
           name: 'OpenRouter DeepSeek R1 Backup',
@@ -1712,7 +1726,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           },
           payload: {
             ...basePayload,
-            model: 'deepseek/deepseek-r1:free',
+            model: 'deepseek/deepseek-r1',
           }
         });
       }
