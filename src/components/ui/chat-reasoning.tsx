@@ -194,9 +194,11 @@ export default function ChatReasoning({
               </span>
 
               {isTimeIntent && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-950/90 border border-sky-400/25 time-detect-text text-[10px] font-mono font-black tracking-wide shadow-sm">
-                  <Clock className="w-2.5 h-2.5 text-sky-400 shrink-0" />
-                  Time Detect
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full time-detect-glass select-none transition-all">
+                  <Clock className="w-3 h-3 text-cyan-300 shrink-0" />
+                  <span className="time-detect-text text-[11px] font-sans font-black tracking-wide">
+                    Time Detect
+                  </span>
                 </span>
               )}
             </div>

@@ -197,9 +197,11 @@ export function renderSmartContentWithLinksAndPhones(
       parts.push(
         <span
           key={`timedetect-${matchIndex}`}
-          className="inline-flex items-center px-1.5 py-0.5 mx-1 rounded bg-zinc-900 border border-amber-500/30 time-detect-text font-mono font-black text-xs align-middle select-text"
+          className="inline-flex items-center gap-1 px-2 py-0.5 mx-1 rounded-full time-detect-glass select-text align-middle"
         >
-          {matchedToken}
+          <span className="time-detect-text font-sans font-black text-xs">
+            {matchedToken}
+          </span>
         </span>
       );
     } else if (/^نعم$/i.test(matchedToken)) {
