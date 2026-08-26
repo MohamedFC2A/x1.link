@@ -45,20 +45,18 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
         
         {/* Header */}
         <div className="p-3.5 sm:p-4 border-b border-white/[0.08] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img
-              src="/matany-logo.svg"
-              alt="Matany Logo"
-              className="w-7 h-7 rounded-lg object-contain"
-            />
-            <div>
-              <h2 className="font-semibold text-sm text-white font-sans">
-                المحادثات السحابية
-              </h2>
-              <p className="text-[10px] sm:text-[11px] text-zinc-400 font-mono">
-                {user ? 'متصل بـ Supabase' : 'مزامنة سحابية (ضيوف)'}
-              </p>
+          <div className="flex flex-col text-right">
+            <div className="flex items-baseline gap-1" dir="ltr">
+              <span className="font-['Space_Grotesk'] font-bold text-sm tracking-tight text-white">
+                Matany
+              </span>
+              <span className="font-['Space_Grotesk'] text-[11px] text-zinc-400 font-mono">
+                .one
+              </span>
             </div>
+            <p className="text-[10px] sm:text-[11px] text-zinc-400 font-mono mt-0.5">
+              {user ? 'مزامنة سحابية (Supabase)' : 'سجل محادثات مشفر'}
+            </p>
           </div>
 
           <button

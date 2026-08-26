@@ -25,28 +25,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <header className="sticky top-0 z-30 w-full bg-[#000000]/95 border-b border-white/[0.08] px-3.5 sm:px-8 py-3 backdrop-blur-xl pt-safe">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
           
-          {/* Right / Luxury Brand Lockup */}
-          <div className="flex items-center gap-3 select-none" dir="ltr">
-            <div className="size-10 sm:size-11 rounded-2xl bg-zinc-950 border border-white/[0.14] p-1.5 shadow-lg shadow-black/80 flex items-center justify-center">
-              <img
-                src="/matany-logo.svg"
-                alt="Matany Logo"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <div className="flex flex-col text-left justify-center">
-              <div className="flex items-baseline gap-1.5 leading-none">
-                <span className="font-['Space_Grotesk'] font-black text-lg sm:text-xl tracking-tight text-white">
-                  Matany
-                </span>
-                <span className="px-1.5 py-0.5 rounded-md bg-white/[0.08] border border-white/[0.14] text-[10px] sm:text-[11px] font-mono font-bold text-zinc-300 shadow-inner">
-                  .one
-                </span>
-              </div>
-              <span className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono mt-1 font-semibold tracking-[0.2em] uppercase">
-                AUTONOMOUS AI PLATFORM
+          {/* Right / Pure Typographic Luxury Brand Wordmark */}
+          <div className="flex flex-col text-left justify-center select-none py-0.5" dir="ltr">
+            <div className="flex items-baseline gap-1 leading-none">
+              <span className="font-['Space_Grotesk'] font-black text-xl sm:text-2xl tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">
+                Matany
+              </span>
+              <span className="font-['Space_Grotesk'] font-bold text-xs sm:text-sm text-zinc-400 font-mono tracking-tight">
+                .one
               </span>
             </div>
+            <span className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono mt-1 font-semibold tracking-[0.22em] uppercase">
+              AUTONOMOUS AI PLATFORM
+            </span>
           </div>
 
           {/* Left Actions */}
