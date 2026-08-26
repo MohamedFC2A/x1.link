@@ -1,6 +1,6 @@
-# 🚀 X1.link // Uncensored AI Platform & Virtual Memory Engine
+# 🚀 Matany.one // Autonomous AI Platform & Virtual Memory Engine
 
-**X1.link** is a modern, high-performance web platform for unconstrained conversational AI powered by **Magnum v4 72B (Anthracite Org)** and **DeepSeek Vision**, equipped with a 1-Million Token Virtual Context Engine and WebAuthn Biometric verification.
+**Matany.one** is a modern, high-performance web platform for unconstrained conversational AI powered by **Magnum v4 72B (Anthracite Org)** and **DeepSeek Vision**, equipped with a 1-Million Token Virtual Context Engine, Cyber Intelligence Recon, and WebAuthn Biometric verification.
 
 ---
 

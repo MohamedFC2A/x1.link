@@ -36,24 +36,25 @@ export const TopBar: React.FC<TopBarProps> = ({
           onClick={onGoHome}
           className="flex items-center gap-3 cursor-pointer group shrink-0 select-none"
           title="Matany.one"
+          dir="ltr"
         >
-          <div className="size-9 sm:size-10 rounded-2xl bg-zinc-950/90 border border-white/[0.12] p-1 shadow-md shadow-black/50 group-hover:border-white/30 group-hover:scale-105 transition-all flex items-center justify-center">
+          <div className="size-10 sm:size-11 rounded-2xl bg-zinc-950 border border-white/[0.14] p-1.5 shadow-lg shadow-black/80 group-hover:border-white/35 group-hover:scale-105 transition-all flex items-center justify-center">
             <img
-              src="/x1-logo.svg"
+              src="/matany-logo.svg"
               alt="Matany Logo"
               className="w-full h-full object-contain"
             />
           </div>
-          <div className="flex flex-col text-right justify-center">
-            <div className="flex items-center gap-1.5 leading-none">
-              <span className="font-['Space_Grotesk'] font-extrabold text-base sm:text-lg tracking-wide text-white uppercase group-hover:text-zinc-200 transition-colors">
-                MATANY
+          <div className="flex flex-col text-left justify-center">
+            <div className="flex items-baseline gap-1.5 leading-none">
+              <span className="font-['Space_Grotesk'] font-black text-lg sm:text-xl tracking-tight text-white group-hover:text-zinc-200 transition-colors">
+                Matany
               </span>
-              <span className="px-1.5 py-0.5 rounded-md bg-white/[0.07] border border-white/[0.12] text-[9px] sm:text-[10px] font-mono font-bold tracking-wider text-zinc-300 shadow-inner">
-                .ONE
+              <span className="px-1.5 py-0.5 rounded-md bg-white/[0.08] border border-white/[0.14] text-[10px] sm:text-[11px] font-mono font-bold text-zinc-300 shadow-inner">
+                .one
               </span>
             </div>
-            <span className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono mt-1 font-semibold tracking-[0.18em] uppercase">
+            <span className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono mt-1 font-semibold tracking-[0.2em] uppercase">
               {activeModel === 'deepseek-v4-flash-cyber'
                 ? 'CYBER INTELLIGENCE'
                 : activeModel === 'deepseek-v4-flash-vision-exp'

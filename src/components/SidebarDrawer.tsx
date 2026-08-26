@@ -47,7 +47,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
         <div className="p-3.5 sm:p-4 border-b border-white/[0.08] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img
-              src="/x1-logo.svg"
+              src="/matany-logo.svg"
               alt="Matany Logo"
               className="w-7 h-7 rounded-lg object-contain"
             />
