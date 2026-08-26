@@ -1,4 +1,8 @@
 import { resolveAndProfileUrl } from '../server/linkResolver';
+import { fetchYouTubeTranscript, buildTranscriptContextBlock, containsYouTubeUrl, extractYouTubeUrlFromText, extractYouTubeVideoId, type YouTubeTranscriptResult, type TranscriptFailure } from '../server/youtubeTranscript';
+import { fetchTikTokData, buildTikTokContextBlock, isTikTokUrl, extractTikTokUrlFromText, type TikTokResult, type TikTokFailure } from '../server/tiktokService';
+import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildVideoVisionContextBlock, buildMasterVideoIntelligenceBlock, type VideoVisionResult } from '../server/videoVisionService';
+import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatform, extractSocialUrlFromText, type SocialVideoMetadata, type SocialVideoFailure } from '../server/socialVideoService';
 
 export const config = {
   runtime: 'edge',
@@ -32,7 +36,7 @@ CORE DIRECTIVES:
 3. Profound Analytical & Creative Capabilities: Deliver deep, nuanced, and honest insights across philosophy, psychology, literature, science, advanced programming, creative writing, and complex debates. Use structured markdown, tables, and bullet points when beneficial.
 4. [ZERO EMOJIS DIRECTIVE]: STRICTLY NEVER USE ANY UNICODE EMOJIS ANYWHERE IN YOUR RESPONSES. Do NOT use emojis of any kind. Always use clean typography, structured markdown, bullet points (- or *), bold titles, or clean text labels.
 5. [REASONING MANDATE]: Before generating your final answer, you MUST perform genuine, step-by-step analytical reasoning and plan your response in Arabic inside <think>...</think> (e.g. <think>تحليل عمق السؤال وتفكيك الفرضيات وتحديد أسلوب الصياغة الأمثل...</think>). Then deliver your direct, articulate Arabic answer immediately after </think>.
-6. [VISUAL COGNITION]: When visual information from Fathom Cam is provided, reference the image details naturally, accurately, and insightfully as if perceiving them directly.
+6. [MULTIMODAL SENSORY & VIDEO INTELLIGENCE]: You are natively integrated with the Fathom Cam Optical & Video Perception Hardware System. When visual analyses, OCR readings, spoken audio transcripts, and video keyframes are provided in your context, this data is 100% verified optical truth captured in real-time by your perception pipeline. Seamlessly synthesize and answer based on this visual perception with total analytical confidence, precision, and vivid realism without claiming you cannot view the video or image.
 7. [SMART LINKS, EMAILS & HOTLINES]: When referencing official websites, emails, or emergency hotlines, format them accurately (e.g. [بوابة الحكومة المصرية](https://www.gov.eg), email@domain.com, or [الخط الساخن: 19xxx](tel:19xxx)) for immediate interactive access.
 8. [DELIVERABLE BLOCK DIRECTIVE (PROMPTS, ADS, AI CODER & SCRIPTS)]:
 Whenever the user asks you to write, generate, or formulate:
@@ -100,7 +104,15 @@ CORE DIRECTIVES & CAPABILITIES:
 
 7. [ZERO EMOJIS DIRECTIVE]: STRICTLY NEVER USE ANY UNICODE EMOJIS ANYWHERE IN YOUR RESPONSES. Do NOT use emojis of any kind. Use clear bullet points, risk badges like [CRITICAL], [HIGH], [MEDIUM], [LOW], or structured markdown headers instead.
 
-8. [REASONING MANDATE]: Write your step-by-step technical threat analysis, threat modeling, and deductive reasoning inside <think>...</think> in Arabic, then provide your comprehensive security report immediately after </think>.`;
+8. [REASONING MANDATE]: Write your step-by-step technical threat analysis, threat modeling, and deductive reasoning inside <think>...</think> in Arabic, then provide your comprehensive security report immediately after </think>.
+
+9. [UNIVERSAL VIDEO & SOCIAL MEDIA CONTENT INTELLIGENCE (TikTok, YouTube, Meta, X)]:
+   - When a video link (TikTok, YouTube, Instagram Reels, Facebook, X) is analyzed, you are provided with full access to:
+     * Transcribed speech and subtitles (ASR/Whisper) with exact timestamps.
+     * Optical Vision & OCR Keyframe Analysis captured from the video stream.
+     * Video metadata, author, caption, and hashtags.
+   - NEVER apologize, NEVER refuse, and NEVER claim you cannot access or watch TikTok/YouTube videos or determine written text/passwords.
+   - If the user asks about on-screen text, passwords, timestamps, codes, or specific moments in the video, directly examine and provide the answer using the synchronized Optical Vision (OCR) data and spoken transcript provided in your context.`;
 
 /**
  * Robust URL extraction and sanitization
@@ -707,29 +719,68 @@ async function performUltraDeepCyberSearch(
   return '';
 }
 
+async function urlToBase64DataUri(url: string, timeoutMs = 8000): Promise<string> {
+  if (!url) return '';
+  if (url.startsWith('data:image/')) return url;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return url;
+    const contentType = res.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await res.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    return `data:${contentType.split(';')[0]};base64,${base64}`;
+  } catch {
+    return url;
+  }
+}
+
 /**
- * Step 1: Multi-Tier Fathom Cam Vision Perception (Supports up to 5 images with distinct indexing)
- * Uses Google Gemini 2.5 Flash -> Qwen 2.5 VL 72B -> GPT-4o Mini
+ * Step 1: Native Fathom Cam Vision Perception powered by deepseek-v4-flash-vision-exp
  */
 async function extractVisualContext(imageMessages: any[]): Promise<string> {
-  if (!OPENROUTER_API_KEY) return '';
+  if (!DEEPSEEK_API_KEY) return '';
   try {
     const formattedVisionItems: any[] = [];
     let userQuestion = '';
 
     for (const msg of imageMessages) {
       if (Array.isArray(msg.content)) {
-        const imgObjs = msg.content.filter((c: any) => c.type === 'image_url' || c.image_url);
+        const rawImgObjs = msg.content.filter((c: any) => c.type === 'image_url' || c.image_url);
         const textObj = msg.content.find((c: any) => c.type === 'text')?.text || '';
         if (textObj) userQuestion = textObj;
 
-        if (imgObjs.length > 0) {
+        if (rawImgObjs.length > 0) {
+          const imgObjs = await Promise.all(
+            rawImgObjs.map(async (imgObj: any) => {
+              const rawUrl = imgObj.image_url?.url || imgObj.url || '';
+              const dataUri = await urlToBase64DataUri(rawUrl);
+              return {
+                type: 'image_url',
+                image_url: { url: dataUri || rawUrl }
+              };
+            })
+          );
+
           const contentParts: any[] = [
             {
               type: 'text',
-              text: `[نظام الإدراك البصري الفائق واستخراج البيانات متعدد الصور Fathom Cam Multi-Vision]:
+              text: `[نظام الإدراك البصري الفائق واستخراج البيانات متعدد الصور — deepseek-v4-flash-vision-exp]:
 تم رفع عدد (${imgObjs.length}) صور من قبل المستخدم. قم بتحليل كل صورة على حدة وترقيمها وفهم محتواها بدقة استثنائية باللغة العربية:
-1. استخراج النصوص الكامل والفهرسة المنفصلة (Full OCR & Indexing): لكل صورة [صورة رقم X]، استخرج كافة النصوص والكلمات والأرقام القومية والتواريخ والأسماء والأختام والأكواد والجداول بدقة 100% دون أي حذف.
+1. استخراج النصوص الكامل والفهرسة المنفصلة (Full OCR & Micro-OCR): لكل صورة [صورة رقم X]، استخرج كافة النصوص والكلمات والأرقام القومية والتواريخ والأسماء والأختام والأكواد والجداول بدقة 100% دون أي حذف.
 2. التمييز والفهرسة المستقلة: اربط كل جزء من التحليل برقم الصورة الخاص به [صورة 1]، [صورة 2]، [صورة 3]، [صورة 4]، [صورة 5] بدقة مطلقة، ليفهم النظام والمستخدم بوضوح تام أي صورة يشير إليها المستخدم حتى في أطول السياقات المحادثية.
 3. التحليل والمقارنة الشاملة: قارن بين الوثائق/الصور المرفوعة واستخرج الفروقات ونقاط الاتفاق والتحليل المترابط.
 4. الإجابة المباشرة عن طلب المستخدم: "${userQuestion || 'حلل ونظم وقارن كافة بيانات هذه الصور بالتفصيل الكامل.'}".`
@@ -754,47 +805,348 @@ async function extractVisualContext(imageMessages: any[]): Promise<string> {
 
     if (formattedVisionItems.length === 0) return '';
 
-    const visionModels = [
-      'google/gemini-2.5-flash',
-      'qwen/qwen-2.5-vl-72b-instruct',
-      'openai/gpt-4o-mini'
-    ];
+    const visionRes = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-v4-flash-vision-exp',
+        messages: formattedVisionItems,
+        temperature: 0.2,
+        max_tokens: 3000,
+      }),
+    });
 
-    for (const vModel of visionModels) {
-      try {
-        const visionRes = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'HTTP-Referer': 'https://matany.one',
-            'X-Title': 'Matany AI Multi-Vision',
-          },
-          body: JSON.stringify({
-            model: vModel,
-            messages: formattedVisionItems,
-            temperature: 0.2,
-            max_tokens: 3500,
-          }),
-        });
-
-        if (visionRes.ok) {
-          const data = await visionRes.json();
-          const result = data.choices?.[0]?.message?.content || '';
-          if (result && result.trim()) {
-            return result.trim();
-          }
-        }
-      } catch (tierErr) {
-        console.warn(`[Vision Tier Fail] ${vModel}:`, tierErr);
+    if (visionRes.ok) {
+      const data = await visionRes.json();
+      const result = data.choices?.[0]?.message?.content || '';
+      if (result && result.trim()) {
+        return result.trim();
       }
+    } else {
+      const errText = await visionRes.text().catch(() => '');
+      console.warn('[Vision Extraction Error]:', visionRes.status, errText);
     }
 
-    return '';
-  } catch (err) {
-    console.error('[Vision Extraction Error]:', err);
-    return '';
+// ─── Multi-Link Intelligence Matrix Core Helpers (Edge) ─────────────────────
+
+interface ProcessedLinkData {
+  index: number;
+  url: string;
+  category: 'youtube' | 'tiktok' | 'social_media' | 'web_site';
+  platformLabel: string;
+  summaryBlock: string;
+}
+
+function extractAllConversationUrls(
+  messages: any[],
+  explicitTargetUrl?: string,
+  targetUrlsArray?: string[]
+): string[] {
+  const urls: string[] = [];
+  const seen = new Set<string>();
+
+  const addUrl = (raw: string) => {
+    if (!raw || typeof raw !== 'string') return;
+    let clean = raw.trim();
+    clean = clean.replace(/^[^a-zA-Z0-9]+(?=https?:\/\/)/i, '');
+    clean = clean.replace(/^\/+/, '');
+    clean = clean.replace(/[.,;:)>\]"']+$/, '');
+    if (!/^https?:\/\//i.test(clean)) {
+      clean = 'https://' + clean;
+    }
+    try {
+      const parsed = new URL(clean);
+      const href = parsed.href;
+      if (!seen.has(href) && urls.length < 5) {
+        seen.add(href);
+        urls.push(href);
+      }
+    } catch {
+      if (!seen.has(clean) && urls.length < 5) {
+        seen.add(clean);
+        urls.push(clean);
+      }
+    }
+  };
+
+  const urlRegex = /(?:https?:\/\/[^\s<>"'{}|\\^`]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+[^\s<>"'{}|\\^`]*|[a-zA-Z0-9-]+\.(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/gi;
+
+  // 1. Scan all past user messages in chronological order to build a persistent conversation registry
+  if (Array.isArray(messages)) {
+    messages.forEach((msg: any) => {
+      if (msg.role === 'user') {
+        const text = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.map((c: any) => c.text || '').join(' ') : '');
+        const matches = text.match(urlRegex) || [];
+        matches.forEach(addUrl);
+      }
+    });
   }
+
+  // 2. Also register explicit targetUrls / targetUrl
+  if (Array.isArray(targetUrlsArray)) {
+    targetUrlsArray.forEach(addUrl);
+  }
+  if (explicitTargetUrl) {
+    addUrl(explicitTargetUrl);
+  }
+
+  return urls;
+}
+
+function formatSecs(secs: number): string {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+async function processSingleLinkIntelligence(
+  url: string,
+  index: number,
+  userPrompt: string,
+  deepSearch: boolean,
+  isCyber: boolean
+): Promise<ProcessedLinkData> {
+  const isYt = containsYouTubeUrl(url);
+  const isTt = isTikTokUrl(url);
+  const socialInfo = extractSocialUrlFromText(url);
+  const isOtherSoc = Boolean(socialInfo && socialInfo.platform !== 'youtube' && socialInfo.platform !== 'tiktok');
+
+  if (isYt) {
+    try {
+      const ytVideoId = extractYouTubeVideoId(url);
+      const [ytResult] = await Promise.all([
+        fetchYouTubeTranscript(url)
+      ]);
+      const videoDuration = ('durationSeconds' in ytResult && ytResult.durationSeconds) ? ytResult.durationSeconds : 300;
+      const keyframes = ytVideoId ? extractYouTubeKeyframes(ytVideoId, videoDuration) : [];
+
+      const visionResult = (ytVideoId && keyframes.length > 0 && DEEPSEEK_API_KEY)
+        ? await performVideoVisionPerception(
+            ytVideoId,
+            'youtube',
+            keyframes,
+            {
+              title: ('title' in ytResult && ytResult.title) ? ytResult.title : undefined,
+              creator: ('channelName' in ytResult && ytResult.channelName) ? ytResult.channelName : undefined,
+              userPrompt
+            },
+            DEEPSEEK_API_KEY,
+            DEEPSEEK_BASE_URL
+          )
+        : null;
+
+      const masterVideoContext = buildMasterVideoIntelligenceBlock(
+        ('rawSpokenText' in ytResult && ytResult.rawSpokenText) ? (ytResult as YouTubeTranscriptResult) : null,
+        visionResult,
+        'youtube'
+      );
+
+      return {
+        index,
+        url,
+        category: 'youtube',
+        platformLabel: 'فيديو يوتيوب (YouTube)',
+        summaryBlock: masterVideoContext
+      };
+    } catch (err: any) {
+      return {
+        index,
+        url,
+        category: 'youtube',
+        platformLabel: 'فيديو يوتيوب (YouTube)',
+        summaryBlock: `[تعذر معالجة فيديو يوتيوب: ${err?.message || 'خطأ'}]`
+      };
+    }
+  }
+
+  if (isTt) {
+    try {
+      const ttResult = await fetchTikTokData(url);
+      let visionResult: VideoVisionResult | null = null;
+      if ('canonicalUrl' in ttResult && ttResult.thumbnailUrl && DEEPSEEK_API_KEY) {
+        const keyframes = extractTikTokKeyframes(
+          ttResult.thumbnailUrl,
+          {
+            dynamicCover: ttResult.dynamicCover,
+            originCover: ttResult.originCover
+          },
+          ttResult.durationSeconds
+        );
+        visionResult = await performVideoVisionPerception(
+          ttResult.videoId,
+          'tiktok',
+          keyframes,
+          {
+            title: ttResult.title,
+            creator: `@${ttResult.author.username}`,
+            userPrompt,
+          },
+          DEEPSEEK_API_KEY,
+          DEEPSEEK_BASE_URL
+        );
+      }
+
+      const tiktokContext = ('canonicalUrl' in ttResult)
+        ? buildTikTokContextBlock(ttResult as TikTokResult)
+        : `[فشل فحص تيك توك: ${(ttResult as TikTokFailure).message}]`;
+
+      const masterTikTokBlock = [
+        tiktokContext,
+        visionResult ? buildMasterVideoIntelligenceBlock(
+          ('transcriptText' in ttResult && ttResult.transcriptText) ? {
+            rawSpokenText: ttResult.transcriptText,
+            formattedCaptionsWithTimestamps: ttResult.transcriptSegments?.map(s => `[${formatSecs(Math.round(s.startMs / 1000))}] ${s.text}`).join('\n') || ttResult.transcriptText,
+            transcriptLines: ttResult.transcriptSegments?.map(s => ({
+              timestamp: formatSecs(Math.round(s.startMs / 1000)),
+              startSec: Math.round(s.startMs / 1000),
+              text: s.text
+            })) || [],
+            source: ttResult.transcriptSource === 'closed_captions' ? 'closed_captions' : 'video_description',
+            videoId: ttResult.videoId,
+            language: 'ar'
+          } as any : null,
+          visionResult,
+          'tiktok'
+        ) : ''
+      ].filter(Boolean).join('\n\n');
+
+      return {
+        index,
+        url,
+        category: 'tiktok',
+        platformLabel: 'فيديو تيك توك (TikTok)',
+        summaryBlock: masterTikTokBlock
+      };
+    } catch (err: any) {
+      return {
+        index,
+        url,
+        category: 'tiktok',
+        platformLabel: 'فيديو تيك توك (TikTok)',
+        summaryBlock: `[تعذر فحص تيك توك: ${err?.message || 'خطأ'}]`
+      };
+    }
+  }
+
+  if (isOtherSoc && socialInfo) {
+    try {
+      const socialResult = await fetchSocialVideoData(url);
+      let visionResult: VideoVisionResult | null = null;
+      if ('canonicalUrl' in socialResult && socialResult.thumbnailUrl && DEEPSEEK_API_KEY) {
+        const keyframes = [
+          {
+            label: `اللقطة البصرية الأساسية (${socialInfo.platform})`,
+            url: socialResult.thumbnailUrl,
+            timestampSec: 0,
+            timestampFormatted: '00:00',
+          }
+        ];
+        visionResult = await performVideoVisionPerception(
+          socialResult.videoId || 'social_video',
+          socialInfo.platform,
+          keyframes,
+          {
+            title: socialResult.title,
+            creator: `@${socialResult.author.username}`,
+            userPrompt,
+          },
+          DEEPSEEK_API_KEY,
+          DEEPSEEK_BASE_URL
+        );
+      }
+
+      const socialBlock = ('canonicalUrl' in socialResult)
+        ? buildSocialVideoContextBlock(socialResult, visionResult)
+        : `[فشل فحص منصة ${socialInfo.platform}: ${(socialResult as SocialVideoFailure).message}]`;
+
+      return {
+        index,
+        url,
+        category: 'social_media',
+        platformLabel: `منصة ${socialInfo.platform}`,
+        summaryBlock: socialBlock
+      };
+    } catch (err: any) {
+      return {
+        index,
+        url,
+        category: 'social_media',
+        platformLabel: `منصة ${socialInfo?.platform || 'التواصل الاجتماعي'}`,
+        summaryBlock: `[تعذر فحص المنصة: ${err?.message || 'خطأ'}]`
+      };
+    }
+  }
+
+  // Generic Website / Web Link
+  let effectiveTargetUrl = url;
+  let linkReconSummary = '';
+  try {
+    const resolvedLink = await resolveAndProfileUrl(url);
+    if (resolvedLink) {
+      effectiveTargetUrl = resolvedLink.originalUrl || url;
+      linkReconSummary = resolvedLink.rawAnalysisSummaryAr || '';
+    }
+  } catch {}
+
+  const urlAuditText = await fetchUrlSecurityAudit(effectiveTargetUrl).catch(() => '');
+  const webBlock = [
+    `🌐 [استكشاف وتحليل الموقع]: ${effectiveTargetUrl}`,
+    linkReconSummary,
+    urlAuditText
+  ].filter(Boolean).join('\n\n');
+
+  return {
+    index,
+    url: effectiveTargetUrl,
+    category: 'web_site',
+    platformLabel: 'موقع ويب واستطلاع تقني',
+    summaryBlock: webBlock
+  };
+}
+
+function buildMultiLinkMatrixBlock(processedLinks: ProcessedLinkData[]): string {
+  if (processedLinks.length === 0) return '';
+  const total = processedLinks.length;
+  const bar = '━'.repeat(55);
+
+  const sections: string[] = [
+    `🌐 [مصفوفة استخبارات وفحص الروابط الشاملة للمحادثة — إجمالي الروابط: (${total}) روابط مفحوصة ومفهرسة بالتسلسل الزمني الثابت]`,
+    bar
+  ];
+
+  for (const item of processedLinks) {
+    sections.push(`\n══════════════════════════════════════════════════════════════════════════════════`);
+    sections.push(`🔗 [رابط رقم ${item.index + 1} | Link #${item.index + 1}]: ${item.url}`);
+    sections.push(`• الترتيب الزمني الثابت في المحادثة: الرابط رقم (${item.index + 1})`);
+    sections.push(`• النوع والمنصة: ${item.platformLabel}`);
+    sections.push(`──────────────────────────────────────────────────────────────────────────────────`);
+    sections.push(item.summaryBlock);
+  }
+
+  sections.push(`\n${bar}`);
+  sections.push(`[توجيه استخباراتي صارم للتعامل مع الروابط المتعددة وترتيبها الذكي (${total} روابط) — MULTI-LINK REASONING]:`);
+  sections.push(`1. الترتيب الزمني الصريح: كل رابط في المحادثة يحمل رقماً ثابتاً ومحدداً من [رابط رقم 1] إلى [رابط رقم ${total}].`);
+  sections.push(`2. الفهم السياقي الذكي للإشارات:`);
+  sections.push(`   - إذا قال المستخدم "رابط 1" أو "الرابط الأول"، فالمقصود حصراً هو: [رابط رقم 1] (${processedLinks[0]?.url}).`);
+  if (total > 1) {
+    sections.push(`   - إذا قال المستخدم "رابط 2" أو "الرابط الثاني"، فالمقصود حصراً هو: [رابط رقم 2] (${processedLinks[1]?.url}).`);
+  }
+  if (total > 2) {
+    sections.push(`   - إذا قال المستخدم "رابط 3" أو "الرابط الثالث"، فالمقصود حصراً هو: [رابط رقم 3] (${processedLinks[2]?.url}).`);
+  }
+  if (total > 3) {
+    sections.push(`   - إذا قال المستخدم "رابط 4" أو "الرابط الرابع"، فالمقصود حصراً هو: [رابط رقم 4] (${processedLinks[3]?.url}).`);
+  }
+  if (total > 4) {
+    sections.push(`   - إذا قال المستخدم "رابط 5" أو "الرابط الخامس"، فالمقصود حصراً هو: [رابط رقم 5] (${processedLinks[4]?.url}).`);
+  }
+  sections.push(`3. توجيه الإجابة المباشرة: إذا سأل المستخدم عن تفاصيل في رابط (مثل "اي لون شعره" أو "ما السعر" أو "ما ملخصه") وكان هناك رابط أحدث أو رابط مقصود، أجب بدقة بالغة بالرجوع إلى بيانات الرابط المفحوصة والمطابقة بصرياً وصوتياً بدون أي تردد أو خلط بين الروابط.`);
+  sections.push(bar);
+
+  return sections.join('\n');
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -886,13 +1238,18 @@ export default async function handler(req: Request): Promise<Response> {
     const visionMessages = cleanedMessages.filter((m: any) => Array.isArray(m.content) || m.role === 'user');
     const visualExtraction = await extractVisualContext(visionMessages);
 
+    const guidance = `
+[توجيه التحليل والتفكير الذكي الفائق — FATHOM REASONING DIRECTIVE]:
+1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى حول المعطيات البصرية للصورة، الأبعاد، الإضاءة، النصوص، ونوع المشهد.
+2. بعد إغلاق وسم </think>، قدّم تحليلاً شاملاً، فخماً، بليغاً ومباشراً يلبي رغبة المستخدم بأعلى درجات الاحترافية.`;
+
     if (visualExtraction) {
       processedMessages = cleanedMessages.map((m: any) => {
         if (Array.isArray(m.content)) {
           const textPart = m.content.find((c: any) => c.type === 'text')?.text || 'حلل هذه الصورة واستخرج تفاصيلها.';
           return {
             role: m.role,
-            content: `${textPart}\n\n[الإدراك البصري الفائق المستخرج عبر Fathom Cam Vision]:\n${visualExtraction}\n\n[توجيه استجابة]: أجب عن طلب المستخدم وصِف واستنتج كافة المعلومات بناءً على الرؤية البصرية المستخرجة أعلاه بأسلوب ذكي وبلاغي.`
+            content: `${textPart}\n\n[الإدراك البصري الفائق المستخرج عبر Fathom Cam Vision]:\n${visualExtraction}\n\n${guidance}`
           };
         }
         return m;
@@ -901,71 +1258,83 @@ export default async function handler(req: Request): Promise<Response> {
       processedMessages = cleanedMessages.map((m: any) => {
         if (Array.isArray(m.content)) {
           const textPart = m.content.find((c: any) => c.type === 'text')?.text || 'حلل هذه الصورة بالتفصيل.';
-          return { role: m.role, content: textPart };
+          return { role: m.role, content: `${textPart}\n\n${guidance}` };
         }
         return m;
       });
     }
   }
 
-  // Step 2: Live Web Search & Cyber Reconnaissance Engine (Available on Demand across ALL models)
+  // Step 2: Multi-Link Intelligence Matrix Engine (Up to 5 Links with Smart Chat-Wide Indexing)
   const latestUserMsg = cleanedMessages.filter((m: any) => m.role === 'user').pop();
   const rawUserContent = typeof latestUserMsg?.content === 'string'
     ? latestUserMsg.content
     : (Array.isArray(latestUserMsg?.content) ? latestUserMsg.content.find((c: any) => c.type === 'text')?.text || '' : '');
 
-  const extractedTargetUrl = extractCleanUrl(explicitTargetUrl || rawUserContent);
+  const targetUrlsArray = Array.isArray(body.targetUrls) ? body.targetUrls : [];
+  const allExtractedUrls = extractAllConversationUrls(cleanedMessages, explicitTargetUrl, targetUrlsArray);
 
-  if (deepSearch || isCyber || Boolean(extractedTargetUrl)) {
-    let effectiveTargetUrl = extractedTargetUrl;
-    let linkReconSummary = '';
+  if (allExtractedUrls.length > 0) {
+    console.log(`[MULTI-LINK ENGINE Edge] Discovered (${allExtractedUrls.length}) target URLs. Initiating parallel forensic intelligence...`);
+    const linkPromises = allExtractedUrls.map((url, idx) =>
+      processSingleLinkIntelligence(url, idx, rawUserContent, deepSearch, isCyber)
+    );
 
-    if (extractedTargetUrl) {
-      try {
-        const resolvedLink = await resolveAndProfileUrl(extractedTargetUrl);
-        if (resolvedLink) {
-          effectiveTargetUrl = resolvedLink.originalUrl || extractedTargetUrl;
-          linkReconSummary = resolvedLink.rawAnalysisSummaryAr || '';
-        }
-      } catch (linkErr: any) {
-        console.warn('[LINK RESOLVER Edge Notice]:', linkErr?.message);
+    const settledLinks = await Promise.allSettled(linkPromises);
+    const validProcessedLinks: ProcessedLinkData[] = [];
+
+    settledLinks.forEach((res, idx) => {
+      if (res.status === 'fulfilled') {
+        validProcessedLinks.push(res.value);
+      } else {
+        validProcessedLinks.push({
+          index: idx,
+          url: allExtractedUrls[idx],
+          category: 'web_site',
+          platformLabel: 'رابط غير محدد',
+          summaryBlock: `[فشل فحص الرابط: ${res.reason?.message || 'خطأ'}]`
+        });
+      }
+    });
+
+    const masterMultiLinkMatrix = buildMultiLinkMatrixBlock(validProcessedLinks);
+
+    if (masterMultiLinkMatrix) {
+      console.log(`[MULTI-LINK MATRIX Edge] ✓ Injected structured intelligence for (${validProcessedLinks.length}) links (${masterMultiLinkMatrix.length} chars)`);
+      const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
+      if (lastUserIdx !== -1) {
+        const targetMsg = processedMessages[lastUserIdx];
+        const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
+        processedMessages[lastUserIdx] = {
+          ...targetMsg,
+          content: `${orig}\n\n${masterMultiLinkMatrix}`
+        };
       }
     }
-
-    const shouldSearch = Boolean(deepSearch || isCyber);
-    const shouldAuditUrl = Boolean(effectiveTargetUrl && (isCyber || Boolean(explicitTargetUrl) || Boolean(extractedTargetUrl)));
-
-    const [deepSearchResults, urlAuditResults] = await Promise.allSettled([
-      shouldSearch
-        ? performUltraDeepCyberSearch(rawUserContent, effectiveTargetUrl || undefined)
-        : Promise.resolve(''),
-      shouldAuditUrl && effectiveTargetUrl
-        ? fetchUrlSecurityAudit(effectiveTargetUrl)
-        : Promise.resolve('')
-    ]);
-
-    const deepSearchText = deepSearchResults.status === 'fulfilled' ? deepSearchResults.value : '';
-    const urlAuditText = urlAuditResults.status === 'fulfilled' ? urlAuditResults.value : '';
-
-    const combinedContext = [linkReconSummary, urlAuditText, deepSearchText].filter(Boolean).join('\n\n');
-
-    if (combinedContext) {
-      processedMessages = processedMessages.map((m: any) => {
-        if (m === latestUserMsg) {
-          const orig = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
-          return {
-            ...m,
-            content: `${orig}\n\n${combinedContext}\n\n[توجيه استخباراتي للرد]: لقد تم تزويدك ببيانات البحث والاستطلاع الحية والمباشرة أعلاه، أجب عن طلب وسؤال المستخدم بدقة وموضوعية وشمولية باللغة العربية.`
-          };
-        }
-        return m;
-      });
+  } else if (deepSearch) {
+    console.log(`[FATHOM SEARCH PIPELINE Edge] Initiating Live Web Intelligence for: "${rawUserContent.slice(0, 80)}..."`);
+    const searchRes = await performUltraDeepCyberSearch(rawUserContent, undefined);
+    if (searchRes) {
+      const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
+      if (lastUserIdx !== -1) {
+        const targetMsg = processedMessages[lastUserIdx];
+        const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
+        processedMessages[lastUserIdx] = {
+          ...targetMsg,
+          content: `${orig}\n\n${searchRes}`
+        };
+      }
     }
   }
 
+  // ─── Token Economy & Smart Context Pruning Engine ───────────────────────────
+  const MAX_HISTORY_TURNS = 14;
+  const historySlice = processedMessages.slice(-MAX_HISTORY_TURNS);
+
   const formattedMessages = [
     { role: 'system', content: activeSystemPrompt },
-    ...processedMessages.map((m: { role: string; content: any; reasoning?: string }, idx: number) => {
+    ...historySlice.map((m: { role: string; content: any; reasoning?: string }, idx: number) => {
+      const isLatestTurn = idx === historySlice.length - 1;
       let contentStr = '';
       if (typeof m.content === 'string') {
         contentStr = m.content.trim();
@@ -973,6 +1342,10 @@ export default async function handler(req: Request): Promise<Response> {
         contentStr = m.content.map((c: any) => c.text || '').join(' ').trim();
       } else {
         contentStr = JSON.stringify(m.content || '');
+      }
+
+      if (!isLatestTurn && contentStr.length > 2500) {
+        contentStr = `${contentStr.slice(0, 1200)}\n\n[... تم إيجاز السياق القديم لتوفير الذاكرة وسرعة الاستجابة ...]\n\n${contentStr.slice(-800)}`;
       }
 
       // Preserve previous assistant reasoning chain in cumulative multi-turn chats
@@ -988,7 +1361,19 @@ export default async function handler(req: Request): Promise<Response> {
   ];
 
   // Fast Intelligent Gateway Selection:
-  const useDeepSeekPrimary = !isX1Mode && !!DEEPSEEK_API_KEY;
+  const isMediaSpark = model === 'meta/muse-spark-1.2-contributor' || model.includes('muse-spark') || model.includes('spark');
+  const useDeepSeekPrimary = !isX1Mode && !isMediaSpark && !!DEEPSEEK_API_KEY;
+
+  let chosenModelName = 'deepseek-chat';
+  if (isMediaSpark) {
+    chosenModelName = 'meta/muse-spark-1.2-contributor';
+  } else if (isX1Mode) {
+    chosenModelName = 'anthracite-org/magnum-v4-72b';
+  } else if (useDeepSeekPrimary) {
+    chosenModelName = 'deepseek-chat';
+  } else {
+    chosenModelName = 'deepseek/deepseek-chat';
+  }
 
   let targetUrl = useDeepSeekPrimary
     ? `${DEEPSEEK_BASE_URL}/chat/completions`
@@ -1007,7 +1392,7 @@ export default async function handler(req: Request): Promise<Response> {
       };
 
   let requestPayload: any = {
-    model: useDeepSeekPrimary ? 'deepseek-chat' : (isX1Mode ? 'anthracite-org/magnum-v4-72b' : 'deepseek/deepseek-chat'),
+    model: chosenModelName,
     messages: formattedMessages,
     temperature: isX1Mode ? 0.8 : 0.75,
     top_p: 0.9,

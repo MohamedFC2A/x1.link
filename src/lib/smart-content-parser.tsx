@@ -8,11 +8,17 @@ const EMAIL_REGEX = /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/i;
 // Regex for URLs & Multi-level Domains (excluding emails)
 const URL_REGEX = /(https?:\/\/[^\s<>"'()]+|(?:www\.)[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\/[^\s<>"'()]*)?|\b[a-zA-Z0-9-]*[a-zA-Z][a-zA-Z0-9-]*\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|gov|edu|mil|info|io|ai|app|dev|link|tech|me|co|xyz|one|online|site|space|store|eg|sa|ae|uk|us|de|fr|ru|cn|jp|in|ca|au|ly|sy|iq|jo|kw|qa|bh|om|ye|sd|ma|dz|tn)(?:\/[^\s<>"'()]*)?\b)/i;
 
-// Regex for Hotlines & Phone numbers
-const PHONE_REGEX = /(\+?[0-9]{1,4}[\s-]?)?(?:(?:\(0[0-9]{1,3}\)|0[0-9]{1,3})[\s-]?)?[0-9]{3,4}[\s-]?[0-9]{3,4}|(?:\b1[56789][0-9]{3}\b)|(?:\b0900[0-9]{4,7}\b)|(?:\b0800[0-9]{4,7}\b)|(?:\b01[0125][0-9]{8}\b)/;
+// Regex for Hotlines & Phone numbers (Guaranteed strict non-empty match)
+const PHONE_REGEX = /(?:\+?[0-9]{1,4}[\s-]?)?(?:\(0[0-9]{1,3}\)|0[0-9]{1,3})[\s-]?[0-9]{3,4}[\s-]?[0-9]{3,4}|(?:\b1[56789][0-9]{3}\b)|(?:\b0900[0-9]{4,7}\b)|(?:\b0800[0-9]{4,7}\b)|(?:\b01[0125][0-9]{8}\b)/;
+
+// Keywords for AI Detect and Affirmation styling
+const AI_KEYWORD_REGEX = /\b(AI[-\s]?DETECT|AI[-\s]?GENERATED)\b|(?:\b(نعم)\b)/;
+
+// Keywords for Meta Data / EXIF styling (Blue & White radiant styling)
+const METADATA_KEYWORD_REGEX = /\b(Meta[-\s]?Data|Metadata|EXIF)\b|(?:\b(الميتا\s?داتا|الميتاداتا|ميتا\s?داتا|ميتاداتا)\b)/;
 
 const COMBINED_SCANNER = new RegExp(
-  `(${EMAIL_REGEX.source})|(${URL_REGEX.source})|(${PHONE_REGEX.source})`,
+  `(${EMAIL_REGEX.source})|(${URL_REGEX.source})|(${PHONE_REGEX.source})|(${AI_KEYWORD_REGEX.source})|(${METADATA_KEYWORD_REGEX.source})`,
   "gi"
 );
 
@@ -65,6 +71,12 @@ export function renderSmartContentWithLinksAndPhones(
   while ((match = COMBINED_SCANNER.exec(text)) !== null) {
     const matchedToken = match[0];
     const matchIndex = match.index;
+
+    // Zero-length match safety to prevent browser lockup
+    if (!matchedToken || matchedToken.length === 0) {
+      COMBINED_SCANNER.lastIndex++;
+      continue;
+    }
 
     // Push preceding text
     if (matchIndex > lastIndex) {
@@ -159,6 +171,33 @@ export function renderSmartContentWithLinksAndPhones(
             <ExternalLink className="size-2.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0" />
           </span>
         </bdi>
+      );
+    } else if (/^(AI[-\s]?DETECT|AI[-\s]?GENERATED)$/i.test(matchedToken)) {
+      parts.push(
+        <span
+          key={`ai-detect-${matchIndex}`}
+          className="inline-flex items-center px-1.5 py-0.5 mx-1 rounded bg-zinc-900 border border-white/10 ai-detect-text font-mono font-black text-xs align-middle select-text"
+        >
+          {matchedToken}
+        </span>
+      );
+    } else if (/^(Meta[-\s]?Data|Metadata|EXIF|الميتا\s?داتا|الميتاداتا|ميتا\s?داتا|ميتاداتا)$/i.test(matchedToken)) {
+      parts.push(
+        <span
+          key={`metadata-${matchIndex}`}
+          className="inline-flex items-center px-1.5 py-0.5 mx-1 rounded bg-zinc-900 border border-sky-400/20 meta-data-text font-mono font-black text-xs align-middle select-text"
+        >
+          {matchedToken}
+        </span>
+      );
+    } else if (/^نعم$/i.test(matchedToken)) {
+      parts.push(
+        <span
+          key={`na3am-${matchIndex}`}
+          className="inline-block px-1.5 py-0.5 mx-0.5 rounded bg-zinc-900 border border-white/10 ai-detect-text font-bold text-sm align-baseline select-text"
+        >
+          {matchedToken}
+        </span>
       );
     } else {
       parts.push(renderSmartTextWithIcons(matchedToken));

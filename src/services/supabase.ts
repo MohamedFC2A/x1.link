@@ -108,6 +108,7 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
       role: msg.role,
       content: msg.content,
       image_url: msg.image || null,
+      media_attachments: msg.mediaAttachments || [],
       is_x1: !!msg.isX1,
       tokens_count: msg.tokensCount || 0,
       device_id: deviceId,
@@ -172,6 +173,7 @@ export async function fetchChatMessages(chatId: string): Promise<ChatMessageItem
       role: row.role as 'user' | 'assistant' | 'system',
       content: row.content,
       image: row.image_url || undefined,
+      mediaAttachments: row.media_attachments && row.media_attachments.length > 0 ? row.media_attachments : undefined,
       isX1: row.is_x1,
       tokensCount: row.tokens_count,
       timestamp: new Date(row.created_at).toLocaleTimeString('ar-EG', {

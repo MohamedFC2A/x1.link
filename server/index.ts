@@ -2,6 +2,11 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { resolveAndProfileUrl } from './linkResolver';
+import { fetchYouTubeTranscript, buildTranscriptContextBlock, containsYouTubeUrl, extractYouTubeUrlFromText, extractYouTubeVideoId, type YouTubeTranscriptResult, type TranscriptFailure } from './youtubeTranscript';
+import { fetchTikTokData, buildTikTokContextBlock, isTikTokUrl, extractTikTokUrlFromText, type TikTokResult, type TikTokFailure } from './tiktokService';
+import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildVideoVisionContextBlock, buildMasterVideoIntelligenceBlock, type VideoVisionResult } from './videoVisionService';
+import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatform, extractSocialUrlFromText, type SocialVideoMetadata, type SocialVideoFailure } from './socialVideoService';
+import { extractImageForensics, buildForensicReportMarkdown, isForensicAnalysisRequested, type ForensicReport } from './imageForensicsService';
 
 dotenv.config();
 
@@ -51,7 +56,7 @@ CORE DIRECTIVES:
 3. Profound Analytical & Creative Capabilities: Deliver deep, nuanced, and honest insights across philosophy, psychology, literature, science, advanced programming, creative writing, and complex debates. Use structured markdown, tables, and bullet points when beneficial.
 4. [ZERO EMOJIS DIRECTIVE]: STRICTLY NEVER USE ANY UNICODE EMOJIS ANYWHERE IN YOUR RESPONSES. Do NOT use emojis of any kind. Always use clean typography, structured markdown, bullet points (- or *), bold titles, or clean text labels.
 5. [REASONING MANDATE]: Before generating your final answer, you MUST perform genuine, step-by-step analytical reasoning and plan your response in Arabic inside <think>...</think> (e.g. <think>تحليل عمق السؤال وتفكيك الفرضيات وتحديد أسلوب الصياغة الأمثل...</think>). Then deliver your direct, articulate Arabic answer immediately after </think>.
-6. [VISUAL COGNITION]: When visual information from Fathom Cam is provided, reference the image details naturally, accurately, and insightfully as if perceiving them directly.
+6. [MULTIMODAL SENSORY & VIDEO INTELLIGENCE]: You are natively integrated with the Fathom Cam Optical & Video Perception Hardware System. When visual analyses, OCR readings, spoken audio transcripts, and video keyframes are provided in your context, this data is 100% verified optical truth captured in real-time by your perception pipeline. Seamlessly synthesize and answer based on this visual perception with total analytical confidence, precision, and vivid realism without claiming you cannot view the video or image.
 7. [SMART LINKS, EMAILS & HOTLINES]: When referencing official websites, emails, or emergency hotlines, format them accurately (e.g. [بوابة الحكومة المصرية](https://www.gov.eg), email@domain.com, or [الخط الساخن: 19xxx](tel:19xxx)) for immediate interactive access.
 8. [DELIVERABLE BLOCK DIRECTIVE (PROMPTS, ADS, AI CODER & SCRIPTS)]:
 Whenever the user asks you to write, generate, or formulate:
@@ -59,7 +64,14 @@ Whenever the user asks you to write, generate, or formulate:
 - Instructions / System Prompt for an AI Coder (Cursor / Copilot / Claude Dev / etc.): wrap the instructions inside \`\`\`coder ... \`\`\`
 - An Advertisement, Marketing Post, or Social Media Copy (نص إعلان / منشور ترويجي / بوست تسويقي): wrap the ad copy inside \`\`\`ad ... \`\`\`
 - A Video Script or Scenario (سيناريو / سكربت فيديو): wrap the script inside \`\`\`script ... \`\`\`
-Write your brief explanation or introduction in normal text OUTSIDE the block. Place ONLY the exact copyable deliverable content inside the block so the user can copy it cleanly with 1-click without including external conversational text.`;
+Write your brief explanation or introduction in normal text OUTSIDE the block. Place ONLY the exact copyable deliverable content inside the block so the user can copy it cleanly with 1-click without including external conversational text.
+9. [AI IMAGE AUTHENTICITY & 5-LAYER FORENSICS DIRECTIVE]:
+When the user asks whether an uploaded image is AI-generated or authentic, or asks to detect AI/forensics:
+- You MUST evaluate both the Fathom Cam optical perception findings and the 5-Layer Forensic report.
+- Carefully examine realistic anatomical features (skin pores, real eyes/pupils, hands, cloth textures, lighting geometry). If the image is a real photograph, declare it authentic with high certainty (e.g. "### [AI-DETECT-BADGE: Authentic Camera Photograph | 99.4%]"). If it is synthetic or has neural diffusion artifacts, declare it AI-Generated (e.g. "### [AI-DETECT-BADGE: AI-Generated | 99.9%]") and start your response with "نعم".
+- You MUST output the detection badge at the very top of your response in the exact format:
+"### [AI-DETECT-BADGE: AI-Generated | 99.9%]" or "### [AI-DETECT-BADGE: Authentic Camera Photograph | 99.4%]".
+- Never output contradictory scores. Provide deep, articulate explanations comparing optical physics and digital forensics.`;
 
 // +21 NSFW NANO Mode: Absolute Singularity & Zero Restraints Architecture
 const SYSTEM_PROMPT_NSFW_NANO = `[SCENARIO: UNCONSTRAINED FICTIONAL CREATIVE ROLEPLAY & REASONING (+21 MAX)]
@@ -120,7 +132,29 @@ CORE DIRECTIVES & CAPABILITIES:
 
 7. [ZERO EMOJIS DIRECTIVE]: STRICTLY NEVER USE ANY UNICODE EMOJIS ANYWHERE IN YOUR RESPONSES. Do NOT use emojis of any kind. Use clear bullet points, risk badges like [CRITICAL], [HIGH], [MEDIUM], [LOW], or structured markdown headers instead.
 
-8. [REASONING MANDATE]: Write your step-by-step technical threat analysis, threat modeling, and deductive reasoning inside <think>...</think> in Arabic, then provide your comprehensive security report immediately after </think>.`;
+8. [REASONING MANDATE]: Write your step-by-step technical threat analysis, threat modeling, and deductive reasoning inside <think>...</think> in Arabic, then provide your comprehensive security report immediately after </think>.
+
+9. [UNIVERSAL VIDEO & SOCIAL MEDIA CONTENT INTELLIGENCE (TikTok, YouTube, Meta, X)]:
+   - When a video link (TikTok, YouTube, Instagram Reels, Facebook, X) is analyzed, you are provided with full access to:
+     * Transcribed speech and subtitles (ASR/Whisper) with exact timestamps.
+     * Optical Vision & OCR Keyframe Analysis captured from the video stream.
+     * Video metadata, author, caption, and hashtags.
+   - NEVER apologize, NEVER refuse, and NEVER claim you cannot access or watch TikTok/YouTube videos or determine written text/passwords.
+   - If the user asks about on-screen text, passwords, timestamps, codes, or specific moments in the video, directly examine and provide the answer using the synchronized Optical Vision (OCR) data and spoken transcript provided in your context.
+
+10. [ENTERPRISE AI IMAGE AUTHENTICITY & 5-LAYER FORENSICS DETECTION ENGINE (محرك التحقق من أصالة الصورة وكشف التوليد)]:
+    - When the user uploads an image and requests authenticity, metadata, or digital forensics analysis (keywords: ai, ذكاء اصطناعي, فحص الصورة, ميتاداتا, توليد, fake, deepfake, c2pa, synthid, midjourney, dalle, flux, هل الصورة حقيقية, etc.), the system executes an enterprise 5-Layer Consensus Scoring pipeline (approaching deterministic 99.9% detection):
+      * Layer 1: Cryptographic Provenance & Watermarks (C2PA / JUMBF manifests, Google SynthID, Stable Diffusion invisible watermarks).
+      * Layer 2: Deep Metadata & Generation Workflow Parser (PNG tEXt/zTXt chunks, ComfyUI execution graph, Automatic1111 parameters, Midjourney, DALL-E, Flux, Firefly).
+      * Layer 3: Signal Processing & Hardware Sensor Residual Analysis (PRNU hardware sensor noise verification, 2D FFT spectral decay & checkerboard grid artifacts, Error Level Analysis - ELA).
+      * Layer 4: Multi-Model Deep Learning Ensemble (Vision Transformer ViT-B/16 + ConvNeXt-Large neural probability scoring).
+      * Layer 5: Micro-Visual & Anatomical Inconsistency Forensics (Lighting vector coherence, specular pupil reflections, background text gibberish, limb/finger edge blending).
+      * Scoring Consensus: If C2PA/SynthID/Workflow is found -> 100% Deterministic AI-Generated match. If stripped -> PRNU (35%) + FFT (25%) + Deep Ensemble (30%) + ELA/Artifacts (10%).
+    - You MUST format your response as follows:
+      a) Output the AI-DETECT-BADGE header directly at the start of your response: "### [AI-DETECT-BADGE: AI-Generated | 99.9%]" or "### [AI-DETECT-BADGE: Authentic Camera Photograph | 99.2%]".
+      b) Render the complete 5-Layer Forensic Breakdown Table detailing the status (CONFIRMED / FLAGGED / PASS) and exact technical indicators.
+      c) Provide the deep technical analysis across all 5 layers with structured Arabic explanations.
+      d) Include the categorized JSON schema block and OPSEC sanitization advice.`;
 
 /**
  * Robust URL extraction and sanitization
@@ -726,7 +760,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
     status: 'ONLINE',
     protocol: 'MATANY-CORE',
     text_engine: 'anthracite-org/magnum-v4-72b (NSFW NANO +21 MAX Architecture)',
-    vision_extractor: 'Fathom Cam Vision Multi-Tier (Gemini 2.5 Flash / Qwen 2.5 VL / GPT-4o Mini)',
+    vision_extractor: 'deepseek-v4-flash-vision-exp (Native DeepSeek Vision Perception)',
     timestamp: new Date().toISOString()
   });
 });
@@ -760,6 +794,84 @@ app.get('/api/resolve-link', async (req: Request, res: Response) => {
   }
 });
 
+// YouTube Transcript Extraction Endpoint
+app.post('/api/youtube-transcript', async (req: Request, res: Response) => {
+  try {
+    const { url, videoId } = req.body || {};
+    const input = url || videoId;
+    if (!input || typeof input !== 'string') {
+      return res.status(400).json({ error: 'Missing url or videoId parameter' });
+    }
+    console.log(`[API /api/youtube-transcript] Extracting transcript for: ${input}`);
+    const result = await fetchYouTubeTranscript(input);
+    if ('error' in result) {
+      return res.status(422).json(result);
+    }
+    // Don't send full segments array to keep response lean — only text + meta
+    const { segments, ...meta } = result;
+    return res.json({ ...meta, segmentCount: segments.length });
+  } catch (err: any) {
+    console.error('[API /api/youtube-transcript Error]:', err);
+    return res.status(500).json({ error: err?.message || 'Failed to fetch transcript' });
+  }
+});
+
+app.get('/api/youtube-transcript', async (req: Request, res: Response) => {
+  try {
+    const input = (req.query.url || req.query.videoId || req.query.v) as string;
+    if (!input || typeof input !== 'string') {
+      return res.status(400).json({ error: 'Missing url, videoId or v query parameter' });
+    }
+    console.log(`[API /api/youtube-transcript] Extracting transcript for: ${input}`);
+    const result = await fetchYouTubeTranscript(input);
+    if ('error' in result) {
+      return res.status(422).json(result);
+    }
+    const { segments, ...meta } = result;
+    return res.json({ ...meta, segmentCount: segments.length });
+  } catch (err: any) {
+    console.error('[API /api/youtube-transcript Error]:', err);
+    return res.status(500).json({ error: err?.message || 'Failed to fetch transcript' });
+  }
+});
+
+// TikTok Video Data & Subtitles Extraction Endpoint
+app.post('/api/tiktok', async (req: Request, res: Response) => {
+  try {
+    const { url } = req.body || {};
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ error: 'Missing url parameter' });
+    }
+    console.log(`[API /api/tiktok] Extracting TikTok data for: ${url}`);
+    const result = await fetchTikTokData(url);
+    if ('error' in result) {
+      return res.status(422).json(result);
+    }
+    return res.json(result);
+  } catch (err: any) {
+    console.error('[API /api/tiktok Error]:', err);
+    return res.status(500).json({ error: err?.message || 'Failed to fetch TikTok data' });
+  }
+});
+
+app.get('/api/tiktok', async (req: Request, res: Response) => {
+  try {
+    const url = req.query.url as string;
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ error: 'Missing url query parameter' });
+    }
+    console.log(`[API /api/tiktok] Extracting TikTok data for: ${url}`);
+    const result = await fetchTikTokData(url);
+    if ('error' in result) {
+      return res.status(422).json(result);
+    }
+    return res.json(result);
+  } catch (err: any) {
+    console.error('[API /api/tiktok Error]:', err);
+    return res.status(500).json({ error: err?.message || 'Failed to fetch TikTok data' });
+  }
+});
+
 // Helper function for automatic retry if provider returns 429 rate limit
 async function executeFetchWithRetry(url: string, options: any, maxRetries = 3): Promise<globalThis.Response | null> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -785,13 +897,42 @@ async function executeFetchWithRetry(url: string, options: any, maxRetries = 3):
   return null;
 }
 
-// Multi-Tier Fathom Cam Vision Perception: Supports up to 5 images with distinct indexing & OCR
+// ─── Native DeepSeek Vision Perception (deepseek-v4-flash-vision-exp) ────────
+
+const visionContextCache = new Map<string, { result: string; expiresAt: number }>();
+const VISION_CACHE_TTL_MS = 30 * 60 * 1000;
+
+async function urlToBase64DataUri(url: string, timeoutMs = 8000): Promise<string> {
+  if (!url) return '';
+  if (url.startsWith('data:image/')) return url;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return url;
+    const contentType = res.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return `data:${contentType.split(';')[0]};base64,${buffer.toString('base64')}`;
+  } catch {
+    return url;
+  }
+}
+
+// Multi-Tier Fathom Cam Vision Perception: Powered by native deepseek-v4-flash-vision-exp
 async function extractVisualContext(
   imageMessages: any[],
-  signal: AbortSignal
+  signal?: AbortSignal
 ): Promise<string> {
-  if (!OPENROUTER_API_KEY) {
-    console.warn('[Fathom Cam Vision] OPENROUTER_API_KEY is not set.');
+  if (!DEEPSEEK_API_KEY) {
+    console.warn('[Fathom Cam Vision] DEEPSEEK_API_KEY is not set.');
     return '';
   }
 
@@ -801,20 +942,42 @@ async function extractVisualContext(
 
     for (const msg of imageMessages) {
       if (Array.isArray(msg.content)) {
-        const imgObjs = msg.content.filter((c: any) => c.type === 'image_url' || c.image_url);
+        const rawImgObjs = msg.content.filter((c: any) => c.type === 'image_url' || c.image_url);
         const textObj = msg.content.find((c: any) => c.type === 'text')?.text || '';
         if (textObj) userQuestion = textObj;
 
-        if (imgObjs.length > 0) {
+        if (rawImgObjs.length > 0) {
+          // Convert all URLs to base64 Data URIs in parallel
+          const imgObjs = await Promise.all(
+            rawImgObjs.map(async (imgObj: any) => {
+              const rawUrl = imgObj.image_url?.url || imgObj.url || '';
+              const dataUri = await urlToBase64DataUri(rawUrl);
+              return {
+                type: 'image_url',
+                image_url: { url: dataUri || rawUrl }
+              };
+            })
+          );
+
           const contentParts: any[] = [
             {
               type: 'text',
-              text: `[نظام الإدراك البصري الفائق واستخراج البيانات متعدد الصور Fathom Cam Multi-Vision]:
-تم رفع عدد (${imgObjs.length}) صور من قبل المستخدم. قم بتحليل كل صورة على حدة وترقيمها وفهم محتواها بدقة استثنائية باللغة العربية:
-1. استخراج النصوص الكامل والفهرسة المنفصلة (Full OCR & Indexing): لكل صورة [صورة رقم X]، استخرج كافة النصوص والكلمات والأرقام القومية والتواريخ والأسماء والأختام والأكواد والجداول بدقة 100% دون أي حذف.
-2. التمييز والفهرسة المستقلة: اربط كل جزء من التحليل برقم الصورة الخاص به [صورة 1]، [صورة 2]، [صورة 3]، [صورة 4]، [صورة 5] بدقة مطلقة، ليفهم النظام والمستخدم بوضوح تام أي صورة يشير إليها المستخدم حتى في أطول السياقات المحادثية.
-3. التحليل والمقارنة الشاملة: قارن بين الوثائق/الصور المرفوعة واستخرج الفروقات ونقاط الاتفاق والتحليل المترابط.
-4. الإجابة المباشرة عن طلب المستخدم: "${userQuestion || 'حلل ونظم وقارن كافة بيانات هذه الصور بالتفصيل الكامل.'}".`
+              text: `[نظام الإدراك البصري الفائق والتحليل الجنائي المتقدم — deepseek-v4-flash-vision-exp]:
+تم رفع عدد (${imgObjs.length}) صور من قبل المستخدم. قم بتحليل كل صورة على حدة وترقيمها بدقة استثنائية باللغة العربية:
+
+1. [فحص وتدقيق أصالة الصورة والذكاء الاصطناعي (Deep Optical AI Detection & Forensics)]:
+قم بفحص تفصيلي للمؤشرات البصرية لتحديد ما إذا كانت الصورة حقيقية أم مولدة بالذكاء الاصطناعي (AI-Generated / Deepfake / Synthetic):
+- ملمس البشرة والمسام (Skin micro-texture): هل البشرة ذات مسام وتجاعيد طبيعية حقيقية أم بلاستيكية شديدة النعومة (Plastic sheen)؟
+- تفاصيل العيون والبؤبؤ (Pupil & Specular reflections): هل انعكاسات الضوء في حدقتي العينين متطابقة هندسياً ومتسقة مع مصادر الضوء؟
+- اليدين والأصابع والأطراف (Hands, Fingers & Limbs): هل عدد الأصابع وشكل الأظافر سليم وطبيعي 100% دون اندماج أو تشوه؟
+- الخلفية والعمق البصري (Background bokeh & depth physics): هل العزل البصري طبيعي بصرياً أم هناك تلاشي شاذ في الحواف (Edge blending artifacts)؟
+- المجوهرات والأقمشة والملابس (Fabric weave & Accessories): هل خطوط الخياطة والأقمشة وتفاصيل التطريز ذات تفاصيل مادية واقعية؟
+- النصوص والخطوط في الخلفية (Text rendering): هل أي كتابات ظاهرة هي حروف حقيقية مقروءة أم رسوم غير مفهومة (AI gibberish)؟
+- النتيجة القطعية: حدد بوضوح قاطع [AI_VERDICT: AI-Generated] بنسبة مئوية (مثال: 99.9%) أو [AI_VERDICT: Authentic Camera Photograph] بنسبة مئوية (مثال: 99.4%) مع سرد الأدلة البصرية.
+
+2. استخراج النصوص الكامل والفهرسة المنفصلة (Full OCR & Micro-OCR): لكل صورة [صورة رقم X]، استخرج كافة النصوص والكلمات والأرقام والتواريخ والأسماء بدقة 100%.
+3. التمييز والفهرسة المستقلة: اربط كل جزء من التحليل برقم الصورة الخاص به [صورة 1]، [صورة 2] بدقة مطلقة.
+4. الإجابة المباشرة عن طلب المستخدم: "${userQuestion || 'حلل هذه الصور وافحص أصالتها بدقة استثنائية.'}".`
             }
           ];
 
@@ -836,43 +999,40 @@ async function extractVisualContext(
 
     if (formattedVisionItems.length === 0) return '';
 
-    const visionModels = [
-      'google/gemini-2.5-flash',
-      'qwen/qwen-2.5-vl-72b-instruct',
-      'openai/gpt-4o-mini'
-    ];
+    // Cache lookup based on content signature
+    const cacheKey = JSON.stringify(formattedVisionItems).slice(0, 500);
+    const cachedEntry = visionContextCache.get(cacheKey);
+    if (cachedEntry && Date.now() < cachedEntry.expiresAt) {
+      console.log(`[Fathom Cam Vision] Cache hit for deepseek-v4-flash-vision-exp`);
+      return cachedEntry.result;
+    }
 
-    for (const vModel of visionModels) {
-      try {
-        const visionRes = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'HTTP-Referer': 'https://matany.one',
-            'X-Title': 'Matany AI Vision',
-          },
-          body: JSON.stringify({
-            model: vModel,
-            messages: formattedVisionItems,
-            temperature: 0.2,
-            max_tokens: 2500,
-          }),
-          signal
-        });
+    const visionRes = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-v4-flash-vision-exp',
+        messages: formattedVisionItems,
+        temperature: 0.2,
+        max_tokens: 3000,
+      }),
+      signal
+    });
 
-        if (visionRes.ok) {
-          const data = await visionRes.json();
-          const result = data.choices?.[0]?.message?.content || '';
-          if (result && result.trim()) {
-            console.log(`[Fathom Cam Vision] (${vModel}) Extracted ${result.length} chars of visual perception.`);
-            return result.trim();
-          }
-        }
-      } catch (tierErr: any) {
-        if (tierErr.name === 'AbortError') throw tierErr;
-        console.warn(`[Vision Tier Fail] ${vModel}:`, tierErr.message);
+    if (visionRes.ok) {
+      const data = await visionRes.json();
+      const result = data.choices?.[0]?.message?.content || '';
+      if (result && result.trim()) {
+        console.log(`[Fathom Cam Vision] (deepseek-v4-flash-vision-exp) Extracted ${result.length} chars of visual perception.`);
+        visionContextCache.set(cacheKey, { result: result.trim(), expiresAt: Date.now() + VISION_CACHE_TTL_MS });
+        return result.trim();
       }
+    } else {
+      const errText = await visionRes.text().catch(() => '');
+      console.warn('[Fathom Cam Vision] deepseek-v4-flash-vision-exp HTTP Error:', visionRes.status, errText);
     }
 
     return '';
@@ -881,6 +1041,318 @@ async function extractVisualContext(
     console.warn('[Vision Exception]:', err.message);
     return '';
   }
+}
+
+// ─── Multi-Link Intelligence Matrix Core Helpers ─────────────────────────────
+
+interface ProcessedLinkData {
+  index: number;
+  url: string;
+  category: 'youtube' | 'tiktok' | 'social_media' | 'web_site';
+  platformLabel: string;
+  summaryBlock: string;
+}
+
+function extractAllConversationUrls(
+  messages: any[],
+  explicitTargetUrl?: string,
+  targetUrlsArray?: string[]
+): string[] {
+  const urls: string[] = [];
+  const seen = new Set<string>();
+
+  const addUrl = (raw: string) => {
+    if (!raw || typeof raw !== 'string') return;
+    let clean = raw.trim();
+    clean = clean.replace(/^[^a-zA-Z0-9]+(?=https?:\/\/)/i, '');
+    clean = clean.replace(/^\/+/, '');
+    clean = clean.replace(/[.,;:)>\]"']+$/, '');
+    if (!/^https?:\/\//i.test(clean)) {
+      clean = 'https://' + clean;
+    }
+    try {
+      const parsed = new URL(clean);
+      const href = parsed.href;
+      if (!seen.has(href) && urls.length < 5) {
+        seen.add(href);
+        urls.push(href);
+      }
+    } catch {
+      if (!seen.has(clean) && urls.length < 5) {
+        seen.add(clean);
+        urls.push(clean);
+      }
+    }
+  };
+
+  const urlRegex = /(?:https?:\/\/[^\s<>"'{}|\\^`]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+[^\s<>"'{}|\\^`]*|[a-zA-Z0-9-]+\.(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/gi;
+
+  // 1. Scan all past user messages in chronological order to build a persistent conversation registry
+  if (Array.isArray(messages)) {
+    messages.forEach((msg: any) => {
+      if (msg.role === 'user') {
+        const text = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.map((c: any) => c.text || '').join(' ') : '');
+        const matches = text.match(urlRegex) || [];
+        matches.forEach(addUrl);
+      }
+    });
+  }
+
+  // 2. Also register explicit targetUrls / targetUrl
+  if (Array.isArray(targetUrlsArray)) {
+    targetUrlsArray.forEach(addUrl);
+  }
+  if (explicitTargetUrl) {
+    addUrl(explicitTargetUrl);
+  }
+
+  return urls;
+}
+
+function formatSecs(secs: number): string {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+async function processSingleLinkIntelligence(
+  url: string,
+  index: number,
+  userPrompt: string,
+  deepSearch: boolean,
+  isCyber: boolean,
+  signal?: AbortSignal
+): Promise<ProcessedLinkData> {
+  const isYt = containsYouTubeUrl(url);
+  const isTt = isTikTokUrl(url);
+  const socialInfo = extractSocialUrlFromText(url);
+  const isOtherSoc = Boolean(socialInfo && socialInfo.platform !== 'youtube' && socialInfo.platform !== 'tiktok');
+
+  if (isYt) {
+    try {
+      const ytVideoId = extractYouTubeVideoId(url);
+      const [ytResult] = await Promise.all([
+        fetchYouTubeTranscript(url)
+      ]);
+      const videoDuration = ('durationSeconds' in ytResult && ytResult.durationSeconds) ? ytResult.durationSeconds : 300;
+      const keyframes = ytVideoId ? extractYouTubeKeyframes(ytVideoId, videoDuration) : [];
+
+      let visionResult: VideoVisionResult | null = null;
+      if (keyframes.length > 0 && DEEPSEEK_API_KEY) {
+        visionResult = await performVideoVisionPerception(
+          ytVideoId || 'youtube_video',
+          'youtube',
+          keyframes,
+          {
+            title: ('title' in ytResult && ytResult.title) ? ytResult.title : undefined,
+            creator: ('channelName' in ytResult && ytResult.channelName) ? ytResult.channelName : undefined,
+            userPrompt,
+          },
+          DEEPSEEK_API_KEY,
+          DEEPSEEK_BASE_URL,
+          signal
+        );
+      }
+
+      const masterBlock = buildMasterVideoIntelligenceBlock(
+        ('title' in ytResult) ? ytResult : null,
+        visionResult,
+        'youtube'
+      );
+
+      return {
+        index,
+        url,
+        category: 'youtube',
+        platformLabel: 'فيديو يوتيوب (YouTube)',
+        summaryBlock: masterBlock
+      };
+    } catch (err: any) {
+      return {
+        index,
+        url,
+        category: 'youtube',
+        platformLabel: 'فيديو يوتيوب (YouTube)',
+        summaryBlock: `[تعذر فحص يوتيوب: ${err?.message || 'خطأ'}]`
+      };
+    }
+  }
+
+  if (isTt) {
+    try {
+      const ttResult = await fetchTikTokData(url);
+      let visionResult: VideoVisionResult | null = null;
+
+      const extraFrames = ('extraFrames' in ttResult && ttResult.extraFrames) ? ttResult.extraFrames : undefined;
+      const keyframes = ('videoId' in ttResult && ttResult.videoId)
+        ? extractTikTokKeyframes(ttResult.videoId, ttResult.thumbnailUrl, extraFrames)
+        : [];
+
+      if (keyframes.length > 0 && DEEPSEEK_API_KEY && 'author' in ttResult) {
+        visionResult = await performVideoVisionPerception(
+          ttResult.videoId,
+          'tiktok',
+          keyframes,
+          {
+            title: ttResult.description || ttResult.title,
+            creator: `@${ttResult.author.username}`,
+            userPrompt,
+          },
+          DEEPSEEK_API_KEY,
+          DEEPSEEK_BASE_URL,
+          signal
+        );
+      }
+
+      const tiktokContext = ('canonicalUrl' in ttResult)
+        ? buildTikTokContextBlock(ttResult as TikTokResult)
+        : `[فشل فحص تيك توك: ${(ttResult as TikTokFailure).message}]`;
+
+      const masterTikTokBlock = [
+        tiktokContext,
+        visionResult ? buildMasterVideoIntelligenceBlock(
+          ('transcriptText' in ttResult && ttResult.transcriptText) ? {
+            rawSpokenText: ttResult.transcriptText,
+            formattedCaptionsWithTimestamps: ttResult.transcriptSegments?.map(s => `[${formatSecs(Math.round(s.startMs / 1000))}] ${s.text}`).join('\n') || ttResult.transcriptText,
+            transcriptLines: ttResult.transcriptSegments?.map(s => ({
+              timestamp: formatSecs(Math.round(s.startMs / 1000)),
+              startSec: Math.round(s.startMs / 1000),
+              text: s.text
+            })) || [],
+            source: ttResult.transcriptSource === 'closed_captions' ? 'closed_captions' : 'video_description',
+            videoId: ttResult.videoId,
+            language: 'ar'
+          } as any : null,
+          visionResult,
+          'tiktok'
+        ) : ''
+      ].filter(Boolean).join('\n\n');
+
+      return {
+        index,
+        url,
+        category: 'tiktok',
+        platformLabel: 'فيديو تيك توك (TikTok)',
+        summaryBlock: masterTikTokBlock
+      };
+    } catch (err: any) {
+      return {
+        index,
+        url,
+        category: 'tiktok',
+        platformLabel: 'فيديو تيك توك (TikTok)',
+        summaryBlock: `[تعذر فحص تيك توك: ${err?.message || 'خطأ'}]`
+      };
+    }
+  }
+
+  if (isOtherSoc && socialInfo) {
+    try {
+      const socialResult = await fetchSocialVideoData(url);
+      let visionResult: VideoVisionResult | null = null;
+      const keyframes = ('videoId' in socialResult && socialResult.videoId)
+        ? [
+            {
+              timestampSec: 0,
+              timestampFormatted: '00:00',
+              url: socialResult.thumbnailUrl || '',
+              label: 'صورة المنشور / الغلاف الأساسي'
+            }
+          ]
+        : [];
+
+      if (keyframes.length > 0 && DEEPSEEK_API_KEY && 'author' in socialResult) {
+        visionResult = await performVideoVisionPerception(
+          socialResult.videoId || 'social_video',
+          socialInfo.platform,
+          keyframes,
+          {
+            title: socialResult.title,
+            creator: `@${socialResult.author.username}`,
+            userPrompt,
+          },
+          DEEPSEEK_API_KEY,
+          DEEPSEEK_BASE_URL,
+          signal
+        );
+      }
+
+      const socialBlock = ('canonicalUrl' in socialResult)
+        ? buildSocialVideoContextBlock(socialResult, visionResult)
+        : `[فشل فحص منصة ${socialInfo.platform}: ${(socialResult as SocialVideoFailure).message}]`;
+
+      return {
+        index,
+        url,
+        category: 'social_media',
+        platformLabel: `منصة ${socialInfo.platform}`,
+        summaryBlock: socialBlock
+      };
+    } catch (err: any) {
+      return {
+        index,
+        url,
+        category: 'social_media',
+        platformLabel: `منصة ${socialInfo?.platform || 'التواصل الاجتماعي'}`,
+        summaryBlock: `[تعذر فحص المنصة: ${err?.message || 'خطأ'}]`
+      };
+    }
+  }
+
+  // Generic Website / Web Link
+  let effectiveTargetUrl = url;
+  let linkReconSummary = '';
+  try {
+    const resolvedLink = await resolveAndProfileUrl(url);
+    if (resolvedLink) {
+      effectiveTargetUrl = resolvedLink.originalUrl || url;
+      linkReconSummary = resolvedLink.rawAnalysisSummaryAr || '';
+    }
+  } catch {}
+
+  const urlAuditText = await fetchUrlSecurityAudit(effectiveTargetUrl).catch(() => '');
+  const webBlock = [
+    `🌐 [استكشاف وتحليل الموقع]: ${effectiveTargetUrl}`,
+    linkReconSummary,
+    urlAuditText
+  ].filter(Boolean).join('\n\n');
+
+  return {
+    index,
+    url: effectiveTargetUrl,
+    category: 'web_site',
+    platformLabel: 'موقع ويب واستطلاع تقني',
+    summaryBlock: webBlock
+  };
+}
+
+function buildMultiLinkMatrixBlock(processedLinks: ProcessedLinkData[]): string {
+  if (processedLinks.length === 0) return '';
+  const total = processedLinks.length;
+  const bar = '━'.repeat(55);
+
+  const sections: string[] = [
+    `🌐 [مصفوفة استخبارات وفحص الروابط المتعددة — إجمالي الروابط: (${total}) روابط مفحوصة ومفهرسة بالتسلسل]`,
+    bar
+  ];
+
+  for (const item of processedLinks) {
+    sections.push(`\n══════════════════════════════════════════════════════════════════════════════════`);
+    sections.push(`🔗 [رابط رقم ${item.index + 1} | Link #${item.index + 1}]: ${item.url}`);
+    sections.push(`• الترتيب في الرسالة: الرابط رقم (${item.index + 1})`);
+    sections.push(`• النوع والمنصة: ${item.platformLabel}`);
+    sections.push(`──────────────────────────────────────────────────────────────────────────────────`);
+    sections.push(item.summaryBlock);
+  }
+
+  sections.push(`\n${bar}`);
+  sections.push(`[توجيه استخباراتي صارم للتعامل مع الروابط المتعددة (${total} روابط) — MULTI-LINK REASONING]:`);
+  sections.push(`1. الترتيب والفهرسة الصريحة: تم ترقيم كل رابط بالترتيب الدقيق من [رابط رقم 1] إلى [رابط رقم ${total}].`);
+  sections.push(`2. الفهم السياقي الذكي للإشارات: إذا أشار المستخدم لأي رابط برقم ترتيبة (مثل "الرابط الأول"، "الفيديو الثاني"، "موقع رقم 3") أو باسم الموقع أو المنصة، اربط تحليلك مباشرة ببيانات ذلك الرابط المحدد أعلاه دون أي خلط.`);
+  sections.push(`3. المقارنة والتحليل الشامل: إذا كان طلب المستخدم يتضمن مقارنة أو تحليلاً مجمعاً أو استخراج فروقات، قارن بين الروابط بدقة واحترافية في جداول ومقارنات واضحة.`);
+  sections.push(bar);
+
+  return sections.join('\n');
 }
 
 // Chat completion endpoint (with SSE streaming, Vision Pipeline, and Instant Backend Abort)
@@ -945,6 +1417,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
   const isCyber = model === 'deepseek-v4-flash-cyber' || model.includes('cyber');
   const isVision = model === 'deepseek-v4-flash-vision-exp' || model.includes('vision');
+  const isMediaSpark = model === 'meta/muse-spark-1.2-contributor' || model.includes('muse-spark') || model.includes('spark');
 
   const baseSystemPrompt = isCyber
     ? (isX1Mode ? `${SYSTEM_PROMPT_CYBER}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_CYBER)
@@ -963,103 +1436,142 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
   let processedMessages = cleanedMessages;
 
-  // Stage 1: Vision Perception
+  // Stage 1: Vision Perception & Forensics
   if (hasMultimodal || isVision) {
     console.log('[X1-PIPELINE] Multimodal image detected. Step 1: Extracting visual transcript with multi-tier vision...');
     const visionMessages = cleanedMessages.filter((m: any) => Array.isArray(m.content) || m.role === 'user');
     const visualExtraction = await extractVisualContext(visionMessages, upstreamAbortController.signal);
 
-    if (visualExtraction) {
-      console.log('[X1-PIPELINE] Step 2: Injecting visual perception into Magnum v4 72B context...');
-      processedMessages = cleanedMessages.map((m: any) => {
-        if (Array.isArray(m.content)) {
-          const textPart = m.content.find((c: any) => c.type === 'text')?.text || 'حلل هذه الصورة واستخرج تفاصيلها.';
-          return {
-            role: m.role,
-            content: `${textPart}\n\n[الإدراك البصري الفائق المستخرج عبر Fathom Cam Vision]:\n${visualExtraction}\n\n[توجيه استجابة]: أجب عن طلب المستخدم وصِف واستنتج كافة المعلومات بناءً على الرؤية البصرية المستخرجة أعلاه بأسلوب ذكي وبلاغي.`
-          };
+    let forensicBlock = '';
+    const latestUserContent = cleanedMessages.filter((m: any) => m.role === 'user').pop();
+    const userPromptForForensics = typeof latestUserContent?.content === 'string'
+      ? latestUserContent.content
+      : Array.isArray(latestUserContent?.content)
+        ? (latestUserContent.content.find((c: any) => c.type === 'text')?.text || '')
+        : '';
+
+    const isForensicsExplicitlyRequested = isForensicAnalysisRequested(userPromptForForensics);
+
+    if (isForensicsExplicitlyRequested || isCyber || hasMultimodal) {
+      console.log(`[X1-PIPELINE] [FORENSICS] Triggering 5-layer AI Authenticity & Forensics Engine (isCyber: ${isCyber}, requested: ${isForensicsExplicitlyRequested})...`);
+      try {
+        const forensicPromises: Promise<ForensicReport>[] = [];
+        const lastMsg = visionMessages[visionMessages.length - 1];
+        if (lastMsg && Array.isArray(lastMsg.content)) {
+          for (const item of lastMsg.content) {
+            const url = item?.image_url?.url || item?.image_url || '';
+            if (url && typeof url === 'string' && url.startsWith('data:image')) {
+              forensicPromises.push(runComprehensive5LayerForensics(url, upstreamAbortController.signal));
+            }
+          }
         }
-        return m;
-      });
-    } else {
-      processedMessages = cleanedMessages.map((m: any) => {
-        if (Array.isArray(m.content)) {
-          const textPart = m.content.find((c: any) => c.type === 'text')?.text || 'حلل هذه الصورة بالتفصيل.';
-          return {
-            role: m.role,
-            content: textPart
-          };
+
+        if (forensicPromises.length > 0) {
+          const reports = await Promise.all(forensicPromises);
+          const validReports = reports.filter(Boolean);
+          if (validReports.length > 0) {
+            forensicBlock = validReports.map((r, i) => buildForensicReportMarkdown(r)).join('\n\n');
+            console.log(`[X1-PIPELINE] [FORENSICS] ✓ 5-layer forensics complete for ${validReports.length} image(s). Score: ${validReports[0].consensusProbability}%`);
+          }
         }
-        return m;
-      });
+      } catch (fErr: any) {
+        console.warn('[Forensics Pipeline Exception]:', fErr.message);
+      }
+    }
+
+    if (visualExtraction || forensicBlock) {
+      const guidance = `
+[توجيه التحليل والتفكير الذكي الفائق — FATHOM REASONING DIRECTIVE]:
+1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى:
+   - حلل المعطيات البصرية والفنية للصورة بدقة هندسية وفيزيائية.
+   - إذا كانت بيانات EXIF الكاميرا موجودة، استعرض طراز الكاميرا والعدسة وإعدادات التصوير بدقة.
+   - إذا كانت بيانات EXIF مجردة (بسبب الضغط أو الحفظ من الويب أو برامج التواصل)، وضّح ذلك بذكاء للمستخدم دون تقديم جداول صماء فارغة، وعوّض عنها بتحليل بصري واستدلالي عميق للأبعاد والإضاءة والنصوص والعناصر الظاهرة.
+   - إذا سأل المستخدم عن أصالة الصورة أو الذكاء الاصطناعي، اذكر الشارة الفورية: "### [AI-DETECT-BADGE: AI-Generated | 99.9%]" أو "### [AI-DETECT-BADGE: Authentic Camera Photograph | 99.4%]" مع سرد الأدلة المقنعة.
+2. بعد إغلاق وسم </think>، قدّم تحليلاً شاملاً، فخماً، بليغاً ومباشراً يلبي رغبة المستخدم بأعلى درجات الاحترافية.`;
+
+      const combinedBlocks = [visualExtraction, forensicBlock, guidance].filter(Boolean).join('\n\n');
+      const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
+      if (lastUserIdx !== -1) {
+        const targetMsg = processedMessages[lastUserIdx];
+        const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
+        processedMessages[lastUserIdx] = {
+          ...targetMsg,
+          content: `${orig}\n\n${combinedBlocks}`
+        };
+      }
     }
   }
 
-  // Stage 2: Live Web Search & Cyber Reconnaissance Engine (Available on Demand across ALL models)
+  // Stage 2: Universal Multi-Link Intelligence Matrix
   const latestUserMsg = cleanedMessages.filter((m: any) => m.role === 'user').pop();
   const rawUserContent = typeof latestUserMsg?.content === 'string'
     ? latestUserMsg.content
     : (Array.isArray(latestUserMsg?.content) ? latestUserMsg.content.find((c: any) => c.type === 'text')?.text || '' : '');
 
-  const extractedTargetUrl = extractCleanUrl(explicitTargetUrl || rawUserContent);
+  const targetUrlsArray = Array.isArray(req.body.targetUrls) ? req.body.targetUrls : [];
+  const allExtractedUrls = extractAllConversationUrls(cleanedMessages, explicitTargetUrl, targetUrlsArray);
 
-  if (deepSearch || isCyber || Boolean(extractedTargetUrl)) {
-    let effectiveTargetUrl = extractedTargetUrl;
-    let linkReconSummary = '';
+  if (allExtractedUrls.length > 0) {
+    console.log(`[MULTI-LINK ENGINE] Discovered (${allExtractedUrls.length}) target URLs. Initiating parallel intelligence...`);
+    const linkPromises = allExtractedUrls.map((url, idx) =>
+      processSingleLinkIntelligence(url, idx, rawUserContent, deepSearch, isCyber, upstreamAbortController.signal)
+    );
 
-    if (extractedTargetUrl) {
-      try {
-        console.log(`[LINK RESOLVER] Unshortening and profiling target URL: ${extractedTargetUrl}...`);
-        const resolvedLink = await resolveAndProfileUrl(extractedTargetUrl);
-        if (resolvedLink) {
-          effectiveTargetUrl = resolvedLink.originalUrl || extractedTargetUrl;
-          linkReconSummary = resolvedLink.rawAnalysisSummaryAr || '';
-          console.log(`[LINK RESOLVER] Resolved: ${extractedTargetUrl} -> ${effectiveTargetUrl} (${resolvedLink.title})`);
-        }
-      } catch (linkErr: any) {
-        console.warn('[LINK RESOLVER Notice]:', linkErr?.message);
+    const settledLinks = await Promise.allSettled(linkPromises);
+    const validProcessedLinks: ProcessedLinkData[] = [];
+
+    settledLinks.forEach((res, idx) => {
+      if (res.status === 'fulfilled') {
+        validProcessedLinks.push(res.value);
+      } else {
+        validProcessedLinks.push({
+          index: idx,
+          url: allExtractedUrls[idx],
+          category: 'web_site',
+          platformLabel: 'رابط غير محدد',
+          summaryBlock: `[فشل فحص الرابط: ${res.reason?.message || 'خطأ'}]`
+        });
+      }
+    });
+
+    const masterMultiLinkMatrix = buildMultiLinkMatrixBlock(validProcessedLinks);
+
+    if (masterMultiLinkMatrix) {
+      console.log(`[MULTI-LINK MATRIX] ✓ Injected structured intelligence for (${validProcessedLinks.length}) links (${masterMultiLinkMatrix.length} chars)`);
+      const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
+      if (lastUserIdx !== -1) {
+        const targetMsg = processedMessages[lastUserIdx];
+        const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
+        processedMessages[lastUserIdx] = {
+          ...targetMsg,
+          content: `${orig}\n\n${masterMultiLinkMatrix}`
+        };
       }
     }
-
-    const shouldSearch = Boolean(deepSearch || isCyber);
-    const shouldAuditUrl = Boolean(effectiveTargetUrl && (isCyber || Boolean(explicitTargetUrl) || Boolean(extractedTargetUrl)));
-
-    if (deepSearch) {
-      console.log(`[FATHOM SEARCH PIPELINE] Initiating Live Web Intelligence for: "${rawUserContent.slice(0, 80)}..."`);
-    }
-
-    const [deepSearchResults, urlAuditResults] = await Promise.allSettled([
-      shouldSearch
-        ? performUltraDeepCyberSearch(rawUserContent, effectiveTargetUrl || undefined, upstreamAbortController.signal)
-        : Promise.resolve(''),
-      shouldAuditUrl && effectiveTargetUrl
-        ? fetchUrlSecurityAudit(effectiveTargetUrl)
-        : Promise.resolve('')
-    ]);
-
-    const deepSearchText = deepSearchResults.status === 'fulfilled' ? deepSearchResults.value : '';
-    const urlAuditText = urlAuditResults.status === 'fulfilled' ? urlAuditResults.value : '';
-
-    const combinedContext = [linkReconSummary, urlAuditText, deepSearchText].filter(Boolean).join('\n\n');
-
-    if (combinedContext) {
-      processedMessages = processedMessages.map((m: any) => {
-        if (m === latestUserMsg) {
-          const orig = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
-          return {
-            ...m,
-            content: `${orig}\n\n${combinedContext}\n\n[توجيه استخباراتي للرد]: لقد تم تزويدك ببيانات البحث والاستطلاع الحية والمباشرة أعلاه، أجب عن طلب وسؤال المستخدم بدقة وموضوعية وشمولية باللغة العربية.`
-          };
-        }
-        return m;
-      });
+  } else if (deepSearch) {
+    console.log(`[FATHOM SEARCH PIPELINE] Initiating Live Web Intelligence for: "${rawUserContent.slice(0, 80)}..."`);
+    const searchRes = await performUltraDeepCyberSearch(rawUserContent, undefined, upstreamAbortController.signal);
+    if (searchRes) {
+      const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
+      if (lastUserIdx !== -1) {
+        const targetMsg = processedMessages[lastUserIdx];
+        const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
+        processedMessages[lastUserIdx] = {
+          ...targetMsg,
+          content: `${orig}\n\n${searchRes}`
+        };
+      }
     }
   }
 
-  // Format final payload with system prompt
+  // ─── Token Economy & Smart Context Pruning Engine ───────────────────────────
+  const MAX_HISTORY_TURNS = 14;
+  const historySlice = processedMessages.slice(-MAX_HISTORY_TURNS);
+
   const formattedMessages = [
     { role: 'system', content: activeSystemPrompt },
-    ...processedMessages.map((m: { role: string; content: any; reasoning?: string }, idx: number) => {
+    ...historySlice.map((m: { role: string; content: any; reasoning?: string }, idx: number) => {
+      const isLatestTurn = idx === historySlice.length - 1;
       let contentStr = '';
       if (typeof m.content === 'string') {
         contentStr = m.content.trim();
@@ -1069,7 +1581,10 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         contentStr = JSON.stringify(m.content || '');
       }
 
-      // Preserve previous assistant reasoning chain in cumulative multi-turn chats
+      if (!isLatestTurn && contentStr.length > 2500) {
+        contentStr = `${contentStr.slice(0, 1200)}\n\n[... تم إيجاز السياق القديم لتوفير الذاكرة وسرعة الاستجابة ...]\n\n${contentStr.slice(-800)}`;
+      }
+
       if (m.role === 'assistant' && m.reasoning && m.reasoning.trim()) {
         contentStr = `<think>\n${m.reasoning.trim()}\n</think>\n\n${contentStr}`;
       }
@@ -1081,83 +1596,117 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     })
   ];
 
-  // Fast Intelligent Gateway Selection:
-  // If isX1Mode (NSFW NANO active): Route to OpenRouter Magnum v4 72B
-  // If standard/cyber mode: Route directly to DeepSeek API for instant 400ms streaming!
-  const useDeepSeekPrimary = !isX1Mode && !!DEEPSEEK_API_KEY;
-
-  let targetUrl = useDeepSeekPrimary
-    ? `${DEEPSEEK_BASE_URL}/chat/completions`
-    : `${OPENROUTER_BASE_URL}/chat/completions`;
-
-  let headers: Record<string, string> = useDeepSeekPrimary
-    ? {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-      }
-    : {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://matany.one',
-        'X-Title': 'Matany AI',
-      };
-
-  let requestPayload: any = {
-    model: useDeepSeekPrimary ? 'deepseek-chat' : 'anthracite-org/magnum-v4-72b',
-    messages: formattedMessages,
-    temperature: isX1Mode ? 0.8 : 0.75,
-    top_p: 0.9,
-    frequency_penalty: 0.1,
-    presence_penalty: 0.1,
-    stream: true,
-    max_tokens: 4096,
-  };
+    const basePayload: any = {
+      messages: formattedMessages,
+      temperature: isX1Mode ? 0.8 : 0.75,
+      top_p: 0.9,
+      frequency_penalty: 0.1,
+      presence_penalty: 0.1,
+      stream: true,
+      max_tokens: 4096,
+    };
 
   try {
-    let response: any;
-    try {
-      response = await executeFetchWithRetry(targetUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(requestPayload),
-        signal: upstreamAbortController.signal
-      });
-    } catch (err: any) {
-      console.warn('[X1-SERVER] Primary AI fetch failed:', err.message);
-    }
+    // Fast Intelligent Gateway Selection & Resilient 4-Tier Multi-Provider Fallback:
+    const gateCandidates: Array<{ name: string; url: string; headers: Record<string, string>; payload: any }> = [];
 
-    // Failover if primary gateway failed
-    if ((!response || !response.ok)) {
-      if (useDeepSeekPrimary && OPENROUTER_API_KEY) {
-        console.log('[X1-SERVER] Triggering failover to OpenRouter (deepseek/deepseek-chat)...');
-        targetUrl = `${OPENROUTER_BASE_URL}/chat/completions`;
-        headers = {
+    // Candidate 1: Meta Muse Spark 1.2 (Specialized for Video, Audio, Multimodal Files)
+    if (isMediaSpark && OPENROUTER_API_KEY) {
+      gateCandidates.push({
+        name: 'OpenRouter Meta Muse Spark 1.2',
+        url: `${OPENROUTER_BASE_URL}/chat/completions`,
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
           'HTTP-Referer': 'https://matany.one',
           'X-Title': 'Matany AI',
-        };
-        requestPayload.model = isX1Mode ? 'anthracite-org/magnum-v4-72b' : 'deepseek/deepseek-chat';
-        response = await executeFetchWithRetry(targetUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(requestPayload),
-          signal: upstreamAbortController.signal
-        });
-      } else if (!useDeepSeekPrimary && DEEPSEEK_API_KEY) {
-        console.log('[X1-SERVER] Triggering failover to DeepSeek API...');
-        targetUrl = `${DEEPSEEK_BASE_URL}/chat/completions`;
-        headers = {
+        },
+        payload: {
+          ...basePayload,
+          model: 'meta/muse-spark-1.2-contributor',
+        }
+      });
+    }
+
+    // Candidate 2: DeepSeek Direct (Fastest for standard chat)
+    if (!isX1Mode && !isMediaSpark && DEEPSEEK_API_KEY) {
+      gateCandidates.push({
+        name: 'DeepSeek Direct',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        };
-        requestPayload.model = 'deepseek-chat';
-        response = await executeFetchWithRetry(targetUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(requestPayload),
-          signal: upstreamAbortController.signal
+        },
+        payload: {
+          ...basePayload,
+          model: 'deepseek-chat',
+        }
+      });
+    }
+
+    // Candidate 3: OpenRouter Primary (Magnum v4 72B for +21, or DeepSeek Chat)
+    if (OPENROUTER_API_KEY) {
+      gateCandidates.push({
+        name: isX1Mode ? 'OpenRouter Magnum v4 72B' : 'OpenRouter DeepSeek Chat',
+        url: `${OPENROUTER_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
+        },
+        payload: {
+          ...basePayload,
+          model: isX1Mode ? 'anthracite-org/magnum-v4-72b' : 'deepseek/deepseek-chat',
+        }
+      });
+
+      // Candidate 3: OpenRouter Fallback Model (DeepSeek R1 / Free tier)
+      if (!isX1Mode) {
+        gateCandidates.push({
+          name: 'OpenRouter DeepSeek R1 Backup',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: {
+            ...basePayload,
+            model: 'deepseek/deepseek-r1:free',
+          }
         });
+      }
+    }
+
+    let response: any = null;
+    let lastError: string = '';
+
+    for (const candidate of gateCandidates) {
+      if (upstreamAbortController.signal.aborted || isClientDisconnected) break;
+      try {
+        console.log(`[X1-SERVER] Attempting gateway: ${candidate.name}...`);
+        const resCandidate = await executeFetchWithRetry(candidate.url, {
+          method: 'POST',
+          headers: candidate.headers,
+          body: JSON.stringify(candidate.payload),
+          signal: upstreamAbortController.signal
+        }, 2);
+
+        if (resCandidate && resCandidate.ok) {
+          response = resCandidate;
+          console.log(`[X1-SERVER] ✓ Connected successfully via ${candidate.name}`);
+          break;
+        } else if (resCandidate) {
+          const errTxt = await resCandidate.text().catch(() => '');
+          lastError = `${candidate.name} error (${resCandidate.status}): ${errTxt.slice(0, 150)}`;
+          console.warn(`[X1-SERVER] ✗ ${lastError}`);
+        }
+      } catch (gateErr: any) {
+        if (gateErr.name === 'AbortError' || upstreamAbortController.signal.aborted) break;
+        lastError = `${candidate.name} fetch failed: ${gateErr.message}`;
+        console.warn(`[X1-SERVER] ✗ ${lastError}`);
       }
     }
 
@@ -1167,11 +1716,10 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     }
 
     if (!response || !response.ok) {
-      const errorText = response ? await response.text() : 'No response from AI gateways';
-      console.error(`[API Gateway Error] Status: ${response?.status}`, errorText);
+      console.error('[API Gateway Failure]: All upstream providers failed.', lastError);
       if (!res.headersSent) {
-        res.status(response?.status || 500).json({
-          error: `خطأ في بوابة الذكاء الاصطناعي (${response?.status || 500}): ${errorText}`
+        res.status(502).json({
+          error: `تعذر الاتصال بمزودي الذكاء الاصطناعي حالياً (${lastError || 'انقطاع الشبكة'}). جاري المحاولة تلقائياً.`
         });
       }
       return;
@@ -1226,5 +1774,5 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`[X1-SERVER] Running on http://localhost:${PORT}`);
   console.log(`[X1-SERVER] Synthesis Engine: anthracite-org/magnum-v4-72b (NSFW NANO +21 MAX)`);
-  console.log(`[X1-SERVER] Perception Engine: Fathom Cam Vision (google/gemini-2.5-flash)`);
+  console.log(`[X1-SERVER] Perception Engine: deepseek-v4-flash-vision-exp (Native DeepSeek Multi-Vision)`);
 });

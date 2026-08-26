@@ -8,12 +8,13 @@ import { TopBar } from './components/TopBar';
 import { ChatWindow } from './components/ChatWindow';
 import { PromptInput } from './components/ui/ai-chat-input';
 import { SidebarDrawer } from './components/SidebarDrawer';
-import { ChatMessageItem, ModelType, WebAuthnVerificationResult } from './types';
+import { ChatMessageItem, ModelType, WebAuthnVerificationResult, MediaAttachmentItem } from './types';
 import { Square } from 'lucide-react';
 import { streamChatCompletion } from './services/api';
 import { memoryEngine } from './services/memoryManager';
 import { compressImageFile } from './lib/imageCompressor';
 import { detectAndExtractUrl } from './lib/utils';
+import { classifyFileType, extractVideoClientMetadata, extractAudioClientMetadata, extractTextClientMetadata } from './lib/mediaExtractor';
 import {
   supabase,
   signInWithGoogle,
@@ -97,7 +98,31 @@ export const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(messages));
+    try {
+      // Store lightweight messages in localStorage to prevent QuotaExceededError crashes (5MB browser limit)
+      // Never slice base64 strings as that corrupts image binary data!
+      const lightweightMsgs = messages.map(m => {
+        if (m.images || m.image) {
+          return {
+            ...m,
+            // Only persist lightweight image data or omit from local disk storage to protect quota
+            image: (m.image && m.image.length < 150000) ? m.image : undefined,
+            images: m.images ? m.images.filter(img => img && img.length < 150000) : undefined
+          };
+        }
+        return m;
+      });
+      localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(lightweightMsgs));
+    } catch (storageErr) {
+      console.warn('[LocalStorage Quota Protection caught]:', storageErr);
+      try {
+        // Fallback: store only recent 10 messages without image payloads
+        const minimalMsgs = messages.slice(-10).map(m => ({ ...m, image: undefined, images: undefined }));
+        localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(minimalMsgs));
+      } catch {
+        // Ignore if storage is completely full
+      }
+    }
     const stats = memoryEngine.processMessages(messages);
     setTotalTokens(stats.totalTokens);
   }, [messages]);
@@ -124,7 +149,7 @@ export const App: React.FC = () => {
 
   const handleSendMessage = async (
     text: string,
-    meta?: { model?: string; attachments?: File[]; targetUrl?: string; effort?: string; deepSearch?: boolean }
+    meta?: { model?: string; attachments?: File[]; targetUrl?: string; targetUrls?: string[]; effort?: string; deepSearch?: boolean }
   ) => {
     if (isStreaming) return;
 
@@ -132,18 +157,56 @@ export const App: React.FC = () => {
     setViewMode('chat');
 
     const attachedImagesDataUrls: string[] = [];
+    const attachedMediaList: MediaAttachmentItem[] = [];
+
     if (meta?.attachments && meta.attachments.length > 0) {
-      for (const file of meta.attachments.slice(0, 5)) {
-        try {
-          const dataUrl = await compressImageFile(file);
-          attachedImagesDataUrls.push(dataUrl);
-        } catch {
-          const fallbackUrl = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target?.result as string);
-            reader.readAsDataURL(file);
+      for (const file of meta.attachments.slice(0, 6)) {
+        const mediaType = classifyFileType(file);
+        if (mediaType === 'image') {
+          try {
+            const dataUrl = await compressImageFile(file);
+            attachedImagesDataUrls.push(dataUrl);
+          } catch {
+            const fallbackUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onload = (e) => resolve(e.target?.result as string);
+              reader.readAsDataURL(file);
+            });
+            attachedImagesDataUrls.push(fallbackUrl);
+          }
+        } else if (mediaType === 'video') {
+          const metaInfo = await extractVideoClientMetadata(file);
+          attachedMediaList.push({
+            id: `video-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            name: file.name,
+            type: 'video',
+            mimeType: file.type || 'video/mp4',
+            dataUrl: URL.createObjectURL(file),
+            size: file.size,
+            duration: metaInfo.duration,
+            width: metaInfo.width,
+            height: metaInfo.height,
           });
-          attachedImagesDataUrls.push(fallbackUrl);
+        } else if (mediaType === 'audio') {
+          const metaInfo = await extractAudioClientMetadata(file);
+          attachedMediaList.push({
+            id: `audio-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            name: file.name,
+            type: 'audio',
+            mimeType: file.type || 'audio/mp3',
+            dataUrl: URL.createObjectURL(file),
+            size: file.size,
+            duration: metaInfo.duration,
+          });
+        } else {
+          const textMeta = await extractTextClientMetadata(file);
+          attachedMediaList.push({
+            id: `doc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            name: file.name,
+            type: 'document',
+            mimeType: file.type || 'text/plain',
+            size: file.size,
+          });
         }
       }
     }
@@ -152,14 +215,27 @@ export const App: React.FC = () => {
     const uniqueImagesDataUrls = Array.from(new Set(attachedImagesDataUrls));
 
     const trimmedText = text.trim();
-    const effectivePrompt = trimmedText || (uniqueImagesDataUrls.length > 0 ? (uniqueImagesDataUrls.length > 1 ? `حلل هذه الـ ${uniqueImagesDataUrls.length} صور وقارن بينها واستخرج كافة التفاصيل والمعلومات بدقة.` : 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.') : '');
-    if (!effectivePrompt && uniqueImagesDataUrls.length === 0) return;
+    let effectivePrompt = trimmedText;
+    if (!effectivePrompt) {
+      if (attachedMediaList.length > 0) {
+        const names = attachedMediaList.map(m => `"${m.name}" (${m.type})`).join('، ');
+        effectivePrompt = `قم بتحليل واستيعاب المعطيات والبيانات الواردة في المرفقات التالية بالتفصيل: ${names}`;
+      } else if (uniqueImagesDataUrls.length > 0) {
+        effectivePrompt = uniqueImagesDataUrls.length > 1
+          ? `حلل هذه الـ ${uniqueImagesDataUrls.length} صور وقارن بينها واستخرج كافة التفاصيل والمعلومات بدقة.`
+          : 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.';
+      }
+    }
+
+    if (!effectivePrompt && uniqueImagesDataUrls.length === 0 && attachedMediaList.length === 0) return;
 
     const detectedUrlInfo = detectAndExtractUrl(effectivePrompt);
     const resolvedTargetUrl = meta?.targetUrl || (detectedUrlInfo.hasUrl ? detectedUrlInfo.cleanUrl : undefined);
 
     let chosenModel: ModelType;
-    if (attachedImagesDataUrls.length > 0) {
+    if (attachedMediaList.length > 0) {
+      chosenModel = 'meta/muse-spark-1.2-contributor';
+    } else if (attachedImagesDataUrls.length > 0) {
       chosenModel = 'deepseek-v4-flash-vision-exp';
     } else if (meta?.model) {
       chosenModel = meta.model as ModelType;
@@ -179,6 +255,7 @@ export const App: React.FC = () => {
       content: effectivePrompt,
       image: uniqueImagesDataUrls[0],
       images: uniqueImagesDataUrls,
+      mediaAttachments: attachedMediaList,
       timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
       isX1: isX1Active,
       model: chosenModel,
@@ -233,6 +310,7 @@ export const App: React.FC = () => {
       deepSearch: meta?.deepSearch ?? false,
       memoryPrompt: memoryContextPrompt,
       targetUrl: resolvedTargetUrl || undefined,
+      targetUrls: meta?.targetUrls || (resolvedTargetUrl ? [resolvedTargetUrl] : undefined),
       signal: streamAbortController.signal,
       onChunk: (data) => {
         fullAssistantResponse = data.content;

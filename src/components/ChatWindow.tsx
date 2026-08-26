@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ChatMessageItem } from '../types';
 import { ChatMessage } from './ChatMessage';
+import { getConversationGlobalUrls, getConversationGlobalImages } from '../lib/utils';
 import { Sparkles, ShieldOff, Eye, Camera, ShieldCheck, ChevronDown, ArrowDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -136,6 +137,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     return () => observer.disconnect();
   }, []);
 
+  const globalUrlIndexMap = React.useMemo(() => {
+    const urls = getConversationGlobalUrls(messages);
+    const map: Record<string, number> = {};
+    urls.forEach((u, idx) => {
+      map[u] = idx + 1;
+    });
+    return map;
+  }, [messages]);
+
+  const globalImageIndexMap = React.useMemo(() => {
+    const imgs = getConversationGlobalImages(messages);
+    const map: Record<string, number> = {};
+    imgs.forEach((img, idx) => {
+      map[img] = idx + 1;
+    });
+    return map;
+  }, [messages]);
+
   return (
     <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Scrollable Container with Hardware Accelerated Scrolling */}
@@ -165,13 +184,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           </div>
         ) : (
           <div ref={messagesListRef} className="max-w-3xl mx-auto space-y-3 sm:space-y-4 pb-20 sm:pb-24">
-            {messages.map((msg, index) => (
-              <ChatMessage
-                key={msg.id || index}
-                message={msg}
-                isStreaming={isStreaming && index === messages.length - 1}
-              />
-            ))}
+            {messages.map((msg, index) => {
+              const prevUserMsg = messages
+                .slice(0, index)
+                .reverse()
+                .find(m => m.role === 'user');
+              const previousUserPrompt = prevUserMsg?.content || '';
+
+              return (
+                <ChatMessage
+                  key={msg.id || index}
+                  message={msg}
+                  previousUserPrompt={previousUserPrompt}
+                  globalUrlIndexMap={globalUrlIndexMap}
+                  globalImageIndexMap={globalImageIndexMap}
+                  isStreaming={isStreaming && index === messages.length - 1}
+                />
+              );
+            })}
             <div ref={bottomAnchorRef} className="h-1" />
           </div>
         )}

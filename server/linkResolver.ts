@@ -73,6 +73,12 @@ export interface ResolvedLinkData {
     infrastructure: string[];
   };
   designProfile: DesignSystemProfile;
+  mediaType?: 'video' | 'website';
+  videoMetadata?: {
+    videoId?: string;
+    authorName?: string;
+    thumbnailUrl?: string;
+  };
   rawAnalysisSummaryAr: string;
 }
 
@@ -720,34 +726,215 @@ export async function resolveAndProfileUrl(rawInputUrl: string): Promise<Resolve
     domain = new URL(finalUrl).hostname;
   } catch {}
 
+  // Check if target is a YouTube or TikTok video
+  // Check if target is a Video (YouTube, TikTok, Instagram, Facebook, X/Twitter)
+  const ytMatch = finalUrl.match(/(?:v=|youtu\.be\/|\/(?:shorts|embed|live|v|e)\/|^)([a-zA-Z0-9_-]{11})/);
+  const isYouTube = /(?:youtube\.com|youtu\.be)\//i.test(finalUrl);
+  const isTikTok = /(?:tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com)\//i.test(finalUrl);
+  const isInstagram = /(?:instagram\.com|instagr\.am|ig\.me)\//i.test(finalUrl);
+  const isFacebook = /(?:facebook\.com|fb\.watch|fb\.me|m\.facebook\.com)\//i.test(finalUrl);
+  const isTwitter = /(?:x\.com|twitter\.com|t\.co)\//i.test(finalUrl);
+
+  const isVideoPlatform = isYouTube || isTikTok || isInstagram || isFacebook || isTwitter;
+  let mediaType: 'video' | 'website' = isVideoPlatform ? 'video' : 'website';
+  let videoMetadata: { videoId?: string; authorName?: string; thumbnailUrl?: string; platform?: 'youtube' | 'tiktok' | 'instagram' | 'facebook' | 'twitter' } | undefined = undefined;
+
+  let effectiveTitle = title;
+  let effectiveDescription = description;
+  let effectiveBrandAssets = brandAssets;
+  let effectiveFrameworks = frameworks;
+
+  if (isYouTube && ytMatch && ytMatch[1]) {
+    const videoId = ytMatch[1];
+    const thumbUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    
+    try {
+      const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+      if (oembedRes.ok) {
+        const oembedData: any = await oembedRes.json();
+        if (oembedData.title) effectiveTitle = oembedData.title;
+        if (oembedData.author_name) effectiveDescription = `قناة: ${oembedData.author_name}`;
+        videoMetadata = {
+          videoId,
+          authorName: oembedData.author_name || 'YouTube Creator',
+          thumbnailUrl: oembedData.thumbnail_url || thumbUrl,
+          platform: 'youtube',
+        };
+      }
+    } catch {}
+
+    if (!videoMetadata) {
+      videoMetadata = {
+        videoId,
+        authorName: 'YouTube Creator',
+        thumbnailUrl: thumbUrl,
+        platform: 'youtube',
+      };
+    }
+
+    effectiveBrandAssets = {
+      ...brandAssets,
+      bestLogoUrl: 'https://www.youtube.com/s/desktop/f71887e1/img/favicon_144x144.png',
+      favicon: 'https://www.youtube.com/s/desktop/f71887e1/img/favicon_144x144.png',
+      ogImage: videoMetadata.thumbnailUrl || thumbUrl,
+    };
+
+    effectiveFrameworks = {
+      coreFramework: [],
+      componentLibraries: [],
+      iconsAndAnimations: [],
+      stateAndDataFetching: [],
+      infrastructure: [],
+    };
+  } else if (isTikTok) {
+    const ttMatch = finalUrl.match(/\/video\/(\d{15,22})/i);
+    const videoId = ttMatch ? ttMatch[1] : 'tiktok_video';
+    
+    try {
+      const oembedRes = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(finalUrl)}`);
+      if (oembedRes.ok) {
+        const oembedData: any = await oembedRes.json();
+        if (oembedData.title) effectiveTitle = oembedData.title;
+        if (oembedData.author_name) effectiveDescription = `@${oembedData.author_unique_id || oembedData.author_name}`;
+        videoMetadata = {
+          videoId,
+          authorName: oembedData.author_name ? `@${oembedData.author_unique_id || oembedData.author_name}` : 'TikTok Creator',
+          thumbnailUrl: oembedData.thumbnail_url || brandAssets.ogImage || 'https://www.tiktok.com/favicon.ico',
+          platform: 'tiktok',
+        };
+      }
+    } catch {}
+
+    if (!videoMetadata) {
+      videoMetadata = {
+        videoId,
+        authorName: 'TikTok Creator',
+        thumbnailUrl: brandAssets.ogImage || 'https://www.tiktok.com/favicon.ico',
+        platform: 'tiktok',
+      };
+    }
+
+    effectiveBrandAssets = {
+      ...brandAssets,
+      bestLogoUrl: 'https://www.tiktok.com/favicon.ico',
+      favicon: 'https://www.tiktok.com/favicon.ico',
+      ogImage: videoMetadata.thumbnailUrl || brandAssets.ogImage || null,
+    };
+
+    effectiveFrameworks = {
+      coreFramework: [],
+      componentLibraries: [],
+      iconsAndAnimations: [],
+      stateAndDataFetching: [],
+      infrastructure: [],
+    };
+  } else if (isInstagram) {
+    const shortcodeMatch = finalUrl.match(/(?:reel|reels|p|tv)\/([A-Za-z0-9_-]+)/i);
+    const videoId = shortcodeMatch ? shortcodeMatch[1] : undefined;
+
+    let authorName = 'Instagram Creator';
+    const userMatch = title.match(/([^(]+)\s*\(@([^)]+)\)/i) || title.match(/@([a-zA-Z0-9_.]+)/);
+    if (userMatch) {
+      authorName = `@${userMatch[2] || userMatch[1]}`;
+    }
+
+    videoMetadata = {
+      videoId,
+      authorName,
+      thumbnailUrl: brandAssets.ogImage || brandAssets.twitterImage || 'https://www.instagram.com/static/images/ico/favicon-192.png/68d99ba29cc8.png',
+      platform: 'instagram',
+    };
+
+    effectiveBrandAssets = {
+      ...brandAssets,
+      bestLogoUrl: 'https://www.instagram.com/static/images/ico/favicon-192.png/68d99ba29cc8.png',
+      favicon: 'https://www.instagram.com/static/images/ico/favicon-192.png/68d99ba29cc8.png',
+      ogImage: videoMetadata.thumbnailUrl || brandAssets.ogImage || null,
+    };
+
+    effectiveFrameworks = {
+      coreFramework: [],
+      componentLibraries: [],
+      iconsAndAnimations: [],
+      stateAndDataFetching: [],
+      infrastructure: [],
+    };
+  } else if (isFacebook) {
+    const idMatch = finalUrl.match(/(?:videos|reel|watch\/\?v=)\/?([0-9]+)/i);
+    const videoId = idMatch ? idMatch[1] : undefined;
+
+    videoMetadata = {
+      videoId,
+      authorName: title.includes('|') ? title.split('|')[0].trim() : 'Facebook Creator',
+      thumbnailUrl: brandAssets.ogImage || brandAssets.twitterImage || 'https://static.xx.fbcdn.net/rsrc.php/yT/r/a9Pl9FiAbJy.ico',
+      platform: 'facebook',
+    };
+
+    effectiveBrandAssets = {
+      ...brandAssets,
+      bestLogoUrl: 'https://static.xx.fbcdn.net/rsrc.php/yT/r/a9Pl9FiAbJy.ico',
+      favicon: 'https://static.xx.fbcdn.net/rsrc.php/yT/r/a9Pl9FiAbJy.ico',
+      ogImage: videoMetadata.thumbnailUrl || brandAssets.ogImage || null,
+    };
+
+    effectiveFrameworks = {
+      coreFramework: [],
+      componentLibraries: [],
+      iconsAndAnimations: [],
+      stateAndDataFetching: [],
+      infrastructure: [],
+    };
+  } else if (isTwitter) {
+    const statusMatch = finalUrl.match(/status\/([0-9]+)/i);
+    const videoId = statusMatch ? statusMatch[1] : undefined;
+    const userMatch = finalUrl.match(/(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status/i);
+    const authorName = userMatch ? `@${userMatch[1]}` : 'X User';
+
+    videoMetadata = {
+      videoId,
+      authorName,
+      thumbnailUrl: brandAssets.twitterImage || brandAssets.ogImage || 'https://abs.twimg.com/favicons/twitter.3.ico',
+      platform: 'twitter',
+    };
+
+    effectiveBrandAssets = {
+      ...brandAssets,
+      bestLogoUrl: 'https://abs.twimg.com/favicons/twitter.3.ico',
+      favicon: 'https://abs.twimg.com/favicons/twitter.3.ico',
+      ogImage: videoMetadata.thumbnailUrl || brandAssets.ogImage || null,
+    };
+
+    effectiveFrameworks = {
+      coreFramework: [],
+      componentLibraries: [],
+      iconsAndAnimations: [],
+      stateAndDataFetching: [],
+      infrastructure: [],
+    };
+  }
+
   // 8. Generate Rich Arabic Reconnaissance Summary for AI context injection
   const chainText = chain.map(h => `  * [${h.statusCode}] -> ${h.url}`).join('\n');
   const rawAnalysisSummaryAr = `
 [تقرير فك الشفرة والاستطلاع المتقدم للرابط - AUTOMATED LINK RECONNAISSANCE]:
 - الرابط المدخل: ${normalized}
 - حالة الاختصار: ${isShort ? 'رابط مختصر / إعادة توجيه (Shortened Link)' : 'رابط مباشر'}
+- نوع المحتوى: ${isYouTube ? 'فيديو يوتيوب (YouTube Video)' : (isTikTok ? 'فيديو تيك توك (TikTok Video)' : 'موقع ويب / منصة')}
 - مسار إعادة التوجيه (${chain.length} قفزات):
 ${chainText}
 - الرابط الأصلي والنهائي (Final Resolved URL): ${finalUrl}
 - الرابط المعياري (Canonical URL): ${canonicalUrl || finalUrl}
-- عنوان الموقع (Title): ${title}
-- الوصف (Description): ${description || 'غير متوفر'}
+- عنوان المحتوى (Title): ${effectiveTitle}
+- الوصف (Description): ${effectiveDescription || 'غير متوفر'}
 - الشعار والأصول البصرية (Brand Assets):
-  * الشعار الأساسي / Social Banner: ${brandAssets.bestLogoUrl || 'غير محدد'}
-  * Favicon: ${brandAssets.favicon || 'غير محدد'}
-  * Apple Touch Icon: ${brandAssets.appleTouchIcon || 'غير محدد'}
-- أطر العمل المكتشفة (Detected Frameworks):
-  * واجهة المستخدم الأساسية: ${frameworks.coreFramework.join(', ') || 'Custom Vanilla / Server Rendered'}
-  * مكتبات المكونات والتنسيق: ${frameworks.componentLibraries.join(', ') || 'Custom CSS Tokens'}
-  * الأيقونات والحركات: ${frameworks.iconsAndAnimations.join(', ') || 'Inline SVG'}
-  * إدارة الحالة والبيانات: ${frameworks.stateAndDataFetching.join(', ') || 'Native React/DOM State'}
-  * البنية التحتية والشبكة: ${frameworks.infrastructure.join(', ') || 'Edge Server / CDN'}
-- الأسلوب الجمالي ونظام التصميم (Design Style & Aesthetic):
-  * الطابع العام: ${designProfile.primaryAesthetic}
-  * التأثيرات والأساليب: ${designProfile.designStyles.join(', ')}
-  * لون الهوية الرئيسي: ${designProfile.colorPalette.brandPrimary || 'غير محدد'}
-  * نمط الحواف: ${designProfile.borderRadius.style} (${designProfile.borderRadius.sampleValues.join(', ')})
-  * الخطوط: ${designProfile.typography.fontFamilies.join(', ')}
+  * الشعار الأساسي / Thumbnail: ${effectiveBrandAssets.bestLogoUrl || 'غير محدد'}
+  * Favicon: ${effectiveBrandAssets.favicon || 'غير محدد'}
+${(!isYouTube && !isTikTok) ? `- أطر العمل المكتشفة (Detected Frameworks):
+  * واجهة المستخدم الأساسية: ${effectiveFrameworks.coreFramework.join(', ') || 'Custom Vanilla / Server Rendered'}
+  * مكتبات المكونات والتنسيق: ${effectiveFrameworks.componentLibraries.join(', ') || 'Custom CSS Tokens'}
+  * الأيقونات والحركات: ${effectiveFrameworks.iconsAndAnimations.join(', ') || 'Inline SVG'}
+  * إدارة الحالة والبيانات: ${effectiveFrameworks.stateAndDataFetching.join(', ') || 'Native React/DOM State'}
+  * البنية التحتية والشبكة: ${effectiveFrameworks.infrastructure.join(', ') || 'Edge Server / CDN'}` : ''}
 `.trim();
 
   const result: ResolvedLinkData = {
@@ -755,14 +942,16 @@ ${chainText}
     originalUrl: finalUrl,
     canonicalUrl,
     domain,
-    title,
-    description,
+    title: effectiveTitle,
+    description: effectiveDescription,
     redirectChain: chain,
     totalHops: chain.length,
     isShortened: isShort,
-    brandAssets,
-    frameworks,
+    brandAssets: effectiveBrandAssets,
+    frameworks: effectiveFrameworks,
     designProfile,
+    mediaType,
+    videoMetadata,
     rawAnalysisSummaryAr,
   };
 

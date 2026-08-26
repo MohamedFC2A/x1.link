@@ -1,4 +1,22 @@
-export type ModelType = 'deepseek-v4-flash' | 'deepseek-v4-flash-vision-exp' | 'deepseek-v4-flash-cyber';
+export type ModelType = 
+  | 'deepseek-v4-flash' 
+  | 'deepseek-v4-flash-vision-exp' 
+  | 'deepseek-v4-flash-cyber' 
+  | 'meta/muse-spark-1.2-contributor';
+
+export type MediaType = 'image' | 'video' | 'audio' | 'document' | 'other';
+
+export interface MediaAttachmentItem {
+  id: string;
+  name: string;
+  type: MediaType;
+  mimeType: string;
+  dataUrl?: string; // base64 or blob URL
+  size: number;
+  duration?: number; // for video/audio in seconds
+  width?: number;
+  height?: number;
+}
 
 export interface ImageAttachment {
   name: string;
@@ -14,6 +32,7 @@ export interface ChatMessageItem {
   isThinking?: boolean;
   image?: string;
   images?: string[];
+  mediaAttachments?: MediaAttachmentItem[];
   timestamp: string;
   isX1?: boolean;
   model?: ModelType;
@@ -76,6 +95,14 @@ export interface ResolvedLinkInfo {
       fontFamilies: string[];
       hasMonospace: boolean;
     };
+  };
+  mediaType?: 'video' | 'website';
+  videoMetadata?: {
+    videoId?: string;
+    authorName?: string;
+    thumbnailUrl?: string;
+    duration?: string;
+    platform?: 'youtube' | 'tiktok' | 'instagram' | 'facebook' | 'twitter';
   };
   rawAnalysisSummaryAr?: string;
 }

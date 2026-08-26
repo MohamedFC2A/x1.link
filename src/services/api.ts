@@ -13,6 +13,7 @@ export interface SendMessageOptions {
   deepSearch?: boolean;
   memoryPrompt?: string;
   targetUrl?: string;
+  targetUrls?: string[];
   signal?: AbortSignal;
   onChunk: (data: StreamChunkData) => void;
   onError: (errorMsg: string) => void;
@@ -26,6 +27,7 @@ export async function streamChatCompletion({
   deepSearch = false,
   memoryPrompt = '',
   targetUrl = '',
+  targetUrls = [],
   signal,
   onChunk,
   onError,
@@ -41,15 +43,29 @@ export async function streamChatCompletion({
   }
 
   try {
+    let effectiveTargetUrl = targetUrl;
+
     // Format messages for API (convert multimodal items with images if present)
     const formattedMessages = messages.map(msg => {
+      let cleanContent = msg.content || '';
+      
+      // Auto-substitute any cached unshortened URLs directly in message content
+      linkResolveCache.forEach((resolved, shortUrl) => {
+        if (resolved?.originalUrl && shortUrl && cleanContent.includes(shortUrl)) {
+          cleanContent = cleanContent.split(shortUrl).join(resolved.originalUrl);
+          if (!effectiveTargetUrl) {
+            effectiveTargetUrl = resolved.originalUrl;
+          }
+        }
+      });
+
       const allImages = (msg.images && msg.images.length > 0)
         ? msg.images
         : (msg.image ? [msg.image] : []);
 
       if (allImages.length > 0) {
         const contentParts: any[] = [
-          { type: 'text', text: msg.content || 'حلل هذه الصور واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.' }
+          { type: 'text', text: cleanContent || 'حلل هذه الصور واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.' }
         ];
 
         allImages.forEach((imgUrl, idx) => {
@@ -74,7 +90,7 @@ export async function streamChatCompletion({
 
       return {
         role: msg.role,
-        content: msg.content || 'متابعة',
+        content: cleanContent || 'متابعة',
         reasoning: msg.reasoning
       };
     });
@@ -90,7 +106,8 @@ export async function streamChatCompletion({
         isX1Mode,
         deepSearch,
         memoryPrompt,
-        targetUrl,
+        targetUrl: effectiveTargetUrl,
+        targetUrls: targetUrls && targetUrls.length > 0 ? targetUrls : undefined,
       }),
       signal: controller.signal
     });

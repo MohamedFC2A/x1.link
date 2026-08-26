@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { cn, detectAndExtractUrl, getFaviconUrl } from "@/lib/utils";
+import { cn, detectAndExtractUrl, getFaviconUrl, extractAllCleanUrls } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -23,11 +23,18 @@ import {
   Search,
   Image as ImageIcon,
   ShieldOff,
-  Zap
+  Zap,
+  Video,
+  Mic,
+  Music,
+  FileCode,
+  FileType
 } from "lucide-react";
-import { ModelType } from "@/types";
+import { ModelType, MediaType } from "@/types";
+import { classifyFileType, formatFileSize, formatMediaDuration, extractVideoClientMetadata, extractAudioClientMetadata, extractTextClientMetadata } from "@/lib/mediaExtractor";
 import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 import { SmartTooltip } from "@/components/ui/SmartTooltip";
+import { PlatformLogo } from "@/components/ui/PlatformLogo";
 
 // ----------------------------------------------------------------------
 // Types
@@ -37,14 +44,19 @@ export interface Attachment {
   file: File;
   url: string;
   name: string;
+  mediaType: MediaType;
+  thumbnailUrl?: string;
+  duration?: number;
   width?: number;
   height?: number;
+  textSnippet?: string;
+  size: number;
 }
 
 export interface PromptInputProps {
   onSubmit?: (
     value: string,
-    meta: { model: string; effort: string; attachments: File[]; targetUrl?: string; deepSearch?: boolean }
+    meta: { model: string; effort: string; attachments: File[]; targetUrl?: string; targetUrls?: string[]; deepSearch?: boolean }
   ) => void;
   placeholder?: string;
   className?: string;
@@ -96,19 +108,56 @@ function AttachmentGalleryModal({
       </button>
 
       <div
-        className="relative max-w-4xl max-h-[85vh] overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-950 shadow-2xl flex flex-col"
+        className="relative max-w-4xl max-h-[85vh] w-full overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-950 shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-3 bg-black/40">
-          <img
-            src={attachment.url}
-            alt={attachment.name}
-            className="max-h-[75vh] w-auto max-w-full object-contain rounded-lg shadow-md"
-          />
+        <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-4 bg-black/40">
+          {attachment.mediaType === 'video' ? (
+            <video
+              src={attachment.url}
+              controls
+              autoPlay
+              className="max-h-[70vh] w-auto max-w-full rounded-lg shadow-md"
+            />
+          ) : attachment.mediaType === 'audio' ? (
+            <div className="w-full max-w-md p-6 rounded-2xl bg-zinc-900/90 border border-zinc-700 flex flex-col items-center gap-4">
+              <div className="size-16 rounded-full bg-violet-500/20 border border-violet-500/40 flex items-center justify-center text-violet-400">
+                <Music className="w-8 h-8" />
+              </div>
+              <div className="text-center">
+                <div className="font-bold text-white text-sm">{attachment.name}</div>
+                <div className="text-xs text-zinc-400 mt-1">{formatFileSize(attachment.size)} • {formatMediaDuration(attachment.duration || 0)}</div>
+              </div>
+              <audio src={attachment.url} controls className="w-full mt-2" />
+            </div>
+          ) : attachment.mediaType === 'document' ? (
+            <div className="w-full max-w-lg p-6 rounded-2xl bg-zinc-900/90 border border-zinc-700 flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="size-12 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="font-bold text-white text-sm">{attachment.name}</div>
+                  <div className="text-xs text-zinc-400">{formatFileSize(attachment.size)}</div>
+                </div>
+              </div>
+              {attachment.textSnippet && (
+                <pre className="p-3 bg-black/60 rounded-xl text-xs text-zinc-300 font-mono overflow-auto max-h-60 whitespace-pre-wrap dir-ltr text-left border border-white/[0.06]">
+                  {attachment.textSnippet}
+                </pre>
+              )}
+            </div>
+          ) : (
+            <img
+              src={attachment.url}
+              alt={attachment.name}
+              className="max-h-[75vh] w-auto max-w-full object-contain rounded-lg shadow-md"
+            />
+          )}
         </div>
         <div className="p-3 bg-zinc-900/95 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-300 font-mono">
           <span className="truncate max-w-[200px] sm:max-w-md">{attachment.name}</span>
-          <span className="text-zinc-400 font-mono">{attachment.width && attachment.height ? `${attachment.width}x${attachment.height}` : 'صورة'}</span>
+          <span className="text-zinc-400 font-mono">{formatFileSize(attachment.size)}</span>
         </div>
       </div>
     </div>
@@ -145,10 +194,20 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
     const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
     const [isTargetUrlBarOpen, setIsTargetUrlBarOpen] = useState(false);
-    const [cyberTargetUrl, setCyberTargetUrl] = useState('');
-    const [faviconError, setFaviconError] = useState(false);
+    const [cyberInputUrl, setCyberInputUrl] = useState('');
+    const [attachedUrls, setAttachedUrls] = useState<string[]>([]);
+    const [urlLimitToast, setUrlLimitToast] = useState<string | null>(null);
+    const urlLimitTimerRef = useRef<any>(null);
     const [internalModel, setInternalModel] = useState<ModelType>(activeModel);
     const [internalDeepSearch, setInternalDeepSearch] = useState(false);
+
+    const showUrlLimitToast = useCallback((msg: string = 'تم بلوغ الحد الأقصى المسموح به من الروابط (لا يمكن إضافة المزيد)') => {
+      setUrlLimitToast(msg);
+      if (urlLimitTimerRef.current) clearTimeout(urlLimitTimerRef.current);
+      urlLimitTimerRef.current = setTimeout(() => {
+        setUrlLimitToast(null);
+      }, 3500);
+    }, []);
 
     const isDeepSearchEffective = onToggleDeepSearch
       ? (externalDeepSearch ?? false)
@@ -170,16 +229,27 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     }, [activeModel]);
 
     const hasAttachments = attachments.length > 0;
-    const hasValue = value.trim() !== "" || hasAttachments || cyberTargetUrl.trim() !== "";
+    const hasUrls = attachedUrls.length > 0;
+    const hasValue = value.trim() !== "" || hasAttachments || hasUrls;
 
-    const effectiveModel: ModelType = hasAttachments
+    // Detect if attachments contain videos, audio, or documents
+    const hasNonImageMedia = attachments.some(a => a.mediaType === 'video' || a.mediaType === 'audio' || a.mediaType === 'document');
+
+    const effectiveModel: ModelType = hasNonImageMedia
+      ? 'meta/muse-spark-1.2-contributor'
+      : hasAttachments
       ? 'deepseek-v4-flash-vision-exp'
+      : hasUrls
+      ? 'deepseek-v4-flash-cyber'
       : internalModel;
 
     const isVisionMode = effectiveModel === 'deepseek-v4-flash-vision-exp';
     const isCyberMode = effectiveModel === 'deepseek-v4-flash-cyber';
+    const isMediaMode = effectiveModel === 'meta/muse-spark-1.2-contributor';
 
-    const activeModelDisplayName = isVisionMode
+    const activeModelDisplayName = isMediaMode
+      ? "Fathom Spark"
+      : isVisionMode
       ? "Fathom Cam"
       : isCyberMode
       ? "Fathom Cyber"
@@ -190,111 +260,125 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const activeFaviconUrl = getFaviconUrl(cyberTargetUrl);
-    const activeDomain = cyberTargetUrl ? detectAndExtractUrl(cyberTargetUrl).domain : null;
-
-    const activateCyberUrlMode = useCallback((extractedUrl: string, promptText: string = '') => {
-      setCyberTargetUrl(extractedUrl);
-      setFaviconError(false);
-      setIsTargetUrlBarOpen(true);
-      setInternalModel('deepseek-v4-flash-cyber');
-      onSelectModel?.('deepseek-v4-flash-cyber');
-      if (!isControlled) setLocalValue(promptText);
-      onChange?.(promptText);
-
-      // UX Improvement: Automatically place cursor into the chat textarea so user continues typing seamlessly!
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          const length = textareaRef.current.value.length;
-          textareaRef.current.setSelectionRange(length, length);
-        }
-      }, 40);
-    }, [isControlled, onChange, onSelectModel]);
+    const handleAddCyberUrl = useCallback((rawUrlToAdd: string) => {
+      const trimmed = rawUrlToAdd.trim();
+      if (!trimmed) return;
+      const extracted = extractAllCleanUrls(trimmed, 5);
+      if (extracted.urls.length > 0) {
+        setAttachedUrls((prev) => {
+          const newOnes = extracted.urls.filter(u => !prev.includes(u));
+          if (prev.length + newOnes.length > 5 || extracted.isLimitExceeded) {
+            showUrlLimitToast();
+          }
+          const combined = [...prev, ...newOnes].slice(0, 5);
+          return combined;
+        });
+        setCyberInputUrl('');
+        setInternalModel('deepseek-v4-flash-cyber');
+        onSelectModel?.('deepseek-v4-flash-cyber');
+      }
+    }, [onSelectModel, showUrlLimitToast]);
 
     const handleValueChange = useCallback(
       (val: string) => {
-        // Automatic instant URL detection on typing or pasting
-        if (val && !cyberTargetUrl) {
-          const trimmed = val.trim();
-          const urlInfo = detectAndExtractUrl(trimmed);
-          if (urlInfo.hasUrl && urlInfo.cleanUrl) {
-            // Trigger immediately if explicit protocol/domain or when finished typing (space/newline)
-            if (
-              trimmed.startsWith('http://') ||
-              trimmed.startsWith('https://') ||
-              trimmed.startsWith('www.') ||
-              /\s$/.test(val) ||
-              urlInfo.remainingText.trim() === ''
-            ) {
-              activateCyberUrlMode(urlInfo.cleanUrl, urlInfo.remainingText.trim());
-              return;
-            }
-          }
-        }
-
         if (!isControlled) setLocalValue(val);
         onChange?.(val);
       },
-      [isControlled, onChange, cyberTargetUrl, activateCyberUrlMode]
+      [isControlled, onChange]
     );
 
-    // Helper to convert any File to a persistent Attachment with real natural dimensions
-    const processFileToAttachment = useCallback((file: File, fallbackName?: string): Promise<Attachment> => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const dataUrl = (e.target?.result as string) || '';
-          if (file.type.startsWith('image/')) {
+    // Helper to convert any File to a persistent Attachment with real natural dimensions & metadata
+    const processFileToAttachment = useCallback(async (file: File, fallbackName?: string): Promise<Attachment> => {
+      const mediaType = classifyFileType(file);
+      const id = `${file.name || 'file'}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+      if (mediaType === 'image') {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const dataUrl = (e.target?.result as string) || '';
             const img = new Image();
             img.onload = () => {
-              const id = `${file.name || 'image'}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
               resolve({
                 id,
                 file,
                 url: dataUrl,
                 name: file.name || fallbackName || 'صورة مرفقة',
+                mediaType: 'image',
                 width: img.naturalWidth || 800,
                 height: img.naturalHeight || 600,
+                size: file.size,
               });
             };
             img.onerror = () => {
-              const id = `${file.name || 'image'}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
               resolve({
                 id,
                 file,
                 url: dataUrl,
                 name: file.name || fallbackName || 'صورة مرفقة',
+                mediaType: 'image',
                 width: 800,
                 height: 600,
+                size: file.size,
               });
             };
             img.src = dataUrl;
-          } else {
-            const id = `${file.name}-${file.size}-${Date.now()}`;
+          };
+          reader.onerror = () => {
+            const objectUrl = URL.createObjectURL(file);
             resolve({
               id,
               file,
-              url: dataUrl,
-              name: file.name || fallbackName || 'ملف مرفق',
-              width: 0,
-              height: 0,
+              url: objectUrl,
+              name: file.name || fallbackName || 'صورة مرفقة',
+              mediaType: 'image',
+              width: 800,
+              height: 600,
+              size: file.size,
             });
-          }
+          };
+          reader.readAsDataURL(file);
+        });
+      } else if (mediaType === 'video') {
+        const objectUrl = URL.createObjectURL(file);
+        const meta = await extractVideoClientMetadata(file);
+        return {
+          id,
+          file,
+          url: objectUrl,
+          thumbnailUrl: meta.thumbnailUrl || objectUrl,
+          name: file.name || fallbackName || 'فيديو مرفق',
+          mediaType: 'video',
+          duration: meta.duration,
+          width: meta.width,
+          height: meta.height,
+          size: file.size,
         };
-        reader.onerror = () => {
-          const objectUrl = URL.createObjectURL(file);
-          resolve({
-            id: `${file.name}-${Date.now()}`,
-            file,
-            url: objectUrl,
-            name: file.name || fallbackName || 'صورة مرفقة',
-            width: 800,
-            height: 600,
-          });
+      } else if (mediaType === 'audio') {
+        const objectUrl = URL.createObjectURL(file);
+        const meta = await extractAudioClientMetadata(file);
+        return {
+          id,
+          file,
+          url: objectUrl,
+          name: file.name || fallbackName || 'ملف صوتي',
+          mediaType: 'audio',
+          duration: meta.duration,
+          size: file.size,
         };
-        reader.readAsDataURL(file);
-      });
+      } else {
+        const objectUrl = URL.createObjectURL(file);
+        const textMeta = await extractTextClientMetadata(file);
+        return {
+          id,
+          file,
+          url: objectUrl,
+          name: file.name || fallbackName || 'مستند مرفق',
+          mediaType: 'document',
+          textSnippet: textMeta.textSnippet,
+          size: file.size,
+        };
+      }
     }, []);
 
     // Image and URL Paste Handler
@@ -352,22 +436,35 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         return;
       }
 
-      // 2. Check for URLs in Text — Instant extraction for any pasted URL (short, complex, or ultra-long)
+      // 2. Check for URLs in Text — Multi-link extraction up to 5 URLs
       const pastedText = clipboardData.getData('text');
       if (!pastedText) return;
 
-      const trimmedPasted = pastedText.trim();
-      const urlInfo = detectAndExtractUrl(trimmedPasted);
-      if (urlInfo.hasUrl && urlInfo.cleanUrl && !cyberTargetUrl) {
+      const extracted = extractAllCleanUrls(pastedText, 10);
+      if (extracted.urls.length > 0) {
         e.preventDefault();
-        const existingValue = value.trim();
-        const prompt = urlInfo.remainingText.trim()
-          ? (existingValue ? `${existingValue} ${urlInfo.remainingText.trim()}` : urlInfo.remainingText.trim())
-          : existingValue;
-        activateCyberUrlMode(urlInfo.cleanUrl, prompt);
+        setAttachedUrls((prev) => {
+          const newOnes = extracted.urls.filter(u => !prev.includes(u));
+          if (prev.length + newOnes.length > 5 || extracted.isLimitExceeded) {
+            showUrlLimitToast();
+          }
+          const combined = [...prev, ...newOnes].slice(0, 5);
+          return combined;
+        });
+
+        // Automatically switch to Fathom Cyber model
+        setInternalModel('deepseek-v4-flash-cyber');
+        onSelectModel?.('deepseek-v4-flash-cyber');
+
+        if (extracted.remainingText) {
+          const existingValue = value.trim();
+          const nextVal = existingValue ? `${existingValue} ${extracted.remainingText}` : extracted.remainingText;
+          if (!isControlled) setLocalValue(nextVal);
+          onChange?.(nextVal);
+        }
         return;
       }
-    }, [value, cyberTargetUrl, activateCyberUrlMode, processFileToAttachment]);
+    }, [value, isControlled, onChange, processFileToAttachment, showUrlLimitToast, onSelectModel]);
 
     // Global paste listener so pasting images works from anywhere on page without duplicating textarea paste
     useEffect(() => {
@@ -403,61 +500,49 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       adjustTextareaHeight();
     }, [value, adjustTextareaHeight]);
 
-    const handleCyberSubmit = () => {
-      const activeUrl = cyberTargetUrl.trim() || detectAndExtractUrl(value).cleanUrl;
-      if (!activeUrl || isStreaming) return;
-      let target = activeUrl;
-      if (!/^https?:\/\//i.test(target)) target = 'https://' + target;
-
-      const extraPrompt = cyberTargetUrl ? value.trim() : detectAndExtractUrl(value).remainingText;
-      const displayContent = extraPrompt ? `${target}\n${extraPrompt}` : target;
-
-      onSubmit?.(displayContent, {
-        model: 'deepseek-v4-flash-cyber',
-        effort: isX1Active ? "X1 MAX" : "Standard",
-        attachments: [],
-        targetUrl: target,
-        deepSearch: isDeepSearchEffective,
-      });
-
-      setCyberTargetUrl('');
-      setIsTargetUrlBarOpen(false);
-      handleValueChange('');
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-      }
-    };
-
     const handleSubmit = () => {
       if (isStreaming) {
         onAbort?.();
         return;
       }
 
-      // Check if cyber target URL is active or if current text has a URL
-      const currentUrlInfo = detectAndExtractUrl(value);
-      if ((isCyberMode && cyberTargetUrl.trim()) || cyberTargetUrl.trim() || currentUrlInfo.hasUrl) {
-        handleCyberSubmit();
-        return;
+      // Check for URLs embedded in current text as well
+      const inlineExtracted = extractAllCleanUrls(value, 5);
+      const allUrlsToSubmit = Array.from(new Set([...attachedUrls, ...inlineExtracted.urls])).slice(0, 5);
+
+      if (value.trim() === "" && !hasAttachments && allUrlsToSubmit.length === 0) return;
+
+      let effectivePrompt = value.trim();
+      if (inlineExtracted.urls.length > 0 && inlineExtracted.remainingText) {
+        effectivePrompt = inlineExtracted.remainingText;
       }
 
-      if (value.trim() === "" && !hasAttachments) return;
+      let formattedContent = effectivePrompt;
+      if (allUrlsToSubmit.length > 0) {
+        const urlsSection = allUrlsToSubmit.join('\n');
+        formattedContent = effectivePrompt ? `${urlsSection}\n\n${effectivePrompt}` : urlsSection;
+      } else if (!effectivePrompt && hasAttachments) {
+        formattedContent = "حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.";
+      }
 
-      const textToSubmit =
-        value.trim() ||
-        (hasAttachments
-          ? "حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة."
-          : "");
+      const targetModel = (hasAttachments)
+        ? 'deepseek-v4-flash-vision-exp'
+        : (allUrlsToSubmit.length > 0 && internalModel === 'deepseek-v4-flash' ? 'deepseek-v4-flash-cyber' : activeBackendModel);
 
-      onSubmit?.(textToSubmit, {
-        model: activeBackendModel,
+      onSubmit?.(formattedContent, {
+        model: targetModel,
         effort: isX1Active ? "X1 MAX" : "Standard",
         attachments: attachments.map((a) => a.file),
+        targetUrl: allUrlsToSubmit[0] || undefined,
+        targetUrls: allUrlsToSubmit.length > 0 ? allUrlsToSubmit : undefined,
         deepSearch: isDeepSearchEffective,
       });
 
       handleValueChange("");
+      setAttachedUrls([]);
       setAttachments([]);
+      setIsTargetUrlBarOpen(false);
+      setCyberInputUrl('');
 
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
@@ -498,11 +583,23 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     // Emergent Intelligent Tool Fusion Logic
     const activeFusion = useMemo(() => {
       const hasSearch = isDeepSearchEffective;
-      const hasCyber = isCyberMode || Boolean(cyberTargetUrl.trim());
+      const hasCyber = isCyberMode || hasUrls;
       const hasVision = hasAttachments || isVisionMode;
+      const hasMedia = isMediaMode || hasNonImageMedia;
       const hasNSFW = isX1Active;
 
-      // 1. NSFW + Deep Search Fusion (Crimson-Purple-Sky Sunset Plasma)
+      // 0. Media / Spark Mode with Video/Audio
+      if (hasMedia) {
+        return {
+          type: 'media',
+          placeholder: 'محرك Fathom Spark: حلل الفيديوهات، استمع للصوتيات، وافحص المستندات...',
+          beamClass: 'media-beam',
+          textColor: 'text-violet-100 placeholder:text-violet-300/50 selection:bg-violet-500/40',
+          sendGradient: 'bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500 text-white',
+          topSheen: 'bg-gradient-to-r from-transparent via-violet-400 to-transparent',
+        };
+      }
+
       // 1. NSFW + Deep Search Fusion (Crimson Ruby & Emerald Green)
       if (hasNSFW && hasSearch) {
         return {
@@ -576,15 +673,17 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       }
 
       return null;
-    }, [isDeepSearchEffective, isCyberMode, cyberTargetUrl, hasAttachments, isVisionMode, isX1Active]);
+    }, [isDeepSearchEffective, isCyberMode, hasUrls, hasAttachments, isVisionMode, isMediaMode, hasNonImageMedia, isX1Active]);
 
-    const isSpecialMode = Boolean(activeFusion || isDeepSearchEffective || isCyberMode || isX1Active || hasAttachments);
+    const isSpecialMode = Boolean(activeFusion || isDeepSearchEffective || isCyberMode || isX1Active || hasAttachments || hasUrls || isMediaMode);
 
     const currentBeamType = activeFusion
       ? activeFusion.type
+      : isMediaMode || hasNonImageMedia
+      ? 'media'
       : isDeepSearchEffective
       ? 'search'
-      : isCyberMode
+      : isCyberMode || hasUrls
       ? 'cyber'
       : isX1Active
       ? 'nsfw'
@@ -601,11 +700,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         )}
         dir="rtl"
       >
-        {/* Hidden File Input */}
+        {/* Hidden File Input (Universal Multimedia & Document Support) */}
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*,.pdf,.txt,.py,.js,.ts,.json"
+          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.py,.js,.ts,.tsx,.jsx,.html,.css,.sql,.yaml,.yml,.zip"
           multiple
           onChange={handleFilesChosen}
           className="hidden"
@@ -678,7 +777,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
-                      <ShieldCheck className="w-4 h-4 text-zinc-200" />
+                      <ShieldCheck className="w-4 h-4 text-cyan-400" />
                     </div>
                     <div className="min-w-0 text-right">
                       <div className="font-bold text-xs text-white">Fathom Cyber</div>
@@ -688,26 +787,80 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     </div>
                   </div>
                   {internalModel === 'deepseek-v4-flash-cyber' && (
-                    <span className="size-1.5 rounded-full bg-white shrink-0 mr-2" />
+                    <span className="size-1.5 rounded-full bg-cyan-400 shrink-0 mr-2" />
                   )}
                 </button>
 
                 {/* Model 3: Fathom Cam */}
-                {hasAttachments && (
-                  <div className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans bg-white/[0.09] text-white font-bold border border-white/[0.16] shadow-sm">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
-                        <Camera className="w-4 h-4 text-zinc-200" />
-                      </div>
-                      <div className="min-w-0 text-right">
-                        <div className="font-bold text-xs text-white">Fathom Cam</div>
-                        <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
-                          تحليل بصري وإدراك فوري للصور
-                        </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInternalModel('deepseek-v4-flash-vision-exp');
+                    onSelectModel?.('deepseek-v4-flash-vision-exp');
+                    setIsModelMenuOpen(false);
+                    if (attachments.length === 0) {
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
+                    internalModel === 'deepseek-v4-flash-vision-exp' && !hasNonImageMedia
+                      ? "bg-white/[0.09] text-white font-bold border-white/[0.16] shadow-sm"
+                      : "hover:bg-white/[0.04] text-zinc-300 border-transparent"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
+                      <Camera className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div className="min-w-0 text-right">
+                      <div className="font-bold text-xs text-white">Fathom Cam</div>
+                      <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
+                        تحليل بصري، قراءة المستندات، واستخراج الصور
                       </div>
                     </div>
                   </div>
-                )}
+                  {internalModel === 'deepseek-v4-flash-vision-exp' && !hasNonImageMedia && (
+                    <span className="size-1.5 rounded-full bg-emerald-400 shrink-0 mr-2" />
+                  )}
+                </button>
+
+                {/* Model 4: Fathom Spark (Meta Muse Spark 1.2) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInternalModel('meta/muse-spark-1.2-contributor');
+                    onSelectModel?.('meta/muse-spark-1.2-contributor');
+                    setIsModelMenuOpen(false);
+                    if (attachments.length === 0) {
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
+                    internalModel === 'meta/muse-spark-1.2-contributor' || hasNonImageMedia
+                      ? "bg-violet-500/15 text-white font-bold border-violet-500/30 shadow-sm"
+                      : "hover:bg-white/[0.04] text-zinc-300 border-transparent"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-9 rounded-xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-white shrink-0">
+                      <Sparkles className="w-4 h-4 text-violet-400" />
+                    </div>
+                    <div className="min-w-0 text-right">
+                      <div className="font-bold text-xs text-violet-200 flex items-center gap-1.5">
+                        <span>Fathom Spark</span>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-300 font-mono">1.2 Multi</span>
+                      </div>
+                      <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
+                        استيعاب فائق للفيديوهات، الصوتيات، والملفات الضخمة
+                      </div>
+                    </div>
+                  </div>
+                  {(internalModel === 'meta/muse-spark-1.2-contributor' || hasNonImageMedia) && (
+                    <span className="size-1.5 rounded-full bg-violet-400 shrink-0 mr-2" />
+                  )}
+                </button>
               </div>
             </div>
           </>
@@ -760,7 +913,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   }}
                   className={cn(
                     "w-full flex items-center justify-between p-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
-                    isCyberMode && (isTargetUrlBarOpen || cyberTargetUrl.trim() !== '')
+                    isCyberMode || attachedUrls.length > 0
                       ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-200"
                       : "hover:bg-white/[0.06] text-zinc-200 hover:text-white border-transparent hover:border-white/[0.08]"
                   )}
@@ -768,7 +921,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   <div className="flex items-center gap-2.5">
                     <div className={cn(
                       "size-7 rounded-lg flex items-center justify-center shrink-0 border transition-all",
-                      isCyberMode && (isTargetUrlBarOpen || cyberTargetUrl.trim() !== '')
+                      isCyberMode || attachedUrls.length > 0
                         ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300"
                         : "bg-white/[0.04] border-white/[0.08] text-zinc-300"
                     )}>
@@ -776,9 +929,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     </div>
                     <span className="font-semibold text-xs text-white">فحص واستطلاع رابط (URL)</span>
                   </div>
-                  {isCyberMode && (isTargetUrlBarOpen || cyberTargetUrl.trim() !== '') && (
+                  {attachedUrls.length > 0 && (
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0 bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-bold">
-                      مفعّل
+                      {attachedUrls.length} روابط
                     </span>
                   )}
                 </button>
@@ -857,13 +1010,44 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           </>
         )}
 
+        {/* Dynamic URL Limit Notification Toast (Self-Dismissing Alert Banner) */}
+        <AnimatePresence>
+          {urlLimitToast && (
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="absolute bottom-full mb-3 inset-x-2 sm:inset-x-6 p-3 rounded-2xl bg-[#141008]/95 border border-amber-500/40 backdrop-blur-2xl text-amber-200 text-xs font-sans font-bold flex items-center justify-between shadow-2xl z-50 select-none"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="size-6 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                  <Zap className="w-3.5 h-3.5" />
+                </div>
+                <span className="leading-snug">{urlLimitToast}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUrlLimitToast(null)}
+                className="size-6 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white flex items-center justify-center transition-all cursor-pointer shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Attachment Previews Bar */}
         {hasAttachments && (
           <div className="mb-2 p-2.5 rounded-2xl glass-card border border-white/[0.08] bg-black/40 animate-in fade-in slide-in-from-bottom-2 duration-200">
             <div className="flex items-center justify-between px-1 mb-2">
               <span className="text-[11px] font-sans text-zinc-300 font-medium flex items-center gap-1.5">
-                <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
-                <span>الصور المرفقة ({attachments.length} من {maxAttachments})</span>
+                {hasNonImageMedia ? (
+                  <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+                ) : (
+                  <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
+                )}
+                <span>الملفات والوسائط المرفقة ({attachments.length} من {maxAttachments})</span>
               </span>
               <button
                 type="button"
@@ -875,26 +1059,71 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             </div>
             
             <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-              {attachments.map((att) => (
+              {attachments.map((att, idx) => (
                 <div
                   key={att.id}
-                  className="relative group shrink-0 size-16 rounded-xl overflow-hidden border border-white/[0.12] bg-zinc-950/80 cursor-pointer shadow-md"
+                  className="relative group shrink-0 h-16 min-w-16 rounded-xl overflow-hidden border border-white/[0.18] bg-zinc-950/80 cursor-pointer shadow-md flex items-center justify-center"
                   onClick={() => setActiveAttachment(att)}
                 >
-                  <img
-                    src={att.url}
-                    alt={att.name}
-                    className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                  />
+                  {att.mediaType === 'video' ? (
+                    <div className="w-24 h-full relative bg-zinc-900 flex items-center justify-center overflow-hidden">
+                      {att.thumbnailUrl ? (
+                        <img src={att.thumbnailUrl} alt={att.name} className="w-full h-full object-cover opacity-80" />
+                      ) : (
+                        <div className="size-full bg-violet-950/60 flex items-center justify-center">
+                          <Video className="w-5 h-5 text-violet-400" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <div className="size-6 rounded-full bg-black/70 border border-white/30 flex items-center justify-center">
+                          <Video className="w-3 h-3 text-violet-300" />
+                        </div>
+                      </div>
+                      {att.duration ? (
+                        <span className="absolute bottom-1 left-1 text-[8px] font-mono px-1 rounded bg-black/80 text-zinc-200">
+                          {formatMediaDuration(att.duration)}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : att.mediaType === 'audio' ? (
+                    <div className="w-24 h-full p-1.5 bg-zinc-900 flex flex-col justify-center items-center gap-1 border border-violet-500/20">
+                      <div className="size-6 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400">
+                        <Music className="w-3 h-3" />
+                      </div>
+                      <span className="text-[9px] text-zinc-300 truncate max-w-[80px] font-mono">{att.name}</span>
+                      {att.duration ? (
+                        <span className="text-[8px] text-zinc-400 font-mono">{formatMediaDuration(att.duration)}</span>
+                      ) : null}
+                    </div>
+                  ) : att.mediaType === 'document' ? (
+                    <div className="w-24 h-full p-1.5 bg-zinc-900 flex flex-col justify-center items-center gap-1 border border-cyan-500/20">
+                      <div className="size-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                        <FileText className="w-3 h-3" />
+                      </div>
+                      <span className="text-[9px] text-zinc-300 truncate max-w-[80px] font-mono">{att.name}</span>
+                      <span className="text-[8px] text-zinc-400 font-mono">{formatFileSize(att.size)}</span>
+                    </div>
+                  ) : (
+                    <img
+                      src={att.url}
+                      alt={att.name}
+                      className="size-16 object-cover transition-transform duration-200 group-hover:scale-105"
+                    />
+                  )}
+
+                  {/* Geometric Circular Number Badge */}
+                  <div className="absolute bottom-1 right-1 w-4 h-4 min-w-[16px] min-h-[16px] aspect-square rounded-full bg-zinc-900/90 text-zinc-200 border border-white/[0.3] flex items-center justify-center font-bold text-[9px] shrink-0 font-mono shadow-inner select-none backdrop-blur-md">
+                    {idx + 1}
+                  </div>
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setAttachments((prev) => prev.filter(a => a.id !== att.id));
                     }}
-                    className="absolute top-1 right-1 size-5 rounded-full bg-black/80 text-zinc-300 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1 left-1 size-4 rounded-full bg-black/80 text-zinc-300 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-2.5 h-2.5" />
                   </button>
                 </div>
               ))}
@@ -925,8 +1154,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           {/* Continuous Persistent Dynamic Mode Orbit System (Never restarts rotation) */}
           <div
             className={cn(
-              "absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-500 rounded-3xl",
-              isSpecialMode ? "opacity-100" : "opacity-0"
+              "absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-300 rounded-3xl",
+              isSpecialMode ? "opacity-100" : "opacity-0 pointer-events-none"
             )}
           >
             <div className="persistent-beam-rotor">
@@ -934,23 +1163,18 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               <div className={cn("beam-gradient-layer beam-layer-cyber", currentBeamType === 'cyber' ? "opacity-100" : "opacity-0")} />
               <div className={cn("beam-gradient-layer beam-layer-nsfw", currentBeamType === 'nsfw' ? "opacity-100" : "opacity-0")} />
               <div className={cn("beam-gradient-layer beam-layer-vision", currentBeamType === 'vision' ? "opacity-100" : "opacity-0")} />
+              <div className={cn("beam-gradient-layer beam-layer-media", currentBeamType === 'media' ? "opacity-100" : "opacity-0")} />
               <div className={cn("beam-gradient-layer beam-layer-nsfw-search", currentBeamType === 'nsfw-search' ? "opacity-100" : "opacity-0")} />
               <div className={cn("beam-gradient-layer beam-layer-nsfw-cyber", currentBeamType === 'nsfw-cyber' ? "opacity-100" : "opacity-0")} />
               <div className={cn("beam-gradient-layer beam-layer-nsfw-vision", currentBeamType === 'nsfw-vision' ? "opacity-100" : "opacity-0")} />
               <div className={cn("beam-gradient-layer beam-layer-cyber-search", currentBeamType === 'cyber-search' ? "opacity-100" : "opacity-0")} />
               <div className={cn("beam-gradient-layer beam-layer-cyber-vision", currentBeamType === 'cyber-vision' ? "opacity-100" : "opacity-0")} />
-              <div className={cn("beam-gradient-layer beam-layer-vision-search", currentBeamType === 'vision-search' ? "opacity-100" : "opacity-0")} />
             </div>
           </div>
 
-          {/* Inner Content Container */}
+          {/* Inner Content Container - Always fully opaque bg to keep beam strictly on border */}
           <div
-            className={cn(
-              "relative w-full h-full rounded-[23px] transition-all duration-200",
-              isSpecialMode
-                ? "bg-[#09090d]/95 backdrop-blur-3xl z-10"
-                : "bg-transparent"
-            )}
+            className="relative w-full h-full rounded-[23px] transition-colors duration-200 bg-[#09090d] backdrop-blur-3xl z-10"
           >
             {/* Top Sheen Edge Line */}
             <div
@@ -962,7 +1186,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   ? `${activeFusion.topSheen} opacity-90`
                   : isDeepSearchEffective
                   ? "bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-90"
-                  : isCyberMode
+                  : isCyberMode || hasUrls
                   ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-90"
                   : isX1Active
                   ? "bg-gradient-to-r from-transparent via-rose-500 to-transparent opacity-90"
@@ -971,66 +1195,111 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   : "opacity-0"
               )}
             />
-            {/* Streamlined Cyber Target URL Bar (ONLY visible in Cyber Mode) */}
+
+            {/* Target URL Input Bar */}
             <AnimatePresence initial={false}>
-              {isCyberMode && (isTargetUrlBarOpen || cyberTargetUrl.trim() !== '') && !hasAttachments && (
+              {isTargetUrlBarOpen && isCyberMode && !hasAttachments && (
                 <motion.div
                   initial={{ opacity: 0, height: 0, y: -6 }}
                   animate={{ opacity: 1, height: 'auto', y: 0 }}
                   exit={{ opacity: 0, height: 0, y: -6 }}
                   transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-                className="overflow-hidden"
-              >
-                <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl rounded-t-3xl flex items-center gap-2.5 px-3 sm:px-4">
-                  {/* Smart Cyber Website Logo / Favicon */}
-                  <div className="size-7 rounded-xl bg-zinc-950 border border-white/[0.12] flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-                    {activeFaviconUrl && !faviconError ? (
-                      <img
-                        src={activeFaviconUrl}
-                        alt={activeDomain || 'Target Logo'}
-                        className="size-4 object-contain rounded"
-                        onError={() => setFaviconError(true)}
-                      />
-                    ) : cyberTargetUrl.trim() ? (
-                      <ThinkingOrb state="working" size={20} theme="dark" speed={1.5} />
-                    ) : (
-                      <Globe className="w-3.5 h-3.5 text-zinc-400" />
-                    )}
-                  </div>
+                  className="overflow-hidden"
+                >
+                  <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-white/[0.03] backdrop-blur-2xl rounded-t-3xl flex items-center gap-2 px-3 sm:px-4">
+                    <div className="size-7 rounded-xl bg-zinc-950/80 border border-white/[0.12] flex items-center justify-center overflow-hidden shrink-0 shadow-sm backdrop-blur-md">
+                      {cyberInputUrl.trim() ? (
+                        <PlatformLogo url={cyberInputUrl} className="size-4" size={16} />
+                      ) : (
+                        <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                      )}
+                    </div>
 
-                  <input
-                    type="url"
-                    value={cyberTargetUrl}
-                    onChange={(e) => {
-                      setCyberTargetUrl(e.target.value);
-                      setFaviconError(false);
-                    }}
-                    placeholder="أدخل رابط الهدف للفحص والتحليل (https://example.com)..."
-                    className="w-full bg-transparent text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left selection:bg-cyan-500/30"
-                    dir="ltr"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleCyberSubmit();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTargetUrlBarOpen(false);
-                      setCyberTargetUrl('');
-                      setFaviconError(false);
-                    }}
-                    className="size-7 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-white/[0.06] active:scale-95"
-                    title="إلغاء ومسح الهدف"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    <input
+                      type="url"
+                      value={cyberInputUrl}
+                      onChange={(e) => setCyberInputUrl(e.target.value)}
+                      placeholder="أدخل أو الصق رابطاً للفحص والاستخبارات ثم اضغط Enter..."
+                      className="w-full bg-transparent text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left selection:bg-cyan-500/30"
+                      dir="ltr"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddCyberUrl(cyberInputUrl);
+                        }
+                      }}
+                      onPaste={(e) => {
+                        const pasted = e.clipboardData.getData('text');
+                        if (pasted && (pasted.startsWith('http://') || pasted.startsWith('https://') || pasted.includes('.'))) {
+                          setTimeout(() => {
+                            handleAddCyberUrl(pasted);
+                          }, 50);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsTargetUrlBarOpen(false);
+                        setCyberInputUrl('');
+                      }}
+                      className="size-7 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-white/[0.06] active:scale-95"
+                      title="إغلاق"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Attached Multi-URLs Chips Preview Bar (High-End Pure Glassmorphism Capsule System) */}
+            <AnimatePresence initial={false}>
+              {attachedUrls.length > 0 && isCyberMode && !hasAttachments && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="px-3 pt-2.5 pb-2.5 border-b border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl flex flex-wrap items-center gap-2"
+                >
+                  {attachedUrls.map((urlItem, idx) => {
+                    const urlObj = detectAndExtractUrl(urlItem);
+                    const domain = urlObj.domain || urlItem.replace(/^https?:\/\//i, '').split('/')[0];
+
+                    return (
+                      <div
+                        key={`${urlItem}-${idx}`}
+                        className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.08] hover:bg-white/[0.14] backdrop-blur-3xl backdrop-saturate-200 border border-white/[0.22] hover:border-white/[0.4] text-zinc-100 transition-all duration-200 shadow-[0_8px_30px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.4)] group select-none hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        {/* Guaranteed True Geometric Circle Badge (Dark/Grey, Zero Glow) */}
+                        <div className="w-5 h-5 min-w-[20px] min-h-[20px] aspect-square rounded-full bg-zinc-800/95 text-zinc-200 border border-white/[0.25] flex items-center justify-center font-bold text-[10px] shrink-0 font-mono shadow-inner select-none">
+                          {idx + 1}
+                        </div>
+
+                        {/* High-Resolution Brand Vector Logo */}
+                        <PlatformLogo url={urlItem} className="size-3.5 shrink-0" size={14} />
+
+                        {/* Domain / Platform URL */}
+                        <span className="truncate max-w-[130px] sm:max-w-[190px] text-zinc-200 font-mono text-[11px] font-medium tracking-tight" dir="ltr">
+                          {domain}
+                        </span>
+
+                        {/* Frosted Circular Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => setAttachedUrls(prev => prev.filter((_, i) => i !== idx))}
+                          className="w-4 h-4 min-w-[16px] min-h-[16px] aspect-square rounded-full bg-white/[0.1] hover:bg-rose-500/90 text-zinc-400 hover:text-white flex items-center justify-center transition-all cursor-pointer shrink-0 border border-white/[0.12] shadow-sm active:scale-90"
+                          title="حذف الرابط"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                </motion.div>
+              )}
+            </AnimatePresence>
 
           {/* Main Text Area Row */}
           <div className="flex items-end gap-2.5 px-3 sm:px-4 pt-2.5 sm:pt-3 pb-2">
@@ -1118,7 +1387,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           <div className="flex items-center justify-between gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 border-t border-white/[0.06] bg-black/40 rounded-b-3xl text-xs">
             
             {/* Right Group: Compact Model Selector */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="relative flex items-center gap-1.5 shrink-0">
               
               <SmartTooltip
                 title={activeModelDisplayName}
@@ -1133,6 +1402,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 badgeColor={isCyberMode ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : isVisionMode ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : "bg-amber-500/20 text-amber-300 border-amber-500/40"}
                 icon={isCyberMode ? <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" /> : isVisionMode ? <Camera className="w-3.5 h-3.5 text-emerald-400" /> : <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />}
                 side="top"
+                disabled={isModelMenuOpen}
               >
                 <button
                   type="button"
@@ -1152,7 +1422,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   <span className="hidden sm:inline font-sans text-xs font-semibold">
                     {activeModelDisplayName}
                   </span>
-                  <ChevronDown className="w-3 h-3 text-zinc-400" />
+                  <ChevronDown className={cn("w-3 h-3 text-zinc-400 transition-transform duration-200", isModelMenuOpen && "rotate-180")} />
                 </button>
               </SmartTooltip>
 

@@ -228,6 +228,74 @@
   }
 
   /* ==========================================================================
+     AI Detection Holographic Dynamic Shimmer & Multi-Color Pastel (Zero Glow)
+     ========================================================================== */
+  @keyframes ai-detect-rainbow {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .ai-detect-badge {
+    background: rgba(18, 20, 26, 0.75);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+  }
+
+  .ai-detect-text {
+    background: linear-gradient(
+      90deg,
+      #ff9ebb 0%,
+      #ffc2a1 14%,
+      #ffeaa7 28%,
+      #8cf8d2 44%,
+      #7de4ff 60%,
+      #c4b5fd 76%,
+      #fbcfe8 88%,
+      #ff9ebb 100%
+    );
+    background-size: 260% auto;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: ai-detect-rainbow 3.2s linear infinite;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    filter: none;
+    text-shadow: none;
+  }
+
+  .meta-data-text {
+    background: linear-gradient(
+      90deg,
+      #38bdf8 0%,
+      #e0f2fe 20%,
+      #ffffff 38%,
+      #7dd3fc 55%,
+      #bae6fd 70%,
+      #0284c7 85%,
+      #38bdf8 100%
+    );
+    background-size: 250% auto;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: ai-detect-rainbow 3s linear infinite;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    filter: none;
+    text-shadow: none;
+  }
+
+  /* ==========================================================================
      Dynamic Mode Ambient Lighting & Orbit Beams (GPU-Accelerated)
      ========================================================================== */
   @keyframes border-beam-spin {
@@ -411,16 +479,15 @@
     );
   }
 
-  .beam-layer-vision-search {
+  .beam-layer-media {
     background: conic-gradient(
       from 0deg,
       transparent 0deg,
       transparent 200deg,
-      rgba(16, 185, 129, 0.4) 240deg,
-      rgba(34, 197, 94, 0.8) 280deg,
-      rgba(74, 222, 128, 0.95) 330deg,
-      rgba(134, 239, 172, 1) 350deg,
-      rgba(255, 255, 255, 0.95) 360deg
+      rgba(139, 92, 246, 0.4) 240deg,
+      rgba(168, 85, 247, 0.85) 290deg,
+      rgba(217, 70, 239, 0.95) 340deg,
+      rgba(255, 255, 255, 1) 360deg
     );
   }
 

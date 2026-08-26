@@ -60,7 +60,7 @@ export const SmartTooltip: React.FC<SmartTooltipProps> = ({
     hoverTimerRef.current = setTimeout(() => {
       calculatePosition();
       setIsVisible(true);
-    }, 2000);
+    }, 800);
   }, [disabled, clearTimers, calculatePosition]);
 
   const handleMouseLeave = useCallback(() => {
@@ -78,7 +78,7 @@ export const SmartTooltip: React.FC<SmartTooltipProps> = ({
         calculatePosition();
         setIsVisible(true);
       }
-    }, 1500);
+    }, 600);
   }, [disabled, clearTimers, calculatePosition]);
 
   const endPressTimer = useCallback(() => {
