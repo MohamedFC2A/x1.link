@@ -423,4 +423,16 @@
       rgba(255, 255, 255, 0.95) 360deg
     );
   }
+
+  /* Global Zero-Outline Reset for Inputs and Textareas */
+  textarea, input {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  textarea:focus, textarea:focus-visible, input:focus, input:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+  }
 }

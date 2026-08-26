@@ -1022,7 +1022,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 }
                 rows={1}
                 className={cn(
-                  "w-full bg-transparent text-[15px] sm:text-base leading-relaxed resize-none outline-none font-sans max-h-44 min-h-[38px] py-1 px-1 smooth-scroll no-scrollbar transition-colors",
+                  "w-full bg-transparent text-[15px] sm:text-base leading-relaxed resize-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none border-0 focus:border-0 shadow-none focus:shadow-none font-sans max-h-44 min-h-[38px] py-1 px-1 smooth-scroll no-scrollbar transition-colors",
                   activeFusion
                     ? activeFusion.textColor
                     : isDeepSearchEffective
@@ -1035,7 +1035,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     ? "text-zinc-100 placeholder:text-zinc-400 selection:bg-rose-500/40"
                     : "text-zinc-100 placeholder:text-zinc-400 selection:bg-white/30"
                 )}
-                style={{ overscrollBehavior: 'contain' }}
+                style={{ overscrollBehavior: 'contain', outline: 'none', border: 'none', boxShadow: 'none' }}
               />
             </div>
 
