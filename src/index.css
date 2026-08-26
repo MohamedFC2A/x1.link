@@ -275,9 +275,34 @@
     }
   }
 
-  .orbit-beam-search {
+  /* ==========================================================================
+     Continuous Persistent Dynamic Mode Orbit System (No Rotation Reset)
+     ========================================================================== */
+  @keyframes continuous-border-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .persistent-beam-rotor {
     position: absolute;
     inset: -150%;
+    animation: continuous-border-spin 2.8s linear infinite;
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  .beam-gradient-layer {
+    position: absolute;
+    inset: 0;
+    transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+
+  .beam-layer-search {
     background: conic-gradient(
       from 0deg,
       transparent 0deg,
@@ -287,32 +312,20 @@
       rgba(129, 140, 248, 1) 355deg,
       rgba(255, 255, 255, 1) 360deg
     );
-    animation: border-beam-spin 3.5s linear infinite;
-    pointer-events: none;
   }
 
-  .cyber-radar-beam {
-    position: absolute;
-    inset: -150%;
+  .beam-layer-cyber {
     background: conic-gradient(
-      from 180deg,
+      from 0deg,
       transparent 0deg,
       transparent 270deg,
       rgba(6, 182, 212, 0.2) 300deg,
       rgba(34, 211, 238, 0.85) 340deg,
       rgba(255, 255, 255, 1) 360deg
     );
-    animation: border-beam-spin 2.8s linear infinite;
-    pointer-events: none;
   }
 
-  .vision-aperture-glow {
-    animation: vision-sensor-pulse 2.2s ease-in-out infinite;
-  }
-
-  .nsfw-plasma-beam {
-    position: absolute;
-    inset: -150%;
+  .beam-layer-nsfw {
     background: conic-gradient(
       from 0deg,
       transparent 0deg,
@@ -322,34 +335,11 @@
       rgba(168, 85, 247, 1) 330deg,
       rgba(255, 255, 255, 1) 360deg
     );
-    animation: border-beam-spin 2.6s linear infinite;
-    pointer-events: none;
   }
 
-  /* ==========================================================================
-     Emergent Hybrid Tool Fusion Beams
-     ========================================================================== */
-  .cyber-search-beam {
-    position: absolute;
-    inset: -150%;
+  .beam-layer-vision {
     background: conic-gradient(
-      from 45deg,
-      transparent 0deg,
-      transparent 220deg,
-      rgba(6, 182, 212, 0.4) 260deg,
-      rgba(34, 211, 238, 0.95) 300deg,
-      rgba(56, 189, 248, 1) 340deg,
-      rgba(255, 255, 255, 1) 360deg
-    );
-    animation: border-beam-spin 2.2s linear infinite;
-    pointer-events: none;
-  }
-
-  .cyber-vision-beam {
-    position: absolute;
-    inset: -150%;
-    background: conic-gradient(
-      from 90deg,
+      from 0deg,
       transparent 0deg,
       transparent 220deg,
       rgba(16, 185, 129, 0.4) 260deg,
@@ -357,29 +347,9 @@
       rgba(34, 211, 238, 1) 340deg,
       rgba(255, 255, 255, 1) 360deg
     );
-    animation: border-beam-spin 2.4s linear infinite;
-    pointer-events: none;
   }
 
-  .vision-search-beam {
-    position: absolute;
-    inset: -150%;
-    background: conic-gradient(
-      from 135deg,
-      transparent 0deg,
-      transparent 220deg,
-      rgba(16, 185, 129, 0.4) 260deg,
-      rgba(56, 189, 248, 0.95) 300deg,
-      rgba(129, 140, 248, 1) 340deg,
-      rgba(255, 255, 255, 1) 360deg
-    );
-    animation: border-beam-spin 2.5s linear infinite;
-    pointer-events: none;
-  }
-
-  .nsfw-search-beam {
-    position: absolute;
-    inset: -150%;
+  .beam-layer-nsfw-search {
     background: conic-gradient(
       from 0deg,
       transparent 0deg,
@@ -389,15 +359,11 @@
       rgba(56, 189, 248, 1) 345deg,
       rgba(255, 255, 255, 1) 360deg
     );
-    animation: border-beam-spin 2.2s linear infinite;
-    pointer-events: none;
   }
 
-  .nsfw-cyber-beam {
-    position: absolute;
-    inset: -150%;
+  .beam-layer-nsfw-cyber {
     background: conic-gradient(
-      from 60deg,
+      from 0deg,
       transparent 0deg,
       transparent 180deg,
       rgba(6, 182, 212, 0.5) 230deg,
@@ -405,15 +371,11 @@
       rgba(251, 113, 133, 1) 345deg,
       rgba(255, 255, 255, 1) 360deg
     );
-    animation: border-beam-spin 2.2s linear infinite;
-    pointer-events: none;
   }
 
-  .nsfw-vision-beam {
-    position: absolute;
-    inset: -150%;
+  .beam-layer-nsfw-vision {
     background: conic-gradient(
-      from 120deg,
+      from 0deg,
       transparent 0deg,
       transparent 180deg,
       rgba(16, 185, 129, 0.5) 230deg,
@@ -421,22 +383,41 @@
       rgba(253, 164, 175, 1) 345deg,
       rgba(255, 255, 255, 1) 360deg
     );
-    animation: border-beam-spin 2.4s linear infinite;
-    pointer-events: none;
   }
 
-  .omni-prism-beam {
-    position: absolute;
-    inset: -150%;
+  .beam-layer-cyber-search {
     background: conic-gradient(
       from 0deg,
-      rgba(251, 191, 36, 0.8) 0deg,
-      rgba(244, 63, 94, 0.9) 90deg,
-      rgba(168, 85, 247, 0.9) 180deg,
-      rgba(34, 211, 238, 0.95) 270deg,
+      transparent 0deg,
+      transparent 220deg,
+      rgba(6, 182, 212, 0.4) 260deg,
+      rgba(34, 211, 238, 0.95) 300deg,
+      rgba(56, 189, 248, 1) 340deg,
       rgba(255, 255, 255, 1) 360deg
     );
-    animation: border-beam-spin 2s linear infinite;
-    pointer-events: none;
+  }
+
+  .beam-layer-cyber-vision {
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      transparent 220deg,
+      rgba(16, 185, 129, 0.4) 260deg,
+      rgba(52, 211, 153, 0.95) 300deg,
+      rgba(34, 211, 238, 1) 340deg,
+      rgba(255, 255, 255, 1) 360deg
+    );
+  }
+
+  .beam-layer-vision-search {
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      transparent 220deg,
+      rgba(16, 185, 129, 0.4) 260deg,
+      rgba(56, 189, 248, 0.95) 300deg,
+      rgba(129, 140, 248, 1) 340deg,
+      rgba(255, 255, 255, 1) 360deg
+    );
   }
 }

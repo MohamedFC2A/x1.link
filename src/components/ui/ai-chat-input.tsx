@@ -571,6 +571,20 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       return null;
     }, [isDeepSearchEffective, isCyberMode, cyberTargetUrl, hasAttachments, isVisionMode, isX1Active]);
 
+    const isSpecialMode = Boolean(activeFusion || isDeepSearchEffective || isCyberMode || isX1Active || hasAttachments);
+
+    const currentBeamType = activeFusion
+      ? activeFusion.type
+      : isDeepSearchEffective
+      ? 'search'
+      : isCyberMode
+      ? 'cyber'
+      : isX1Active
+      ? 'nsfw'
+      : hasAttachments
+      ? 'vision'
+      : null;
+
     return (
       <div
         ref={ref}
@@ -710,117 +724,99 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               </div>
 
               <div className="space-y-1.5">
-                {/* Action 1: Upload Image or File */}
+                {/* Action 1: Upload Image */}
                 <button
                   type="button"
                   onClick={() => {
-                    setIsActionsMenuOpen(false);
                     fileInputRef.current?.click();
+                    setIsActionsMenuOpen(false);
                   }}
-                  className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans hover:bg-white/[0.05] text-zinc-200 transition-colors cursor-pointer text-right group border border-transparent"
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-white/[0.06] text-xs font-sans text-zinc-200 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-white/[0.08]"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-200 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="size-8 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300 group-hover:text-white shrink-0">
                       <Camera className="w-4 h-4" />
                     </div>
-                    <div className="min-w-0 text-right">
-                      <div className="font-semibold text-xs text-white truncate">رفع صورة أو مستند</div>
-                      <div className="text-[11px] text-zinc-400 font-normal truncate mt-0.5">استخراج النصوص (OCR) والتحليل البصري</div>
+                    <div>
+                      <div className="font-bold text-xs text-white">رفع صورة أو مستند</div>
+                      <div className="text-[11px] text-zinc-400 font-normal">استخراج النصوص (OCR) والتحليل البصري</div>
                     </div>
                   </div>
                 </button>
 
-                {/* Action 2: Target URL Scanner */}
-                {isCyberMode && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsActionsMenuOpen(false);
-                      setIsTargetUrlBarOpen(true);
-                    }}
-                    className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans hover:bg-white/[0.05] text-zinc-200 transition-colors cursor-pointer text-right group border border-transparent"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-200 shrink-0">
-                        <Globe className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0 text-right">
-                        <div className="font-semibold text-xs text-white truncate">فحص واستطلاع رابط هدف</div>
-                        <div className="text-[11px] text-zinc-400 font-normal truncate mt-0.5">تحليل أمني للترويسات والمنافذ والسطح الهجومي</div>
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {/* Action 3: Ultra-Deep Search Toggle (100+ Pages) */}
+                {/* Action 2: Deep Search Toggle */}
                 <button
                   type="button"
                   onClick={() => {
-                    setIsActionsMenuOpen(false);
                     toggleDeepSearch();
+                    setIsActionsMenuOpen(false);
                   }}
                   className={cn(
                     "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
                     isDeepSearchEffective
-                      ? "bg-white/[0.08] border-white/[0.15] text-white"
-                      : "hover:bg-white/[0.05] border-transparent text-zinc-200"
+                      ? "bg-sky-500/10 border-sky-500/30 text-sky-200"
+                      : "hover:bg-white/[0.06] text-zinc-200 hover:text-white border-transparent hover:border-white/[0.08]"
                   )}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3">
                     <div className={cn(
-                      "size-9 rounded-xl flex items-center justify-center shrink-0 border",
+                      "size-8 rounded-xl flex items-center justify-center shrink-0 border transition-all",
                       isDeepSearchEffective
-                        ? "bg-white text-black border-white"
-                        : "bg-white/[0.04] text-zinc-200 border-white/[0.08]"
+                        ? "bg-sky-500/20 border-sky-500/40 text-sky-300"
+                        : "bg-white/[0.04] border-white/[0.08] text-zinc-300"
                     )}>
                       <Search className="w-4 h-4" />
                     </div>
-                    <div className="min-w-0 text-right">
-                      <div className="font-semibold text-xs text-white truncate">البحث والاستخبارات العميقة</div>
-                      <div className="text-[11px] text-zinc-400 font-normal truncate mt-0.5">مسح واستكشاف 100+ صفحة ومصدر</div>
+                    <div>
+                      <div className="font-bold text-xs text-white">البحث والاستخبارات العميقة</div>
+                      <div className="text-[11px] text-zinc-400 font-normal">مسح واستكشاف 100+ صفحة ومصدر</div>
                     </div>
                   </div>
                   <span className={cn(
-                    "text-[10px] font-mono px-2 py-0.5 rounded font-bold shrink-0 mr-2",
-                    isDeepSearchEffective ? "bg-white text-black" : "bg-white/[0.04] text-zinc-400 border border-white/[0.08]"
+                    "text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0",
+                    isDeepSearchEffective
+                      ? "bg-sky-500/20 border-sky-500/40 text-sky-300 font-bold"
+                      : "bg-white/[0.04] border-white/[0.08] text-zinc-400"
                   )}>
-                    {isDeepSearchEffective ? "مفعّل" : "معطّل"}
+                    {isDeepSearchEffective ? 'مفعّل' : 'معطّل'}
                   </span>
                 </button>
 
-                {/* Action 4: NSFW NANO Silicon Chip Toggle */}
+                {/* Action 3: NSFW Off Toggle */}
                 <button
                   type="button"
                   onClick={() => {
-                    setIsActionsMenuOpen(false);
                     onToggleX1?.();
+                    setIsActionsMenuOpen(false);
                   }}
                   className={cn(
                     "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
                     isX1Active
-                      ? "bg-white/[0.08] border-white/[0.15] text-white"
-                      : "hover:bg-white/[0.05] border-transparent text-zinc-200"
+                      ? "bg-rose-500/10 border-rose-500/30 text-rose-200"
+                      : "hover:bg-white/[0.06] text-zinc-200 hover:text-white border-transparent hover:border-white/[0.08]"
                   )}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3">
                     <div className={cn(
-                      "size-9 rounded-xl flex items-center justify-center shrink-0 border",
+                      "size-8 rounded-xl flex items-center justify-center shrink-0 border transition-all",
                       isX1Active
-                        ? "bg-white text-black border-white"
-                        : "bg-white/[0.04] text-zinc-200 border-white/[0.08]"
+                        ? "bg-rose-500/20 border-rose-500/40 text-rose-300"
+                        : "bg-white/[0.04] border-white/[0.08] text-zinc-300"
                     )}>
                       <ShieldOff className="w-4 h-4" />
                     </div>
-                    <div className="min-w-0 text-right">
-                      <div className="font-semibold text-xs text-white truncate">وضع <span className="font-['Space_Grotesk'] font-bold">NSFW Off</span></div>
-                      <div className="text-[11px] text-zinc-400 font-normal truncate mt-0.5">إلغاء القيود عبر البصمة الحيوية</div>
+                    <div>
+                      <div className="font-bold text-xs text-white">وضع NSFW Off</div>
+                      <div className="text-[11px] text-zinc-400 font-normal">إلغاء القيود عبر البصمة الحيوية</div>
                     </div>
                   </div>
                   <span className={cn(
-                    "text-[10px] font-mono px-2 py-0.5 rounded font-bold shrink-0 mr-2",
-                    isX1Active ? "bg-white text-black" : "bg-white/[0.04] text-zinc-400 border border-white/[0.08]"
+                    "text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0",
+                    isX1Active
+                      ? "bg-rose-500/20 border-rose-500/40 text-rose-300 font-bold"
+                      : "bg-white/[0.04] border-white/[0.08] text-zinc-400"
                   )}>
-                    {isX1Active ? "مفعّلة" : "معطّلة"}
+                    {isX1Active ? 'مفعّل' : 'معطّل'}
                   </span>
                 </button>
               </div>
@@ -828,59 +824,56 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           </>
         )}
 
-        {/* Attachment Preview Row (Up to 5 images) */}
+        {/* Attachment Previews Bar */}
         {hasAttachments && (
-          <div className="mb-2.5 p-2 glass-card rounded-2xl animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <div className="flex items-center justify-between mb-1.5 px-1 text-[11px] font-sans font-medium text-zinc-400">
-              <span className="flex items-center gap-1.5 text-zinc-300">
-                <ImageIcon className="w-3.5 h-3.5 text-zinc-300" />
-                <span>الصور المرفقة للتحليل البصري:</span>
+          <div className="mb-2 p-2.5 rounded-2xl glass-card border border-white/[0.08] bg-black/40 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="flex items-center justify-between px-1 mb-2">
+              <span className="text-[11px] font-sans text-zinc-300 font-medium flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
+                <span>الصور المرفقة ({attachments.length} من {maxAttachments})</span>
               </span>
-              <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] text-zinc-300 border border-white/[0.08]">
-                {attachments.length} من 5 صور
-              </span>
+              <button
+                type="button"
+                onClick={() => setAttachments([])}
+                className="text-[10px] font-sans text-zinc-400 hover:text-rose-400 transition-colors cursor-pointer"
+              >
+                مسح الكل
+              </button>
             </div>
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-              {attachments.map((attachment, idx) => (
+            
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+              {attachments.map((att) => (
                 <div
-                  key={attachment.id}
-                  onClick={() => setActiveAttachment(attachment)}
-                  className="relative group shrink-0 size-16 rounded-xl overflow-hidden border border-white/[0.12] bg-zinc-900 cursor-pointer shadow-md hover:border-white/40 transition-all"
+                  key={att.id}
+                  className="relative group shrink-0 size-16 rounded-xl overflow-hidden border border-white/[0.12] bg-zinc-950/80 cursor-pointer shadow-md"
+                  onClick={() => setActiveAttachment(att)}
                 >
-                  {attachment.file.type.startsWith("image/") ? (
-                    <img
-                      src={attachment.url}
-                      alt={attachment.name}
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <div className="size-full flex flex-col items-center justify-center p-1 bg-zinc-850 text-zinc-300">
-                      <FileText className="w-5 h-5 text-zinc-300" />
-                      <span className="text-[8px] truncate max-w-[48px] mt-0.5">{attachment.name}</span>
-                    </div>
-                  )}
-                  {/* Number Badge */}
-                  <div className="absolute top-1 right-1 px-1.5 py-0.2 rounded-md bg-black/85 text-white font-mono text-[9px] font-bold border border-white/20 shadow-sm backdrop-blur-md">
-                    {idx + 1}
-                  </div>
+                  <img
+                    src={att.url}
+                    alt={att.name}
+                    className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                  />
                   <button
                     type="button"
-                    onClick={(e) => removeAttachment(attachment.id, e)}
-                    className="absolute top-1 left-1 size-5 rounded-full bg-black/80 text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center justify-center transition-colors shadow border border-white/15"
-                    title="حذف الصورة"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAttachments((prev) => prev.filter(a => a.id !== att.id));
+                    }}
+                    className="absolute top-1 right-1 size-5 rounded-full bg-black/80 text-zinc-300 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <X className="w-3 h-3" />
                   </button>
                 </div>
               ))}
-              {attachments.length < 5 && (
+
+              {attachments.length < maxAttachments && (
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="shrink-0 size-16 rounded-xl border border-dashed border-white/[0.15] hover:border-white/40 bg-white/[0.02] hover:bg-white/[0.06] flex flex-col items-center justify-center text-zinc-400 hover:text-white text-[10px] gap-1 transition-all cursor-pointer font-sans"
                 >
                   <Plus className="w-4 h-4 text-zinc-300" />
-                  <span>إضافة صورة</span>
+                  <span>إضافة</span>
                 </button>
               )}
             </div>
@@ -891,56 +884,60 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         <div
           className={cn(
             "relative w-full rounded-3xl transition-all duration-300",
-            (activeFusion || isDeepSearchEffective || isCyberMode || isX1Active || hasAttachments)
+            isSpecialMode
               ? "p-[1.5px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.95)]"
               : "bg-[#09090d]/80 backdrop-blur-2xl border border-white/[0.12] hover:border-white/[0.22] focus-within:border-white/[0.45] shadow-[0_16px_45px_rgba(0,0,0,0.85)]"
           )}
         >
-          {/* Dynamic Mode & Hybrid Orbit Beams (ONLY rendered when a special mode is active) */}
-          {(activeFusion || isDeepSearchEffective || isCyberMode || isX1Active || hasAttachments) && (
-            <>
-              {activeFusion ? (
-                <div className={activeFusion.beamClass} />
-              ) : isDeepSearchEffective ? (
-                <div className="orbit-beam-search" />
-              ) : isCyberMode ? (
-                <div className="cyber-radar-beam" />
-              ) : isX1Active ? (
-                <div className="nsfw-plasma-beam" />
-              ) : hasAttachments ? (
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/40 via-teal-400/80 to-emerald-500/40 vision-aperture-glow" />
-              ) : null}
-            </>
-          )}
+          {/* Continuous Persistent Dynamic Mode Orbit System (Never restarts rotation) */}
+          <div
+            className={cn(
+              "absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-500 rounded-3xl",
+              isSpecialMode ? "opacity-100" : "opacity-0"
+            )}
+          >
+            <div className="persistent-beam-rotor">
+              <div className={cn("beam-gradient-layer beam-layer-search", currentBeamType === 'search' ? "opacity-100" : "opacity-0")} />
+              <div className={cn("beam-gradient-layer beam-layer-cyber", currentBeamType === 'cyber' ? "opacity-100" : "opacity-0")} />
+              <div className={cn("beam-gradient-layer beam-layer-nsfw", currentBeamType === 'nsfw' ? "opacity-100" : "opacity-0")} />
+              <div className={cn("beam-gradient-layer beam-layer-vision", currentBeamType === 'vision' ? "opacity-100" : "opacity-0")} />
+              <div className={cn("beam-gradient-layer beam-layer-nsfw-search", currentBeamType === 'nsfw-search' ? "opacity-100" : "opacity-0")} />
+              <div className={cn("beam-gradient-layer beam-layer-nsfw-cyber", currentBeamType === 'nsfw-cyber' ? "opacity-100" : "opacity-0")} />
+              <div className={cn("beam-gradient-layer beam-layer-nsfw-vision", currentBeamType === 'nsfw-vision' ? "opacity-100" : "opacity-0")} />
+              <div className={cn("beam-gradient-layer beam-layer-cyber-search", currentBeamType === 'cyber-search' ? "opacity-100" : "opacity-0")} />
+              <div className={cn("beam-gradient-layer beam-layer-cyber-vision", currentBeamType === 'cyber-vision' ? "opacity-100" : "opacity-0")} />
+              <div className={cn("beam-gradient-layer beam-layer-vision-search", currentBeamType === 'vision-search' ? "opacity-100" : "opacity-0")} />
+            </div>
+          </div>
 
           {/* Inner Content Container */}
           <div
             className={cn(
               "relative w-full h-full rounded-[23px] transition-all duration-200",
-              (activeFusion || isDeepSearchEffective || isCyberMode || isX1Active || hasAttachments)
+              isSpecialMode
                 ? "bg-[#09090d]/95 backdrop-blur-3xl z-10"
                 : "bg-transparent"
             )}
           >
-            {/* Top Sheen Edge Line (ONLY when a special mode is active) */}
-            {(activeFusion || isDeepSearchEffective || isCyberMode || isX1Active || hasAttachments) && (
-              <div
-                className={cn(
-                  "absolute top-0 inset-x-8 h-[1px] rounded-full pointer-events-none transition-all duration-500 opacity-90 z-20",
-                  activeFusion
-                    ? activeFusion.topSheen
-                    : isDeepSearchEffective
-                    ? "bg-gradient-to-r from-transparent via-sky-400 to-transparent"
-                    : isCyberMode
-                    ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
-                    : isX1Active
-                    ? "bg-gradient-to-r from-transparent via-rose-500 to-transparent"
-                    : hasAttachments
-                    ? "bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
-                    : "bg-gradient-to-r from-transparent via-white/50 to-transparent"
-                )}
-              />
-            )}
+            {/* Top Sheen Edge Line */}
+            <div
+              className={cn(
+                "absolute top-0 inset-x-8 h-[1px] rounded-full pointer-events-none transition-all duration-500 z-20",
+                !isSpecialMode
+                  ? "opacity-0"
+                  : activeFusion
+                  ? `${activeFusion.topSheen} opacity-90`
+                  : isDeepSearchEffective
+                  ? "bg-gradient-to-r from-transparent via-sky-400 to-transparent opacity-90"
+                  : isCyberMode
+                  ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-90"
+                  : isX1Active
+                  ? "bg-gradient-to-r from-transparent via-rose-500 to-transparent opacity-90"
+                  : hasAttachments
+                  ? "bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-90"
+                  : "opacity-0"
+              )}
+            />
             {/* Streamlined Cyber Target URL Bar (ONLY visible in Cyber Mode) */}
             <AnimatePresence initial={false}>
               {isCyberMode && (isTargetUrlBarOpen || cyberTargetUrl.trim() !== '') && !hasAttachments && (
