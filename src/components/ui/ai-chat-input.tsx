@@ -1468,48 +1468,29 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             
             {/* Right Group: Compact Model Selector */}
             <div className="relative flex items-center gap-1.5 shrink-0">
-              
-              <SmartTooltip
-                title={activeModelDisplayName}
-                description={
-                  isMediaMode
-                    ? "المحرك الشامل لاستيعاب وتحليل الفيديوهات، التسجيلات الصوتية، المستندات والأكواد بسياق ضخم يصل لمليون توكن."
-                    : isCyberMode
-                    ? "نموذج استخباري سيبراني متخصص في فحص الروابط، تحليل الثغرات، واكتشاف التهديدات الرقمية."
-                    : isVisionMode
-                    ? "نموذج الرؤية البصرية الفورية لتحليل الصور، قراءة المستندات، واستخراج النصوص OCR."
-                    : "النموذج الذكي الأساسي للتحليل اللغوي العميق، التفكير المنطقي، وتوليد الأفكار الحرة."
-                }
-                badge={isMediaMode ? "Spark Multi 1.2" : isCyberMode ? "Cyber Engine" : isVisionMode ? "Vision Engine" : "Flagship AI"}
-                badgeColor={isMediaMode ? "bg-violet-500/20 text-violet-300 border-violet-500/40" : isCyberMode ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : isVisionMode ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : "bg-amber-500/20 text-amber-300 border-amber-500/40"}
-                icon={isMediaMode ? <Sparkles className="w-3.5 h-3.5 text-violet-400" /> : isCyberMode ? <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" /> : isVisionMode ? <Camera className="w-3.5 h-3.5 text-emerald-400" /> : <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />}
-                side="top"
-                disabled={isModelMenuOpen}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsModelMenuOpen(!isModelMenuOpen);
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium select-none shrink-0 cursor-pointer transition-all bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.16] text-zinc-300 hover:text-white active:scale-95 shadow-none"
+                title="اختيار النموذج الذكي"
               >
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsModelMenuOpen(!isModelMenuOpen);
-                  }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium select-none shrink-0 cursor-pointer transition-all bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.16] text-zinc-300 hover:text-white active:scale-95 shadow-none"
-                >
-                  {isMediaMode ? (
-                    <Sparkles className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                  ) : isCyberMode ? (
-                    <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  ) : isVisionMode ? (
-                    <Camera className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  ) : (
-                    <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20 shrink-0" />
-                  )}
-                  <span className="hidden sm:inline font-sans text-xs font-semibold">
-                    {activeModelDisplayName}
-                  </span>
-                  <ChevronDown className={cn("w-3 h-3 text-zinc-400 transition-transform duration-200", isModelMenuOpen && "rotate-180")} />
-                </button>
-              </SmartTooltip>
-
+                {isMediaMode ? (
+                  <Sparkles className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                ) : isCyberMode ? (
+                  <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                ) : isVisionMode ? (
+                  <Camera className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                ) : (
+                  <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20 shrink-0" />
+                )}
+                <span className="hidden sm:inline font-sans text-xs font-semibold">
+                  {activeModelDisplayName}
+                </span>
+                <ChevronDown className={cn("w-3 h-3 text-zinc-400 transition-transform duration-200", isModelMenuOpen && "rotate-180")} />
+              </button>
             </div>
 
             {/* Left Group: Icon-Only Status Badges & 3-Dots Actions Menu */}
@@ -1517,69 +1498,45 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               
               {/* NSFW Active Icon Indicator (Clickable to cancel/toggle) */}
               {isX1Active && (
-                <SmartTooltip
-                  title="وضع NSFW Off"
-                  description="إلغاء القيود والرقابة الأخلاقية للتوليد الفكري والحر دون حظر. انقر لتعطيل المود."
-                  badge="مفعّل"
-                  badgeColor="bg-rose-500/20 text-rose-300 border-rose-500/40"
-                  icon={<ShieldOff className="w-3.5 h-3.5 text-rose-400" />}
-                  side="top"
+                <button
+                  type="button"
+                  onClick={onToggleX1}
+                  title="وضع NSFW Off مفعّل (انقر للتعطيل)"
+                  className="size-8 rounded-xl bg-zinc-950 border border-white/[0.12] hover:border-rose-500/40 hover:bg-rose-950/20 text-rose-400 hover:text-rose-300 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0"
                 >
-                  <button
-                    type="button"
-                    onClick={onToggleX1}
-                    className="size-8 rounded-xl bg-zinc-950 border border-white/[0.12] hover:border-rose-500/40 hover:bg-rose-950/20 text-rose-400 hover:text-rose-300 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0"
-                  >
-                    <ShieldOff className="w-3.5 h-3.5 text-rose-400" />
-                  </button>
-                </SmartTooltip>
+                  <ShieldOff className="w-3.5 h-3.5 text-rose-400" />
+                </button>
               )}
 
               {/* Deep Search Active Icon Indicator */}
               {isDeepSearchEffective && (
-                <SmartTooltip
-                  title="البحث في الويب"
-                  description="استكشاف الويب الحي وجلب أحدث البيانات والنتائج اللحظية من المصادر المفتوحة. انقر لتعطيل المود."
-                  badge="مفعّل"
-                  badgeColor="bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                  icon={<Search className="w-3.5 h-3.5 text-emerald-400" />}
-                  side="top"
-                >
-                  <button
-                    type="button"
-                    onClick={toggleDeepSearch}
-                    className="size-8 rounded-xl bg-zinc-950 border border-white/[0.12] hover:border-emerald-500/40 hover:bg-emerald-950/20 text-emerald-400 hover:text-emerald-300 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0"
-                  >
-                    <Search className="w-3.5 h-3.5 text-emerald-400" />
-                  </button>
-                </SmartTooltip>
-              )}
-
-              {/* 3-Dots Action Button */}
-              <SmartTooltip
-                title="أدوات إضافية"
-                description="لوحة الأدوات السريعة للبحث المباشر، رفع الصور والمستندات، وتفعيل الأوضاع الخاصة."
-                badge="أدوات سريعة"
-                badgeColor="bg-white/10 text-white border-white/20"
-                icon={<MoreHorizontal className="w-3.5 h-3.5 text-zinc-300" />}
-                side="top"
-              >
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsActionsMenuOpen(!isActionsMenuOpen);
-                  }}
-                  className={cn(
-                    "glass-button size-8 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-95 shrink-0",
-                    isActionsMenuOpen
-                      ? "bg-white/[0.12] text-white border-white/[0.25]"
-                      : "text-zinc-300 hover:text-white"
-                  )}
+                  onClick={toggleDeepSearch}
+                  title="البحث المباشر في الويب مفعّل (انقر للتعطيل)"
+                  className="size-8 rounded-xl bg-zinc-950 border border-white/[0.12] hover:border-emerald-500/40 hover:bg-emerald-950/20 text-emerald-400 hover:text-emerald-300 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0"
                 >
-                  <MoreHorizontal className="w-4 h-4 text-zinc-300" />
+                  <Search className="w-3.5 h-3.5 text-emerald-400" />
                 </button>
-              </SmartTooltip>
+              )}
+
+              {/* 3-Dots Action Button (Clean and direct without annoying tooltips) */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsActionsMenuOpen(!isActionsMenuOpen);
+                }}
+                title="أدوات إضافية"
+                className={cn(
+                  "glass-button size-8 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-95 shrink-0",
+                  isActionsMenuOpen
+                    ? "bg-white/[0.12] text-white border-white/[0.25]"
+                    : "text-zinc-300 hover:text-white"
+                )}
+              >
+                <MoreHorizontal className="w-4 h-4 text-zinc-300" />
+              </button>
 
             </div>
 

@@ -1,0 +1,7 @@
+# robots.txt for https://matany.one
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Sitemaps
+Sitemap: https://matany.one/sitemap.xml
