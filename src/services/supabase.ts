@@ -74,7 +74,7 @@ export async function createCloudChat(userId: string | null, title: string, mode
     const payload: any = {
       title: title.slice(0, 60),
       mode: isX1 ? 'x1' : 'base',
-      model: model === 'deepseek-v4-flash-vision-exp' ? 'Fathom Cam' : 'Fathom 1',
+      model: model === 'deepseek-v4-flash-cyber' ? 'Fathom Cyber' : model === 'deepseek-v4-flash-vision-exp' ? 'Fathom Cam' : 'Fathom 1',
       device_id: deviceId,
     };
 
