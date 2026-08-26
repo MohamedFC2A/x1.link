@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessageItem } from '../types';
 import ChatReasoning from './ui/chat-reasoning';
-import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Send } from 'lucide-react';
+import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { detectAndExtractUrl, getFaviconUrl } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -18,7 +18,12 @@ interface ChatMessageProps {
   isStreaming?: boolean;
 }
 
-const PromptCard: React.FC<{ text: string }> = ({ text }) => {
+interface PromptCardProps {
+  text: string;
+  type?: 'prompt' | 'ad' | 'coder' | 'script' | 'general';
+}
+
+const PromptCard: React.FC<PromptCardProps> = ({ text, type = 'prompt' }) => {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
@@ -26,35 +31,94 @@ const PromptCard: React.FC<{ text: string }> = ({ text }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const getCardDetails = () => {
+    switch (type) {
+      case 'ad':
+        return {
+          title: "نص الإعلان والمنشور (Ad Copy)",
+          badge: "AD COPY",
+          border: "border-amber-500/30",
+          bg: "bg-[#141008]/95",
+          headerBorder: "border-amber-500/20",
+          iconColor: "text-amber-400",
+          btnBg: "bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/30 text-amber-200",
+          btnText: "نسخ الإعلان",
+          copiedText: "تم نسخ الإعلان",
+        };
+      case 'coder':
+        return {
+          title: "برومبت وتعليمات المطور (AI Coder)",
+          badge: "AI CODER",
+          border: "border-cyan-500/30",
+          bg: "bg-[#081216]/95",
+          headerBorder: "border-cyan-500/20",
+          iconColor: "text-cyan-400",
+          btnBg: "bg-cyan-500/15 hover:bg-cyan-500/25 border-cyan-500/30 text-cyan-200",
+          btnText: "نسخ برومبت المطور",
+          copiedText: "تم نسخ البرومبت",
+        };
+      case 'script':
+        return {
+          title: "نص السيناريو والسكربت (Script)",
+          badge: "SCRIPT",
+          border: "border-emerald-500/30",
+          bg: "bg-[#08140c]/95",
+          headerBorder: "border-emerald-500/20",
+          iconColor: "text-emerald-400",
+          btnBg: "bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-200",
+          btnText: "نسخ السكربت",
+          copiedText: "تم نسخ السكربت",
+        };
+      default:
+        return {
+          title: "البرومبت المقترح (AI Prompt)",
+          badge: "AI PROMPT",
+          border: "border-purple-500/30",
+          bg: "bg-[#0e0a16]/95",
+          headerBorder: "border-purple-500/20",
+          iconColor: "text-purple-400",
+          btnBg: "bg-purple-500/15 hover:bg-purple-500/25 border-purple-500/30 text-purple-200",
+          btnText: "نسخ البرومبت",
+          copiedText: "تم نسخ البرومبت",
+        };
+    }
+  };
+
+  const details = getCardDetails();
+  const isArabicText = /[\u0600-\u06FF]/.test(text.slice(0, 100));
+
   return (
-    <div className="my-3 rounded-2xl border border-purple-500/25 bg-[#0e0a16]/90 p-3 sm:p-4 text-right backdrop-blur-xl shadow-lg group/prompt animate-in fade-in duration-150 select-none">
-      <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-purple-500/20">
-        <div className="flex items-center gap-2 text-xs font-semibold text-purple-200">
-          <div className="size-6 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center">
-            <Sparkles className="size-3.5 text-purple-400" />
+    <div className={cn("my-3 rounded-2xl border p-3.5 sm:p-4 text-right backdrop-blur-2xl shadow-xl group/deliverable animate-in fade-in duration-200 select-none", details.border, details.bg)}>
+      <div className={cn("flex items-center justify-between pb-2.5 mb-2.5 border-b", details.headerBorder)}>
+        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-100">
+          <div className="size-6 rounded-lg bg-white/[0.06] border border-white/[0.12] flex items-center justify-center">
+            <Sparkles className={cn("size-3.5", details.iconColor)} />
           </div>
-          <span>البرومبت المقترح (AI Prompt)</span>
+          <span>{details.title}</span>
         </div>
         <button
           type="button"
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-200 hover:text-white text-xs font-sans font-medium transition-all cursor-pointer select-none active:scale-95 shadow-sm"
-          title="نسخ البرومبت بالكامل"
+          className={cn("flex items-center gap-1.5 px-3 py-1 rounded-xl border text-xs font-sans font-medium transition-all cursor-pointer select-none active:scale-95 shadow-sm", details.btnBg)}
+          title="نسخ المحتوى بالكامل"
         >
           {copied ? (
             <>
               <Check className="size-3.5 text-emerald-400" />
-              <span className="text-emerald-400 font-bold">تم نسخ البرومبت</span>
+              <span className="text-emerald-400 font-bold">{details.copiedText}</span>
             </>
           ) : (
             <>
-              <Copy className="size-3.5 text-purple-300" />
-              <span>نسخ البرومبت</span>
+              <Copy className="size-3.5" />
+              <span>{details.btnText}</span>
             </>
           )}
         </button>
       </div>
-      <div className="font-mono text-xs sm:text-sm text-zinc-100 whitespace-pre-wrap leading-relaxed select-text dir-ltr text-left p-3 rounded-xl bg-black/70 border border-white/[0.08] shadow-inner font-normal">
+      <div className={cn(
+        "text-xs sm:text-sm text-zinc-100 whitespace-pre-wrap leading-relaxed select-text p-3 sm:p-3.5 rounded-xl bg-black/75 border border-white/[0.08] shadow-inner font-normal",
+        isArabicText ? "font-sans text-right dir-rtl" : "font-mono text-left dir-ltr"
+      )}>
         {text}
       </div>
     </div>
@@ -287,7 +351,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                   const isTel = href?.startsWith('tel:');
                   const isMailto = href?.startsWith('mailto:');
                   return (
-                    <bdi className="inline-flex align-middle mx-1 my-0.5">
+                    <bdi className="inline-flex items-center align-middle mx-1">
                       <span
                         role="button"
                         tabIndex={0}
@@ -388,21 +452,27 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                   const match = /language-(\w+)/.exec(className || '');
                   const lang = match ? match[1].toLowerCase() : '';
 
-                  if (!inline && (lang === 'prompt' || lang === 'prompts')) {
-                    return <PromptCard text={String(children).replace(/\n$/, '')} />;
+                  const isPromptLang = ['prompt', 'prompts', 'ai-prompt', 'prompt-ai'].includes(lang);
+                  const isAdLang = ['ad', 'ads', 'advertisement', 'copy', 'marketing'].includes(lang);
+                  const isCoderLang = ['coder', 'ai-coder', 'system', 'system-prompt', 'instructions'].includes(lang);
+                  const isScriptLang = ['script', 'scenario', 'hook'].includes(lang);
+
+                  if (!inline && (isPromptLang || isAdLang || isCoderLang || isScriptLang)) {
+                    const type = isAdLang ? 'ad' : isCoderLang ? 'coder' : isScriptLang ? 'script' : 'prompt';
+                    return <PromptCard text={String(children).replace(/\n$/, '')} type={type} />;
                   }
 
                   return !inline ? (
                     <div className="my-2.5 sm:my-3 rounded-xl border border-white/[0.1] bg-black/80 overflow-hidden font-mono text-xs text-left" dir="ltr">
                       <div className="flex justify-between items-center bg-white/[0.04] px-3 py-1.5 border-b border-white/[0.08] text-zinc-400 text-[11px]">
-                        <span>{match ? match[1] : 'code'}</span>
+                        <span className="font-mono text-zinc-300 uppercase">{match ? match[1] : 'code'}</span>
                         <button
                           type="button"
                           onClick={() => navigator.clipboard.writeText(String(children).replace(/\n$/, ''))}
-                          className="hover:text-white flex items-center gap-1 font-medium transition-colors"
+                          className="hover:text-white flex items-center gap-1 font-medium transition-colors cursor-pointer select-none active:scale-95"
                         >
                           <Copy className="w-3 h-3 text-zinc-400" />
-                          نسخ
+                          نسخ الكود
                         </button>
                       </div>
                       <pre className="p-3 sm:p-3.5 overflow-x-auto text-zinc-200 text-xs leading-relaxed">

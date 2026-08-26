@@ -209,17 +209,18 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
     const handleValueChange = useCallback(
       (val: string) => {
-        // Automatic URL detection on typing or standard input
+        // Automatic URL detection on typing ONLY when input is exclusively a standalone URL
         if (val && !cyberTargetUrl) {
-          const urlInfo = detectAndExtractUrl(val);
-          // Auto-trigger if a valid URL pattern is detected and followed by a space, newline, or is standalone
-          if (urlInfo.hasUrl && urlInfo.cleanUrl) {
-            const hasSpaceOrNewline = /\s$/.test(val) || val.includes('\n');
-            const isStandalone = val.trim() === (val.match(/(?:https?:\/\/|www\.)[^\s<>"'{}|\\^`]+|[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s<>"'{}|\\^`]*)?/i)?.[0] || '').trim();
-            
-            if (hasSpaceOrNewline || isStandalone) {
-              activateCyberUrlMode(urlInfo.cleanUrl, urlInfo.remainingText);
-              return;
+          const trimmed = val.trim();
+          const words = trimmed.split(/\s+/);
+          if (words.length === 1) {
+            const urlInfo = detectAndExtractUrl(trimmed);
+            if (urlInfo.hasUrl && urlInfo.cleanUrl && urlInfo.remainingText.trim() === '') {
+              const hasTrailingSpace = /\s$/.test(val);
+              if (hasTrailingSpace || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                activateCyberUrlMode(urlInfo.cleanUrl, '');
+                return;
+              }
             }
           }
         }
@@ -271,18 +272,20 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         return;
       }
 
-      // 2. Check for URLs in Text
+      // 2. Check for URLs in Text — ONLY activate target mode if pasting exclusively a single standalone URL
       const pastedText = clipboardData.getData('text');
       if (!pastedText) return;
 
-      const urlInfo = detectAndExtractUrl(pastedText);
-      if (urlInfo.hasUrl && urlInfo.cleanUrl) {
-        e.preventDefault();
-        const existingText = value.trim();
-        const combinedPrompt = [existingText, urlInfo.remainingText].filter(Boolean).join(' ').trim();
-        activateCyberUrlMode(urlInfo.cleanUrl, combinedPrompt);
+      const trimmedPasted = pastedText.trim();
+      const words = trimmedPasted.split(/\s+/);
+      if (words.length === 1 && !cyberTargetUrl) {
+        const urlInfo = detectAndExtractUrl(trimmedPasted);
+        if (urlInfo.hasUrl && urlInfo.cleanUrl && urlInfo.remainingText.trim() === '') {
+          e.preventDefault();
+          activateCyberUrlMode(urlInfo.cleanUrl, value.trim());
+        }
       }
-    }, [value, activateCyberUrlMode]);
+    }, [value, cyberTargetUrl, activateCyberUrlMode]);
 
     // Global paste listener so pasting images works from anywhere on page
     useEffect(() => {
@@ -778,21 +781,19 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 className="overflow-hidden"
               >
                 <div className="p-2 sm:p-2.5 border-b border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl rounded-t-3xl flex items-center gap-2.5 px-3 sm:px-4">
-                  {/* Smart Cyber Website Logo / Live Orb Badge */}
-                  <div className="size-7 rounded-xl bg-zinc-950 border border-white/[0.1] flex items-center justify-center overflow-hidden shrink-0">
-                    {cyberTargetUrl.trim() ? (
-                      <ThinkingOrb state="working" size={20} theme="dark" speed={1.5} />
-                    ) : activeFaviconUrl && !faviconError ? (
+                  {/* Smart Cyber Website Logo / Favicon */}
+                  <div className="size-7 rounded-xl bg-zinc-950 border border-white/[0.12] flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                    {activeFaviconUrl && !faviconError ? (
                       <img
                         src={activeFaviconUrl}
                         alt={activeDomain || 'Target Logo'}
                         className="size-4 object-contain rounded"
                         onError={() => setFaviconError(true)}
                       />
+                    ) : cyberTargetUrl.trim() ? (
+                      <ThinkingOrb state="working" size={20} theme="dark" speed={1.5} />
                     ) : (
-                      <div className="relative flex items-center justify-center">
-                        <Globe className="w-3.5 h-3.5 text-zinc-400" />
-                      </div>
+                      <Globe className="w-3.5 h-3.5 text-zinc-400" />
                     )}
                   </div>
 
@@ -813,19 +814,6 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       }
                     }}
                   />
-                  {cyberTargetUrl && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCyberTargetUrl('');
-                        setFaviconError(false);
-                      }}
-                      className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] cursor-pointer transition-colors shrink-0"
-                      title="مسح الرابط"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -833,8 +821,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       setCyberTargetUrl('');
                       setFaviconError(false);
                     }}
-                    className="size-7 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-white/[0.06]"
-                    title="إلغاء وضع الرابط"
+                    className="size-7 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-white/[0.06] active:scale-95"
+                    title="إلغاء ومسح الهدف"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
