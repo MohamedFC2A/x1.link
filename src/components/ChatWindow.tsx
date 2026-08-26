@@ -145,7 +145,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         onWheel={handleWheel}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
-        className="flex-1 overflow-y-auto px-2.5 sm:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 select-none smooth-scroll scroll-container-optimized"
+        className="flex-1 overflow-y-auto px-2.5 sm:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 select-text smooth-scroll scroll-container-optimized"
         style={{
           scrollBehavior: 'auto',
           overflowAnchor: 'none', // We manage exact anchoring via ResizeObserver

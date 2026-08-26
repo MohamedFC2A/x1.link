@@ -88,7 +88,7 @@ const PromptCard: React.FC<PromptCardProps> = ({ text, type = 'prompt' }) => {
   const isArabicText = /[\u0600-\u06FF]/.test(text.slice(0, 100));
 
   return (
-    <div className={cn("my-3 rounded-2xl border p-3.5 sm:p-4 text-right backdrop-blur-2xl shadow-xl group/deliverable animate-in fade-in duration-200 select-none", details.border, details.bg)}>
+    <div className={cn("my-3 rounded-2xl border p-3.5 sm:p-4 text-right backdrop-blur-2xl shadow-xl group/deliverable animate-in fade-in duration-200 select-text", details.border, details.bg)}>
       <div className={cn("flex items-center justify-between pb-2.5 mb-2.5 border-b", details.headerBorder)}>
         <div className="flex items-center gap-2 text-xs font-semibold text-zinc-100">
           <div className="size-6 rounded-lg bg-white/[0.06] border border-white/[0.12] flex items-center justify-center">

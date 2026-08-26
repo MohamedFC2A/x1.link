@@ -41,6 +41,24 @@
     font-family: "Readex Pro", "IBM Plex Sans Arabic", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   }
 
+  /* High-Contrast Luminous Text Selection */
+  ::selection {
+    background-color: rgba(255, 255, 255, 0.3) !important;
+    color: #ffffff !important;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.8) !important;
+  }
+
+  ::-moz-selection {
+    background-color: rgba(255, 255, 255, 0.3) !important;
+    color: #ffffff !important;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.8) !important;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.4) !important;
+    outline-offset: 2px !important;
+  }
+
   /* Safe area padding utilities for mobile notches & home indicator */
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
