@@ -25,22 +25,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <header className="sticky top-0 z-30 w-full bg-[#000000]/95 border-b border-white/[0.08] px-4 sm:px-8 py-3 backdrop-blur-xl pt-safe">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           
-          {/* Right / Pure Typographic Luxury Brand Wordmark */}
-          <div className="flex flex-col text-left justify-center select-none py-0.5" dir="ltr">
-            <div className="flex items-baseline gap-0.5 leading-none">
-              <span className="font-['Space_Grotesk'] font-black text-xl sm:text-2xl tracking-tight brand-shimmer-text">
-                matany
-              </span>
-              <span className="font-['Space_Grotesk'] font-bold text-xs sm:text-sm text-zinc-400 font-mono tracking-tight">
-                .one
-              </span>
-            </div>
-            <span className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono mt-1 font-semibold tracking-[0.22em] uppercase">
-              AUTONOMOUS AI PLATFORM
-            </span>
-          </div>
-
-          {/* Left Actions */}
+          {/* Right Actions (Start in RTL) */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -60,6 +45,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <MessageSquarePlus className="w-4 h-4 text-zinc-950" />
               <span>دخول الشات</span>
             </button>
+          </div>
+
+          {/* Left (End in RTL) / Pure Typographic Luxury Brand Wordmark */}
+          <div className="flex items-center cursor-pointer group shrink-0 select-none py-1" dir="ltr" onClick={onStartChat}>
+            <div className="flex items-baseline gap-0.5 leading-none">
+              <span className="font-['Space_Grotesk'] font-black text-xl sm:text-2xl tracking-tight brand-shimmer-text">
+                matany
+              </span>
+              <span className="font-['Space_Grotesk'] font-bold text-xs sm:text-sm text-zinc-400 font-mono tracking-tight group-hover:text-zinc-200 transition-colors">
+                .one
+              </span>
+            </div>
           </div>
 
         </div>
