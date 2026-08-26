@@ -162,10 +162,10 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 onNavigateToLimits?.();
                 onClose();
               }}
-              className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-cyan-300 hover:text-white text-[10px] font-semibold cursor-pointer active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-200 hover:text-white text-[10px] font-semibold cursor-pointer active:scale-95"
               title="تتبع الاستهلاك"
             >
-              <Activity className="w-3.5 h-3.5 text-cyan-400" />
+              <Activity className="w-3.5 h-3.5" />
               <span>الاستهلاك</span>
             </button>
 
@@ -254,21 +254,6 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
               المستهلك: {totalTokens.toLocaleString()} توكن
             </div>
           </div>
-
-          {/* Clear Current Chat Button */}
-          {onClearChat && (
-            <button
-              type="button"
-              onClick={() => {
-                onClearChat();
-                onClose();
-              }}
-              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-300 text-xs font-semibold cursor-pointer active:scale-95 transition-all"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-              <span>مسح رسائل المحادثة الحالية</span>
-            </button>
-          )}
 
           <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[10px] font-sans text-zinc-400">
             <span>تطوير: <strong className="text-zinc-200">محمد أحمد مطعني</strong></span>

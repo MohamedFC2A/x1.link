@@ -176,6 +176,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             {/* Minimal Subtle Grid Aura */}
             <div className="absolute inset-0 -z-10 bg-grid-white opacity-20 grid-radial-fade pointer-events-none rounded-3xl" />
             
+            {/* Master Brand M Emblem with Glassmorphic Squircle */}
+            <div className="mb-4 relative group cursor-default">
+              <div className="size-16 sm:size-20 rounded-3xl p-1 bg-gradient-to-b from-white/20 via-white/10 to-white/5 shadow-[0_12px_36px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.25)] border border-white/20 flex items-center justify-center backdrop-blur-2xl group-hover:scale-105 transition-transform duration-300">
+                <img src="/matany-logo.svg" alt="matany.one" className="size-full rounded-[20px] object-contain drop-shadow" />
+              </div>
+            </div>
+
             {/* Title */}
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 font-sans tracking-tight">
               كيف يمكن لـ <span className="brand-shimmer-text font-['Space_Grotesk'] font-black">matany.one</span> مساعدتك؟
