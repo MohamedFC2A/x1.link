@@ -172,15 +172,43 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         }}
       >
         {messages.length === 0 ? (
-          <div className="min-h-[60vh] flex flex-col items-center justify-center max-w-xl mx-auto py-8 text-center animate-in fade-in duration-300 px-4">
+          <div className="min-h-[60vh] flex flex-col items-center justify-center max-w-xl mx-auto py-8 text-center animate-in fade-in duration-300 px-4 relative">
+            {/* Tech Grid Backdrop Aura */}
+            <div className="absolute inset-0 -z-10 bg-grid-white opacity-25 grid-radial-fade pointer-events-none rounded-3xl" />
+            
             {/* Title */}
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-3 font-sans tracking-tight">
               كيف يمكن لـ <span className="brand-shimmer-text font-['Space_Grotesk'] font-black">matany.one</span> مساعدتك اليوم؟
             </h2>
             
-            <p className="text-xs sm:text-sm text-zinc-400 max-w-md mx-auto font-sans leading-relaxed">
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-md mx-auto font-sans leading-relaxed mb-6">
               اكتب رسالتك في الحقل بالأسفل للبدء، أو ارفع صورة للتحليل، أو ابدأ الاستكشاف والبحث المباشر.
             </p>
+
+            {/* Quick Action Pills for Mobile and Desktop */}
+            <div className="flex flex-wrap items-center justify-center gap-2 max-w-md mx-auto">
+              <button
+                type="button"
+                onClick={() => onSendPreset('ما هي أحدث قدرات الذكاء الاصطناعي في matany.one؟')}
+                className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 hover:text-white text-xs transition-all active:scale-95 cursor-pointer shadow-sm font-sans"
+              >
+                ⚡ قدرات النموذج
+              </button>
+              <button
+                type="button"
+                onClick={() => onSendPreset('قم بتحليل وشرح رابط يوتيوب بالتفصيل')}
+                className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 hover:text-white text-xs transition-all active:scale-95 cursor-pointer shadow-sm font-sans"
+              >
+                🎬 تلخيص فيديو
+              </button>
+              <button
+                type="button"
+                onClick={() => onSendPreset('ساعدني في كتابة وتدقيق كود برمجي احترافي')}
+                className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 hover:text-white text-xs transition-all active:scale-95 cursor-pointer shadow-sm font-sans"
+              >
+                💻 كتابة كود
+              </button>
+            </div>
           </div>
         ) : (
           <div ref={messagesListRef} className="max-w-3xl mx-auto space-y-3 sm:space-y-4 pb-20 sm:pb-24">

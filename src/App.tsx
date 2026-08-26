@@ -36,7 +36,6 @@ import {
 
 const STORAGE_KEY_18 = 'x1_auth_age_18';
 const STORAGE_KEY_21 = 'x1_auth_age_21_biometric';
-const STORAGE_KEY_MSGS = 'x1_chat_history';
 const STORAGE_KEY_SEEN_LANDING = 'x1_has_seen_landing';
 const STORAGE_KEY_PLAN = 'x1_active_plan';
 
@@ -114,19 +113,9 @@ export const App: React.FC = () => {
   const [cloudChats, setCloudChats] = useState<SupabaseChat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
 
-  // Model & Chat State
+  // Model & Chat State (100% Cloud-First on Supabase, Zero Local Storage)
   const [activeModel, setActiveModel] = useState<ModelType>('deepseek-v4-flash');
-  const [messages, setMessages] = useState<ChatMessageItem[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_MSGS);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
+  const [messages, setMessages] = useState<ChatMessageItem[]>([]);
 
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [totalTokens, setTotalTokens] = useState<number>(() => getLocalUsage().totalTokens);
@@ -138,9 +127,14 @@ export const App: React.FC = () => {
     return acc + estimateTokens(m.content || '', '', m.reasoning);
   }, 0);
 
-  const loadCloudChats = async (userId: string | null) => {
+  const loadCloudChats = async (userId: string | null, shouldAutoLoadLatest = false) => {
     const chats = await fetchUserChats(userId);
     setCloudChats(chats);
+    if (shouldAutoLoadLatest && chats.length > 0) {
+      setCurrentChatId(chats[0].id);
+      const msgs = await fetchChatMessages(chats[0].id);
+      setMessages(msgs);
+    }
   };
 
   // Initial mount & Supabase Auth & Subscription Listener
@@ -148,7 +142,7 @@ export const App: React.FC = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      loadCloudChats(currentUser?.id ?? null);
+      loadCloudChats(currentUser?.id ?? null, true);
       fetchUserSubscription(currentUser?.id ?? null).then(plan => setCurrentPlanId(plan));
       fetchRemoteUsage(currentUser?.id ?? null).then(usage => {
         if (usage) setTotalTokens(usage.totalTokens);
@@ -158,7 +152,7 @@ export const App: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      loadCloudChats(currentUser?.id ?? null);
+      loadCloudChats(currentUser?.id ?? null, false);
       fetchUserSubscription(currentUser?.id ?? null).then(plan => setCurrentPlanId(plan));
       fetchRemoteUsage(currentUser?.id ?? null).then(usage => {
         if (usage) setTotalTokens(usage.totalTokens);
@@ -167,30 +161,6 @@ export const App: React.FC = () => {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  useEffect(() => {
-    try {
-      const lightweightMsgs = messages.map(m => {
-        if (m.images || m.image) {
-          return {
-            ...m,
-            image: (m.image && m.image.length < 150000) ? m.image : undefined,
-            images: m.images ? m.images.filter(img => img && img.length < 150000) : undefined
-          };
-        }
-        return m;
-      });
-      localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(lightweightMsgs));
-    } catch (storageErr) {
-      console.warn('[LocalStorage Quota Protection caught]:', storageErr);
-      try {
-        const minimalMsgs = messages.slice(-10).map(m => ({ ...m, image: undefined, images: undefined }));
-        localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(minimalMsgs));
-      } catch {
-        // Ignore
-      }
-    }
-  }, [messages]);
 
   const handleAccept18 = () => {
     localStorage.setItem(STORAGE_KEY_18, 'true');
@@ -556,16 +526,18 @@ export const App: React.FC = () => {
     });
   };
 
-  const handleClearChat = () => {
+  const handleClearChat = async () => {
+    if (currentChatId) {
+      await deleteCloudChat(currentChatId);
+      loadCloudChats(user?.id ?? null, false);
+    }
     setMessages([]);
     setCurrentChatId(null);
-    localStorage.removeItem(STORAGE_KEY_MSGS);
   };
 
   const handleNewChat = () => {
     setMessages([]);
     setCurrentChatId(null);
-    localStorage.removeItem(STORAGE_KEY_MSGS);
     navigateTo('chat');
   };
 
@@ -619,6 +591,9 @@ export const App: React.FC = () => {
   return (
     <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-[#030306] text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-white selection:text-black relative" dir="rtl">
       
+      {/* Ambient High-Tech White Tech Grid Layer (Crisp & Futuristic) */}
+      <div className="pointer-events-none fixed inset-0 z-0 select-none bg-grid-white grid-radial-fade opacity-35" />
+
       {/* Ambient Dark Luminescence for Enhanced Glassmorphism Depth */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0 select-none opacity-40">
         <div className="absolute -top-[15%] right-[10%] w-[550px] h-[550px] rounded-full bg-gradient-to-br from-indigo-950/40 via-purple-950/20 to-transparent blur-[130px]" />
@@ -788,8 +763,10 @@ export const App: React.FC = () => {
                   />
                 </main>
 
-                {/* Floating AI Chat Input */}
-                <div className="sticky bottom-0 z-30 w-full px-3 sm:px-6 pb-3 sm:pb-4 pt-1 bg-gradient-to-t from-black via-black/80 to-transparent pb-safe max-w-4xl mx-auto">
+                {/* Floating AI Chat Input with Luminous White Grid Aura */}
+                <div className="sticky bottom-0 z-30 w-full px-3 sm:px-6 pb-3 sm:pb-4 pt-1 bg-gradient-to-t from-black via-black/85 to-transparent pb-safe max-w-4xl mx-auto relative">
+                  {/* Crisp White Tech Grid Aura Under Input */}
+                  <div className="absolute inset-x-3 sm:inset-x-6 bottom-3 sm:bottom-4 top-1 -z-10 bg-grid-white opacity-40 grid-radial-fade pointer-events-none rounded-3xl" />
                   <PromptInput
                     onSubmit={(val, meta) => handleSendMessage(val, meta)}
                     isStreaming={isStreaming}

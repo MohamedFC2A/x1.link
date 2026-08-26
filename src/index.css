@@ -574,4 +574,34 @@
     box-shadow: none !important;
     border-color: transparent !important;
   }
+
+  /* High-End White Tech Blueprint Grid (Subtle & Crisp) */
+  .bg-grid-white {
+    background-size: 32px 32px;
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  }
+
+  .bg-grid-white-subtle {
+    background-size: 28px 28px;
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.038) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.038) 1px, transparent 1px);
+  }
+
+  .bg-grid-white-dots {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .grid-radial-fade {
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, #000 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, #000 40%, transparent 100%);
+  }
+
+  .grid-bottom-fade {
+    mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
+  }
 }
