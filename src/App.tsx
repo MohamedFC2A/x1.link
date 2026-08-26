@@ -419,6 +419,23 @@ export const App: React.FC = () => {
     setViewMode('chat');
   };
 
+  useEffect(() => {
+    const onAutoDelete = async () => {
+      if (currentChatId) {
+        try {
+          await deleteCloudChat(currentChatId);
+          loadCloudChats(user?.id ?? null);
+        } catch (err) {
+          console.warn('[AutoDelete Cloud Error]:', err);
+        }
+      }
+      handleNewChat();
+    };
+
+    window.addEventListener('x1:autodelete-chat', onAutoDelete);
+    return () => window.removeEventListener('x1:autodelete-chat', onAutoDelete);
+  }, [currentChatId, user]);
+
   const handleSelectChat = async (chatId: string) => {
     setCurrentChatId(chatId);
     const history = await fetchChatMessages(chatId);

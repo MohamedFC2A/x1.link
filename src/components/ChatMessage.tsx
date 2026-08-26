@@ -419,6 +419,54 @@ const AiDetectBadge: React.FC<AiDetectBadgeProps> = ({ verdict = 'AI-Generated',
   );
 };
 
+export const TimeDetectIcon: React.FC<{ className?: string; size?: number }> = ({ className = "w-3.5 h-3.5", size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+    <defs>
+      <linearGradient id="timeDetectIconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#67e8f9" />
+        <stop offset="25%" stopColor="#a5b4fc" />
+        <stop offset="50%" stopColor="#e879f9" />
+        <stop offset="75%" stopColor="#fde047" />
+        <stop offset="100%" stopColor="#6ee7b7" />
+      </linearGradient>
+    </defs>
+    <circle cx="12" cy="12" r="9.5" stroke="url(#timeDetectIconGrad)" strokeWidth="2.4" />
+    <path d="M12 6.5v5.5l3.5 2" stroke="url(#timeDetectIconGrad)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+export const TimeDetectBadge: React.FC<{
+  title?: string;
+  subtitle?: string;
+  details?: string;
+}> = ({
+  title = 'استشعار وتدقيق المعطيات الزمنية الفائقة',
+  subtitle = 'مطابقة التوقيت والسنة المعتمدة (2026)',
+  details,
+}) => {
+  return (
+    <div className="my-3 p-3.5 sm:px-4 sm:py-3.5 rounded-2xl time-detect-glass text-right animate-in fade-in duration-200 select-none shadow-xl border border-white/20" dir="rtl">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-1 w-full">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full time-detect-glass">
+              <TimeDetectIcon />
+              <span className="time-detect-text">TIME DETECT</span>
+            </span>
+            <span className="text-xs sm:text-sm font-sans font-bold text-zinc-100">
+              {title}
+            </span>
+          </div>
+          <p className="text-[11px] sm:text-xs text-zinc-300 font-sans mt-1 leading-relaxed font-normal">
+            الحالة: <span className="font-semibold text-white">{subtitle}</span>
+            {details ? ` — ${details}` : ''}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Synthetic Web Audio beep generator (zero external mp3 dependency)
 function playTimerChime() {
   try {
@@ -700,54 +748,90 @@ export const TimeDetectAutoDelete: React.FC<{
 }) => {
   const [remaining, setRemaining] = useState<number>(Math.max(5, initialSeconds));
   const [isCancelled, setIsCancelled] = useState(false);
+  const [isDestroyed, setIsDestroyed] = useState(false);
 
   useEffect(() => {
-    if (isCancelled || remaining <= 0) return;
+    if (isCancelled || isDestroyed) return;
+    if (remaining <= 0) {
+      setIsDestroyed(true);
+      playTimerChime();
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('x1:autodelete-chat'));
+      }, 1200);
+      return;
+    }
+
     const interval = setInterval(() => {
-      setRemaining((prev) => Math.max(0, prev - 1));
+      setRemaining((prev) => {
+        if (prev <= 4 && prev > 1) {
+          playTimerChime();
+        }
+        return Math.max(0, prev - 1);
+      });
     }, 1000);
+
     return () => clearInterval(interval);
-  }, [isCancelled, remaining]);
+  }, [isCancelled, isDestroyed, remaining]);
 
   const minutes = Math.floor(remaining / 60);
   const seconds = remaining % 60;
+  const progressPercent = Math.max(0, Math.min(100, (remaining / (initialSeconds || 600)) * 100));
 
   return (
-    <div className="my-3 p-3.5 sm:p-4 rounded-2xl time-detect-badge border border-rose-500/30 text-right animate-in fade-in duration-200 select-none shadow-xl" dir="rtl">
-      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-2.5 mb-3">
+    <div className="my-3 p-4 sm:p-5 rounded-2xl time-detect-glass text-right animate-in fade-in duration-200 select-none shadow-2xl border border-rose-500/30" dir="rtl">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.1] pb-3 mb-3.5">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono font-black uppercase px-2.5 py-0.5 rounded-md bg-zinc-900 border border-rose-500/30 text-rose-300">
-            TIME DETECT
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-black uppercase px-2.5 py-0.5 rounded-full time-detect-glass text-rose-300 border border-rose-500/40 shadow-sm">
+            <TimeDetectIcon />
+            <span className="time-detect-text">TIME DETECT</span>
           </span>
-          <span className="text-xs sm:text-sm font-sans font-bold text-rose-200 flex items-center gap-1.5">
-            <Trash2 className="w-4 h-4 text-rose-400" />
-            التدمير الذاتي للمحادثة مؤقت
+          <span className="text-xs sm:text-sm font-sans font-bold text-rose-100 flex items-center gap-1.5">
+            <Trash2 className="w-4 h-4 text-rose-400 animate-pulse" />
+            نظام التدمير الذاتي للمحادثة
           </span>
         </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 font-bold">
+        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-200 font-bold shadow-inner">
           {durationLabel}
         </span>
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-xs text-zinc-300 font-sans">
-            {isCancelled ? 'تم إلغاء التدمير الذاتي بنجاح.' : 'سيتم مسح هذه المحادثة تلقائياً بعد انتهاء الوقت المتبقي:'}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="text-xs text-zinc-300 font-sans leading-relaxed">
+            {isDestroyed ? (
+              <span className="text-rose-400 font-bold text-sm flex items-center gap-1.5">
+                <span className="inline-block size-2 rounded-full bg-rose-500 animate-ping" />
+                تم تدمير المحادثة ذاتياً بنجاح ومسح السجل...
+              </span>
+            ) : isCancelled ? (
+              <span className="text-emerald-400 font-bold">✓ تم إيقاف التدمير الذاتي بنجاح والاحتفاظ بالمحادثة.</span>
+            ) : (
+              'سيتم مسح هذه المحادثة بالكامل وتدمير سجلها محلياً وسحابياً فور انتهاء العداد:'
+            )}
           </div>
-          {!isCancelled && (
-            <div className="text-xl sm:text-2xl font-mono font-black text-rose-400 mt-1 dir-ltr text-right">
-              {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+
+          {!isCancelled && !isDestroyed && (
+            <div className="flex items-center gap-3 mt-2">
+              <div className="text-2xl sm:text-3xl font-mono font-black text-rose-400 dir-ltr text-right tracking-tight drop-shadow-[0_0_8px_rgba(244,63,94,0.4)]">
+                {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+              </div>
+              <div className="flex-1 h-2 rounded-full bg-white/[0.08] overflow-hidden border border-white/[0.1]">
+                <div
+                  className="h-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-400 transition-all duration-1000 rounded-full"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
             </div>
           )}
         </div>
 
-        {!isCancelled && (
+        {!isCancelled && !isDestroyed && (
           <button
             type="button"
             onClick={() => setIsCancelled(true)}
-            className="px-3 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-zinc-200 hover:text-white text-xs font-bold border border-white/[0.14] transition-all cursor-pointer active:scale-95"
+            className="shrink-0 px-3.5 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.18] text-zinc-200 hover:text-white text-xs font-bold border border-white/[0.2] transition-all cursor-pointer active:scale-95 shadow-md"
           >
-            إلغاء الحذف
+            إلغاء التدمير
           </button>
         )}
       </div>
@@ -764,7 +848,15 @@ function parseCustomBadges(rawContent: string): React.ReactNode | null {
     return <AiDetectBadge verdict={verdict} score={score} />;
   }
 
-  // 2. Time Detect - Timer
+  // 2. Time Detect Badge
+  const timeDetectMatch = rawContent.match(/(?:\[TIME-DETECT-BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-BADGE:\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
+  if (timeDetectMatch) {
+    const title = (timeDetectMatch[1] || timeDetectMatch[3])?.trim() || 'استشعار وتدقيق المعطيات الزمنية الفائقة';
+    const subtitle = (timeDetectMatch[2] || timeDetectMatch[4])?.trim() || 'مطابقة التوقيت والسنة المعتمدة (2026)';
+    return <TimeDetectBadge title={title} subtitle={subtitle} />;
+  }
+
+  // 3. Time Detect - Timer
   const timerMatch = rawContent.match(/(?:\[TIME-DETECT-TIMER:\s*(\d+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-TIMER:\s*(\d+))/i);
   if (timerMatch) {
     const seconds = parseInt(timerMatch[1] || timerMatch[4] || '300', 10);
@@ -1062,17 +1154,24 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           />
         )}
 
-        {isStreaming && !message.content && !isThinking ? (
+        {isStreaming && !message.content ? (
           <div className="flex items-center gap-2 py-1.5 select-none" dir="rtl">
-            <div className="inline-flex h-8 items-center gap-2.5 rounded-full pl-3.5 pr-2.5 border border-white/[0.08] bg-zinc-950/90 backdrop-blur-md">
+            <div className="inline-flex h-8 items-center gap-2.5 rounded-full pl-3.5 pr-2.5 time-detect-glass">
               <ThinkingOrb
-                state={isMedia ? "weaving" : isCyber ? "searching" : isVision ? (loadingPhase === 'detecting' ? "shaping" : "working") : message.isX1 ? "solving" : "composing"}
+                state={isTimeIntent ? "solving" : isMedia ? "weaving" : isCyber ? "searching" : isVision ? (loadingPhase === 'detecting' ? "shaping" : "working") : message.isX1 ? "solving" : "composing"}
                 size={20}
                 theme="dark"
                 speed={1.6}
               />
               <span className="whitespace-nowrap text-xs font-sans font-medium text-zinc-300 flex items-center gap-1.5">
-                {isMedia ? (
+                {isTimeIntent ? (
+                  <>
+                    <span>جارِ البحث واستشعار وتطبيق قواعد الوقت عبر</span>
+                    <TimeDetectIcon />
+                    <span className="time-detect-text font-black text-xs">Time Detect</span>
+                    <span>...</span>
+                  </>
+                ) : isMedia ? (
                   "جاري استيعاب الوسائط المتعددة واستخراج المعطيات..."
                 ) : isVision ? (
                   loadingPhase === 'detecting' ? (
@@ -1112,12 +1211,6 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   )
                 ) : message.isX1 ? (
                   "جاري تحرير المحرك العصبي واستدعاء الرد..."
-                ) : isTimeIntent ? (
-                  <>
-                    <span>جاري استشعار التوقيت وحساب المعطيات الزمنية عبر</span>
-                    <span className="time-detect-text font-black text-xs">Time Detect</span>
-                    <span>...</span>
-                  </>
                 ) : (
                   "جاري توليد الاستجابة اللغوية الفصحى..."
                 )}
