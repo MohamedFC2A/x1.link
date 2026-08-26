@@ -33,10 +33,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               className="w-8 h-8 rounded-xl object-contain shadow-sm"
             />
             <div className="flex flex-col text-right">
-              <span className="font-bold text-base tracking-tight text-white font-mono leading-none">
-                X1.link
+              <span className="font-['Space_Grotesk'] font-black text-base tracking-tight leading-none">
+                <span className="bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">X1</span>
+                <span className="text-zinc-500 font-semibold text-xs sm:text-sm">.link</span>
               </span>
-              <span className="text-[9px] text-zinc-400 font-mono mt-0.5">
+              <span className="text-[9px] text-zinc-400 font-mono mt-0.5 tracking-wider uppercase">
                 FATHOM AI SYSTEM
               </span>
             </div>

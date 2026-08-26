@@ -1,65 +1,62 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%" fill="none">
   <defs>
-    <!-- Deep Matte Obsidian Canvas Gradient -->
-    <radialGradient id="chassisGrad" cx="50%" cy="25%" r="85%">
-      <stop offset="0%" stop-color="#1c1917" />
-      <stop offset="55%" stop-color="#0c0a09" />
-      <stop offset="100%" stop-color="#050507" />
+    <!-- Deep Obsidian / Pitch Black Chassis Gradient -->
+    <radialGradient id="chassisGrad" cx="50%" cy="30%" r="85%">
+      <stop offset="0%" stop-color="#1c1c20" />
+      <stop offset="50%" stop-color="#0c0c0e" />
+      <stop offset="100%" stop-color="#000000" />
     </radialGradient>
 
-    <!-- Luxury Sovereign Crimson / Rose Neon Gradient -->
-    <linearGradient id="neonRose" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fb7185" />
-      <stop offset="45%" stop-color="#f43f5e" />
-      <stop offset="85%" stop-color="#e11d48" />
-      <stop offset="100%" stop-color="#9f1239" />
-    </linearGradient>
-
-    <!-- Liquid Titanium Precision Metallic Stroke -->
-    <linearGradient id="titaniumPlat" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Diamond Pure White to Platinum Gradient -->
+    <linearGradient id="pureWhiteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="35%" stop-color="#f4f4f5" />
-      <stop offset="70%" stop-color="#d4d4d8" />
-      <stop offset="100%" stop-color="#a1a1aa" />
+      <stop offset="40%" stop-color="#f4f4f5" />
+      <stop offset="80%" stop-color="#e4e4e7" />
+      <stop offset="100%" stop-color="#d4d4d8" />
     </linearGradient>
 
-    <!-- Subtle Beveled Border Gradient -->
-    <linearGradient id="bezelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.5" />
-      <stop offset="50%" stop-color="#3f3f46" stop-opacity="0.3" />
-      <stop offset="100%" stop-color="#f43f5e" stop-opacity="0.15" />
+    <!-- Liquid Titanium / Satin Silver Gradient -->
+    <linearGradient id="titaniumGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#a1a1aa" />
+      <stop offset="100%" stop-color="#71717a" />
     </linearGradient>
 
-    <!-- High-Performance Vector Specular Filter -->
-    <filter id="vectorGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="3.5" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-    </filter>
+    <!-- Micro Bevel Stroke Gradient -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4" />
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.25" />
+    </linearGradient>
   </defs>
 
-  <!-- Architectural Squircle Chassis -->
-  <rect x="6" y="6" width="116" height="116" rx="30" fill="url(#chassisGrad)" stroke="url(#bezelGrad)" stroke-width="2" />
+  <!-- Squircle Outer Chassis -->
+  <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#chassisGrad)" stroke="url(#borderGrad)" stroke-width="1.75" />
+  
+  <!-- Subtle Inner Glass Inset -->
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="none" stroke="#ffffff" stroke-width="1" stroke-opacity="0.06" />
 
-  <!-- Subtle Precision Laser Inner Border -->
-  <rect x="8" y="8" width="112" height="112" rx="28" fill="none" stroke="white" stroke-width="1" stroke-opacity="0.05" />
+  <!-- Smart Geometric X1 Monogram (Pure Monochrome Precision) -->
+  <g>
+    <!-- Left Wing of X (Upper Left to Center) -->
+    <polygon points="30,34 44,34 64,64 50,64" fill="url(#pureWhiteGrad)" />
+    <!-- Left Wing of X (Lower Left to Center) -->
+    <polygon points="30,94 44,94 64,64 50,64" fill="url(#pureWhiteGrad)" />
 
-  <!-- Intelligent Geometric Monogram (Fusion of X & 1 & Singularity Apex) -->
-  <g filter="url(#vectorGlow)">
-    <!-- Primary Left Wing of X (Sleek aerodynamic polygon) -->
-    <path d="M 30 35 L 45 35 L 68 64 L 53 64 Z" fill="url(#neonRose)" />
-    <path d="M 30 93 L 45 93 L 68 64 L 53 64 Z" fill="url(#neonRose)" />
+    <!-- Center Cutout Intersect -->
+    <polygon points="50,60 68,60 64,68 46,68" fill="#ffffff" opacity="0.95" />
 
-    <!-- Pure Platinum Singularity '1' & Right Apex -->
-    <!-- Apex Head of '1' -->
-    <path d="M 64 47 L 76 35 L 88 35 L 76 47 Z" fill="url(#titaniumPlat)" />
-    <!-- Monolithic Pillar of '1' -->
-    <path d="M 76 35 L 90 35 L 90 93 L 76 93 Z" fill="url(#titaniumPlat)" />
+    <!-- Right Flank: The Monolithic Intelligent '1' integrated with X -->
+    <!-- '1' Apex Serif -->
+    <polygon points="68,46 80,34 94,34 82,46" fill="url(#pureWhiteGrad)" />
+    <!-- '1' Main Vertical Monolith -->
+    <rect x="80" y="34" width="14" height="60" rx="3" fill="url(#pureWhiteGrad)" />
 
-    <!-- Center Geometric Nexus Core (Bridging X and 1) -->
-    <polygon points="50,60 76,60 72,68 46,68" fill="#ff4365" opacity="0.95" />
+    <!-- Lower Right Diagonal of X (Connecting to 1) -->
+    <polygon points="64,64 78,64 92,94 78,94" fill="url(#titaniumGrad)" opacity="0.85" />
   </g>
 
-  <!-- Micro Precision Alignment Crosshairs (Tech Branding Detail) -->
-  <circle cx="102" cy="26" r="2.5" fill="#f43f5e" opacity="0.8" />
-  <circle cx="26" cy="102" r="2.5" fill="#f43f5e" opacity="0.4" />
+  <!-- High-Tech Micro Precision Dots (White / Silver Accent) -->
+  <circle cx="102" cy="26" r="2.5" fill="#ffffff" opacity="0.8" />
+  <circle cx="26" cy="102" r="2.5" fill="#ffffff" opacity="0.35" />
 </svg>
