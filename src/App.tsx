@@ -634,7 +634,7 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* Cloud History Drawer */}
+      {/* Cloud History & Navigation Drawer */}
       <SidebarDrawer
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -646,6 +646,8 @@ export const App: React.FC = () => {
         onSelectChat={handleSelectChat}
         onNewChat={handleNewChat}
         onDeleteChat={handleDeleteChat}
+        onClearChat={handleClearChat}
+        currentChatTokens={currentChatTokens}
         totalTokens={totalTokens}
         onNavigateToPricing={() => navigateTo('pricing')}
         onNavigateToLimits={() => navigateTo('limits')}
