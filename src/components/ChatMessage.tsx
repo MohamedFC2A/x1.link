@@ -315,30 +315,25 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                           }
                         }}
                         className={cn(
-                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border font-mono text-xs sm:text-sm transition-colors cursor-pointer select-none active:scale-95",
+                          "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border font-mono text-xs transition-colors cursor-pointer select-none active:scale-95",
                           isMailto
-                            ? "bg-[#0c1017] hover:bg-[#121824] border-sky-500/20 hover:border-sky-500/40 text-zinc-200 hover:text-white font-medium"
+                            ? "bg-[#0c1017] hover:bg-[#141b29] border-sky-500/20 hover:border-sky-500/40 text-zinc-200 hover:text-white"
                             : isTel
-                            ? "bg-[#0c120e] hover:bg-[#121c16] border-emerald-500/20 hover:border-emerald-500/40 text-zinc-200 hover:text-white font-semibold"
-                            : "bg-[#0e0e12] hover:bg-[#16161c] border-white/[0.1] hover:border-white/[0.22] text-zinc-200 hover:text-white font-medium"
+                            ? "bg-[#0c120e] hover:bg-[#121c16] border-emerald-500/20 hover:border-emerald-500/40 text-zinc-200 hover:text-white"
+                            : "bg-[#0e0e12] hover:bg-[#16161c] border-white/[0.1] hover:border-white/[0.22] text-zinc-200 hover:text-white"
                         )}
                         title={isMailto ? `انقر لتأكيد مراسلة البريد: ${href}` : isTel ? `انقر لتأكيد الاتصال: ${href}` : `انقر لتأكيد الانتقال إلى: ${href}`}
                       >
                         {isMailto ? (
-                          <Mail className="size-3.5 text-sky-400 group-hover/email:text-sky-300 shrink-0 inline-block" />
+                          <Mail className="size-3 text-sky-400 group-hover/email:text-sky-300 shrink-0" />
                         ) : isTel ? (
-                          <PhoneCall className="size-3.5 text-emerald-400 group-hover/phone:text-emerald-300 shrink-0 inline-block" />
+                          <PhoneCall className="size-3 text-emerald-400 group-hover/phone:text-emerald-300 shrink-0" />
                         ) : (
-                          <Globe className="size-3.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0 inline-block" />
+                          <Globe className="size-3 text-zinc-400 group-hover/link:text-zinc-200 shrink-0" />
                         )}
-                        <span className="break-all dir-ltr underline underline-offset-2 text-zinc-100 group-hover/link:text-white font-medium">{children}</span>
+                        <span className="break-all dir-ltr underline underline-offset-2 text-zinc-200 group-hover/link:text-white font-mono">{children}</span>
                         {!isTel && !isMailto && (
-                          <ExternalLink className="size-2.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0 inline-block" />
-                        )}
-                        {isMailto && (
-                          <span className="text-[10px] font-sans px-1.5 py-0.2 rounded-md bg-sky-500/10 text-sky-400 border border-sky-500/20 font-medium shrink-0">
-                            بريد
-                          </span>
+                          <ExternalLink className="size-2.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0" />
                         )}
                       </span>
                     </bdi>

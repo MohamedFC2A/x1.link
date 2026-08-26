@@ -5,7 +5,7 @@ import { renderSmartTextWithIcons } from "./smart-icons";
 // Regex for Emails (e.g. ahu@asu.edu.eg, contact@domain.com, etc.)
 const EMAIL_REGEX = /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/i;
 
-// Regex for URLs & Multi-level Domains (excluding emails!)
+// Regex for URLs & Multi-level Domains (excluding emails)
 const URL_REGEX = /(https?:\/\/[^\s<>"'()]+|(?:www\.)[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\/[^\s<>"'()]*)?|\b[a-zA-Z0-9-]*[a-zA-Z][a-zA-Z0-9-]*\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|gov|edu|mil|info|io|ai|app|dev|link|tech|me|co|xyz|one|online|site|space|store|eg|sa|ae|uk|us|de|fr|ru|cn|jp|in|ca|au|ly|sy|iq|jo|kw|qa|bh|om|ye|sd|ma|dz|tn)(?:\/[^\s<>"'()]*)?\b)/i;
 
 // Regex for Hotlines & Phone numbers
@@ -23,7 +23,7 @@ function isValidEmailToken(str: string): boolean {
 
 function isValidUrlToken(str: string): boolean {
   if (!str) return false;
-  if (str.includes("@")) return false; // Emails are not URLs
+  if (str.includes("@")) return false;
   if (/^\d+\.?$/.test(str)) return false;
   if (/^https?:\/\//i.test(str)) return true;
   if (/^www\./i.test(str)) return true;
@@ -74,7 +74,7 @@ export function renderSmartContentWithLinksAndPhones(
 
     if (isValidEmailToken(matchedToken)) {
       parts.push(
-        <bdi key={`email-${matchIndex}`} className="inline-flex align-middle mx-1 my-0.5">
+        <bdi key={`email-${matchIndex}`} className="inline-flex items-center align-middle mx-1">
           <span
             role="button"
             tabIndex={0}
@@ -89,15 +89,12 @@ export function renderSmartContentWithLinksAndPhones(
                 onEmailClick?.(matchedToken);
               }
             }}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#0c1017] hover:bg-[#121824] border border-sky-500/20 hover:border-sky-500/40 text-zinc-200 hover:text-white font-mono text-xs sm:text-sm font-medium transition-colors cursor-pointer select-none active:scale-95 group/email"
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-[#0c1017] hover:bg-[#141b29] border border-sky-500/20 hover:border-sky-500/40 text-zinc-200 hover:text-white font-mono text-xs transition-colors cursor-pointer select-none active:scale-95 group/email"
             title={`انقر لتأكيد مراسلة البريد: ${matchedToken}`}
           >
-            <Mail className="size-3.5 text-sky-400 group-hover/email:text-sky-300 shrink-0 inline-block" />
-            <span className="break-all dir-ltr underline underline-offset-2 text-zinc-100 group-hover/email:text-white font-medium">
+            <Mail className="size-3 text-sky-400 group-hover/email:text-sky-300 shrink-0" />
+            <span className="break-all dir-ltr underline underline-offset-2 text-zinc-200 group-hover/email:text-white font-mono">
               {matchedToken}
-            </span>
-            <span className="text-[10px] font-sans px-1.5 py-0.2 rounded-md bg-sky-500/10 text-sky-400 border border-sky-500/20 font-medium shrink-0">
-              بريد
             </span>
           </span>
         </bdi>
@@ -106,7 +103,7 @@ export function renderSmartContentWithLinksAndPhones(
       const clean = matchedToken.replace(/[^\d]/g, "");
       const isHotline = /^1[56789]\d{3}$/.test(clean) || matchedToken.startsWith("0900") || matchedToken.startsWith("0800");
       parts.push(
-        <bdi key={`phone-${matchIndex}`} className="inline-flex align-middle mx-1 my-0.5">
+        <bdi key={`phone-${matchIndex}`} className="inline-flex items-center align-middle mx-1">
           <span
             role="button"
             tabIndex={0}
@@ -121,26 +118,23 @@ export function renderSmartContentWithLinksAndPhones(
                 onPhoneClick(matchedToken);
               }
             }}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#0c120e] hover:bg-[#121c16] border border-emerald-500/20 hover:border-emerald-500/40 text-zinc-200 hover:text-white font-mono text-xs sm:text-sm font-semibold transition-colors cursor-pointer select-none active:scale-95 group/phone"
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-[#0c120e] hover:bg-[#121c16] border border-emerald-500/20 hover:border-emerald-500/40 text-zinc-200 hover:text-white font-mono text-xs transition-colors cursor-pointer select-none active:scale-95 group/phone"
             title={`انقر لتأكيد الاتصال برقم: ${matchedToken}`}
           >
             {isHotline ? (
-              <PhoneCall className="size-3.5 text-emerald-400 group-hover/phone:text-emerald-300 shrink-0 inline-block" />
+              <PhoneCall className="size-3 text-emerald-400 group-hover/phone:text-emerald-300 shrink-0" />
             ) : (
-              <Phone className="size-3.5 text-emerald-400 group-hover/phone:text-emerald-300 shrink-0 inline-block" />
+              <Phone className="size-3 text-emerald-400 group-hover/phone:text-emerald-300 shrink-0" />
             )}
-            <span className="dir-ltr text-zinc-100 group-hover/phone:text-white font-mono tracking-wide font-medium">
+            <span className="dir-ltr text-zinc-200 group-hover/phone:text-white font-mono">
               {matchedToken}
-            </span>
-            <span className="text-[10px] font-sans px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium shrink-0">
-              {isHotline ? "خط ساخن" : "اتصال"}
             </span>
           </span>
         </bdi>
       );
     } else if (isValidUrlToken(matchedToken)) {
       parts.push(
-        <bdi key={`link-${matchIndex}`} className="inline-flex align-middle mx-1 my-0.5">
+        <bdi key={`link-${matchIndex}`} className="inline-flex items-center align-middle mx-1">
           <span
             role="button"
             tabIndex={0}
@@ -155,14 +149,14 @@ export function renderSmartContentWithLinksAndPhones(
                 onUrlClick(matchedToken);
               }
             }}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#0e0e12] hover:bg-[#16161c] border border-white/[0.1] hover:border-white/[0.22] text-zinc-200 hover:text-white font-mono text-xs sm:text-sm font-medium transition-colors cursor-pointer select-none active:scale-95 group/link"
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-[#0e0e12] hover:bg-[#16161c] border border-white/[0.1] hover:border-white/[0.22] text-zinc-200 hover:text-white font-mono text-xs transition-colors cursor-pointer select-none active:scale-95 group/link"
             title={`انقر لتأكيد الانتقال إلى: ${matchedToken}`}
           >
-            <Globe className="size-3.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0 inline-block" />
-            <span className="break-all dir-ltr underline underline-offset-2 text-zinc-100 group-hover/link:text-white font-medium">
+            <Globe className="size-3 text-zinc-400 group-hover/link:text-zinc-200 shrink-0" />
+            <span className="break-all dir-ltr underline underline-offset-2 text-zinc-200 group-hover/link:text-white font-mono">
               {matchedToken}
             </span>
-            <ExternalLink className="size-2.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0 inline-block" />
+            <ExternalLink className="size-2.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0" />
           </span>
         </bdi>
       );
