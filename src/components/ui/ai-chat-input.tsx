@@ -605,7 +605,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               onClick={(e) => e.stopPropagation()}
             >
               <div className="px-2.5 py-1.5 border-b border-white/[0.08] mb-2">
-                <span className="text-xs font-sans font-bold text-white tracking-wide">اختيار المحرك العصبي</span>
+                <span className="text-xs font-sans font-bold text-white tracking-wide">اختيار النموذج</span>
               </div>
 
               <div className="space-y-1.5">
@@ -631,7 +631,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     <div className="min-w-0 text-right">
                       <div className="font-bold text-xs text-white">Fathom 1</div>
                       <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
-                        المحرك اللغوي الفصيح، التحليل الفكري، والتوليد الحر
+                        توليد لغوي حر وتحليل فكري متقدم
                       </div>
                     </div>
                   </div>
@@ -662,7 +662,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     <div className="min-w-0 text-right">
                       <div className="font-bold text-xs text-white">Fathom Cyber</div>
                       <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
-                        استخبارات سيبرانية، فحص الروابط، وبحث عميق (100+ مصدر)
+                        استخبارات وفحص أمني سيبراني متقدم
                       </div>
                     </div>
                   </div>
@@ -681,7 +681,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       <div className="min-w-0 text-right">
                         <div className="font-bold text-xs text-white">Fathom Cam</div>
                         <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
-                          معالجة وتحليل الصور والرؤية البصرية الفورية
+                          تحليل بصري وإدراك فوري للصور
                         </div>
                       </div>
                     </div>
