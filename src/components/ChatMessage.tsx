@@ -263,21 +263,21 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
                           }
                         }}
                         className={cn(
-                          "inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border font-mono text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-lg select-none active:scale-95 backdrop-blur-2xl",
+                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border font-mono text-xs sm:text-sm transition-colors cursor-pointer select-none active:scale-95",
                           isTel
-                            ? "bg-emerald-950/70 hover:bg-emerald-900/90 border-emerald-500/40 hover:border-emerald-400/80 text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.35)]"
-                            : "bg-white/[0.08] hover:bg-white/[0.18] border-white/[0.18] hover:border-white/40 text-white hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+                            ? "bg-[#0c120e] hover:bg-[#121c16] border-emerald-500/20 hover:border-emerald-500/40 text-zinc-200 hover:text-white font-semibold"
+                            : "bg-[#0e0e12] hover:bg-[#16161c] border-white/[0.1] hover:border-white/[0.22] text-zinc-200 hover:text-white font-medium"
                         )}
                         title={isTel ? `انقر لتأكيد الاتصال: ${href}` : `انقر لتأكيد الانتقال إلى: ${href}`}
                       >
                         {isTel ? (
-                          <PhoneCall className="size-3.5 text-emerald-400 shrink-0 inline-block" />
+                          <PhoneCall className="size-3.5 text-emerald-400 group-hover/phone:text-emerald-300 shrink-0 inline-block" />
                         ) : (
-                          <Globe className="size-3.5 text-zinc-300 group-hover:text-white shrink-0 inline-block" />
+                          <Globe className="size-3.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0 inline-block" />
                         )}
-                        <span className="break-all underline underline-offset-2 text-white font-semibold">{children}</span>
+                        <span className="break-all dir-ltr underline underline-offset-2 text-zinc-100 group-hover/link:text-white font-medium">{children}</span>
                         {!isTel && (
-                          <ExternalLink className="size-2.5 opacity-80 group-hover:opacity-100 text-zinc-300 group-hover:text-white shrink-0 inline-block" />
+                          <ExternalLink className="size-2.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0 inline-block" />
                         )}
                       </span>
                     </bdi>

@@ -892,13 +892,13 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 onClick={onActionButtonClick}
                 disabled={!hasValue && !isStreaming}
                 className={cn(
-                  "flex items-center justify-center size-9 sm:size-10 rounded-2xl transition-all duration-200 cursor-pointer select-none active:scale-90",
+                  "flex items-center justify-center size-9 sm:size-10 rounded-2xl transition-all duration-150 cursor-pointer select-none active:scale-90",
                   isStreaming
-                    ? "bg-white hover:bg-zinc-200 text-zinc-950 shadow-[0_0_20px_rgba(255,255,255,0.3)] animate-pulse"
+                    ? "bg-white hover:bg-zinc-200 text-zinc-950"
                     : hasValue
                     ? isCyberMode
-                      ? "bg-cyan-400 hover:bg-cyan-300 text-black font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-105"
-                      : "bg-white hover:bg-zinc-100 text-zinc-950 font-bold shadow-[0_0_25px_rgba(255,255,255,0.25)] hover:scale-105"
+                      ? "bg-cyan-400 hover:bg-cyan-300 text-black font-bold hover:scale-105"
+                      : "bg-white hover:bg-zinc-100 text-zinc-950 font-bold hover:scale-105"
                     : "bg-white/[0.04] text-zinc-600 cursor-not-allowed border border-white/[0.04]"
                 )}
                 title={isStreaming ? "إيقاف التوليد" : "إرسال"}
