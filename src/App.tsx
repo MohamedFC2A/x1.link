@@ -219,13 +219,23 @@ export const App: React.FC = () => {
     let fullAssistantResponse = '';
     let fullAssistantReasoning = '';
 
-    const abortFn = await streamChatCompletion({
+    const streamAbortController = new AbortController();
+    abortControllerRef.current = () => {
+      try {
+        streamAbortController.abort();
+      } catch (err) {
+        console.error('[Abort Exception]:', err);
+      }
+    };
+
+    await streamChatCompletion({
       messages: packedMessages,
       model: attachedImageDataUrl ? 'deepseek-v4-flash-vision-exp' : chosenModel,
       isX1Mode: isX1Active,
       deepSearch: meta?.deepSearch ?? false,
       memoryPrompt: memoryContextPrompt,
       targetUrl: resolvedTargetUrl || undefined,
+      signal: streamAbortController.signal,
       onChunk: (data) => {
         fullAssistantResponse = data.content;
         fullAssistantReasoning = data.reasoning;
@@ -265,6 +275,7 @@ export const App: React.FC = () => {
       },
       onComplete: () => {
         setIsStreaming(false);
+        abortControllerRef.current = null;
         setMessages(prev => {
           const last = prev[prev.length - 1];
           if (last && last.id === assistantPlaceholderId) {
@@ -290,8 +301,6 @@ export const App: React.FC = () => {
         }
       }
     });
-
-    abortControllerRef.current = abortFn;
   };
 
   const handleAbort = () => {
@@ -307,6 +316,13 @@ export const App: React.FC = () => {
         if (!last.content || last.content.trim() === '') {
           return prev.slice(0, -1);
         }
+        return [
+          ...prev.slice(0, -1),
+          {
+            ...last,
+            isThinking: false,
+          }
+        ];
       }
       return prev;
     });

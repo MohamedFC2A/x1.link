@@ -351,6 +351,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
     const onActionButtonClick = (e: React.MouseEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       if (isStreaming) {
         onAbort?.();
       } else if (hasValue) {

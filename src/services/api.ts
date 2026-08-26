@@ -13,6 +13,7 @@ export interface SendMessageOptions {
   deepSearch?: boolean;
   memoryPrompt?: string;
   targetUrl?: string;
+  signal?: AbortSignal;
   onChunk: (data: StreamChunkData) => void;
   onError: (errorMsg: string) => void;
   onComplete: () => void;
@@ -25,11 +26,19 @@ export async function streamChatCompletion({
   deepSearch = false,
   memoryPrompt = '',
   targetUrl = '',
+  signal,
   onChunk,
   onError,
   onComplete,
 }: SendMessageOptions): Promise<() => void> {
   const controller = new AbortController();
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+  }
 
   try {
     // Format messages for API (convert multimodal items with images if present)
@@ -148,14 +157,22 @@ export async function streamChatCompletion({
     };
 
     while (true) {
+      if (controller.signal.aborted) {
+        try {
+          await reader.cancel();
+        } catch {}
+        break;
+      }
+
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done || controller.signal.aborted) break;
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
       for (const line of lines) {
+        if (controller.signal.aborted) break;
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith(':')) continue;
 
@@ -196,8 +213,8 @@ export async function streamChatCompletion({
       }
     }
 
-    // Flush any remaining buffer text
-    if (buffer.trim()) {
+    // Flush any remaining buffer text if not aborted
+    if (!controller.signal.aborted && buffer.trim()) {
       const trimmed = buffer.trim();
       if (trimmed.startsWith('data:')) {
         const payload = trimmed.replace(/^data:\s*/, '');
@@ -216,7 +233,7 @@ export async function streamChatCompletion({
 
     onComplete();
   } catch (err: any) {
-    if (err.name === 'AbortError') {
+    if (err.name === 'AbortError' || controller.signal.aborted) {
       console.log('[Stream Aborted by User]');
     } else {
       onError(err.message || 'انقطع الاتصال ببروتوكول الذكاء الاصطناعي.');
