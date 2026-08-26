@@ -116,7 +116,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
   (
     {
       onSubmit,
-      placeholder = "اسأل X1 أي شيء...",
+      placeholder = "اسأل Fathom 1 في أي شيء...",
       className,
       defaultValue = "",
       value: controlledValue,
@@ -870,12 +870,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 }}
                 placeholder={
                   isCyberMode
-                    ? "اسأل Fathom Cyber عن فحص الهدف، الثغرات، أو ترويسات الحماية..."
+                    ? "اسأل Fathom Cyber في أي شيء..."
                     : isVisionMode
-                    ? "أرفق صورة أو اسأل Fathom Cam لتحليل وتفريغ الصور..."
+                    ? "اسأل Fathom Cam أو أرفق صور..."
                     : isX1Active
-                    ? "اسأل matany.one أي شيء بحرية تامة..."
-                    : (placeholder || "اسأل matany.one أي شيء...")
+                    ? "اسأل matany.one في أي شيء..."
+                    : (placeholder || "اسأل Fathom 1 في أي شيء...")
                 }
                 rows={1}
                 className="w-full bg-transparent text-zinc-100 text-[15px] sm:text-base leading-relaxed resize-none outline-none placeholder:text-zinc-500 font-sans max-h-44 min-h-[38px] py-1 px-1 smooth-scroll no-scrollbar"

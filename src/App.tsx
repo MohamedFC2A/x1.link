@@ -480,10 +480,12 @@ export const App: React.FC = () => {
               onSelectModel={setActiveModel}
               placeholder={
                 activeModel === 'deepseek-v4-flash-cyber'
-                  ? "اسأل Fathom Cyber عن فحص الروابط أو تدقيق الحماية..."
+                  ? "اسأل Fathom Cyber في أي شيء..."
+                  : activeModel === 'deepseek-v4-flash-vision-exp'
+                  ? "اسأل Fathom Cam أو أرفق صور..."
                   : isX1Active
-                  ? "اسأل X1 MAX أي شيء تريده..."
-                  : "اسأل Fathom 1 أي شيء..."
+                  ? "اسأل matany.one في أي شيء..."
+                  : "اسأل Fathom 1 في أي شيء..."
               }
             />
           </div>
