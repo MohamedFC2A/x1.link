@@ -28,7 +28,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onGoHome,
 }) => {
   return (
-    <header className="sticky top-0 z-40 w-full glass-header px-4 sm:px-6 py-2.5 sm:py-3.5 select-none transition-colors pt-safe">
+    <header className="sticky top-0 z-40 w-full glass-header px-4 sm:px-6 py-3 sm:py-3.5 select-none transition-colors pt-safe">
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
         
         {/* Right / Pure Typographic Luxury Brand Wordmark */}
