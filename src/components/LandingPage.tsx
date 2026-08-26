@@ -68,12 +68,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* Main Reception Hero Section */}
       <main className="flex-1 flex flex-col items-center justify-center max-w-5xl mx-auto px-3.5 sm:px-6 py-6 sm:py-12 text-center animate-in fade-in duration-300 w-full">
         
-        {/* Top Minimal Pill Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full glass-button text-zinc-300 text-xs sm:text-sm font-medium mb-4 sm:mb-6 select-none">
-          <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
-          <span className="font-sans">بنية سيليكونية فائقة الأداء • معمارية 0 قيود</span>
-        </div>
-
         {/* Large Hero Headline */}
         <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-3 sm:mb-4 leading-[1.25] sm:leading-[1.15] font-sans px-2">
           عصر جديد من الذكاء <br className="hidden sm:inline" />

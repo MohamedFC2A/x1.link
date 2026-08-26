@@ -4,34 +4,21 @@ import remarkGfm from 'remark-gfm';
 import { ChatMessageItem } from '../types';
 import ChatReasoning from './ui/chat-reasoning';
 import { ExecutionPipeline } from './ui/execution-pipeline';
-import { Check, Copy, Bot, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink } from 'lucide-react';
+import { Check, Copy, Bot, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { renderSmartTextWithIcons } from '@/lib/smart-icons';
+import { detectAndExtractUrl, getFaviconUrl } from '@/lib/utils';
 
 interface ChatMessageProps {
   message: ChatMessageItem;
   isStreaming?: boolean;
 }
 
-function detectAndExtractUrl(text: string): { cleanUrl: string | null; remainingText: string } {
-  if (!text) return { cleanUrl: null, remainingText: '' };
-  const urlRegex = /(?:^|\s)(https?:\/\/[^\s]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}[^\s]*|[a-zA-Z0-9-]+\.(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov)(?:\/[^\s]*)?)/i;
-  const match = text.match(urlRegex);
-  if (!match) return { cleanUrl: null, remainingText: text };
-
-  let rawUrl = match[1].trim();
-  const remainingText = text.replace(rawUrl, '').replace(/\s{2,}/g, ' ').trim();
-  let cleanUrl = rawUrl;
-  if (!/^https?:\/\//i.test(cleanUrl)) {
-    cleanUrl = 'https://' + cleanUrl;
-  }
-  return { cleanUrl, remainingText };
-}
-
 const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming = false }) => {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
   const [isImageOpen, setIsImageOpen] = useState(false);
+  const [faviconFailed, setFaviconFailed] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -46,6 +33,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
     const urlInfo = detectAndExtractUrl(message.content);
     const extractedUrl = urlInfo.cleanUrl;
     const remainingText = urlInfo.remainingText;
+    const faviconUrl = extractedUrl ? getFaviconUrl(extractedUrl) : null;
+    const domainName = urlInfo.domain;
 
     return (
       <motion.div
@@ -57,27 +46,39 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, isStreaming
         <div className="max-w-[94%] sm:max-w-[82%] rounded-2xl rounded-tr-sm glass-card text-white p-3 sm:p-4 text-right">
           
           {extractedUrl && (
-            <div className="mb-2.5 flex flex-col gap-1.5 p-2.5 sm:p-3 rounded-xl glass-card border-white/[0.12] text-right animate-in fade-in duration-150">
+            <div className="mb-2.5 flex flex-col gap-1.5 p-2.5 sm:p-3 rounded-xl glass-card border-cyan-500/20 bg-cyan-950/20 text-right animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-[11px] text-zinc-300 font-medium">
                 <span className="flex items-center gap-1.5 font-sans font-semibold">
-                  <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
                   <span>رابط الهدف المستطلع للفحص:</span>
                 </span>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-200 border border-white/[0.08] font-bold">
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-bold">
                   TARGET URL
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-2 bg-black/60 p-2 rounded-lg border border-white/[0.08] mt-0.5">
+              <div className="flex items-center justify-between gap-2.5 bg-black/70 p-2 sm:p-2.5 rounded-lg border border-cyan-500/25 mt-0.5 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                <div className="size-6 sm:size-7 rounded-md bg-cyan-950/80 border border-cyan-500/30 flex items-center justify-center overflow-hidden shrink-0">
+                  {faviconUrl && !faviconFailed ? (
+                    <img
+                      src={faviconUrl}
+                      alt={domainName || 'Site Logo'}
+                      className="size-3.5 sm:size-4 object-contain rounded-sm"
+                      onError={() => setFaviconFailed(true)}
+                    />
+                  ) : (
+                    <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                  )}
+                </div>
                 <a
                   href={extractedUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-xs sm:text-sm text-zinc-200 hover:text-white underline underline-offset-4 decoration-white/40 break-all dir-ltr text-left flex-1"
+                  className="font-mono text-xs sm:text-sm text-cyan-200 hover:text-white underline underline-offset-4 decoration-cyan-400/40 break-all dir-ltr text-left flex-1"
                   dir="ltr"
                 >
                   {extractedUrl}
                 </a>
-                <ExternalLink className="w-3.5 h-3.5 text-zinc-400 shrink-0 opacity-70 hover:opacity-100" />
+                <ExternalLink className="w-3.5 h-3.5 text-cyan-400 shrink-0 opacity-75 hover:opacity-100" />
               </div>
             </div>
           )}

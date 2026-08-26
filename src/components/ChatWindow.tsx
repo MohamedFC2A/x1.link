@@ -162,14 +162,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         {messages.length === 0 ? (
           <div className="min-h-full flex flex-col items-center justify-center max-w-2xl mx-auto py-6 sm:py-8 text-center animate-in fade-in duration-300 px-2">
             
-            {/* Top Pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-button text-zinc-300 text-[11px] sm:text-xs font-medium mb-4 sm:mb-5 select-none">
-              <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              <span className="font-sans">جلسة محادثة مباشرة • منظومة matany.one</span>
-            </div>
-
             {/* Title */}
-            <h2 className="text-xl sm:text-3xl font-extrabold text-white mb-2 font-sans">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-2.5 font-sans tracking-tight">
               كيف يمكن لـ <span className="brand-shimmer-text font-['Space_Grotesk'] font-black">matany.one</span> مساعدتك اليوم؟
             </h2>
             

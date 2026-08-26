@@ -83,3 +83,23 @@ export function detectAndExtractUrl(rawText: string): DetectedUrlInfo {
   };
 }
 
+/**
+ * Generates a high-resolution favicon/logo URL for any given domain or URL.
+ */
+export function getFaviconUrl(domainOrUrl: string | null | undefined): string | null {
+  if (!domainOrUrl || !domainOrUrl.trim()) return null;
+  try {
+    let clean = domainOrUrl.trim();
+    if (/^https?:\/\//i.test(clean)) {
+      const parsed = new URL(clean);
+      clean = parsed.hostname;
+    }
+    clean = clean.replace(/^www\./i, '').split('/')[0];
+    if (!clean || !clean.includes('.')) return null;
+    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(clean)}&sz=64`;
+  } catch {
+    return null;
+  }
+}
+
+
