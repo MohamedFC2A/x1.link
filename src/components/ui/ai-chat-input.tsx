@@ -238,25 +238,40 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
       // 1. Check for Image Files in Clipboard
       const imageFiles: File[] = [];
+      const seen = new Set<string>();
+
       if (clipboardData.items && clipboardData.items.length > 0) {
         for (let i = 0; i < clipboardData.items.length; i++) {
           const item = clipboardData.items[i];
           if (item.type && item.type.startsWith('image/')) {
             const file = item.getAsFile();
-            if (file) imageFiles.push(file);
+            if (file) {
+              const key = `${file.name}-${file.size}-${file.type}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                imageFiles.push(file);
+              }
+            }
           }
         }
       } else if (clipboardData.files && clipboardData.files.length > 0) {
         for (let i = 0; i < clipboardData.files.length; i++) {
           const file = clipboardData.files[i];
           if (file.type && file.type.startsWith('image/')) {
-            imageFiles.push(file);
+            const key = `${file.name}-${file.size}-${file.type}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              imageFiles.push(file);
+            }
           }
         }
       }
 
       if (imageFiles.length > 0) {
         e.preventDefault();
+        if ('stopPropagation' in e && typeof e.stopPropagation === 'function') {
+          e.stopPropagation();
+        }
         setAttachments((prev) => {
           const currentCount = prev.length;
           const remainingSlots = Math.max(0, 5 - currentCount);
@@ -287,11 +302,17 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       }
     }, [value, cyberTargetUrl, activateCyberUrlMode]);
 
-    // Global paste listener so pasting images works from anywhere on page
+    // Global paste listener so pasting images works from anywhere on page without duplicating textarea paste
     useEffect(() => {
       const handleGlobalPaste = (e: ClipboardEvent) => {
-        // If the focused element is another input/textarea, let it handle its own
-        if (document.activeElement && document.activeElement !== textareaRef.current && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        if (e.defaultPrevented) return;
+        // If the focused element is the textarea or another input, let onPaste handle it directly
+        if (
+          document.activeElement &&
+          (document.activeElement === textareaRef.current ||
+            document.activeElement.tagName === 'INPUT' ||
+            document.activeElement.tagName === 'TEXTAREA')
+        ) {
           return;
         }
         handlePaste(e);

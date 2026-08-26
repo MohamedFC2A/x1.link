@@ -312,167 +312,110 @@ async function performUltraDeepCyberSearch(
   userQuery: string,
   targetUrl?: string
 ): Promise<string> {
-  if (!SERPER_API_KEY) {
-    return '';
-  }
+  const cleanQuery = userQuery.replace(/[\r\n]+/g, ' ').trim().slice(0, 300);
+  if (!cleanQuery) return '';
 
-  try {
-    const cleanQuery = userQuery.replace(/[\r\n]+/g, ' ').trim().slice(0, 300);
-    const domain = targetUrl ? (() => {
-      try {
-        return new URL(targetUrl).hostname.replace(/^www\./, '');
-      } catch {
-        return '';
-      }
-    })() : '';
-
-    // Generate specialized deep intelligence queries spanning different analytical angles
-    const searchQueries: { q: string; page: number; category: string }[] = [];
-
-    // Vector 1: Direct Comprehensive Search (Pages 1, 2, 3)
-    searchQueries.push({ q: cleanQuery, page: 1, category: 'Primary Intelligence' });
-    searchQueries.push({ q: cleanQuery, page: 2, category: 'Primary Intelligence' });
-    searchQueries.push({ q: cleanQuery, page: 3, category: 'Primary Intelligence' });
-
-    // Vector 2: Technical & Open Architecture Intel
-    searchQueries.push({ q: `${cleanQuery} analysis details overview`, page: 1, category: 'Deep Context & Analysis' });
-    searchQueries.push({ q: `${cleanQuery} documentation verification specifications`, page: 1, category: 'Deep Context & Analysis' });
-
-    // Vector 3: Security & Technical Validation
-    searchQueries.push({ q: `${cleanQuery} security analysis vulnerabilities architecture`, page: 1, category: 'Security & Assessment' });
-    searchQueries.push({ q: `site:github.com ${cleanQuery}`, page: 1, category: 'Open Repositories & Tools' });
-
-    // Vector 4: Target Specific OSINT or In-Depth Investigation & Pricing
-    if (domain) {
-      searchQueries.push({ q: `site:${domain} OR inurl:${domain} security headers API endpoints`, page: 1, category: 'Target Domain OSINT' });
-      searchQueries.push({ q: `site:${domain} price OR pricing OR cost OR domain`, page: 1, category: 'Target Domain Live Data' });
-      searchQueries.push({ q: `"${domain}" security SSL vulnerabilities exposure`, page: 1, category: 'Target Domain OSINT' });
-      searchQueries.push({ q: `site:github.com "${domain}" credentials leaks`, page: 1, category: 'Target Leak Recon' });
-    } else {
-      searchQueries.push({ q: `${cleanQuery} best practices methodology guide`, page: 1, category: 'Standards & Practice' });
-      searchQueries.push({ q: `${cleanQuery} technical report findings`, page: 1, category: 'Investigation Findings' });
+  const domain = targetUrl ? (() => {
+    try {
+      return new URL(targetUrl).hostname.replace(/^www\./, '');
+    } catch {
+      return '';
     }
+  })() : '';
 
-    // Concurrently execute all queries against Serper API
-    const fetchPromises = searchQueries.map(async (item) => {
-      try {
-        const res = await fetch('https://google.serper.dev/search', {
-          method: 'POST',
-          headers: {
-            'X-API-KEY': SERPER_API_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            q: item.q,
-            page: item.page,
-            num: 20,
-          }),
-        });
+  // Tier 1: Serper.dev Multi-vector Reconnaissance
+  if (SERPER_API_KEY) {
+    try {
+      const searchQueries: { q: string; page: number; category: string }[] = [];
+      searchQueries.push({ q: cleanQuery, page: 1, category: 'Primary Intelligence' });
+      searchQueries.push({ q: cleanQuery, page: 2, category: 'Primary Intelligence' });
 
-        if (!res.ok) return { category: item.category, results: [] as SerperOrganicItem[], kg: null };
-        const data = await res.json();
-        return {
-          category: item.category,
-          results: (data.organic || []) as SerperOrganicItem[],
-          kg: data.knowledgeGraph || null
-        };
-      } catch {
-        return { category: item.category, results: [] as SerperOrganicItem[], kg: null };
+      if (domain) {
+        searchQueries.push({ q: `site:${domain} OR inurl:${domain}`, page: 1, category: 'Target Domain Data' });
+      } else {
+        searchQueries.push({ q: `${cleanQuery} details overview`, page: 1, category: 'Deep Context' });
       }
-    });
 
-    const settled = await Promise.allSettled(fetchPromises);
+      const fetchPromises = searchQueries.map(async (item) => {
+        try {
+          const res = await fetch('https://google.serper.dev/search', {
+            method: 'POST',
+            headers: {
+              'X-API-KEY': SERPER_API_KEY,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              q: item.q,
+              page: item.page,
+              num: 15,
+            }),
+          });
 
-    let rawTotalResults = 0;
-    const uniqueMap = new Map<string, { item: SerperOrganicItem; category: string }>();
-    let knowledgeGraphData: any = null;
+          if (!res.ok) return { category: item.category, results: [] as SerperOrganicItem[], kg: null };
+          const data = await res.json();
+          return {
+            category: item.category,
+            results: (data.organic || []) as SerperOrganicItem[],
+            kg: data.knowledgeGraph || null
+          };
+        } catch {
+          return { category: item.category, results: [] as SerperOrganicItem[], kg: null };
+        }
+      });
 
-    for (const res of settled) {
-      if (res.status === 'fulfilled') {
-        const { category, results, kg } = res.value;
-        if (kg && !knowledgeGraphData) knowledgeGraphData = kg;
-        rawTotalResults += results.length;
-        for (const it of results) {
-          if (it.link && !uniqueMap.has(it.link)) {
-            uniqueMap.set(it.link, { item: it, category });
+      const settled = await Promise.allSettled(fetchPromises);
+      const uniqueMap = new Map<string, { item: SerperOrganicItem; category: string }>();
+      let knowledgeGraphData: any = null;
+
+      for (const res of settled) {
+        if (res.status === 'fulfilled') {
+          const { category, results, kg } = res.value;
+          if (kg && !knowledgeGraphData) knowledgeGraphData = kg;
+          for (const it of results) {
+            if (it.link && !uniqueMap.has(it.link)) {
+              uniqueMap.set(it.link, { item: it, category });
+            }
           }
         }
       }
-    }
 
-    const uniqueItems = Array.from(uniqueMap.values());
-    const totalScannedPages = Math.max(rawTotalResults, 100);
+      const topResults = Array.from(uniqueMap.values()).slice(0, 10);
 
-    // Pick top high-signal results for deep context
-    const topResults = uniqueItems.slice(0, 15);
-
-    // Deep Scrape Top 5 high-authority targets for full text context
-    const deepScrapePromises = topResults.slice(0, 5).map(async ({ item }) => {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 2500);
-        const pageRes = await fetch(item.link, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
-          signal: controller.signal
-        });
-        clearTimeout(timeout);
-        if (pageRes.ok) {
-          const html = await pageRes.text();
-          const cleanText = html
-            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-            .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .slice(0, 900);
-          return { link: item.link, title: item.title, text: cleanText };
+      if (topResults.length > 0) {
+        let output = `\n[🌐 منظومة البحث المباشر في الويب (Live Web Search Intelligence)]:\n`;
+        if (knowledgeGraphData && knowledgeGraphData.title) {
+          output += `- معلومة رئيسية: ${knowledgeGraphData.title} (${knowledgeGraphData.type || ''}): ${knowledgeGraphData.description || ''}\n`;
         }
-      } catch {}
-      return null;
-    });
-
-    const scrapedData = (await Promise.all(deepScrapePromises)).filter(
-      (s): s is { link: string; title: string; text: string } => Boolean(s)
-    );
-
-    // Build structured Intelligence Dossier
-    let output = `
-[🌐 منظومة البحث والاستخبارات فائقة العمق Fathom Deep Recon - Serper AI Engine]:
-- نطاق الاستطلاع والمسح: تم استكشاف ومسح أكثر من ${totalScannedPages}+ صفحة ومصدر ويب متخصص عبر محركات البحث المتقدمة.
-- محاور الاستعلام: الاستخبارات العامة، التوثيق الفني، السجلات المفتوحة، والمصادر المتخصصة.
-`;
-
-    if (knowledgeGraphData) {
-      output += `
-- بطاقة المعرفة المباشرة (Google Knowledge Graph):
-  * العنوان: ${knowledgeGraphData.title || 'غير محدد'} (${knowledgeGraphData.type || 'كيان عام'})
-  * الوصف: ${knowledgeGraphData.description || 'لا يوجد وصف'}
-  * الخصائص: ${JSON.stringify(knowledgeGraphData.attributes || {})}
-`;
+        topResults.forEach(({ item }, idx) => {
+          output += `[${idx + 1}] ${item.title}\n    الرابط: ${item.link}\n    الملخص: ${item.snippet || ''}\n\n`;
+        });
+        output += `\n[توجيه استخباراتي]: استخدم نتائج البحث المباشرة أعلاه لتقديم إجابة محدثة ودقيقة باللغة العربية.`;
+        return output.trim();
+      }
+    } catch (err: any) {
+      console.warn('[Serper Search Exception]:', err?.message);
     }
-
-    output += `
-- أبرز المراجع والنتائج المكتشفة (عينة من الـ 100+ صفحة الممسوحة):
-`;
-
-    topResults.forEach(({ item, category }, idx) => {
-      output += `\n[${idx + 1}] (${category}) ${item.title}\n    الرابط: ${item.link}\n    الملخص: ${item.snippet || 'لا يوجد ملخص'}\n`;
-    });
-
-    if (scrapedData.length > 0) {
-      output += `\n- مقتطفات استخباراتية تفصيلية مستخرجة من أعمق المصادر:\n`;
-      scrapedData.forEach((sc, idx) => {
-        output += `\n--- [مصدر موثوق ${idx + 1}: ${sc.title}] (${sc.link}) ---\n${sc.text}\n`;
-      });
-    }
-
-    output += `\n[توجيه استخباراتي فائق]: استخدم بيانات البحث العميق الموثوقة أعلاه للإجابة عن سؤال المستخدم بشكل مباشر وموضوعي ودقيق باللغة العربية دون أي اعتذارات أو استجابات نمطية مسبقة.`;
-
-    return output.trim();
-  } catch (err: any) {
-    console.warn('[Ultra Deep Cyber Search Exception]:', err?.message);
-    return '';
   }
+
+  // Tier 2: Resilient Jina AI Web Search Fallback
+  try {
+    const jinaRes = await fetch(`https://s.jina.ai/${encodeURIComponent(cleanQuery)}`, {
+      headers: {
+        'Accept': 'text/plain',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      }
+    });
+    if (jinaRes.ok) {
+      const jinaText = await jinaRes.text();
+      if (jinaText && jinaText.trim().length > 80) {
+        return `\n[🌐 نتائج البحث المباشر في الويب (Live Web Intelligence)]:\n${jinaText.slice(0, 3500)}\n\n[توجيه]: استخدم بيانات البحث الحية أعلاه للإجابة بدقة باللغة العربية.`.trim();
+      }
+    }
+  } catch (jinaErr: any) {
+    console.warn('[Jina Search Fallback Notice]:', jinaErr?.message);
+  }
+
+  return '';
 }
 
 /**
@@ -676,20 +619,23 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
-  // Step 2: Ultra-Deep Reconnaissance & Threat Intelligence Engine (Exclusive to Fathom Cyber on demand)
-  if (isCyber) {
-    const latestUserMsg = cleanedMessages.filter((m: any) => m.role === 'user').pop();
-    const rawUserContent = typeof latestUserMsg?.content === 'string'
-      ? latestUserMsg.content
-      : (Array.isArray(latestUserMsg?.content) ? latestUserMsg.content.find((c: any) => c.type === 'text')?.text || '' : '');
+  // Step 2: Live Web Search & Cyber Reconnaissance Engine (Available on Demand across ALL models)
+  const latestUserMsg = cleanedMessages.filter((m: any) => m.role === 'user').pop();
+  const rawUserContent = typeof latestUserMsg?.content === 'string'
+    ? latestUserMsg.content
+    : (Array.isArray(latestUserMsg?.content) ? latestUserMsg.content.find((c: any) => c.type === 'text')?.text || '' : '');
 
-    const extractedTargetUrl = extractCleanUrl(explicitTargetUrl || rawUserContent);
+  const extractedTargetUrl = extractCleanUrl(explicitTargetUrl || rawUserContent);
+
+  if (deepSearch || isCyber || Boolean(extractedTargetUrl)) {
+    const shouldSearch = Boolean(deepSearch || isCyber);
+    const shouldAuditUrl = Boolean(extractedTargetUrl && (isCyber || Boolean(explicitTargetUrl)));
 
     const [deepSearchResults, urlAuditResults] = await Promise.allSettled([
-      deepSearch
+      shouldSearch
         ? performUltraDeepCyberSearch(rawUserContent, extractedTargetUrl || undefined)
         : Promise.resolve(''),
-      extractedTargetUrl
+      shouldAuditUrl
         ? fetchUrlSecurityAudit(extractedTargetUrl)
         : Promise.resolve('')
     ]);
@@ -697,15 +643,15 @@ export default async function handler(req: Request): Promise<Response> {
     const deepSearchText = deepSearchResults.status === 'fulfilled' ? deepSearchResults.value : '';
     const urlAuditText = urlAuditResults.status === 'fulfilled' ? urlAuditResults.value : '';
 
-    const combinedCyberIntelligence = [urlAuditText, deepSearchText].filter(Boolean).join('\n\n');
+    const combinedContext = [urlAuditText, deepSearchText].filter(Boolean).join('\n\n');
 
-    if (combinedCyberIntelligence) {
+    if (combinedContext) {
       processedMessages = processedMessages.map((m: any) => {
         if (m === latestUserMsg) {
           const orig = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
           return {
             ...m,
-            content: `${orig}\n\n${combinedCyberIntelligence}\n\n[توجيه أمني استخباراتي لـ Fathom Cyber]: لقد تم تزويدك بالبيانات الاستخباراتية والترويسات أعلاه. قم بصياغة تقرير أمني شامل، واستنتج الثغرات المحتملة وأرقام CVE ونواقل الهجوم وحلول المعالجة الفنية بدقة واحترافية فائقة.`
+            content: `${orig}\n\n${combinedContext}\n\n[توجيه استخباراتي للرد]: لقد تم تزويدك ببيانات البحث والاستطلاع الحية والمباشرة أعلاه، أجب عن طلب وسؤال المستخدم بدقة وموضوعية وشمولية باللغة العربية.`
           };
         }
         return m;
