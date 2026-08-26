@@ -69,7 +69,8 @@ function extractCleanUrl(raw: string): string | null {
 }
 
 /**
- * Live URL Security Reconnaissance & Header Auditor for Fathom Cyber
+ * Advanced, Resilient & Ethical OSINT / Reconnaissance Auditor for Fathom Cyber
+ * Performs passive, non-intrusive reconnaissance: Security Headers, Tech Stack, robots.txt, security.txt, and surface mapping.
  */
 async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
   const target = extractCleanUrl(rawUrl);
@@ -79,75 +80,117 @@ async function fetchUrlSecurityAudit(rawUrl: string): Promise<string> {
 
   try {
     const parsed = new URL(target);
+    const origin = parsed.origin;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+    const timeout = setTimeout(() => controller.abort(), 2500);
 
-    let res: globalThis.Response | null = null;
-    try {
-      res = await fetch(parsed.href, {
+    // Parallel passive queries: Main Page, robots.txt, and security.txt
+    const [mainResPromise, robotsPromise, securityTxtPromise] = [
+      fetch(parsed.href, {
         method: 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 (Fathom-OSINT-Audit/2.0)',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
         },
         signal: controller.signal
-      });
-    } catch (fetchErr) {
-      clearTimeout(timeout);
+      }).catch(() => null),
+      fetch(`${origin}/robots.txt`, {
+        method: 'GET',
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        signal: controller.signal
+      }).catch(() => null),
+      fetch(`${origin}/.well-known/security.txt`, {
+        method: 'GET',
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        signal: controller.signal
+      }).catch(() => null)
+    ];
+
+    const [res, robotsRes, secTxtRes] = await Promise.all([mainResPromise, robotsPromise, securityTxtPromise]);
+    clearTimeout(timeout);
+
+    if (!res) {
       return `
-[تقرير الاستطلاع الأمني وفحص الهدف المباشر - Fathom Cyber OSINT]:
+[تقرير الاستطلاع الأمني واستخبارات المصادر المفتوحة - Fathom Cyber Legal OSINT]:
 - الرابط المستهدف: ${parsed.href}
 - النطاق الأساسي (Host): ${parsed.hostname}
 - البروتوكول المستخدم: ${parsed.protocol}
-- حالة الاتصال: تم حجب الاتصال المباشر من جدار الحماية للهدف (WAF / Bot Protection) أو انتهاء المهلة.
-- السطح الهجومي الافتراضي:
+- حالة الاتصال: تم حجب الاتصال المباشر من جدار الحماية للهدف (WAF / Bot Protection) أو انتهاء المهلة بشكل آمن.
+- السطح الهجومي والتحصين الافتراضي:
   * التحقق من سجلات DNS وMX وSPF لمنع انتحال النطاق.
   * فحص هجمات Subdomain Takeover وحماية مسارات الـ API.
   * فحص شهادات SSL/TLS وتطبيق بروتوكول HSTS الإلزامي.
 `.trim();
     }
-    clearTimeout(timeout);
 
     const headers = Object.fromEntries(res.headers.entries());
     let html = '';
     try {
       const rawText = await res.text();
-      html = rawText.slice(0, 100000); // 100KB slice
+      html = rawText.slice(0, 80000); // 80KB slice
     } catch {
       html = '';
     }
 
+    // robots.txt analysis
+    let robotsDisallowed: string[] = [];
+    if (robotsRes && robotsRes.ok) {
+      try {
+        const robText = await robotsRes.text();
+        robotsDisallowed = (robText.match(/Disallow:\s*([^\r\n#]+)/gi) || [])
+          .slice(0, 6)
+          .map(d => d.replace(/Disallow:\s*/i, '').trim());
+      } catch {}
+    }
+
+    // security.txt status
+    const hasSecurityTxt = Boolean(secTxtRes && secTxtRes.ok);
+
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     const title = titleMatch ? titleMatch[1].trim() : 'غير محدد';
 
+    // Framework and Tech Stack detection
+    const techStack: string[] = [];
+    if (html.includes('__NEXT_DATA__') || html.includes('/_next/')) techStack.push('Next.js');
+    if (html.includes('react') || html.includes('_reactRoot')) techStack.push('React');
+    if (html.includes('wp-content') || html.includes('wp-includes')) techStack.push('WordPress');
+    if (headers['cf-ray'] || headers['server']?.toLowerCase().includes('cloudflare')) techStack.push('Cloudflare CDN/WAF');
+    if (headers['x-vercel-id']) techStack.push('Vercel Edge Network');
+    if (headers['server']) techStack.push(`Server: ${headers['server']}`);
+
     const secHeaders = {
-      hsts: headers['strict-transport-security'] || 'مفقود (غير مفعل)',
-      csp: headers['content-security-policy'] || 'مفقود (غير مفعل)',
-      xframe: headers['x-frame-options'] || 'مفقود (معرض لـ Clickjacking)',
-      xcontent: headers['x-content-type-options'] || 'مفقود (معرض لـ MIME-sniffing)',
+      hsts: headers['strict-transport-security'] ? 'مفعل (HSTS Active)' : 'مفقود [HIGH RISK]',
+      csp: headers['content-security-policy'] ? 'مفعل (CSP Enforced)' : 'مفقود [CRITICAL RISK]',
+      xframe: headers['x-frame-options'] ? headers['x-frame-options'] : 'مفقود (معرض لـ Clickjacking) [MEDIUM]',
+      xcontent: headers['x-content-type-options'] ? headers['x-content-type-options'] : 'مفقود (معرض لـ MIME Sniffing) [LOW]',
       referrer: headers['referrer-policy'] || 'افتراضي',
-      server: headers['server'] || 'مخفي / غير مصرح',
-      poweredBy: headers['x-powered-by'] || 'مخفي'
+      cors: headers['access-control-allow-origin'] || 'غير مخصص (Protected)',
+      permissions: headers['permissions-policy'] || 'مفقود'
     };
 
     const links = (html.match(/href=["'](https?:\/\/[^"']+)["']/gi) || []).slice(0, 6).map(l => l.replace(/href=["']|["']/gi, ''));
     const formCount = (html.match(/<form/gi) || []).length;
+    const inputCount = (html.match(/<input/gi) || []).length;
 
     return `
-[تقرير الاستطلاع الأمني وفحص الهدف المباشر - Fathom Cyber OSINT]:
+[تقرير الاستطلاع الأمني والاستخبارات مفتوحة المصدر - Fathom Cyber Legal OSINT]:
 - الرابط المستهدف: ${parsed.href}
-- عنوان الموقع (Title): ${title}
+- النطاق الأساسي: ${parsed.hostname} | البروتوكول: ${parsed.protocol}
+- عنوان المنصة (Title): ${title}
 - كود الاستجابة: ${res.status} ${res.statusText}
-- توقيع الخادم والتقنيات: Server: ${secHeaders.server} | X-Powered-By: ${secHeaders.poweredBy}
-- فحص ترويسات الحماية:
+- بصمة البنية التحتية والتقنيات (Tech Stack): ${techStack.join(' • ') || 'غير معلنة'}
+- تدقيق ترويسات الحماية وسياسات الأمان (Security Headers Audit):
   * Strict-Transport-Security (HSTS): ${secHeaders.hsts}
   * Content-Security-Policy (CSP): ${secHeaders.csp}
   * X-Frame-Options (Clickjacking): ${secHeaders.xframe}
-  * X-Content-Type-Options (MIME Sniffing): ${secHeaders.xcontent}
+  * X-Content-Type-Options (MIME-Sniffing): ${secHeaders.xcontent}
+  * Access-Control-Allow-Origin (CORS): ${secHeaders.cors}
   * Referrer-Policy: ${secHeaders.referrer}
-- السطح الهجومي ونقاط الإدخال:
-  * روابط مكتشفة (${links.length}): ${links.join(', ') || 'لا توجد روابط خارجية'}
-  * نماذج إدخال (${formCount}): ${formCount > 0 ? `تم رصد ${formCount} نموذج إدخال بيانات` : 'لا توجد نماذج ظاهرة'}
+- استخبارات الملفات الإرشادية والسطح الهجومي:
+  * ملف سياسة الأمان (security.txt): ${hasSecurityTxt ? 'موجود ومفعل (.well-known/security.txt)' : 'غير موجود'}
+  * مسارات حساسة مفحوصة في robots.txt: ${robotsDisallowed.length > 0 ? robotsDisallowed.join(', ') : 'لا توجد مسارات محظورة معلنة'}
+  * عناصر الإدخال التفاعلية: ${formCount} نماذج (${inputCount} حقول إدخال)
+  * الروابط والارتباطات الخارجية: ${links.length > 0 ? links.join(', ') : 'لا توجد روابط خارجية مكتشفة'}
 `.trim();
   } catch (err: any) {
     return `[تقرير استطلاع الهدف ${rawUrl}]: تعذر جلب الاستجابة المباشرة (${err?.message || 'مهلة الاتصال'}). قم بتحليل النطاق والبروتوكول افتراضياً ونقاط الضعف الشائعة لهذا النوع من الخدمات.`;
