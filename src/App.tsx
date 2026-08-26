@@ -558,6 +558,46 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('x1:autodelete-chat', onAutoDelete);
   }, [currentChatId, user]);
 
+  // Mobile Edge-Swipe to Open Sidebar Drawer (Swipe from Right to Left)
+  useEffect(() => {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.changedTouches.length === 1) {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+
+        // In RTL (drawer anchored on the right):
+        // If touch begins within 45px of the right screen edge and swipes to the left by > 45px
+        const isRightEdge = touchStartX > window.innerWidth - 45;
+        const isSwipeLeft = deltaX < -45;
+        const isHorizontal = Math.abs(deltaX) > Math.abs(deltaY) * 1.2;
+
+        if (!isSidebarOpen && isRightEdge && isSwipeLeft && isHorizontal) {
+          setIsSidebarOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isSidebarOpen]);
+
   const handleSelectChat = async (chatId: string) => {
     setCurrentChatId(chatId);
     const history = await fetchChatMessages(chatId);

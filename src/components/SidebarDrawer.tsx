@@ -1,5 +1,6 @@
 import React from 'react';
 import { User } from '@supabase/supabase-js';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { SupabaseChat } from '../services/supabase';
 import { 
   X, 
@@ -11,7 +12,8 @@ import {
   CreditCard, 
   Activity, 
   User as UserIcon,
-  Sparkles
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 
 interface SidebarDrawerProps {
@@ -53,18 +55,40 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   onNavigateToProfile,
   onNavigateToChat,
 }) => {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex justify-start" dir="rtl">
-      {/* Dark Backdrop Overlay */}
-      <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
-        onClick={onClose}
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex justify-start overflow-hidden" dir="rtl">
+          {/* Dark Backdrop Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
+            onClick={onClose}
+          />
 
-      {/* Drawer Panel */}
-      <div className="relative w-[85vw] max-w-xs sm:max-w-sm bg-[#080811] border-l border-white/15 text-zinc-100 flex flex-col h-full z-10 shadow-2xl animate-in slide-in-from-right duration-300 pt-safe pb-safe">
+          {/* Drawer Panel with Swipe-to-Close Gestures */}
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            drag="x"
+            dragDirectionLock
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={{ left: 0, right: 0.6 }}
+            onDragEnd={(_event: any, info: PanInfo) => {
+              // In RTL, dragging right towards screen edge (info.offset.x > 60 or fast flick info.velocity.x > 250) closes the drawer
+              if (info.offset.x > 60 || info.velocity.x > 250) {
+                onClose();
+              }
+            }}
+            className="relative w-[85vw] max-w-xs sm:max-w-sm bg-[#080811] border-l border-white/15 text-zinc-100 flex flex-col h-full z-10 shadow-2xl pt-safe pb-safe select-none touch-pan-y"
+          >
+            {/* Visual Drag Handle on the inner edge */}
+            <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-14 rounded-full bg-white/20 pointer-events-none hidden sm:block" />
         
         {/* Header */}
         <div className="p-3.5 sm:p-4 border-b border-white/[0.08] flex items-center justify-between">
@@ -304,12 +328,14 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <span>تسجيل الدخول بحساب Google</span>
+              <span className="font-sans">تسجيل الدخول بحساب Google</span>
             </button>
           )}
         </div>
 
-      </div>
+      </motion.div>
     </div>
+  )}
+</AnimatePresence>
   );
 };
