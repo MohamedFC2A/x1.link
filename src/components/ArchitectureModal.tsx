@@ -66,7 +66,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
           </div>
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight font-sans">
-              خريطة معمارية منظومة X1.link
+              خريطة معمارية منظومة Matany.one
             </h2>
             <p className="text-[11px] sm:text-xs text-zinc-400 font-sans mt-0.5">
               كيف تتم معالجة الأفكار والصور والتوليد الفصيح في أجزاء من الثانية

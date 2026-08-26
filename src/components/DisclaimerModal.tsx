@@ -22,7 +22,7 @@ export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen = true,
               تأكيد الوصول وشروط الاستخدام
             </h2>
             <p className="text-[11px] sm:text-xs text-zinc-400 font-sans">
-              منصة الذكاء الاصطناعي التجريدي X1.link
+              منصة الذكاء الاصطناعي التجريدي Matany.one
             </p>
           </div>
         </div>

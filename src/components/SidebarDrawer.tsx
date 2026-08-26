@@ -48,7 +48,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           <div className="flex items-center gap-2">
             <img
               src="/x1-logo.svg"
-              alt="X1 Logo"
+              alt="Matany Logo"
               className="w-7 h-7 rounded-lg object-contain"
             />
             <div>

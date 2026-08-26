@@ -29,16 +29,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="flex items-center gap-2.5">
             <img
               src="/x1-logo.svg"
-              alt="X1 Logo"
+              alt="Matany Logo"
               className="w-8 h-8 rounded-xl object-contain shadow-sm"
             />
             <div className="flex flex-col text-right">
               <span className="font-['Space_Grotesk'] font-black text-base tracking-tight leading-none">
-                <span className="bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">X1</span>
-                <span className="text-zinc-500 font-semibold text-xs sm:text-sm">.link</span>
+                <span className="bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">Matany</span>
+                <span className="text-zinc-500 font-semibold text-xs sm:text-sm">.one</span>
               </span>
               <span className="text-[9px] text-zinc-400 font-mono mt-0.5 tracking-wider uppercase">
-                FATHOM AI SYSTEM
+                MATANY AI SYSTEM
               </span>
             </div>
           </div>
@@ -259,7 +259,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* Minimal Footer */}
       <footer className="border-t border-white/[0.08] py-3 sm:py-4 px-4 sm:px-6 text-center text-[10px] sm:text-xs text-zinc-500 font-mono pb-safe">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1 sm:gap-2">
-          <span>X1.link • Fathom Silicon Platform</span>
+          <span>Matany.one • Fathom Silicon Platform</span>
           <span>حفظ سحابي فوري ومشفر على Supabase</span>
         </div>
       </footer>

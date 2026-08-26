@@ -257,7 +257,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 450, damping: 25 }}
-                onClick={() => onSendPreset('افحص هذا الرابط أمنياً واستخرج ترويسات الحماية والسطح الهجومي https://x1.link')}
+                onClick={() => onSendPreset('افحص هذا الرابط أمنياً واستخرج ترويسات الحماية والسطح الهجومي https://matany.one')}
                 className="p-3.5 sm:p-4 rounded-2xl glass-card text-right transition-all cursor-pointer group select-none"
               >
                 <div className="flex items-center justify-between mb-2">

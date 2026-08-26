@@ -35,17 +35,17 @@ export const TopBar: React.FC<TopBarProps> = ({
         <div
           onClick={onGoHome}
           className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group shrink-0"
-          title="X1.link"
+          title="Matany.one"
         >
           <img
             src="/x1-logo.svg"
-            alt="X1 Logo"
+            alt="Matany Logo"
             className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm group-hover:scale-105 transition-transform"
           />
           <div className="flex flex-col text-right">
             <span className="font-['Space_Grotesk'] font-black text-base sm:text-lg tracking-tight leading-none transition-colors">
-              <span className="bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">X1</span>
-              <span className="text-zinc-500 font-semibold text-sm sm:text-base">.link</span>
+              <span className="bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">Matany</span>
+              <span className="text-zinc-500 font-semibold text-xs sm:text-sm">.one</span>
             </span>
             <span className="text-[9px] sm:text-[10px] text-zinc-400 font-mono mt-1 font-semibold tracking-wider uppercase">
               {activeModel === 'deepseek-v4-flash-cyber'
