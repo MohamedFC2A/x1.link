@@ -996,7 +996,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     <div className="min-w-0 flex-1 text-right">
                       <div className="flex items-center justify-between gap-1.5">
                         <span className="font-bold text-xs text-white shrink-0">Fathom Cyber 2.0</span>
-                        <span className="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm shrink-0">
+                        <span className="text-[9px] font-sans font-medium px-2 py-0.5 rounded-full bg-white/[0.05] backdrop-blur-sm border border-white/[0.10] text-zinc-300 shrink-0">
                           New
                         </span>
                       </div>
@@ -1029,11 +1029,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     <div className="min-w-0 flex-1 text-right">
                       <div className="flex items-center justify-between gap-1.5">
                         <span className="font-bold text-xs text-white shrink-0">Fathom Cyber 2.1</span>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <span className="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm">
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[9px] font-sans font-medium px-2 py-0.5 rounded-full bg-white/[0.05] backdrop-blur-sm border border-white/[0.10] text-zinc-300">
                             New
                           </span>
-                          <span className="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-cyan-500/15 backdrop-blur-md border border-cyan-400/25 text-cyan-200 shadow-sm">
+                          <span className="text-[9px] font-sans font-medium px-2 py-0.5 rounded-full bg-white/[0.05] backdrop-blur-sm border border-white/[0.10] text-zinc-300">
                             Super Thinking
                           </span>
                         </div>

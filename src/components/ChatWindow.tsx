@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { ChatMessageItem } from '../types';
+import { ChatMessageItem, ModelType } from '../types';
 import { ChatMessage } from './ChatMessage';
 import { getConversationGlobalUrls, getConversationGlobalImages } from '../lib/utils';
 import { Sparkles, ShieldOff, Eye, Camera, ShieldCheck, ChevronDown, ArrowDown } from 'lucide-react';
@@ -9,6 +9,7 @@ interface ChatWindowProps {
   messages: ChatMessageItem[];
   isStreaming: boolean;
   isX1Active: boolean;
+  activeModel?: ModelType;
   onSendPreset: (presetText: string) => void;
   onOpenArchitecture?: () => void;
   onToggleX1?: () => void;
@@ -18,11 +19,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   messages,
   isStreaming,
   isX1Active,
+  activeModel = 'deepseek-v4-flash',
   onSendPreset,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesListRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
+
+  const modelDisplayName = isX1Active
+    ? 'matany.one'
+    : activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1'
+    ? 'Fathom Cyber 2.1'
+    : activeModel === 'deepseek-v4-flash-cyber'
+    ? 'Fathom Cyber 2.0'
+    : activeModel === 'deepseek-v4-flash-vision-exp'
+    ? 'Fathom Cam'
+    : activeModel === 'meta/muse-spark-1.2-contributor'
+    ? 'Fathom Spark'
+    : 'Fathom 1.1';
 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const isAutoScrollLockedRef = useRef(true);
@@ -180,7 +194,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         {messages.length === 0 ? (
           <div className="min-h-[45vh] flex flex-col items-center justify-center max-w-md mx-auto py-8 sm:py-12 text-center animate-in fade-in duration-300 px-4 relative select-none">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white mb-2.5 font-sans">
-              ابدأ محادثة مع {isX1Active ? 'matany.one' : 'Fathom 1.1'}
+              ابدأ محادثة مع {modelDisplayName}
             </h2>
             <p className="text-xs sm:text-sm md:text-base text-zinc-400 font-sans leading-relaxed">
               اكتب سؤالك، أرفق صورة، أو الصق أي رابط للتحليل الفوري

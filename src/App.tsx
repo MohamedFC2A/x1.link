@@ -1081,6 +1081,7 @@ export const App: React.FC = () => {
                     messages={messages}
                     isStreaming={isStreaming}
                     isX1Active={isX1Active}
+                    activeModel={activeModel}
                     onSendPreset={(preset) => handleSendMessage(preset)}
                     onOpenArchitecture={() => setIsArchitectureModalOpen(true)}
                     onToggleX1={handleToggleX1}
