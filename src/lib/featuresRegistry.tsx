@@ -1,8 +1,13 @@
 import React from 'react';
 import { Sparkles, ShieldCheck, Database, BrainCircuit, Clock, Flame, Zap } from 'lucide-react';
+import { cn } from './utils';
+
+export type FeatureIntentType = 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | 'download_detect' | 'fathom_cam';
+
+export type IntentCategory = 'actionable' | 'informational' | 'none';
 
 export interface DetectedFeatureData {
-  id: 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | string;
+  id: FeatureIntentType | string;
   name: string;
   nameAr: string;
   badgeLabel: string;
@@ -12,10 +17,32 @@ export interface DetectedFeatureData {
   isAi?: boolean;
   statusPill?: string;
   matchedCount?: number;
+  confidence?: number;
+  category?: IntentCategory;
+  shouldRenderWidget?: boolean;
+  extractedParams?: Record<string, any>;
+}
+
+export interface FeatureActivationPlan {
+  featureId: FeatureIntentType;
+  confidence: number;
+  category: IntentCategory;
+  shouldRenderWidget: boolean;
+  shouldInjectContext: boolean;
+  extractedParams: Record<string, any>;
+  reason: string;
+}
+
+export interface MultiIntentPlan {
+  plans: Record<FeatureIntentType, FeatureActivationPlan>;
+  activeFeatures: DetectedFeatureData[];
+  actionableFeatures: DetectedFeatureData[];
+  hasActionableIntent: boolean;
+  executionPipelineOrder: FeatureIntentType[];
 }
 
 export interface FeatureDefinition {
-  id: string;
+  id: FeatureIntentType;
   name: string;
   nameAr: string;
   badgeLabel: string;
@@ -28,8 +55,6 @@ export interface FeatureDefinition {
   detectIntent: (prompt: string, reasoning?: string, content?: string, context?: any) => boolean;
   extractFeatureData: (prompt: string, reasoning?: string, content?: string, context?: any) => DetectedFeatureData | null;
 }
-
-import { cn } from './utils';
 
 // Multi-Color Radiant Gradient Icons matching each feature's exact typographic spectrum
 export const MemoryDetectIcon: React.FC<{ className?: string; size?: number }> = ({
@@ -183,15 +208,184 @@ export const DownloadDetectIcon: React.FC<{ className?: string; size?: number }>
   </svg>
 );
 
+export const FathomCamIcon: React.FC<{ className?: string; size?: number }> = ({
+  className,
+  size = 14
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="url(#fathom-cam-grad)"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn("inline-block shrink-0", className)}
+  >
+    <defs>
+      <linearGradient id="fathom-cam-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#34d399" />
+        <stop offset="50%" stopColor="#ffffff" />
+        <stop offset="100%" stopColor="#10b981" />
+      </linearGradient>
+    </defs>
+    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+    <circle cx="12" cy="13" r="3" />
+  </svg>
+);
+
+// ─── Utility Helpers & Sanitizers ───────────────────────────────────────────
+
 /**
- * Universal Modular Features Registry (نظام الخواص الشامل)
- * Central extensible registry managing all detection features:
- * 1. Memory Detect (الذاكرة السحابية المتزامنة عبر 50 محادثة / 50M Tokens)
- * 2. Time Detect (استشعار وتدقيق المعطيات الزمنية)
- * 3. AI Detect (فحص وتحقق الذكاء الاصطناعي والأصالة)
- * 4. Meta Data (استخراج الميتاداتا والعتاد الرقمي)
+ * Strips tracking query parameters from social media and video URLs
  */
+export function stripUrlTrackingParams(url: string): string {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    const trackers = ['si', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'igsh', 'feature', 'share_id', 'fbclid', 'gclid'];
+    trackers.forEach(param => parsed.searchParams.delete(param));
+    return parsed.toString();
+  } catch {
+    return url.replace(/([?&](?:si|utm_[a-z]+|igsh|feature|share_id|fbclid)=[^&#]*)/gi, '').replace(/[?&]$/, '');
+  }
+}
+
+/**
+ * Parses colloquial Arabic and English relative durations into seconds
+ */
+export function parseRelativeSeconds(text: string): number | null {
+  if (!text) return null;
+  const t = text.toLowerCase();
+
+  // Explicit Arabic colloquial numbers & words
+  if (/(\d+)\s*(?:ثوان[يٍ]?|ثانية|seconds?|secs?)/i.test(t)) {
+    const m = t.match(/(\d+)\s*(?:ثوان[يٍ]?|ثانية|seconds?|secs?)/i);
+    return m ? parseInt(m[1], 10) : null;
+  }
+  if (/(\d+)\s*(?:دقائق|دقايق|دقيقة|minutes?|mins?)/i.test(t)) {
+    const m = t.match(/(\d+)\s*(?:دقائق|دقايق|دقيقة|minutes?|mins?)/i);
+    return m ? parseInt(m[1], 10) * 60 : null;
+  }
+  if (/(\d+)\s*(?:ساعات|ساعة|hours?|hrs?)/i.test(t)) {
+    const m = t.match(/(\d+)\s*(?:ساعات|ساعة|hours?|hrs?)/i);
+    return m ? parseInt(m[1], 10) * 3600 : null;
+  }
+  if (/(?:نصف\s*ساعة|نص\s*ساعة|half\s*an?\s*hour)/i.test(t)) return 1800;
+  if (/(?:ربع\s*ساعة|quarter\s*hour)/i.test(t)) return 900;
+  if (/(?:ثلث\s*ساعة)/i.test(t)) return 1200;
+  if (/(?:ساعتين|two\s*hours)/i.test(t)) return 7200;
+  if (/(?:دقيقتين|two\s*minutes)/i.test(t)) return 120;
+  if (/(?:خمس\s*دقائق|خمس\s*دقايق)/i.test(t)) return 300;
+  if (/(?:عشر\s*دقائق|عشر\s*دقايق)/i.test(t)) return 600;
+
+  // Generic digit in timer context
+  const genericMatch = t.match(/(?:timer|مؤقت|تايمر|alert\s*me\s*in|نبهني\s*بعد)\s*(\d+)/i);
+  if (genericMatch) {
+    const num = parseInt(genericMatch[1], 10);
+    return num < 60 ? num * 60 : num; // default to minutes if small number
+  }
+
+  return null;
+}
+
+/**
+ * Strict Blacklist: Biological, hardware, psychological, and historical memory queries
+ */
+export const MEMORY_CONCEPTUAL_BLACKLIST: RegExp[] = [
+  // Biological & Neuroscience
+  /(?:ذاكرة\s*(?:الإنسان|الانسان|البشر|الدماغ|المخ|الحيوان|النفس|السمك|الفيل))/i,
+  /(?:الذاكرة\s*(?:في|عند)\s*(?:دماغ|مخ|رأس|عقل|جسم)\s*(?:الإنسان|الانسان|البشر|الحيوان)?)/i,
+  /(?:كيف\s*(?:تعمل|تخزن|تتشكل|تتكون|تعالج)\s*الذاكرة\s*(?:في\s*(?:دماغ|مخ|عقل))?)/i,
+  /(?:human\s*memory|brain\s*memory|neuroscience|hippocampus|biological\s*memory|memory\s*consolidation|synaptic\s*plasticity|cognitive\s*psychology)/i,
+  /(?:علم\s*الأعصاب|الخلايا\s*العصبية|الحصين|قرن\s*آمون|فقدان\s*الذاكرة\s*المرضي|مرض\s*الزهايمر|النسيان\s*المرضي)/i,
+  
+  // Computer Hardware & Electronic Storage
+  /(?:ذاكرة\s*(?:الوصول\s*العشوائي|العشوائية|المؤقتة|المخبأة|المخبئية|الوميضية|الرئيسية|الظاهرية|الخارجية|المومري|الميموري|الفلاش|التخزين))/i,
+  /(?:الذاكرة\s*(?:العشوائية|المخبئية|المؤقتة|الرئيسية|الوميضية|الصلبة|الافتراضية))/i,
+  /(?:كارت\s*ميموري|بطاقة\s*ذاكرة|فلاش\s*ميموري|شريحة\s*ذاكرة|وحدة\s*تخزين)/i,
+  /(?:\b(?:ram|rom|ddr\d|sram|dram|vram|nvram|flash\s*memory|virtual\s*memory|cache\s*memory|sd\s*card|memory\s*card|memory\s*leak|memory\s*corruption|buffer\s*overflow)\b)/i,
+  
+  // History & Essays / Definitions
+  /(?:تاريخ\s*(?:الذاكرة|ساعات|الحواسيب|الكمبيوتر))/i,
+  /(?:شرح\s*(?:الذاكرة|أنواع\s*الذاكرة|كيف\s*تعمل\s*الذاكرة))/i,
+  /(?:أنواع\s*الذاكرة\s*(?:في\s*(?:علم\s*النفس|الحاسوب|الدماغ))?)/i,
+  /(?:اكتب\s*مقال(?:اً)?\s*عن\s*الذاكرة)/i,
+  /(?:بحث\s*عن\s*الذاكرة|مفهوم\s*الذاكرة|تعريف\s*الذاكرة)/i
+];
+
+/**
+ * Strict Whitelist: Personal, historical cross-session, or direct chat recall
+ */
+export const MEMORY_RECALL_WHITELIST: RegExp[] = [
+  // Direct Arabic personal recall cues
+  /(?:افتكر|فاكر|فاكرة|فكرني|ذكرني|تذكر|هل\s*تتذكر|هل\s*تذكر)\s*(?:إيه|ايه|شو|ايش|ماذا|لما|البورت|السيرفر|المشروع|الرابط|الكود|اسمي|بياناتي|اللي|شات|محادثة|كلامنا|حديثنا)/i,
+  /(?:قلت\s*لك|قلتلك|أخبرتك|اخبرتك|حكيت\s*لك)\s*(?:قبل\s*كده|سابقاً|سابقا|في\s*الشات|في\s*المحادثة|عن)/i,
+  /(?:في\s*(?:المحادثة|الجلسة|الشات)\s*(?:السابقة|السابق|الماضية|الماضي|اللي\s*فات|اللي\s*فاتت|قبل\s*السابقة))/i,
+  /(?:المحادثة\s*السابقة\s*مباشرة|الشات\s*اللي\s*فات\s*مباشرة|الجلسة\s*السابقة|المحادثة\s*التي\s*قبل\s*السابقة)/i,
+  /(?:مشروعنا\s*(?:القديم|السابق|المشترك)|شاتنا\s*السابق|محادثاتنا\s*السابقة|جلساتنا\s*السابقة)/i,
+  /(?:ماذا\s*(?:قلنا|فعلنا|ناقشنا|قررنا)\s*(?:في\s*(?:الجلسة|المحادثة|الشات)\s*(?:الماضية|السابقة|الماضي|السابق))?)/i,
+  /(?:سجل\s*محادثاتنا|أكثر\s*شيء\s*تم\s*ذكره|اكثر\s*شئ\s*اتكرر\s*بيننا)/i,
+  /(?:فاكر\s*(?:البورت|السيرفر|الموقع|الرابط|الكود|المشروع|اسم|إيميلي|رقمي|عنوان|الـ\s*ip))/i,
+  
+  // English Personal Recall
+  /(?:remember\s*(?:what\s*i\s*(?:said|told\s*you)|when\s*we|our\s*previous|the\s*server|the\s*port|my\s*name|my\s*project))/i,
+  /(?:in\s*our\s*(?:previous|last|past)?\s*(?:chat|conversation|session|discussion|meeting|project))/i,
+  /(?:what\s*did\s*we\s*(?:discuss|talk\s*about|agree\s*on|do)\s*(?:last|previously|in\s*the\s*past|before)?)/i,
+  /(?:what\s*was\s*(?:the\s*)?(?:server\s*)?(?:port|server|api|ip|database|preference|setting|config|code)\s*(?:that\s*)?(?:we\s*)?(?:used|mentioned|discussed|talked\s*about)?)/i,
+  /(?:(?:discussed|talked\s*about|mentioned)\s*(?:last|previously|earlier|in\s*our\s*project|in\s*our\s*chat|before))/i,
+  /(?:recall\s*(?:our|my|the\s*previous)\s*(?:chat|conversation|project|setting|discussion))/i
+];
+
+/**
+ * Disambiguates personal session recall from conceptual / scientific memory queries
+ */
+export function isPersonalMemoryRecallIntent(prompt: string = ''): boolean {
+  if (!prompt) return false;
+  const p = prompt.trim();
+
+  // 1. Strict Blacklist check
+  const isBlacklisted = MEMORY_CONCEPTUAL_BLACKLIST.some(regex => regex.test(p));
+  
+  // 2. Strict Whitelist check
+  const hasStrongWhitelistCue = MEMORY_RECALL_WHITELIST.some(regex => regex.test(p));
+
+  // If matched conceptual blacklist without explicit personal recall whitelist cue, reject immediately
+  if (isBlacklisted && !hasStrongWhitelistCue) {
+    return false;
+  }
+
+  // 3. Pure informational query guard
+  if (isPureInformationalQuery(p) && !hasStrongWhitelistCue) {
+    return false;
+  }
+
+  // 4. Must match strong whitelist cue
+  return hasStrongWhitelistCue;
+}
+
+/**
+ * Checks whether a prompt is purely conceptual/informational/theoretical
+ */
+export function isPureInformationalQuery(prompt: string): boolean {
+  if (!prompt) return false;
+  const p = prompt.toLowerCase();
+  
+  // Informational patterns
+  const informationalPatterns = [
+    /^(?:what is|what are|explain|how does|how do|write an essay|tell me about the history of|overview of|define|difference between)\b/i,
+    /^(?:ما هو|ما هي|ماذا يعني|اشرح|كيف يعمل|كيف تعمل|اكتب مقال|حدثني عن تاريخ|نبذة عن|تاريخ الساعات|ما مفهوم|ما معنى|ما الفرق بين)\b/i,
+    /(?:in the 19th century|in history|history of watches|video compression work|how ai detectors work|humans have working and episodic memory|what is an exif header|how memory works in the human brain|دماغ الإنسان|في دماغ الإنسان|الذاكرة العشوائية)/i
+  ];
+
+  return informationalPatterns.some(pattern => pattern.test(p));
+}
+
+// ─── Multi-Intent Feature Orchestrator (Intent Router & Arbiter) ────────────
+
 export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
+  // ── 1. Memory Detect (pgvector 3-Tier Cognitive Engine)
   memory_detect: {
     id: 'memory_detect',
     name: 'Memory Detect',
@@ -204,16 +398,8 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
     borderHoverColor: 'border-indigo-500/40',
     icon: MemoryDetectIcon,
     detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
-      const p = prompt.toLowerCase();
-      const r = (reasoning || '').toLowerCase();
-      const c = (content || '').toLowerCase();
-      
-      const hasExplicitKeyword = /(?:memory[-\s]?detect|memorydetect|ميموري\s?ديتكت|الذاكرة\s?السحابية|الذاكرة\s?المتزامنة|استرجاع\s?الذاكرة|سجل المحادثات|أكثر شيء تم ذكره|اكثر شئ اتكرر|المحادثة السابقة|المحادثات السابقة|الشات السابق|الشاتات السابقة)/i.test(p);
-      const hasReasoningRef = r.includes('memory detect') || r.includes('الذاكرة السحابية') || r.includes('المحادثة السابقة مباشرة');
-      const hasBadge = c.includes('memory-detect') || c.includes('[memory-detect-badge');
-      const isContextTriggered = Boolean(context?.isMemoryDetectTriggered);
-
-      return hasExplicitKeyword || hasReasoningRef || hasBadge || isContextTriggered;
+      const plan = routeFeatureIntent('memory_detect', prompt, reasoning, content, context);
+      return plan.confidence >= 0.6;
     },
     extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
       const badgeMatch = content.match(/(?:\[MEMORY-DETECT-BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|MEMORY-DETECT-BADGE:\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
@@ -224,7 +410,7 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
 
       const details = badgeMatch
         ? (badgeMatch[2] || badgeMatch[4])?.trim()
-        : 'الذاكرة السحابية متزامنة ونشطة عبر المعمارية العصبية الممتدة';
+        : 'الذاكرة السحابية متزامنة ونشطة عبر المعمارية العصبية الممتدة (3-Tier pgvector Engine)';
 
       return {
         id: 'memory_detect',
@@ -234,11 +420,14 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
         summary: summary || 'الذاكرة السحابية متزامنة ونشطة عبر السحابة',
         details,
         statusPill: 'CLOUD MEMORY',
-        matchedCount: context?.matchedMemoriesCount || 1
+        matchedCount: context?.matchedMemoriesCount || 1,
+        confidence: 0.95,
+        category: 'actionable'
       };
     }
   },
 
+  // ── 2. Time Detect (Temporal Intelligence & Interactive Countdown/Reminder Widgets)
   time_detect: {
     id: 'time_detect',
     name: 'Time Detect',
@@ -250,40 +439,47 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
     accentColor: '#67e8f9',
     borderHoverColor: 'border-cyan-500/40',
     icon: TimeDetectIcon,
-    detectIntent: (prompt = '', reasoning = '', content = '') => {
-      const p = prompt.toLowerCase();
-      const r = (reasoning || '').toLowerCase();
-      const c = (content || '').toLowerCase();
-
-      const hasKeyword = /(?:time[-\s]?detect|timedetect|كم الساعة|كم الوقت|تاريخ اليوم|اليوم كام|سنة كام|السنة الحالية|تاريخ اليوم|كم عمر|عمره كام|عمرها كام|كم سنة بين|فارق السنين|متى ولد|متى توفي|مؤقت|تايمر|تذكير بعد|احسب الفرق الزمني|التقويم|التوقيت الحالي)/i.test(p);
-      const hasReasoningRef = r.includes('time detect') || r.includes('استشعار الإحداثيات الزمنية');
-      const hasBadge = c.includes('time-detect') || c.includes('[time-detect-badge') || c.includes('[time-detect-timer');
-
-      return hasKeyword || hasReasoningRef || hasBadge;
+    detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
+      const plan = routeFeatureIntent('time_detect', prompt, reasoning, content, context);
+      return plan.confidence >= 0.6;
     },
-    extractFeatureData: (prompt = '', reasoning = '', content = '') => {
+    extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
+      const timerMatch = content.match(/(?:\[TIME-DETECT-TIMER:\s*(\d+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\])/i);
+      const reminderMatch = content.match(/(?:\[TIME-DETECT-REMINDER:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\])/i);
       const badgeMatch = content.match(/(?:\[TIME-DETECT-BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-BADGE:\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
-      
-      const title = badgeMatch
-        ? (badgeMatch[1] || badgeMatch[3])?.trim()
-        : 'استشعار وتدقيق المعطيات الزمنية الفائقة';
 
-      const subtitle = badgeMatch
-        ? (badgeMatch[2] || badgeMatch[4])?.trim()
-        : 'مطابقة التوقيت والسنة المعتمدة (2026)';
+      let summary = 'استشعار وتدقيق المعطيات الزمنية الفائقة';
+      let details = 'مطابقة التوقيت والسنة المعتمدة (2026)';
+      let statusPill = 'LIVE TEMPORAL';
+
+      if (timerMatch) {
+        summary = `مؤقت تفاعلي نشط (${timerMatch[2]?.trim() || `${Math.round(parseInt(timerMatch[1], 10)/60)} دقائق`})`;
+        details = timerMatch[3]?.trim() || 'العد التنازلي التفاعلي المباشر';
+        statusPill = 'INTERACTIVE TIMER';
+      } else if (reminderMatch) {
+        summary = `تذكير مجدول: ${reminderMatch[2]?.trim() || 'موعد مهم'}`;
+        details = `التاريخ المستهدف: ${reminderMatch[1]?.trim()}`;
+        statusPill = 'SCHEDULED REMINDER';
+      } else if (badgeMatch) {
+        summary = (badgeMatch[1] || badgeMatch[3])?.trim() || summary;
+        details = (badgeMatch[2] || badgeMatch[4])?.trim() || details;
+      }
 
       return {
         id: 'time_detect',
         name: 'Time Detect',
         nameAr: 'استشعار وتدقيق المعطيات الزمنية الفائقة',
         badgeLabel: 'TIME DETECT',
-        summary: title || 'استشعار وتدقيق المعطيات الزمنية الفائقة',
-        details: subtitle || 'مطابقة التوقيت والسنة المعتمدة (2026)',
-        statusPill: 'LIVE TEMPORAL'
+        summary,
+        details,
+        statusPill,
+        confidence: 0.95,
+        category: timerMatch || reminderMatch ? 'actionable' : 'informational'
       };
     }
   },
 
+  // ── 3. AI Detect (5-Pillar Optical Physics, Sensor Noise & Neural Diffusion Forensics)
   ai_detect: {
     id: 'ai_detect',
     name: 'AI Detect',
@@ -295,18 +491,11 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
     accentColor: '#38bdf8',
     borderHoverColor: 'border-cyan-500/30',
     icon: AiDetectIcon,
-    detectIntent: (prompt = '', reasoning = '', content = '') => {
-      const p = prompt.toLowerCase();
-      const r = (reasoning || '').toLowerCase();
-      const c = (content || '').toLowerCase();
-
-      const hasKeyword = /(?:ai[-\s]?detect|aidetect|ذكاء اصطناعي|مولدة بذكاء|مصنوعة بذكاء|مولد ب|مصنوع ب|ai\??|حقيقية ولا|حقيقي ولا|فيك|deepfake|تزييف|بصمة ذكاء|كاشف الذكاء|فحص الاصالة|أصالة الصورة|فحص الصورة ai)/i.test(p);
-      const hasReasoningRef = r.includes('ai detect') || r.includes('ai-detect-badge') || r.includes('توليد الذكاء الاصطناعي');
-      const hasBadge = c.includes('ai-detect') || c.includes('[ai-detect-badge');
-
-      return hasKeyword || hasReasoningRef || hasBadge;
+    detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
+      const plan = routeFeatureIntent('ai_detect', prompt, reasoning, content, context);
+      return plan.confidence >= 0.6;
     },
-    extractFeatureData: (prompt = '', reasoning = '', content = '') => {
+    extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
       const badgeMatch = content.match(/(?:\[AI-DETECT-BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|AI-DETECT-BADGE:\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
       
       const verdict = (badgeMatch ? (badgeMatch[1] || badgeMatch[3]) : 'AI-Generated')?.trim() || 'AI-Generated';
@@ -319,14 +508,17 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
         nameAr: 'فحص وتحقق الذكاء الاصطناعي والأصالة',
         badgeLabel: 'AI DETECT',
         summary: isAi ? 'صورة مولدة بالذكاء الاصطناعي (AI-Generated)' : 'صورة حقيقية ملتقطة بكاميرا (Authentic Photograph)',
-        details: `دقة التوافق الإحصائي: ${score}`,
+        details: `دقة التوافق الإحصائي والفيزيائي الخماسي: ${score}`,
         score,
         isAi,
-        statusPill: score
+        statusPill: score,
+        confidence: 0.98,
+        category: 'actionable'
       };
     }
   },
 
+  // ── 4. Meta Data Detect (Deep EXIF, Solar Geometry & Camera Forensics)
   metadata_detect: {
     id: 'metadata_detect',
     name: 'Meta Data',
@@ -338,30 +530,26 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
     accentColor: '#38bdf8',
     borderHoverColor: 'border-sky-500/40',
     icon: MetadataDetectIcon,
-    detectIntent: (prompt = '', reasoning = '', content = '') => {
-      const p = prompt.toLowerCase();
-      const r = (reasoning || '').toLowerCase();
-      const c = (content || '').toLowerCase();
-
-      const hasKeyword = /(?:meta[-\s]?data|metadata|exif|ميتاداتا|الميتاداتا|ميتا\s?داتا|بيانات الـ exif|بيانات الكاميرا|موقع التقاط الصورة|إحداثيات gps|نوع الكاميرا المستخدمة)/i.test(p);
-      const hasReasoningRef = r.includes('metadata detect') || r.includes('استخراج الميتاداتا');
-      const hasBadge = c.includes('metadata-detect') || c.includes('[metadata-detect');
-
-      return hasKeyword || hasReasoningRef || hasBadge;
+    detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
+      const plan = routeFeatureIntent('metadata_detect', prompt, reasoning, content, context);
+      return plan.confidence >= 0.6;
     },
-    extractFeatureData: (prompt = '', reasoning = '', content = '') => {
+    extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
       return {
         id: 'metadata_detect',
         name: 'Meta Data',
         nameAr: 'استخراج الميتاداتا والعتاد الرقمي',
         badgeLabel: 'META DATA',
-        summary: 'البحث الجنائي واستخراج طبقات الميتاداتا',
-        details: 'تدقيق بيانات العتاد والكاميرا وترويسات الحماية الرقمية',
-        statusPill: 'EXIF & SECURITY HEADERS'
+        summary: 'البحث الجنائي واستخراج طبقات الميتاداتا والعتاد',
+        details: 'تدقيق بيانات الكاميرا، سرعة الغالق، زوايا الظلال الشمسية، وترويسات الحماية الرقمية',
+        statusPill: 'EXIF & HARDWARE FORENSICS',
+        confidence: 0.92,
+        category: 'actionable'
       };
     }
   },
 
+  // ── 5. Download Detect (Multi-Platform Media Extraction & Frictionless Download Cards)
   download_detect: {
     id: 'download_detect',
     name: 'Download Detect',
@@ -374,42 +562,479 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
     borderHoverColor: 'border-emerald-500/40',
     icon: DownloadDetectIcon,
     detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
-      const p = prompt.toLowerCase();
-      const r = (reasoning || '').toLowerCase();
-      const c = (content || '').toLowerCase();
-
-      // Explicit download action verbs
-      const hasExplicitDownloadAction = /(?:تحميل|تنزيل|حمل|حمّل|نزلي|نزل|نزّل|نزله|نزلها|حمله|حملها|انزل|انزله|احمل|احمله|اسحب|اسحبه|download|save|grab)\b/i.test(p);
-      const hasDownloadPhrases = /(?:download[-\s]?detect|downloaddetect|تنزيل\s*ف[ي]?ديو|تحميل\s*ف[ي]?ديو|تحميل\s*المقطع|تنزيل\s*المقطع|نزل\s*الف[ي]?ديو|حمل\s*الف[ي]?ديو|نزل\s*المقطع|حمل\s*المقطع|تحميل\s*صورة|تنزيل\s*الصور|استخراج\s*الوسائط|تنزيل\s*بوست|تحميل\s*البوست|سحب\s*الفيديو|سحب\s*المقطع|extract\s*media|save\s*video|save\s*post|grab\s*video|grab\s*media|reels?\s*download|tiktok\s*download|yt\s*download|youtube\s*download)/i.test(p);
-      const hasMediaUrl = /(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|reddit\.com|threads\.net|vimeo\.com|\.mp4|\.m3u8|\.mp3)/i.test(p);
-      const hasBadgeInContent = c.includes('[download-detect-card:') || c.includes('[download-button:') || c.includes('[download-detect-badge:');
-      const hasReasoningRef = (r.includes('download detect') || r.includes('استخراج وتنزيل الوسائط')) && (hasExplicitDownloadAction || hasMediaUrl);
-
-      // Must have genuine download request: either explicit download phrase, or explicit download verb with a media link, or explicit badge
-      return hasDownloadPhrases || (hasExplicitDownloadAction && hasMediaUrl) || hasBadgeInContent || hasReasoningRef;
+      const plan = routeFeatureIntent('download_detect', prompt, reasoning, content, context);
+      return plan.confidence >= 0.6;
     },
     extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
       const badgeMatch = content.match(/(?:\[DOWNLOAD-DETECT-(?:CARD|BADGE):\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD-DETECT-(?:CARD|BADGE):\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
+      const buttonMatch = content.match(/(?:\[DOWNLOAD-BUTTON:\s*([^|\]]+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\])/i);
 
-      const title = badgeMatch
-        ? (badgeMatch[2] || badgeMatch[4] || badgeMatch[1] || badgeMatch[3])?.trim()
-        : 'استخراج وتنزيل الوسائط الفائق (Zero-Ad Direct Stream)';
+      let title = 'استخراج وتنزيل الوسائط الفائق (Zero-Ad Direct Stream)';
+      let details = 'كشف الجودات العالية (4K/1080p 60fps)، استخلاص MP3 320k، وسحب ألبومات الصور الأصلية';
+      let statusPill = 'UNIVERSAL MEDIA ENGINE';
+
+      if (buttonMatch) {
+        title = `تحميل مباشر (${buttonMatch[2]?.trim() || '1080p'}) - ${buttonMatch[3]?.trim() || 'وسائط مفحوصة'}`;
+        details = 'جاهز للتنزيل الفوري بدون إعلانات';
+        statusPill = 'DIRECT STREAM';
+      } else if (badgeMatch) {
+        title = (badgeMatch[2] || badgeMatch[4] || badgeMatch[1] || badgeMatch[3])?.trim() || title;
+      }
 
       return {
         id: 'download_detect',
         name: 'Download Detect',
         nameAr: 'استخراج وتنزيل الوسائط الفائق',
         badgeLabel: 'DOWNLOAD DETECT',
-        summary: title || 'استخراج وتنزيل الوسائط الفائق (Zero-Ad Direct Stream)',
-        details: 'كشف الجودات العالية (4K/1080p 60fps)، استخلاص MP3، وسحب ألبومات الصور الأصلية',
-        statusPill: 'UNIVERSAL MEDIA ENGINE'
+        summary: title,
+        details,
+        statusPill,
+        confidence: 0.95,
+        category: 'actionable'
+      };
+    }
+  },
+
+  // ── 6. Fathom Cam Vision (Deep Post OCR & Image Intelligence Engine)
+  fathom_cam: {
+    id: 'fathom_cam',
+    name: 'Fathom Cam',
+    nameAr: 'الإدراك البصري الفائق وقراءة الجداول والصور',
+    badgeLabel: 'FATHOM CAM',
+    textClassName: 'text-emerald-400 font-bold',
+    glassClassName: 'bg-emerald-950/70 border border-emerald-400/50 text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.3)]',
+    badgeClassName: 'bg-emerald-950/70 text-emerald-300 border border-emerald-400/40',
+    accentColor: '#34d399',
+    borderHoverColor: 'border-emerald-400/50',
+    icon: FathomCamIcon,
+    detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
+      const plan = routeFeatureIntent('fathom_cam', prompt, reasoning, content, context);
+      return plan.confidence >= 0.6;
+    },
+    extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
+      return {
+        id: 'fathom_cam',
+        name: 'Fathom Cam',
+        nameAr: 'الإدراك البصري الفائق وقراءة الجداول والصور',
+        badgeLabel: 'FATHOM CAM',
+        summary: 'المسح البصري الفعلي والميكرو-OCR وقراءة الجداول المرفقة بالمنشور',
+        details: 'تم تفكيك الصور والجداول واستخراج النصوص بدقة عبر محرك الرؤية Fathom Cam',
+        statusPill: 'VISUAL OCR & TABLE PERCEPTION',
+        confidence: 0.98,
+        category: 'actionable'
       };
     }
   }
 };
 
+// ─── Stage 1 & Stage 2: Intent Router & Execution Arbiter Engine ───────────
+
 /**
- * Helper to discover and extract all active detected features for a given message
+ * Core Bayesian & Syntactic Intent Router
+ */
+export function routeFeatureIntent(
+  featureId: FeatureIntentType,
+  prompt: string = '',
+  reasoning: string = '',
+  content: string = '',
+  context: any = {}
+): FeatureActivationPlan {
+  const p = (prompt || '').trim();
+  const pLower = p.toLowerCase();
+  const rLower = (reasoning || '').toLowerCase();
+  const cLower = (content || '').toLowerCase();
+  const hasImages = Boolean(context?.hasImages || context?.attachedImagesCount > 0);
+  const isInfoOnly = isPureInformationalQuery(p);
+
+  // 1. Time Detect Router
+  if (featureId === 'time_detect') {
+    const hasExplicitTimerCmd = /(?:(?:set|create|start|make)\s*(?:a\s*)?timer|alert\s*me\s*in|count\s*down|اعمل\s*تايمر|شغل\s*مؤقت|نبهني\s*بعد|مؤقت\s*\d+|تايمر\s*\d+)/i.test(pLower);
+    const hasExplicitReminderCmd = /(?:remind\s*me|set\s*(?:a\s*)?reminder|schedule\s*alert|فكرني|ذكرني|تذكير\s*بـ|تذكير\s*بعد|ميعاد\s*بعد)/i.test(pLower);
+    const hasAutoDeleteCmd = /(?:auto[-\s]?delete|self[-\s]?destruct|تدمير\s*ذاتي|احذف\s*الشات\s*بعد|مسح\s*المحادثة\s*تلقائيا)/i.test(pLower);
+    const hasTemporalIntelQ = /(?:كم الساعة|الوقت الآن|تاريخ اليوم|اليوم كام|سنة كام|السنة الحالية|كم عمر|عمره كام|فارق السنين|كم سنة بين|متى ولد|متى توفي|ما هو تاريخ|التوقيت الحالي|time in cairo|current time|current date|what year is it)/i.test(pLower);
+    
+    const hasBadgeInContent = cLower.includes('[time-detect-timer:') || cLower.includes('[time-detect-reminder:') || cLower.includes('[time-detect-autodelete:') || cLower.includes('[time-detect-badge:');
+    const hasReasoningRef = rLower.includes('time detect') || rLower.includes('استشعار الإحداثيات الزمنية');
+
+    if (hasBadgeInContent) {
+      return {
+        featureId,
+        confidence: 1.0,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: {
+          timerSeconds: parseRelativeSeconds(pLower) || 300
+        },
+        reason: 'Badge detected in output content.'
+      };
+    }
+
+    if (isInfoOnly && !hasExplicitTimerCmd && !hasExplicitReminderCmd && !hasAutoDeleteCmd) {
+      return {
+        featureId,
+        confidence: 0.0,
+        category: 'none',
+        shouldRenderWidget: false,
+        shouldInjectContext: false,
+        extractedParams: {},
+        reason: 'Suppressed: Informational/historical query without temporal tool requirement.'
+      };
+    }
+
+    if (hasExplicitTimerCmd || hasExplicitReminderCmd || hasAutoDeleteCmd) {
+      const parsedSec = parseRelativeSeconds(pLower);
+      return {
+        featureId,
+        confidence: 0.98,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: {
+          type: hasExplicitTimerCmd ? 'timer' : hasExplicitReminderCmd ? 'reminder' : 'autodelete',
+          durationSeconds: parsedSec || 300
+        },
+        reason: 'Explicit actionable timer/reminder/autodelete command.'
+      };
+    }
+
+    if (hasTemporalIntelQ || hasReasoningRef) {
+      return {
+        featureId,
+        confidence: 0.85,
+        category: 'informational',
+        shouldRenderWidget: false, // Pure backend temporal reasoning, no clock cards
+        shouldInjectContext: true,
+        extractedParams: {},
+        reason: 'Temporal intelligence question resolved via backend time directive.'
+      };
+    }
+
+    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No temporal match.' };
+  }
+
+  // 2. Download Detect Router
+  if (featureId === 'download_detect') {
+    const hasMediaUrl = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|reddit\.com|threads\.net|vimeo\.com|\S+\.(?:mp4|m3u8|mp3|webm|m4a|jpg|jpeg|png|webp|gif))\S*/i.test(p);
+    const hasAnyHttpUrl = /https?:\/\/[^\s<>"'()]+/i.test(p);
+    const hasBadgeInContent = cLower.includes('[download-detect-card:') || cLower.includes('[download-button:') || cLower.includes('[download-detect-badge:');
+
+    // Extract cleanest media URL
+    let extractedUrl: string | undefined;
+    const urlMatch = p.match(/(https?:\/\/[^\s<>"'()]+)/i);
+    if (urlMatch) {
+      extractedUrl = stripUrlTrackingParams(urlMatch[1]);
+    }
+
+    // Explicit download imperative keywords (Mandatory when discussion/questions/opinions are present)
+    const hasExplicitDownloadAction = /(?:download|save\s*video|extract\s*audio|get\s*(?:mp4|video|mp3)|rip\s*audio|grab\s*video|save\s*to\s*device|تحميل|تنزيل|حمل|نزلي|نزل|داونلود|سحب\s*(?:الفيديو|المقطع|الصوت)|استخراج\s*(?:الصوت|الفيديو)|احفظ\s*(?:الفيديو|المقطع)|هات\s*(?:الفيديو|المقطع|الصوت)|عايز\s*(?:الفيديو|المقطع|الصوت)|ابعتلي\s*(?:الفيديو|المقطع)|محتاج\s*(?:الفيديو|المقطع|الصوت)|mp3|mp4)/i.test(pLower);
+
+    // Discussion, summary, opinion, analysis, translation, or educational question keywords
+    const isDiscussionOrSummaryOrOpinion = /(?:شايف|رأيك|رأي|رايك|صح|غلط|لخص|تلخيص|ملخص|اشرح|شرح|وضح|توضيح|تتوقع|تقييم|حلل|تحليل|ترجم|ترجمة|احكيلي|مين\s*صح|ما\s*رأيك|ايه\s*رايك|ما\s*صحة|ماذا\s*يقصد|عن\s*ماذا|محتوى|الفكرة|summary|summarize|explain|opinion|what\s+do\s+you\s+think|review|fact\s*check|what\s+happened|tell\s+me\s+about)/i.test(pLower);
+
+    const isAudioOnly = /(?:audio|mp3|sound|صوت|صوت فقط|موسيقى|استخراج الصوت|سحب الصوت)/i.test(pLower);
+
+    // Badge in assistant output explicitly signals download card
+    if (hasBadgeInContent) {
+      return {
+        featureId,
+        confidence: 1.0,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: { url: extractedUrl, isAudioOnly },
+        reason: 'Download badge or button emitted in content.'
+      };
+    }
+
+    // Suppress if purely theoretical question about media platforms without URL or download command
+    if (isInfoOnly && !hasMediaUrl && !hasExplicitDownloadAction && !hasAnyHttpUrl) {
+      return {
+        featureId,
+        confidence: 0.0,
+        category: 'none',
+        shouldRenderWidget: false,
+        shouldInjectContext: false,
+        extractedParams: {},
+        reason: 'Suppressed: Conceptual query about media platforms without download intent.'
+      };
+    }
+
+    // STRICT GUARD: If a link is shared for Discussion / Summary / Opinion / Advice / Review without explicit download action:
+    if ((hasMediaUrl || hasAnyHttpUrl) && isDiscussionOrSummaryOrOpinion && !hasExplicitDownloadAction) {
+      return {
+        featureId,
+        confidence: 0.0,
+        category: 'none',
+        shouldRenderWidget: false,
+        shouldInjectContext: false,
+        extractedParams: { url: extractedUrl },
+        reason: 'Suppressed: Link provided for semantic discussion, summarization, or opinion without explicit download imperative.'
+      };
+    }
+
+    // Explicit download command with target media URL or context media
+    if (hasExplicitDownloadAction && (hasMediaUrl || hasAnyHttpUrl || context?.detectedMediaUrl)) {
+      return {
+        featureId,
+        confidence: 0.98,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: { url: extractedUrl || context?.detectedMediaUrl, isAudioOnly },
+        reason: 'Explicit actionable download command with target media URL.'
+      };
+    }
+
+    // Standalone URL paste without conversational or discussion text
+    const isStandaloneUrl = (hasMediaUrl || hasAnyHttpUrl) && (p.length <= (extractedUrl?.length || 0) + 12) && !isDiscussionOrSummaryOrOpinion && !isInfoOnly;
+    if (isStandaloneUrl) {
+      return {
+        featureId,
+        confidence: 0.92,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: { url: extractedUrl, isAudioOnly },
+        reason: 'Standalone media link provided without conversational query.'
+      };
+    }
+
+    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No explicit download command.' };
+  }
+
+  // 3. AI Detect Router
+  if (featureId === 'ai_detect') {
+    const hasAiVerifyIntent = /(?:is this ai|ai generated|deepfake|synthetic|check authenticity|هل هذه الصورة ذكاء اصطناعي|حقيقية ولا ذكاء|مولدة بذكاء|مصنوعة بذكاء|فحص الاصالة|أصالة الصورة|فحص الصورة ai|بصمة ذكاء|كاشف الذكاء|تزييف|is this authentic|fake or real)/i.test(pLower);
+    const hasBadgeInContent = cLower.includes('[ai-detect-badge:') || cLower.includes('ai-detect-badge');
+    const hasReasoningRef = rLower.includes('ai detect') || rLower.includes('فحص وتحقق الذكاء الاصطناعي') || rLower.includes('5-pillar forensic');
+
+    if (hasBadgeInContent) {
+      return {
+        featureId,
+        confidence: 1.0,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: {},
+        reason: 'AI detect badge in content.'
+      };
+    }
+
+    // Suppress if theoretical essay/question about how AI detectors work without verification target
+    if (isInfoOnly && !hasImages && !hasAiVerifyIntent) {
+      return {
+        featureId,
+        confidence: 0.0,
+        category: 'none',
+        shouldRenderWidget: false,
+        shouldInjectContext: false,
+        extractedParams: {},
+        reason: 'Suppressed: Conceptual query about AI detection technology.'
+      };
+    }
+
+    if (hasAiVerifyIntent || (hasImages && /(?:authentic|real|fake|ai|حقيقي|ذكاء)/i.test(pLower)) || hasReasoningRef) {
+      return {
+        featureId,
+        confidence: 0.95,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: { hasAttachedImage: hasImages },
+        reason: 'Actionable authenticity/AI generation verification request.'
+      };
+    }
+
+    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No AI verification intent.' };
+  }
+
+  // 4. Meta Data Detect Router
+  if (featureId === 'metadata_detect') {
+    const hasMetadataIntent = /(?:metadata|exif|camera settings|shutter speed|aperture|iso settings|focal length|gps coordinates|ميتاداتا|الميتاداتا|ميتا\s?داتا|بيانات الـ exif|بيانات الكاميرا|موقع التقاط الصورة|إحداثيات gps|نوع الكاميرا المستخدمة|فتحة العدسة|سرعة الغالق)/i.test(pLower);
+    const hasBadgeInContent = cLower.includes('[metadata-detect') || cLower.includes('metadata-detect');
+    const hasReasoningRef = rLower.includes('metadata detect') || rLower.includes('استخراج الميتاداتا');
+
+    if (hasBadgeInContent) {
+      return {
+        featureId,
+        confidence: 1.0,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: {},
+        reason: 'Metadata detect badge in content.'
+      };
+    }
+
+    if (isInfoOnly && !hasImages && !/(?:extract|check|read|show)\s*metadata/i.test(pLower)) {
+      return {
+        featureId,
+        confidence: 0.0,
+        category: 'none',
+        shouldRenderWidget: false,
+        shouldInjectContext: false,
+        extractedParams: {},
+        reason: 'Suppressed: Conceptual query about metadata headers without file target.'
+      };
+    }
+
+    if (hasMetadataIntent || (hasImages && hasReasoningRef)) {
+      return {
+        featureId,
+        confidence: 0.92,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: { hasAttachedImage: hasImages },
+        reason: 'Actionable forensic EXIF and file header extraction request.'
+      };
+    }
+
+    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No metadata extraction intent.' };
+  }
+
+  // 5. Memory Detect Router
+  if (featureId === 'memory_detect') {
+    const isPersonalRecall = isPersonalMemoryRecallIntent(p);
+    const hasBadgeInContent = cLower.includes('[memory-detect-badge') || cLower.includes('memory-detect');
+    const hasReasoningRef = isPersonalRecall && (rLower.includes('memory detect') || rLower.includes('الذاكرة السحابية') || rLower.includes('المحادثة السابقة مباشرة'));
+    const isContextTriggered = Boolean(context?.isMemoryDetectTriggered && isPersonalRecall);
+
+    // Strict Blacklist Check: If not personal recall and no badge in content, force 0 confidence
+    if (!isPersonalRecall && !hasBadgeInContent) {
+      return {
+        featureId,
+        confidence: 0.0,
+        category: 'none',
+        shouldRenderWidget: false,
+        shouldInjectContext: false,
+        extractedParams: {},
+        reason: 'Suppressed: Conceptual/biological/hardware memory query or non-recall intent.'
+      };
+    }
+
+    if (hasBadgeInContent || isContextTriggered) {
+      return {
+        featureId,
+        confidence: 1.0,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: {},
+        reason: 'Memory detect badge or verified backend recall context triggered.'
+      };
+    }
+
+    if (isPersonalRecall || hasReasoningRef) {
+      return {
+        featureId,
+        confidence: 0.95,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: {},
+        reason: 'Actionable cross-session memory recall request.'
+      };
+    }
+
+    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No memory recall intent.' };
+  }
+
+  // 6. Fathom Cam Vision Intent
+  if (featureId === 'fathom_cam') {
+    const hasFathomBadge = cLower.includes('fathom cam') || cLower.includes('[link & visual context') || cLower.includes('fathom-cam');
+    const hasFathomReasoning = rLower.includes('fathom cam') || rLower.includes('fathom_cam') || rLower.includes('محرك الرؤية') || rLower.includes('فحص الصور') || rLower.includes('قراءة الجداول') || rLower.includes('المسح البصري') || rLower.includes('تحليل الواجهة') || rLower.includes('واجهة');
+    const isVisionPrompt = /(?:الواجه|الواجهة|الصورة|الصور|التصميم|الاسكرين|الشاشة|الجدول|المستند|المرفق|البوست|الشعار|اللوجو|الأيقون|الألوان|الخطوة\s*الرابعة|جدول\s*الرغبات)/i.test(pLower);
+    const isContextTriggered = Boolean(context?.hasFathomCam || context?.hasVisualPerception || context?.hasImagesInHistory || context?.hasImages);
+
+    if (hasFathomBadge || isContextTriggered || (hasFathomReasoning && (isVisionPrompt || isContextTriggered))) {
+      return {
+        featureId,
+        confidence: 1.0,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: {},
+        reason: 'Fathom Cam Vision badge, multi-turn image context, or visual reasoning active.'
+      };
+    }
+
+    if (hasFathomReasoning) {
+      return {
+        featureId,
+        confidence: 0.95,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: {},
+        reason: 'Fathom Cam Vision reasoning active.'
+      };
+    }
+
+    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No Fathom Cam vision intent.' };
+  }
+
+  return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Unknown feature.' };
+}
+
+/**
+ * Universal Multi-Intent Orchestrator API
+ * Evaluates all features in parallel, resolves multi-feature co-activation, and establishes execution order.
+ */
+export function detectIntentsMulti(
+  prompt: string = '',
+  reasoning: string = '',
+  content: string = '',
+  context: any = {}
+): MultiIntentPlan {
+  const featureIds: FeatureIntentType[] = ['download_detect', 'fathom_cam', 'ai_detect', 'metadata_detect', 'memory_detect', 'time_detect'];
+  
+  const plans: Record<FeatureIntentType, FeatureActivationPlan> = {} as any;
+  const activeFeatures: DetectedFeatureData[] = [];
+  const actionableFeatures: DetectedFeatureData[] = [];
+
+  featureIds.forEach(id => {
+    const plan = routeFeatureIntent(id, prompt, reasoning, content, context);
+    plans[id] = plan;
+
+    if (plan.confidence >= 0.6) {
+      const def = FEATURES_REGISTRY[id];
+      const data = def.extractFeatureData(prompt, reasoning, content, context);
+      if (data) {
+        data.confidence = plan.confidence;
+        data.category = plan.category;
+        data.shouldRenderWidget = plan.shouldRenderWidget;
+        data.extractedParams = plan.extractedParams;
+        activeFeatures.push(data);
+
+        if (plan.category === 'actionable') {
+          actionableFeatures.push(data);
+        }
+      }
+    }
+  });
+
+  // Pipeline Execution Order: Download/Extraction -> Fathom Cam Vision -> AI Forensics -> Metadata Headers -> Memory Context -> Time/Widgets
+  const executionPipelineOrder: FeatureIntentType[] = [];
+  if (plans.download_detect.confidence >= 0.6) executionPipelineOrder.push('download_detect');
+  if (plans.fathom_cam.confidence >= 0.6) executionPipelineOrder.push('fathom_cam');
+  if (plans.ai_detect.confidence >= 0.6) executionPipelineOrder.push('ai_detect');
+  if (plans.metadata_detect.confidence >= 0.6) executionPipelineOrder.push('metadata_detect');
+  if (plans.memory_detect.confidence >= 0.6) executionPipelineOrder.push('memory_detect');
+  if (plans.time_detect.confidence >= 0.6) executionPipelineOrder.push('time_detect');
+
+  return {
+    plans,
+    activeFeatures,
+    actionableFeatures,
+    hasActionableIntent: actionableFeatures.length > 0,
+    executionPipelineOrder
+  };
+}
+
+/**
+ * Backward-compatible helper to discover and extract all active detected features for a given message
  */
 export function getActiveDetectedFeatures(
   prompt: string = '',
@@ -417,16 +1042,7 @@ export function getActiveDetectedFeatures(
   content: string = '',
   context: any = {}
 ): DetectedFeatureData[] {
-  const detected: DetectedFeatureData[] = [];
-
-  Object.values(FEATURES_REGISTRY).forEach(def => {
-    if (def.detectIntent(prompt, reasoning, content, context)) {
-      const data = def.extractFeatureData(prompt, reasoning, content, context);
-      if (data) {
-        detected.push(data);
-      }
-    }
-  });
-
-  return detected;
+  const plan = detectIntentsMulti(prompt, reasoning, content, context);
+  return plan.activeFeatures;
 }
+

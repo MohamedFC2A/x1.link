@@ -209,21 +209,21 @@ export const DownloadDetectCard: React.FC<DownloadDetectCardProps> = ({
     <>
       <div
         className={cn(
-          "my-3 rounded-2xl border border-emerald-500/30 bg-gradient-to-b from-[#06140e]/95 via-[#030d09]/95 to-[#010805]/95 p-3 sm:p-3.5 text-right shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_16px_rgba(16,185,129,0.12)] backdrop-blur-2xl relative overflow-hidden animate-in fade-in select-none space-y-3",
+          "my-3 rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-black/40 p-4 sm:p-5 text-right shadow-[0_8px_30px_rgba(0,0,0,0.4)] backdrop-blur-xl relative overflow-hidden animate-in fade-in select-none space-y-3.5",
           className
         )}
         dir="rtl"
       >
         {/* Sleek Minimal Header */}
-        <div className="flex items-center justify-between gap-2 pb-2 border-b border-emerald-500/15">
+        <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/[0.08]">
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/40">
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
               <span className="relative flex size-1.5 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full size-1.5 bg-emerald-400" />
               </span>
               <DownloadDetectIcon size={12} />
-              <span className="text-[11px] font-mono font-black text-emerald-200 tracking-wide uppercase">
+              <span className="text-[11px] font-mono font-bold text-emerald-300 tracking-wide uppercase">
                 DOWNLOAD DETECT
               </span>
             </div>
@@ -281,8 +281,8 @@ export const DownloadDetectCard: React.FC<DownloadDetectCardProps> = ({
         </div>
 
         {/* Clean Quality Download Chips - Direct 1-Click Action */}
-        <div className="pt-2 border-t border-emerald-500/15">
-          <div className="text-[11px] font-medium text-emerald-300/80 mb-2 font-sans">
+        <div className="pt-2 border-t border-white/[0.08]">
+          <div className="text-[11px] font-medium text-zinc-300 mb-2 font-sans">
             اختر الجودة للتحميل المباشر الفوري:
           </div>
 
@@ -299,25 +299,25 @@ export const DownloadDetectCard: React.FC<DownloadDetectCardProps> = ({
                   disabled={Boolean(downloadingFormatId)}
                   onClick={() => handleDownload(fmt)}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none active:scale-95 border",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer select-none active:scale-95 border",
                     isCurrentDownloaded
-                      ? "bg-emerald-400 text-black border-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.4)]"
-                      : "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 hover:text-white border-emerald-500/30 hover:border-emerald-400/60 shadow-sm"
+                      ? "bg-white text-zinc-950 border-white shadow-md font-bold"
+                      : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white border-white/[0.1] hover:border-white/[0.2] shadow-sm"
                   )}
                 >
                   {isCurrentDownloading ? (
                     <>
-                      <Loader2 className="size-3 animate-spin text-emerald-400" />
+                      <Loader2 className="size-3 animate-spin text-zinc-300" />
                       <span className="font-mono">{downloadProgress}%</span>
                     </>
                   ) : isCurrentDownloaded ? (
                     <>
-                      <Check className="size-3.5 text-black stroke-[3]" />
+                      <Check className="size-3.5 text-zinc-950 stroke-[3]" />
                       <span>تم التحميل</span>
                     </>
                   ) : (
                     <>
-                      <Download className="size-3 text-emerald-400" />
+                      <Download className="size-3 text-zinc-300" />
                       <span>{fmt.qualityLabel}</span>
                       {fmt.fileSizeFormatted && (
                         <span className="text-[10px] font-mono text-zinc-400 font-normal">
@@ -342,25 +342,25 @@ export const DownloadDetectCard: React.FC<DownloadDetectCardProps> = ({
                   disabled={Boolean(downloadingFormatId)}
                   onClick={() => handleDownload(fmt)}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none active:scale-95 border",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer select-none active:scale-95 border",
                     isCurrentDownloaded
-                      ? "bg-emerald-400 text-black border-emerald-300"
-                      : "bg-teal-500/15 hover:bg-teal-500/25 text-teal-200 hover:text-white border-teal-500/30 hover:border-teal-400/60"
+                      ? "bg-white text-zinc-950 border-white shadow-md font-bold"
+                      : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white border-white/[0.1] hover:border-white/[0.2] shadow-sm"
                   )}
                 >
                   {isCurrentDownloading ? (
                     <>
-                      <Loader2 className="size-3 animate-spin text-teal-400" />
+                      <Loader2 className="size-3 animate-spin text-zinc-300" />
                       <span className="font-mono">{downloadProgress}%</span>
                     </>
                   ) : isCurrentDownloaded ? (
                     <>
-                      <Check className="size-3.5 text-black stroke-[3]" />
+                      <Check className="size-3.5 text-zinc-950 stroke-[3]" />
                       <span>تم التحميل</span>
                     </>
                   ) : (
                     <>
-                      <Music className="size-3 text-teal-400" />
+                      <Music className="size-3 text-zinc-300" />
                       <span>صوت MP3</span>
                       {fmt.fileSizeFormatted && (
                         <span className="text-[10px] font-mono text-zinc-400 font-normal">

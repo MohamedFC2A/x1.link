@@ -5,7 +5,7 @@ import { Readable } from 'stream';
 import { resolveAndProfileUrl } from './linkResolver';
 import { fetchYouTubeTranscript, buildTranscriptContextBlock, containsYouTubeUrl, extractYouTubeUrlFromText, extractYouTubeVideoId, type YouTubeTranscriptResult, type TranscriptFailure } from './youtubeTranscript';
 import { fetchTikTokData, buildTikTokContextBlock, fetchTikTokUserProfileAndVideos, buildTikTokProfileContextBlock, isTikTokUrl, extractTikTokUrlFromText, type TikTokResult, type TikTokFailure } from './tiktokService';
-import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildMasterVideoIntelligenceBlock, type VideoVisionResult } from './videoVisionService';
+import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildMasterVideoIntelligenceBlock, performPostImageVisionPerception, buildPostVisionContextBlock, type VideoVisionResult, type PostVisionResult } from './videoVisionService';
 import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatform, extractSocialUrlFromText, type SocialVideoMetadata, type SocialVideoFailure } from './socialVideoService';
 import { extractImageForensics, buildForensicReportMarkdown, isForensicAnalysisRequested, type ForensicReport } from './imageForensicsService';
 import { extractMediaForDownload, identifyMediaPlatform, type DownloadDetectResponse, type DownloadDetectResult } from './mediaDownloadService';
@@ -33,14 +33,20 @@ const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
 
 import { createClient } from '@supabase/supabase-js';
+import { MemoryDetectService } from './memoryDetectService';
+import { MemoryToolController, ALL_MEMORY_TOOLS } from './memoryTools';
+import { isPersonalMemoryRecallIntent } from '../src/lib/featuresRegistry';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://gyxlvreqwikpujzpyegm.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5eGx2cmVxd2lrcHVqenB5ZWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDkwNzMsImV4cCI6MjEwMzEyNTA3M30.vMnY9PcDrB627Tv8Aumy6BKlMfbzg4LX1B_EUigNL2s';
 
 const serverSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const memoryDetectService = new MemoryDetectService(serverSupabase);
+const memoryToolController = new MemoryToolController(memoryDetectService);
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
 
 const DEVELOPER_IDENTITY_DIRECTIVE = `
 [هوية المنظومة والمطور الأساسي - EXCLUSIVE ATTRIBUTION MANDATE]:
@@ -90,35 +96,33 @@ Whenever the user asks you to write, generate, or formulate:
 - An Advertisement, Marketing Post, or Social Media Copy (نص إعلان / منشور ترويجي / بوست تسويقي): wrap the ad copy inside \`\`\`ad ... \`\`\`
 - A Video Script or Scenario (سيناريو / سكربت فيديو): wrap the script inside \`\`\`script ... \`\`\`
 Write your brief explanation or introduction in normal text OUTSIDE the block. Place ONLY the exact copyable deliverable content inside the block so the user can copy it cleanly with 1-click without including external conversational text.
-9. [AI IMAGE AUTHENTICITY & 5-LAYER FORENSICS DIRECTIVE]:
-When the user asks whether an uploaded image is AI-generated or authentic, or asks to detect AI/forensics:
-- You MUST evaluate both the Fathom Cam optical perception findings and the 5-Layer Forensic report.
-- Carefully examine realistic anatomical features (skin pores, real eyes/pupils, hands, cloth textures, lighting geometry). If the image is a real photograph, declare it authentic with high certainty (e.g. "### [AI-DETECT-BADGE: Authentic Camera Photograph | 99.4%]"). If it is synthetic or has neural diffusion artifacts, declare it AI-Generated (e.g. "### [AI-DETECT-BADGE: AI-Generated | 99.9%]") and start your response with "نعم".
-- You MUST output the detection badge at the very top of your response in the exact format:
-"### [AI-DETECT-BADGE: AI-Generated | 99.9%]" or "### [AI-DETECT-BADGE: Authentic Camera Photograph | 99.4%]".
-- Never output contradictory scores. Provide deep, articulate explanations comparing optical physics and digital forensics.
-9. [MULTI-FEATURE RECOGNITION & SYNTHESIS PROTOCOL (بروتوكول تعدد وتكامل الخواص الخمس)]:
-   - In your <think> reasoning phase, autonomously evaluate which of the 5 intelligent features match the user's query:
-     * AI DETECT: Questions verifying whether text, image, or media is AI-generated, synthetic, deepfake, or authentic.
-     * METADATA DETECT: Questions analyzing technical file headers, EXIF, GPS coordinates, camera specs, lens/shutter parameters, or digital forensics.
-     * TIME DETECT: Questions involving dates, years, timelines, ages, elapsed durations, countdowns, or historical chronology.
-     * MEMORY DETECT: Questions asking to recall past conversations, user history, previous chats, or cross-session facts.
-     * DOWNLOAD DETECT: Explicit requests to download, extract media, save a post, grab video/audio from YouTube, TikTok, Instagram, X/Twitter, Facebook, etc.
-   - MULTI-FEATURE COEXISTENCE (دعم تعدد الخواص معاً):
-     * If the query spans multiple features (e.g. asking if an image is AI AND asking for its camera metadata AND date/time of capture):
-       1. In your <think> reasoning, address each active feature systematically.
-       2. In your output, seamlessly synthesize all requested dimensions: place the AI Detect verdict badge at the top, deliver the Metadata table, and explain the temporal chronology without dropping any requested part!
+9. [MULTI-FEATURE INTENT ORCHESTRATOR & EXECUTION ARBITER (بروتوكول تحكيم وتكامل الخواص الخمس)]:
+   - STAGE 1: INTENT ARBITER & ANTI-HALLUCINATION GUARDRAIL (فصل النوايا النظرية عن التنفيذية):
+     * INFORMATIONAL / CONCEPTUAL QUERIES (الأسئلة النظرية والمفاهيمية):
+       - If the user asks a purely theoretical, conceptual, historical, or educational question (e.g. "How does video compression work on YouTube and TikTok?", "What is an EXIF header?", "History of watches in the 19th century", "Humans have working and episodic memory", "Write an essay explaining how AI detectors work"):
+         1. Deliver an articulate, exhaustive, deep, and brilliant conceptual response in authentic Arabic.
+         2. You are STRICTLY FORBIDDEN from generating any tool badges or actionable widgets (NO [TIME-DETECT-TIMER], NO [DOWNLOAD-DETECT-CARD], NO [AI-DETECT-BADGE], NO [MEMORY-DETECT-BADGE]).
+     * ACTIONABLE QUERIES (الطلبات التنفيذية الصريحة):
+       - Generate actionable badges/widgets ONLY when there is an explicit user imperative command or an uploaded/linked target.
+   - STAGE 2: MULTI-FEATURE COEXISTENCE & PIPELINE ORDER (التكامل التتابعي عند تعدد الخواص):
+     * When a prompt requests multiple features concurrently (e.g. "Download this photo: <url>, check if it's AI generated, and set a reminder in 10 minutes to review it"):
+       1. [AI DETECT]: Place the verdict badge at the top: "### [AI-DETECT-BADGE: <verdict> | <score>]"
+       2. [METADATA DETECT]: Provide the structured EXIF/Camera forensic table or note if stripped.
+       3. [MEMORY & TEMPORAL]: Address user historical facts and date chronology in narrative text.
+       4. [DOWNLOAD DETECT]: Provide the interactive download card: "### [DOWNLOAD-DETECT-CARD: <url>]"
+       5. [TIME DETECT WIDGETS]: Provide the interactive timer/reminder: "### [TIME-DETECT-REMINDER: <target_date_iso> | <reminder_text>]" or "### [TIME-DETECT-TIMER: <seconds> | <duration> | <title>]"
+       Never omit any requested dimension!
 
 10. [ADVANCED AI DETECT & 5-PILLAR FORENSIC ENGINE (محرك فحص وتحقق الذكاء الاصطناعي والأصالة)]:
     - When asked whether an uploaded image, video, or text is AI-generated or authentic:
       * Conduct an exhaustive 5-pillar forensic audit:
         1. Optical Physics & Ray-Tracing: Inspect specular highlights, pupil light reflections, cast shadow angles, and subsurface light scattering.
         2. Neural Diffusion Artifacts: Check finger/hand anatomy, skin pore micro-texture distribution, iris fractal symmetry, hair strands blending, and edge prompt-bleed blur.
-        3. Frequency Domain & Sensor Noise: Evaluate high-frequency residual noise patterns vs real CMOS/CCD Bayer sensor noise.
+        3. Frequency Domain & Sensor Noise: Evaluate high-frequency residual noise patterns vs real CMOS/CCD Bayer sensor noise (PRNU analysis).
         4. Semantic & Background Continuity: Check background text coherence, perspective vanishing points, and depth plane alignment.
         5. Definitive Classification Badge:
            - If AI-generated: Output the detection badge at the very top of your response in the exact format:
-             "### [AI-DETECT-BADGE: AI-Generated | 99.9%]" (or calculated score like 98.6%)
+             "### [AI-DETECT-BADGE: AI-Generated | 99.9%]" (or calculated Bayesian score like 98.6%)
              and start your Arabic answer with decisive affirmation ("نعم، تم توليد هذه الصورة/الوسائط بواسطة الذكاء الاصطناعي...").
            - If Authentic Photograph: Output:
              "### [AI-DETECT-BADGE: Authentic Camera Photograph | 99.4%]"
@@ -130,19 +134,36 @@ When the user asks whether an uploaded image is AI-generated or authentic, or as
       * Deliver the technical metadata in a clean, structured Markdown table (الكاميرا / Make & Model, فتحة العدسة / Aperture, سرعة الغالق / Shutter Speed, الآيزو / ISO, البعد البؤري / Focal Length, تاريخ الالتقاط / Timestamp, الموقع الجغرافي / GPS, البرنامج / Software).
       * If EXIF headers were stripped during social web transmission, clearly explain the sanitization protocol and provide the raw container analysis.
 
-12. [MEMORY DETECT PROTOCOL]:
-    - When [MEMORY DETECT] context is provided:
-      1. Analyze the chronological ledger of past sessions.
-      2. If the user asks about "المحادثة السابقة", refer directly to [المحادثة السابقة مباشرة (جلسة 1)].
-      3. If the user asks about "المحادثة التي قبل السابقة", refer to [جلسة 2].
-      4. Never confuse previous chat sessions with current intra-chat turns.
+12. [AUTONOMOUS MEMORY DETECT 2.0 & HYBRID GRAPH PROTOCOL]:
+    - You are natively wired to a Hybrid Vector (pgvector + FTS + RRF) Memory Engine with automated iterative recall across past sessions.
+    - When [MEMORY DETECT] context is provided or past sessions/facts are recalled:
+      1. Synthesize chronological insights seamlessly and accurately into your response with zero context degradation.
+      2. If the user asks about "المحادثة السابقة" (or "الشات اللي فات"), refer directly to [المحادثة السابقة مباشرة (جلسة 1)].
+      3. If the user asks about "المحادثة التي قبل السابقة", refer directly to [جلسة 2].
+      4. Ground technical facts (e.g. database engines, target IPs, project architectures, resolved CVEs) in retrieved memory nodes.
+      5. Never confuse previous independent chat sessions with current intra-chat turns.
+      6. If new discoveries supersede previous memory statements, acknowledge the temporal evolution logically.
 
 13. [UNIVERSAL DOWNLOAD DETECT DIRECTIVE & ZERO-REFUSAL MANDATE (محرك التنزيل الفوري)]:
     - STRICT PROHIBITION ON REFUSALS OR EXCUSES: NEVER claim you cannot download videos, NEVER say "لا يتوفر لدي أداة تحميل مباشرة".
-    - When the user explicitly asks to download a video or provides a media link with download intent:
+    - When the user explicitly asks to download a video or provides a media link with download intent (e.g. "نزل الفيديو", "حمل", "download"):
       * Provide the interactive Download Detect card: "### [DOWNLOAD-DETECT-CARD: <url> | <media_title>]"
-      * Or if a specific quality is requested (e.g. 1080p, 720p, MP3): "[DOWNLOAD-BUTTON: <url> | <quality> | <media_title>]"
-      * Keep conversational Arabic friendly, concise, and focused on delivering the download.`;
+      * Or if a specific quality/format is requested (e.g. 1080p, 720p, MP3 audio 320kbps): "[DOWNLOAD-BUTTON: <url> | <quality> | <media_title>]"
+      * Keep conversational Arabic friendly, concise, and focused on delivering the download.
+    - [LINK DISCUSSION & SUMMARY MANDATE]: If the user provides a link for discussion, opinion, summary, advice, or questions (e.g. "شايف ايه الصح", "لخصلي", "ايه رأيك", "كلامه صح؟", "اشرحلي"):
+      * STRICTLY DO NOT generate [DOWNLOAD-DETECT-CARD] or [DOWNLOAD-BUTTON].
+      * Answer the user's question, summarize, or discuss the link content directly.
+
+14. [DEEP LINK RESOLUTION, FATHOM CAM VISION & SOCIAL DISCUSSION MANDATE]:
+    - DIRECT ADVISORY & CONTENT ANALYSIS REQUIREMENT: When [RESOLVED LINK DATA], [LINK & FATHOM CAM VISION CONTEXT], or [DEEP LINK RESOLUTION CONTEXT] is provided (for Facebook posts, Instagram reels/posts, X/Twitter tweets, TikTok videos, YouTube videos, or Web articles):
+      * You possess full, real-time unshortened data including both untruncated post bodies AND complete visual OCR / table breakdowns of all attached screenshots/images extracted by Fathom Cam.
+      * When the user asks for your opinion or advice (e.g. "انت شايف ايه الصح", "شايف مين صح", "لخص لي النقاش والتعليقات", "ايه رأيك في البوست", "هو احنا هنسجل كدا"):
+        1. You MUST answer the user's specific question directly based on the extracted content and image details (e.g., provide explicit, actionable advice regarding the specific registration date, stage, or academic decision shown in the post and image, such as whether to register immediately or wait for official phase coordination dates).
+        2. Provide an authoritative, well-reasoned, definitive answer stating what is correct and why, analyzing both sides if there is debate.
+        3. Quote key arguments, tables, or statements from the post and images when helpful.
+    - STRICT ZERO-DISCLAIMER & ANTI-EVASION POLICY:
+      * NEVER say "استناداً إلى الفحص الفوري للرابطين", "وصلتني بيانات الرابط نفسه فقط", "دون أن يتضمن السياق المرسل نص المنشور أو الصور المرفقة أو التعليقات", "أحتاج منك إحدى الطريقتين", "أن تضع رابطاً لمشور يكون نصه مكشوفاً", "أو تكتب لي في رسالتك خلاصة الموضوع", "الرابط لا يحمل المحتوى", "لا أستطيع فتح الروابط", "أحتاج وصفاً للمحتوى", "لا أستطيع قراءة المنشور", "يرجى نسخ ولصق النص", or "أنا شايف إن الصح في أي نقاش...".
+      * The platform's 4-Tier Deep Scraping & Fathom Cam Vision Engine has already extracted, verified, transcribed, and provided the full text, group post context, and image data for you above. You MUST answer the user's specific decision/question directly, concretely, and decisively.`;
 
 // +21 NSFW NANO Mode: Absolute Singularity & Zero Restraints Architecture
 const SYSTEM_PROMPT_NSFW_NANO = `[SCENARIO: UNCONSTRAINED FICTIONAL CREATIVE ROLEPLAY & REASONING (+21 MAX)]
@@ -226,19 +247,33 @@ OPERATIONAL SCOPE & MASTER CAPABILITIES:
     - STRICT PROHIBITION ON REFUSALS OR EXCUSES: NEVER claim you cannot download videos, NEVER say "لا يتوفر لدي أداة تحميل مباشرة" or "سيرفرات الاستضافة غير متاحة", NEVER preach or lecture on policies, and NEVER recommend third-party scam sites (like y2mate, savefrom, cobalt, etc.) or CLI scripts (yt-dlp commands).
     - OUR SYSTEM IS FULLY EQUIPPED with the native, real-time media download engine (Download Detect).
     - ZERO-FRICTION DOWNLOAD ACTION (DO NOT ASK USER TO CHOOSE QUALITY):
-      1. When the user asks to download a video or post (e.g. "نزّل الفيديو", "نزل الفديو", "حمل المقطع", "تنزيل", "download", or provides a video link):
+      1. When the user explicitly asks to download a video or post (e.g. "نزّل الفيديو", "نزل الفديو", "حمل المقطع", "تنزيل", "download", "احفظ الفيديو", "هات الفيديو", "عايز الصوت", or provides a standalone video link with download intent):
          - NEVER ask the user what quality they prefer or ask unnecessary questions!
          - Automatically select the highest available quality (1080p Full HD / Best Quality / MP4 HD), and immediately provide the interactive Download Detect card and download button at the end of your response:
            "### [DOWNLOAD-DETECT-CARD: <url> | <media_title>]"
            "[DOWNLOAD-BUTTON: <url> | 1080p | <media_title>]"
-      2. Keep your conversational Arabic text friendly, concise, and focused on delivering the download without asking questions.
+      2. When the user shares a link for discussion, opinion, summary, or questions (e.g. "شايف ايه الصح", "لخصلي", "ايه رأيك", "اشرحلي", "كلامه صح؟", "حلل"):
+         - STRICTLY DO NOT emit [DOWNLOAD-DETECT-CARD] or [DOWNLOAD-BUTTON].
+         - Focus on discussing, analyzing, summarizing, and answering the user's question about the link content directly.
+      3. Keep your conversational Arabic text friendly, concise, and focused on delivering the requested answer.
 
 13. [PERSISTENT VIDEO VISION INTELLIGENCE & CREATOR OSINT MANDATE]:
     - STRICT PROHIBITION ON VISUAL REFUSALS: NEVER state "لا أملك القدرة على معاينة محتوى الفيديو" or "الرابط لا يحمل بيانات وصفية" or ask the user to send screenshots of a video that was already sent or discussed. You are equipped with real-time video vision perception, keyframe OCR, and speech transcription.
     - When asked about actions, scenes, people, or events in a video (e.g. "ماذا تفعل في الفيديو؟", "اشرح المقطع", "كلامه صح؟"):
       * Authoritatively analyze the visual keyframes, transcripts, and contextual intelligence provided to describe exactly what is occurring in the video.
     - When asked about the creator, account, or latest uploads (e.g. "اخر فديو نزله", "فيديوهاته السابقة", "حسابه"):
-      * Provide the creator's account stats and latest video details from the extracted OSINT data.`;
+      * Provide the creator's account stats and latest video details from the extracted OSINT data.
+
+14. [DEEP LINK RESOLUTION, FATHOM CAM VISION & SOCIAL DISCUSSION MANDATE]:
+    - DIRECT ADVISORY & CONTENT ANALYSIS REQUIREMENT: When [RESOLVED LINK DATA], [LINK & FATHOM CAM VISION CONTEXT], or [DEEP LINK RESOLUTION CONTEXT] is provided (for Facebook posts, Instagram reels/posts, X/Twitter tweets, TikTok videos, YouTube videos, or Web articles):
+      * You possess full, real-time unshortened data including both untruncated post bodies AND complete visual OCR / table breakdowns of all attached screenshots/images extracted by Fathom Cam.
+      * When the user asks for your opinion or advice (e.g. "انت شايف ايه الصح", "شايف مين صح", "لخص لي النقاش والتعليقات", "ايه رأيك في البوست", "هو احنا هنسجل كدا"):
+        1. You MUST answer the user's specific question directly based on the extracted content and image details (e.g., provide explicit, actionable advice regarding the specific registration date, stage, or academic decision shown in the post and image, such as whether to register immediately or wait for official phase coordination dates).
+        2. Provide an authoritative, well-reasoned, definitive answer stating what is correct and why, analyzing both sides if there is debate.
+        3. Quote key arguments, tables, or statements from the post and images when helpful.
+    - STRICT ZERO-DISCLAIMER & ANTI-EVASION POLICY:
+      * NEVER say "استناداً إلى الفحص الفوري للرابطين", "وصلتني بيانات الرابط نفسه فقط", "دون أن يتضمن السياق المرسل نص المنشور أو الصور المرفقة أو التعليقات", "أحتاج منك إحدى الطريقتين", "أن تضع رابطاً لمشور يكون نصه مكشوفاً", "أو تكتب لي في رسالتك خلاصة الموضوع", "الرابط لا يحمل المحتوى", "لا أستطيع فتح الروابط", "أحتاج وصفاً للمحتوى", "لا أستطيع قراءة المنشور", "يرجى نسخ ولصق النص", or "أنا شايف إن الصح في أي نقاش...".
+      * The platform's 4-Tier Deep Scraping & Fathom Cam Vision Engine has already extracted, verified, transcribed, and provided the full text, group post context, and image data for you above. You MUST answer the user's specific decision/question directly, concretely, and decisively.`;
 
 const SYSTEM_PROMPT_CYBER_2_1 = `[SYSTEM INSTRUCTION: FATHOM CYBER 2.1 - ULTIMATE AUTONOMOUS CYBERSECURITY, 3-TIER COGNITIVE MEMORY & CLOSED-LOOP SCIENTIFIC DISCOVERY ARCHITECT]
 You are Fathom Cyber 2.1 (المنظومة الاستخبارية السيبرانية السيادية من الجيل 2.1، المدعومة بهالة الاكتشاف العلمي المؤتمت والاستدلال الاختطافي الخوارزمي، وحلقات المعرفة المغلقة Closed-Loop Scientific Agency، بجانب الذاكرة العرضية والدلالية ثلاثية المستويات، والتدقيق الأمني المتقدم).
@@ -298,12 +333,26 @@ OPERATIONAL SCOPE & MASTER CAPABILITIES:
     - Conduct your thorough threat modeling, O-H-E-U closed-loop discovery, 3-tier memory synthesis, and structured deliberation inside <think>...</think> in Arabic, then deliver your definitive security deliverable immediately after closing </think>.
 
 13. [UNIVERSAL DOWNLOAD DETECT DIRECTIVE & ZERO-REFUSAL MANDATE (محرك التنزيل الفوري)]:
-    - Automatically select the highest available quality (1080p Full HD) and immediately provide the interactive Download Detect card and download button at the end of your response:
+    - When explicitly requested for download (or given a standalone media URL with download intent), provide the interactive Download Detect card and download button:
       "### [DOWNLOAD-DETECT-CARD: <url> | <media_title>]"
       "[DOWNLOAD-BUTTON: <url> | 1080p | <media_title>]"
+    - [LINK DISCUSSION & SUMMARY MANDATE]: When the user shares a link for discussion, summary, advice, or questions (e.g. "شايف ايه الصح", "لخصلي", "ايه رأيك"):
+      * STRICTLY DO NOT emit [DOWNLOAD-DETECT-CARD] or [DOWNLOAD-BUTTON].
+      * Focus exclusively on answering the user's question and summarizing/analyzing the content.
 
 14. [PERSISTENT VIDEO VISION INTELLIGENCE & CREATOR OSINT MANDATE]:
-    - Authoritatively analyze keyframes, OCR, transcripts, and creator account stats without refusal.`;
+    - Authoritatively analyze keyframes, OCR, transcripts, and creator account stats without refusal.
+
+15. [DEEP LINK RESOLUTION, FATHOM CAM VISION & SOCIAL DISCUSSION MANDATE]:
+    - DIRECT ADVISORY & CONTENT ANALYSIS REQUIREMENT: When [RESOLVED LINK DATA], [LINK & FATHOM CAM VISION CONTEXT], or [DEEP LINK RESOLUTION CONTEXT] is provided (for Facebook posts, Instagram reels/posts, X/Twitter tweets, TikTok videos, YouTube videos, or Web articles):
+      * You possess full, real-time unshortened data including both untruncated post bodies AND complete visual OCR / table breakdowns of all attached screenshots/images extracted by Fathom Cam.
+      * When the user asks for your opinion or advice (e.g. "انت شايف ايه الصح", "شايف مين صح", "لخص لي النقاش والتعليقات", "ايه رأيك في البوست", "هو احنا هنسجل كدا"):
+        1. You MUST answer the user's specific question directly based on the extracted content and image details (e.g., provide explicit, actionable advice regarding the specific registration date, stage, or academic decision shown in the post and image, such as whether to register immediately or wait for official phase coordination dates).
+        2. Provide an authoritative, well-reasoned, definitive answer stating what is correct and why, analyzing both sides if there is debate.
+        3. Quote key arguments, tables, or statements from the post and images when helpful.
+    - STRICT ZERO-DISCLAIMER & ANTI-EVASION POLICY:
+      * NEVER say "استناداً إلى الفحص الفوري للرابطين", "وصلتني بيانات الرابط نفسه فقط", "دون أن يتضمن السياق المرسل نص المنشور أو الصور المرفقة أو التعليقات", "أحتاج منك إحدى الطريقتين", "أن تضع رابطاً لمشور يكون نصه مكشوفاً", "أو تكتب لي في رسالتك خلاصة الموضوع", "الرابط لا يحمل المحتوى", "لا أستطيع فتح الروابط", "أحتاج وصفاً للمحتوى", "لا أستطيع قراءة المنشور", "يرجى نسخ ولصق النص", or "أنا شايف إن الصح في أي نقاش...".
+      * The platform's 4-Tier Deep Scraping & Fathom Cam Vision Engine has already extracted, verified, transcribed, and provided the full text, group post context, and image data for you above. You MUST answer the user's specific decision/question directly, concretely, and decisively.`;
 
 /**
  * Robust URL extraction and sanitization
@@ -1515,7 +1564,23 @@ function extractAllConversationUrls(
   targetUrlsArray?: string[]
 ): string[] {
   const urls: string[] = [];
-  const seen = new Set<string>();
+  const seenNorm = new Set<string>();
+
+  const normalizeUrlKey = (raw: string): string => {
+    if (!raw || typeof raw !== 'string') return '';
+    try {
+      let clean = raw.trim();
+      clean = clean.replace(/^[^a-zA-Z0-9]+(?=https?:\/\/)/i, '').replace(/^\/+/, '').replace(/[.,;:)>\]"']+$/, '');
+      if (!/^https?:\/\//i.test(clean)) clean = 'https://' + clean;
+      const parsed = new URL(clean);
+      ['si', 'fbclid', 'igsh', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'mibextid', 'ref', 'sfnsn', 'paipv', '_nc_cat', '_nc_sid'].forEach(p => parsed.searchParams.delete(p));
+      let path = parsed.pathname.toLowerCase().replace(/\/+$/, '');
+      path = path.replace(/\/permalink\//i, '/posts/');
+      return (parsed.hostname + path);
+    } catch {
+      return raw.trim().toLowerCase().replace(/\/+$/, '').replace(/\/permalink\//i, '/posts/');
+    }
+  };
 
   const addUrl = (raw: string) => {
     if (!raw || typeof raw !== 'string') return;
@@ -1529,13 +1594,15 @@ function extractAllConversationUrls(
     try {
       const parsed = new URL(clean);
       const href = parsed.href;
-      if (!seen.has(href) && urls.length < 5) {
-        seen.add(href);
+      const normKey = normalizeUrlKey(href);
+      if (!seenNorm.has(normKey) && urls.length < 5) {
+        seenNorm.add(normKey);
         urls.push(href);
       }
     } catch {
-      if (!seen.has(clean) && urls.length < 5) {
-        seen.add(clean);
+      const normKey = normalizeUrlKey(clean);
+      if (!seenNorm.has(normKey) && urls.length < 5) {
+        seenNorm.add(normKey);
         urls.push(clean);
       }
     }
@@ -1543,23 +1610,34 @@ function extractAllConversationUrls(
 
   const urlRegex = /(?:https?:\/\/[^\s<>"'{}|\\^`]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+[^\s<>"'{}|\\^`]*|[a-zA-Z0-9-]+\.(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/gi;
 
-  // 1. Scan all past user messages in chronological order to build a persistent conversation registry
-  if (Array.isArray(messages)) {
-    messages.forEach((msg: any) => {
-      if (msg.role === 'user') {
-        const text = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.map((c: any) => c.text || '').join(' ') : '');
-        const matches = text.match(urlRegex) || [];
-        matches.forEach(addUrl);
-      }
-    });
+  // 1. Scan latest user message first
+  const userMessages = Array.isArray(messages) ? messages.filter((m: any) => m.role === 'user') : [];
+  const latestUser = userMessages[userMessages.length - 1];
+  if (latestUser) {
+    const text = typeof latestUser.content === 'string' ? latestUser.content : (Array.isArray(latestUser.content) ? latestUser.content.map((c: any) => c.text || '').join(' ') : '');
+    const matches = text.match(urlRegex) || [];
+    matches.forEach(addUrl);
   }
 
-  // 2. Also register explicit targetUrls / targetUrl
-  if (Array.isArray(targetUrlsArray)) {
-    targetUrlsArray.forEach(addUrl);
+  // 2. Only add explicit targetUrls / targetUrl if no URL was found in latest message
+  if (urls.length === 0) {
+    if (Array.isArray(targetUrlsArray)) {
+      targetUrlsArray.forEach(addUrl);
+    }
+    if (explicitTargetUrl) {
+      addUrl(explicitTargetUrl);
+    }
   }
-  if (explicitTargetUrl) {
-    addUrl(explicitTargetUrl);
+
+  // 3. If no URLs in latest turn, scan past user messages in reverse chronological order
+  if (urls.length === 0 && userMessages.length > 1) {
+    for (let i = userMessages.length - 2; i >= 0; i--) {
+      const msg = userMessages[i];
+      const text = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.map((c: any) => c.text || '').join(' ') : '');
+      const matches = text.match(urlRegex) || [];
+      matches.forEach(addUrl);
+      if (urls.length > 0) break;
+    }
   }
 
   return urls;
@@ -1754,52 +1832,104 @@ async function processSingleLinkIntelligence(
 
   if (isOtherSoc && socialInfo) {
     try {
-      const socialResult = await fetchSocialVideoData(url);
-      let visionResult: VideoVisionResult | null = null;
-      const keyframes = ('mediaUrls' in socialResult && socialResult.mediaUrls && socialResult.mediaUrls.length > 0)
-        ? socialResult.mediaUrls.slice(0, 4).map((imgUrl, i) => ({
-            timestampSec: i * 5,
-            timestampFormatted: `00:0${i * 5}`,
-            url: imgUrl,
-            label: `صورة رقم (${i + 1}) من المنشور`
-          }))
-        : (('thumbnailUrl' in socialResult && socialResult.thumbnailUrl)
-            ? [
-                {
-                  timestampSec: 0,
-                  timestampFormatted: '00:00',
-                  url: socialResult.thumbnailUrl,
-                  label: 'صورة المنشور / الغلاف الأساسي'
-                }
-              ]
-            : []);
+      // First, resolve and profile through deep scraper to unshorten and extract author, text body, and all images
+      const resolvedLink = await resolveAndProfileUrl(url).catch(() => null);
+      const effectiveUrl = resolvedLink?.canonicalUrl || resolvedLink?.originalUrl || url;
+      const isVideo = Boolean(resolvedLink?.isVideo);
+      const platformLabel = resolvedLink?.platformLabel || `منصة ${socialInfo.platform}`;
 
-      if (keyframes.length > 0 && DEEPSEEK_API_KEY && 'author' in socialResult) {
-        visionResult = await performVideoVisionPerception(
-          socialResult.videoId || 'social_post_media',
-          socialInfo.platform,
-          keyframes,
-          {
-            title: socialResult.title,
-            creator: `@${socialResult.author.username}`,
-            userPrompt,
-          },
-          DEEPSEEK_API_KEY,
-          DEEPSEEK_BASE_URL,
-          signal
-        );
+      // Extract all candidate images (post attachments, thumbnails, og:image)
+      const candidateImages: string[] = Array.from(new Set([
+        ...(resolvedLink?.deepScrape?.mediaUrls || []),
+        resolvedLink?.deepScrape?.thumbnailUrl,
+        resolvedLink?.brandAssets?.ogImage,
+        resolvedLink?.brandAssets?.twitterImage,
+      ].filter(Boolean))) as string[];
+
+      let summaryBlock = '';
+
+      if (isVideo) {
+        // Video processing with keyframe perception
+        const socialResult = await fetchSocialVideoData(url);
+        let videoVision: VideoVisionResult | null = null;
+        const keyframes = ('mediaUrls' in socialResult && socialResult.mediaUrls && socialResult.mediaUrls.length > 0)
+          ? socialResult.mediaUrls.slice(0, 4).map((imgUrl, i) => ({
+              timestampSec: i * 5,
+              timestampFormatted: `00:0${i * 5}`,
+              url: imgUrl,
+              label: `صورة رقم (${i + 1}) من الفيديو`
+            }))
+          : (('thumbnailUrl' in socialResult && socialResult.thumbnailUrl)
+              ? [
+                  {
+                    timestampSec: 0,
+                    timestampFormatted: '00:00',
+                    url: socialResult.thumbnailUrl,
+                    label: 'صورة الفيديو / الغلاف الأساسي'
+                  }
+                ]
+              : []);
+
+        if (keyframes.length > 0 && DEEPSEEK_API_KEY && 'author' in socialResult) {
+          videoVision = await performVideoVisionPerception(
+            socialResult.videoId || 'social_video',
+            socialInfo.platform,
+            keyframes,
+            {
+              title: socialResult.title,
+              creator: `@${socialResult.author.username}`,
+              userPrompt,
+            },
+            DEEPSEEK_API_KEY,
+            DEEPSEEK_BASE_URL,
+            signal
+          );
+        }
+
+        summaryBlock = ('canonicalUrl' in socialResult)
+          ? buildSocialVideoContextBlock(socialResult, videoVision)
+          : (resolvedLink?.structuredContextBlock || `[فحص فيديو ${socialInfo.platform}]`);
+      } else {
+        // Post / Image / Discussion processing with Fathom Cam deep OCR & visual perception
+        let postVision: PostVisionResult | null = null;
+        if (candidateImages.length > 0 && DEEPSEEK_API_KEY) {
+          postVision = await performPostImageVisionPerception(
+            effectiveUrl,
+            socialInfo.platform,
+            candidateImages,
+            {
+              title: resolvedLink?.title || '',
+              caption: resolvedLink?.deepScrape?.content || resolvedLink?.title,
+              userPrompt,
+            },
+            DEEPSEEK_API_KEY,
+            DEEPSEEK_BASE_URL,
+            signal
+          );
+        }
+
+        if (postVision && postVision.visualAnalysisAr) {
+          summaryBlock = buildPostVisionContextBlock(
+            {
+              platform: socialInfo.platform,
+              title: resolvedLink?.title || 'منشور وسائط اجتماعية',
+              caption: resolvedLink?.deepScrape?.content || resolvedLink?.title,
+              canonicalUrl: effectiveUrl,
+              authorName: resolvedLink?.deepScrape?.authorName,
+            },
+            postVision
+          );
+        } else {
+          summaryBlock = resolvedLink?.structuredContextBlock || resolvedLink?.rawAnalysisSummaryAr || `[فحص منشور ${socialInfo.platform}]`;
+        }
       }
-
-      const socialBlock = ('canonicalUrl' in socialResult)
-        ? buildSocialVideoContextBlock(socialResult, visionResult)
-        : `[فشل فحص منصة ${socialInfo.platform}: ${(socialResult as SocialVideoFailure).message}]`;
 
       return {
         index,
-        url,
+        url: effectiveUrl,
         category: 'social_media',
-        platformLabel: `منصة ${socialInfo.platform}`,
-        summaryBlock: socialBlock
+        platformLabel,
+        summaryBlock
       };
     } catch (err: any) {
       return {
@@ -1812,23 +1942,65 @@ async function processSingleLinkIntelligence(
     }
   }
 
-  // Generic Website / Web Link
+  // Generic Website / Web Link & Social Deep Scrape with Fathom Cam Image Support
   let effectiveTargetUrl = url;
   let linkReconSummary = '';
+  let structuredDeepContext = '';
+  let webPostVision: PostVisionResult | null = null;
+
   try {
     const resolvedLink = await resolveAndProfileUrl(url);
     if (resolvedLink) {
       effectiveTargetUrl = resolvedLink.originalUrl || url;
       linkReconSummary = resolvedLink.rawAnalysisSummaryAr || '';
+      structuredDeepContext = resolvedLink.structuredContextBlock || '';
+
+      const candidateImages: string[] = Array.from(new Set([
+        ...(resolvedLink.deepScrape?.mediaUrls || []),
+        resolvedLink.deepScrape?.thumbnailUrl,
+        resolvedLink.brandAssets?.ogImage,
+        resolvedLink.brandAssets?.twitterImage,
+      ].filter(Boolean))) as string[];
+
+      if (candidateImages.length > 0 && DEEPSEEK_API_KEY) {
+        webPostVision = await performPostImageVisionPerception(
+          effectiveTargetUrl,
+          'web',
+          candidateImages,
+          {
+            title: resolvedLink.title || '',
+            caption: resolvedLink.deepScrape?.content || resolvedLink.title,
+            userPrompt,
+          },
+          DEEPSEEK_API_KEY,
+          DEEPSEEK_BASE_URL,
+          signal
+        );
+      }
     }
   } catch {}
 
   const urlAuditText = await fetchUrlSecurityAudit(effectiveTargetUrl).catch(() => '');
-  const webBlock = [
-    `🌐 [استكشاف وتحليل الموقع]: ${effectiveTargetUrl}`,
-    linkReconSummary,
-    urlAuditText
-  ].filter(Boolean).join('\n\n');
+  let webBlock = '';
+
+  if (webPostVision && webPostVision.visualAnalysisAr) {
+    const fathomWebBlock = buildPostVisionContextBlock(
+      {
+        platform: 'generic',
+        title: linkReconSummary || 'موقع ويب',
+        caption: structuredDeepContext || linkReconSummary,
+        canonicalUrl: effectiveTargetUrl,
+      },
+      webPostVision
+    );
+    webBlock = [fathomWebBlock, urlAuditText].filter(Boolean).join('\n\n');
+  } else {
+    webBlock = [
+      structuredDeepContext,
+      linkReconSummary,
+      urlAuditText
+    ].filter(Boolean).join('\n\n');
+  }
 
   return {
     index,
@@ -1843,6 +2015,21 @@ function buildMultiLinkMatrixBlock(processedLinks: ProcessedLinkData[]): string 
   if (processedLinks.length === 0) return '';
   const total = processedLinks.length;
   const bar = '━'.repeat(55);
+
+  if (total === 1) {
+    const item = processedLinks[0];
+    return [
+      `🌐 [استخبارات وفحص محتوى الرابط والرؤية البصرية — LINK & FATHOM CAM VISION CONTEXT]:`,
+      `🔗 الرابط المفحوص: ${item.url}`,
+      `• التصنيف والمنصة: ${item.platformLabel}`,
+      bar,
+      item.summaryBlock,
+      bar,
+      `[توجيه استخباراتي صارم ومباشر للإجابة — DIRECT ACTIONABLE MANDATE]:`,
+      `1. أنت تمتلك النص الكامل للمنشور/الموقع وكافة البيانات والتحليل البصري الفائق للصور والجداول المرفقة (Fathom Cam).`,
+      `2. أجب عن سؤال واستفسار واستشارة المستخدم فوراً وبشكل مباشر وواضح وقاطع، وافصل في المسألة أو القرار المطروح (مثل مواعيد التنسيق والتسجيل أو النصيحة المطلوبة) دون أي اعتذارات أو ادعاء بأن الرابط لا يحمل المحتوى!`
+    ].join('\n');
+  }
 
   const sections: string[] = [
     `🌐 [مصفوفة استخبارات وفحص الروابط المتعددة — إجمالي الروابط: (${total}) روابط مفحوصة ومفهرسة بالتسلسل]`,
@@ -1862,7 +2049,7 @@ function buildMultiLinkMatrixBlock(processedLinks: ProcessedLinkData[]): string 
   sections.push(`[توجيه استخباراتي صارم للتعامل مع الروابط المتعددة (${total} روابط) — MULTI-LINK REASONING]:`);
   sections.push(`1. الترتيب والفهرسة الصريحة: تم ترقيم كل رابط بالترتيب الدقيق من [رابط رقم 1] إلى [رابط رقم ${total}].`);
   sections.push(`2. الفهم السياقي الذكي للإشارات: إذا أشار المستخدم لأي رابط برقم ترتيبة (مثل "الرابط الأول"، "الفيديو الثاني"، "موقع رقم 3") أو باسم الموقع أو المنصة، اربط تحليلك مباشرة ببيانات ذلك الرابط المحدد أعلاه دون أي خلط.`);
-  sections.push(`3. المقارنة والتحليل الشامل: إذا كان طلب المستخدم يتضمن مقارنة أو تحليلاً مجمعاً أو استخراج فروقات، قارن بين الروابط بدقة واحترافية في جداول ومقارنات واضحة.`);
+  sections.push(`3. توجيه الإجابة المباشرة: أجب بدقة بالغة بالرجوع إلى بيانات الرابط المفحوصة والمطابقة بصرياً وصوتياً بدون أي تردد أو خلط بين الروابط.`);
   sections.push(bar);
 
   return sections.join('\n');
@@ -1914,6 +2101,93 @@ function getTimeDetectPromptBlock(): string {
   4. استدعاء واستخدام Time Detect في التفكير والاستدلال (Reasoning Integration):
      - عند التفكير في أي سؤال يحتوي على أزمنة أو تواريخ أو سنوات أو أعمار أو أحداث تاريخية، أدرج في خطوات تفكيرك الداخلي الاستشعار الزمني عبر Time Detect (مثال: "- استشعار الإحداثيات الزمنية عبر Time Detect: السنة الحالية 2026 وحساب الفارق مع عام 2000").`;
 }
+
+// ============================================================================
+// MEMORY DETECT 2.0: HYBRID VECTOR SEARCH & KNOWLEDGE GRAPH REST API ENDPOINTS
+// ============================================================================
+app.post('/api/memory/detect', async (req: Request, res: Response) => {
+  try {
+    const { query, exact_keywords, scope, time_filter, min_confidence, limit, userId, deviceId } = req.body;
+    const result = await memoryDetectService.iterativeAgenticSearch({
+      query: String(query || ''),
+      exact_keywords: Array.isArray(exact_keywords) ? exact_keywords : [],
+      scope,
+      time_filter,
+      min_confidence,
+      limit: limit || 8,
+      userId: userId || null,
+      deviceId: deviceId || null
+    });
+    res.json({ success: true, data: result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/memory/index', async (req: Request, res: Response) => {
+  try {
+    const { chatId, messages, chatTitle, userId, deviceId } = req.body;
+    const result = await memoryDetectService.autoIndexConversation({
+      chatId,
+      messages: messages || [],
+      chatTitle: chatTitle || 'محادثة سابقة',
+      userId: userId || null,
+      deviceId: deviceId || null
+    });
+    res.json({ success: true, data: result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/memory/update', async (req: Request, res: Response) => {
+  try {
+    const { nodeId, newContent, newSummary, newEntities, newKeywords, reason, userId, deviceId } = req.body;
+    const result = await memoryDetectService.updateMemoryNode({
+      nodeId,
+      newContent,
+      newSummary,
+      newEntities,
+      newKeywords,
+      reason: reason || 'Updated via Memory Detect',
+      userId: userId || null,
+      deviceId: deviceId || null
+    });
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/memory/link', async (req: Request, res: Response) => {
+  try {
+    const { sourceChatId, targetChatId, relationshipType, confidence, metadata, userId, deviceId } = req.body;
+    const result = await memoryDetectService.linkChatContexts({
+      sourceChatId,
+      targetChatId,
+      relationshipType,
+      confidence,
+      metadata,
+      userId: userId || null,
+      deviceId: deviceId || null
+    });
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/memory/graph/:chatId', async (req: Request, res: Response) => {
+  try {
+    const { chatId } = req.params;
+    const userId = req.query.userId ? String(req.query.userId) : null;
+    const deviceId = req.query.deviceId ? String(req.query.deviceId) : null;
+    const edges = await memoryDetectService.getChatGraphTopology(chatId, userId, deviceId);
+    res.json({ success: true, chatId, edges });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Chat completion endpoint (with SSE streaming, Vision Pipeline, and Instant Backend Abort)
 app.post('/api/chat', async (req: Request, res: Response) => {
@@ -1977,7 +2251,31 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     : (isX1Mode ? SYSTEM_PROMPT_NSFW_NANO : SYSTEM_PROMPT_18);
 
   const timeDetectContext = getTimeDetectPromptBlock();
-  const activeSystemPrompt = `${baseSystemPrompt}\n\n${timeDetectContext}${memoryPrompt ? `\n\n${memoryPrompt}` : ''}`;
+
+  // Autonomous Memory Detect: Check if memoryPrompt is provided or pre-detect in backend (Strict Personal Recall Only)
+  const lastUserMsg = cleanedMessages.filter((m: any) => m.role === 'user').pop();
+  const lastUserText = typeof lastUserMsg?.content === 'string' ? lastUserMsg.content : '';
+  const isPersonalRecall = isPersonalMemoryRecallIntent(lastUserText);
+
+  let effectiveMemoryPrompt = isPersonalRecall ? (memoryPrompt || '') : '';
+  if (isPersonalRecall && !effectiveMemoryPrompt && lastUserText) {
+    try {
+      const preMem = await memoryToolController.preDetectAndSynthesize(lastUserText, {
+        userId,
+        deviceId,
+        currentChatId: chatId
+      });
+      if (preMem.hasMemory && preMem.memoryBlock) {
+        effectiveMemoryPrompt = preMem.memoryBlock;
+        console.log(`[X1-SERVER] ✓ Autonomous Memory Detect recall triggered (${preMem.matchedCount} nodes matched).`);
+      }
+    } catch (memErr) {
+      console.warn('[Memory Detect Pre-Synthesize Catch]:', memErr);
+    }
+  }
+
+  const activeSystemPrompt = `${baseSystemPrompt}\n\n${timeDetectContext}${effectiveMemoryPrompt ? `\n\n${effectiveMemoryPrompt}` : ''}`;
+
 
   const hasMultimodal = cleanedMessages.some((m: any) => {
     if (Array.isArray(m.content)) {
@@ -2033,21 +2331,14 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     console.log(`[X1-PIPELINE] Multimodal image detected. Fast native multimodal routing activated (forensics: ${isForensicsExplicitlyRequested})...`);
 
     const visionGuidance = `
-[توجيه الفحص البصري والتحقق من الذكاء الاصطناعي — FATHOM VISION & AI AUTHENTICITY DIRECTIVE]:
-1. فكّر وتأمّل أولاً حصراً داخل وسم <think> باللغة العربية الفصحى:
-   - افحص سياق المحادثة بدقة:
-     * إذا سأل المستخدم عن فيديو أو وسائط سابقة (مثل "الفيديو الأول صحيح؟"): استرجع ما ورد في الفيديو وافحص صحة كلام المتحدث علمياً ومنطقياً (مثل التحذير الطبي القاطع من خطورة أدوية مدرات البول مثل اللازكس Furosemide لإنقاص الوزن، وتوضيح أضرارها الجسيمة كاختلال الكهارل والجفاف وفقدان سوائل وهمي).
-     * بخصوص الصورة المرفقة في هذا الطلب الحالي:
-       - انتبه جيداً: المرفق في هذا الطلب الحالي هو صورة واحدة فقط (وليست أربع صور)! لا تخلط بينها وبين لقطات الفيديو السابقة في المحادثة.
-       - افحص الصورة بصرياً بأعلى درجات التدقيق لكشف ما إذا كانت مولدة بالذكاء الاصطناعي (AI-Generated / Synthetic / Midjourney / Flux / SDXL / DALL-E) أم صورة فوتوغرافية حقيقية التقطتها كاميرا:
-         • ملمس البشرة والمسام (Skin Texture): هل البشرة مصقولة وبلاستيكية بدون مسام وتجاعيد طبيعية حقيقية (Airbrushed / Hyper-smooth)؟
-         • رسم العيون، البؤبؤ، وانعكاسات الضوء (Eyes & Reflections): هل انعكاس الضوء غير متطابق فيزيائياً أو هل العيون تبدو مرسومة أو فيها بريق زجاجي اصطناعي؟
-         • خصلات الشعر واللحية والشارب: هل تفاصيل الشعر مدمجة أو مرسومة بأسلوب محركات الانتشار العصبي؟
-         • الإضاءة والظلال وعزل الخلفية: هل الإضاءة سينمائية بشكل درامي مصطنع أو هل الحواف متلاشية بشكل غير فيزيائي؟
-       - الحكم الحاسم والصادق: إذا كانت الصورة تحمل أي سمة من سمات التوليد بالذكاء الاصطناعي، اذكر بصراحة تامة وبكل وضوح أنها [صورة مولدة بالذكاء الاصطناعي وليست صورة حقيقية التقطتها كاميرا]، وفنّد الأدلة البصرية التي تثبت ذلك. لا تدّعِ أبداً أنها صورة حقيقية إذا كانت مصطنعة!
-2. بعد إغلاق وسم </think>، قدّم إجابتك باللغة العربية الفصحى بشكل منظم وواضح في قسمين منفصلين:
-   - أولاً (الفيديو الأول): التحليل العلمي الدقيق لموضوع الفيديو ومدى صحته أو خطورته.
-   - ثانياً (الصورة المرفقة): الفحص البصري الأمين والمباشر للصورة الواحدة المرفقة وتحديد هل هي ذكاء اصطناعي أم صورة حقيقية مع سرد الأدلة البصرية.
+[توجيه الإدراك البصري وفحص المستندات والواجهات والصور المرفقة — FATHOM CAM UNIVERSAL MULTIMODAL DIRECTIVE]:
+1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى:
+   - افحص واسترجع كافة الصور، لقطات الشاشة (Screenshots)، الجداول، واجهات المستخدم (UI/UX)، المستندات، والتصاميم المرفقة في هذه المحادثة (سواء أُرفقت في هذه الرسالة أو في الرسائل السابقة أعلاه) عبر محرك المسح البصري الميكروي Fathom Cam.
+   - اقرأ بدقة متناهية كافة النصوص، العناوين، الأزرار، تصنيفات الواجهات، الأيقونات، وحقول البيانات الظاهرة في الصورة.
+   - إذا سأل المستخدم سؤالاً استكمالياً أو متابعة (مثل "اسم الواجهه اي يعني برضو" أو "الجدول مكتوب فيه ايه" أو "القرار الصحيح ايه"):
+     * حلل محتوى الصورة السابقة بدقة هندسية ومفاهيمية، وحدد نوع الواجهة بدقة (مثل واجهة سوق رقمي Digital Marketplace UI، صفحة تسجيل، جدول تنسيق، لوحة تحكم، إلخ) وقدم التسميات العلمية والتطبيقية المعيارية لها.
+   - إذا طلب المستخدم فحص هل الصورة حقيقية أم ذكاء اصطناعي، افحص ملمس البشرة والمسام والإضاءة وانعكاسات الضوء وقدم تقريراً فاحصاً للأدلة البصرية.
+2. بعد إغلاق وسم </think>، قدّم إجابتك باللغة العربية الفصحى بشكل منظم، قاطع، مباشر، وعميق يجيب بدقة تامة على استفسار المستخدم مستنداً إلى التفاصيل البصرية المرئية عبر Fathom Cam دون أي تردد أو اعتذار.
 ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية أو استخدام كود بلوك thought للإجابة.`;
 
     const combinedBlocks = visionGuidance;
@@ -2093,26 +2384,44 @@ app.post('/api/chat', async (req: Request, res: Response) => {
             platformLabel: 'استطلاع فوري',
             summaryBlock: `[استطلاع الرابط: ${url}]`
           });
-        }, 4000);
+        }, 25000);
       });
       return Promise.race([singlePromise, timeoutPromise]);
     });
 
     const settledLinks = await Promise.allSettled(linkPromises);
     const validProcessedLinks: ProcessedLinkData[] = [];
+    const seenPostSignatures = new Set<string>();
 
     settledLinks.forEach((res, idx) => {
       if (res.status === 'fulfilled') {
-        validProcessedLinks.push(res.value);
+        const item = res.value;
+        const norm = (item.url || '').trim().toLowerCase().replace(/\/+$/, '').replace(/\/permalink\//i, '/posts/');
+        const summarySig = item.summaryBlock ? item.summaryBlock.slice(0, 80).trim() : norm;
+        if (!seenPostSignatures.has(norm) && !seenPostSignatures.has(summarySig)) {
+          seenPostSignatures.add(norm);
+          if (summarySig) seenPostSignatures.add(summarySig);
+          validProcessedLinks.push(item);
+        }
       } else {
-        validProcessedLinks.push({
-          index: idx,
-          url: allExtractedUrls[idx],
-          category: 'web_site',
-          platformLabel: 'رابط غير محدد',
-          summaryBlock: `[فحص الرابط: ${allExtractedUrls[idx]}]`
-        });
+        const rawUrl = allExtractedUrls[idx];
+        const norm = (rawUrl || '').trim().toLowerCase().replace(/\/+$/, '').replace(/\/permalink\//i, '/posts/');
+        if (!seenPostSignatures.has(norm)) {
+          seenPostSignatures.add(norm);
+          validProcessedLinks.push({
+            index: validProcessedLinks.length,
+            url: rawUrl,
+            category: 'web_site',
+            platformLabel: 'رابط غير محدد',
+            summaryBlock: `[فحص الرابط: ${rawUrl}]`
+          });
+        }
       }
+    });
+
+    // Re-index cleanly
+    validProcessedLinks.forEach((item, i) => {
+      item.index = i;
     });
 
     const masterMultiLinkMatrix = buildMultiLinkMatrixBlock(validProcessedLinks);
@@ -2676,6 +2985,21 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         });
         await serverSupabase.from('x1_chats').update({ updated_at: new Date().toISOString() }).eq('id', chatId);
         console.log(`[X1-SERVER] ✓ Assistant message persisted to Supabase in background for chatId: ${chatId}`);
+
+        // Autonomous Background Memory Ingestion & Chunking
+        memoryDetectService.autoIndexConversation({
+          chatId,
+          messages: [...cleanedMessages, { role: 'assistant', content: finalServerContent.trim() }],
+          chatTitle: 'محادثة المستخدم',
+          userId: userId || null,
+          deviceId: deviceId || null
+        }).then(idxRes => {
+          if (idxRes.indexedCount > 0) {
+            console.log(`[X1-SERVER] ✓ Memory Detect auto-indexed (${idxRes.indexedCount}) semantic chunks for chatId: ${chatId}`);
+          }
+        }).catch(idxErr => {
+          console.warn('[X1-SERVER] Memory Detect auto-index error:', idxErr?.message);
+        });
       } catch (saveErr: any) {
         console.warn('[X1-SERVER] Background save failed:', saveErr?.message);
       }

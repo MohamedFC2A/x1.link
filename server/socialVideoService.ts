@@ -426,13 +426,15 @@ export async function fetchFacebookVideoData(url: string): Promise<SocialVideoRe
 
     // Determine full text content
     const bestFullContent = jsonLdBody || rawPostText || ogDesc || metaDesc || ogTitle || 'محتوى منشور فيسبوك';
-    const isVideo = Boolean(directVideoUrl || ogType.includes('video') || /(?:videos|reel|watch|share)\//i.test(currentUrl));
+    const isExplicitVideoUrl = /(?:facebook\.com|fb\.watch)\/(?:reel|reels|watch|videos|share\/v\/|share\/r\/)/i.test(currentUrl);
+    const isExplicitPostUrl = /(?:facebook\.com|fb\.me)\/(?:share\/p\/|posts\/|permalink\.php|story\.php|photos\/|photo\/)/i.test(currentUrl);
+    const isVideo = Boolean((directVideoUrl || isExplicitVideoUrl) && !isExplicitPostUrl && !currentUrl.includes('/share/p/'));
     const isPhoto = Boolean(!isVideo && (allMediaUrls.length > 0 || ogType.includes('photo')));
     const postType: SocialVideoMetadata['postType'] = isVideo ? 'video' : isPhoto ? 'photo' : 'post';
 
     // Extract ID
     const idMatch = currentUrl.match(/(?:videos|reel|watch\/\?v=|watch\?v=|share\/v\/|share\/r\/|share\/p\/|share\/|posts\/|photos\/|permalink\/|fbid=)([0-9a-zA-Z_-]+)/i);
-    const videoId = idMatch ? idMatch[1] : undefined;
+    const videoId = isVideo ? idMatch?.[1] : undefined;
 
     const result: SocialVideoMetadata = {
       platform: 'facebook',
@@ -562,20 +564,34 @@ export function buildSocialVideoContextBlock(
   };
 
   const pName = platformNames[metadata.platform] || metadata.platform;
+  const postTypeLabel = metadata.postType === 'video' ? 'Video / Reel' : metadata.postType === 'photo' ? 'Photo / Image Post' : 'Post / Discussion';
+  const authorLabel = `${metadata.author.displayName} (@${metadata.author.username})`;
+  const fullContent = metadata.fullContent || metadata.description || metadata.title;
 
-  parts.push(`📘 [استخبارات وتحليل وسائط ومنشورات ${pName}]`);
+  parts.push(`[RESOLVED LINK DATA]:`);
+  parts.push(`- Platform: ${metadata.platform === 'facebook' ? 'Facebook' : metadata.platform === 'instagram' ? 'Instagram' : metadata.platform === 'twitter' ? 'X (Twitter)' : metadata.platform}`);
+  parts.push(`- Post Type: ${postTypeLabel}`);
+  parts.push(`- Title / Subject: ${metadata.title}`);
+  parts.push(`- Author / Page: ${authorLabel}`);
+  parts.push(`- Canonical URL: ${metadata.canonicalUrl}`);
+  parts.push(`- Full Post Text:\n"""\n${fullContent.trim()}\n"""`);
+
+  if (metadata.commentsList && metadata.commentsList.length > 0) {
+    parts.push(`- Top Comments / Reactions:`);
+    metadata.commentsList.forEach((c, idx) => {
+      parts.push(`  ${idx + 1}. [${c.author}]: "${c.text}"${c.time ? ` (${c.time})` : ''}`);
+    });
+  } else {
+    parts.push(`- Top Comments / Reactions: لا توجد تعليقات عامة إضافية متاحة على هذا المنشور.`);
+  }
+
   parts.push(bar);
+  parts.push(`📘 [استخبارات وتحليل وسائط ومنشورات ${pName}]`);
   parts.push(`• المنصة: ${pName}`);
   parts.push(`• نوع المنشور: ${metadata.postType === 'video' ? 'فيديو / ريلز (Video / Reel)' : metadata.postType === 'photo' ? 'منشور بصري / صور (Photo / Gallery)' : 'منشور وسائط اجتماعية (Social Post)'}`);
   parts.push(`• الرابط الأصلي المعتمد: ${metadata.canonicalUrl}`);
   parts.push(`• صاحب المنشور / الصفحة: ${metadata.author.displayName} (@${metadata.author.username})`);
   parts.push(`• عنوان المنشور: "${metadata.title}"`);
-  
-  if (metadata.fullContent && metadata.fullContent !== metadata.title) {
-    parts.push(`\n📝 [نص المنشور / البوست كاملاً بالتفصيل]:\n"""\n${metadata.fullContent}\n"""`);
-  } else if (metadata.description && metadata.description !== metadata.title) {
-    parts.push(`\n📝 [نص ووصف المنشور]:\n"""\n${metadata.description}\n"""`);
-  }
 
   if (metadata.mediaUrls && metadata.mediaUrls.length > 0) {
     parts.push(`\n🖼️ [الصور والمرفقات البصرية المستخرجة — إجمالي (${metadata.mediaUrls.length}) صور عالية الدقة]:`);

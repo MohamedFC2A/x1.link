@@ -294,89 +294,93 @@ export async function streamChatCompletion({
       });
     };
 
-    while (true) {
-      if (controller.signal.aborted) {
-        try {
-          await reader.cancel();
-        } catch {}
-        break;
-      }
-
-      const { done, value } = await reader.read();
-      if (done || controller.signal.aborted) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (controller.signal.aborted) break;
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith(':')) continue;
-
-        if (trimmed === 'data: [DONE]' || trimmed === '[DONE]') {
-          onComplete();
-          return () => controller.abort();
+    try {
+      while (true) {
+        if (controller.signal.aborted) {
+          try {
+            await reader.cancel();
+          } catch {}
+          break;
         }
 
-        if (trimmed.startsWith('data:')) {
-          const payload = trimmed.replace(/^data:\s*/, '');
-          if (payload === '[DONE]') {
+        const { done, value } = await reader.read();
+        if (done || controller.signal.aborted) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (controller.signal.aborted) break;
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith(':')) continue;
+
+          if (trimmed === 'data: [DONE]' || trimmed === '[DONE]') {
             onComplete();
             return () => controller.abort();
           }
 
-          try {
-            const parsed = JSON.parse(payload);
-            if (parsed.error) {
-              const errMsg = typeof parsed.error === 'object'
-                ? parsed.error.message || JSON.stringify(parsed.error)
-                : parsed.error;
-              onError(errMsg || 'حدث خطأ في استجابة الذكاء الاصطناعي');
-              continue;
+          if (trimmed.startsWith('data:')) {
+            const payload = trimmed.replace(/^data:\s*/, '');
+            if (payload === '[DONE]') {
+              onComplete();
+              return () => controller.abort();
             }
 
-            const content = parsed.choices?.[0]?.delta?.content ?? parsed.content ?? '';
-            const reasoning = parsed.choices?.[0]?.delta?.reasoning_content ?? parsed.choices?.[0]?.delta?.reasoning ?? '';
-            if (content || reasoning) {
-              processDelta(content, reasoning);
-            }
-          } catch {
-            // Non-JSON plain text SSE fallback
-            if (payload && payload !== '[DONE]') {
-              processDelta(payload);
+            try {
+              const parsed = JSON.parse(payload);
+              if (parsed.error) {
+                const errMsg = typeof parsed.error === 'object'
+                  ? parsed.error.message || JSON.stringify(parsed.error)
+                  : parsed.error;
+                onError(errMsg || 'حدث خطأ في استجابة الذكاء الاصطناعي');
+                continue;
+              }
+
+              const content = parsed.choices?.[0]?.delta?.content ?? parsed.content ?? '';
+              const reasoning = parsed.choices?.[0]?.delta?.reasoning_content ?? parsed.choices?.[0]?.delta?.reasoning ?? '';
+              if (content || reasoning) {
+                processDelta(content, reasoning);
+              }
+            } catch {
+              // Non-JSON plain text SSE fallback
+              if (payload && payload !== '[DONE]') {
+                processDelta(payload);
+              }
             }
           }
         }
       }
+    } catch (readErr: any) {
+      if (readErr.name === 'AbortError' || controller.signal.aborted) {
+        // Handled cleanly below
+      } else {
+        throw readErr;
+      }
     }
 
     // Final stream resolution: ensure unclosed think tags or trailing content are resolved
-    if (!controller.signal.aborted) {
-      if (!accumulatedContent && accumulatedReasoning) {
-        // If content is empty because the model omitted </think> or only sent reasoning,
-        // extract the actual response cleanly
-        accumulatedContent = accumulatedReasoning.trim();
-        isThinking = false;
-        onChunk({
-          content: accumulatedContent,
-          reasoning: accumulatedReasoning,
-          isThinking: false
-        });
-      } else if (isThinking) {
-        isThinking = false;
-        onChunk({
-          content: accumulatedContent,
-          reasoning: accumulatedReasoning,
-          isThinking: false
-        });
-      }
+    if (!accumulatedContent && accumulatedReasoning && !controller.signal.aborted) {
+      accumulatedContent = accumulatedReasoning.trim();
+      isThinking = false;
+      onChunk({
+        content: accumulatedContent,
+        reasoning: accumulatedReasoning,
+        isThinking: false
+      });
+    } else if (isThinking) {
+      isThinking = false;
+      onChunk({
+        content: accumulatedContent,
+        reasoning: accumulatedReasoning,
+        isThinking: false
+      });
     }
 
     onComplete();
   } catch (err: any) {
     if (err.name === 'AbortError' || controller.signal.aborted) {
-      console.log('[Stream Aborted by User]');
+      console.log('[Stream Aborted gracefully by User]');
     } else {
       const isFailedFetch = err?.message === 'Failed to fetch' || err?.name === 'TypeError' || err?.message?.includes('NetworkError');
       const errorMsg = isFailedFetch
@@ -387,7 +391,11 @@ export async function streamChatCompletion({
     onComplete();
   }
 
-  return () => controller.abort();
+  return () => {
+    try {
+      controller.abort();
+    } catch {}
+  };
 }
 
 const linkResolveCache = new Map<string, ResolvedLinkInfo>();

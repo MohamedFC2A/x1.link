@@ -1,20 +1,34 @@
-import { resolveAndProfileUrl } from './server/linkResolver';
+import { scrapeDeepLink, resolveAndProfileUrl } from './server/linkResolver';
 
 async function main() {
-  const urls = [
-    'https://share.google/8vmn8EuLXAcCEUjmZ',
-    'https://share.google/s4u3fllweQE4l4sER',
-  ];
-  for (const u of urls) {
-    console.log(`\n================== RESOLVING ${u} ==================`);
-    const result = await resolveAndProfileUrl(u);
-    console.log('Original URL:', result.originalUrl);
-    console.log('Domain:', result.domain);
-    console.log('Favicon:', result.brandAssets.favicon);
-    console.log('Best Logo:', result.brandAssets.bestLogoUrl);
-    console.log('Frameworks:', result.frameworks);
-    console.log('Summary:\n', result.rawAnalysisSummaryAr);
-  }
+  console.log('================================================================');
+  console.log('🧪 TESTING 4-TIER DEEP SCRAPER PIPELINE ACROSS PLATFORMS');
+  console.log('================================================================\n');
+
+  // 1. Twitter / X
+  console.log('1️⃣ Testing X / Twitter Tweet (status: 20)...');
+  const tw = await scrapeDeepLink('https://x.com/jack/status/20');
+  console.log(tw.structuredContextBlock);
+  console.log('----------------------------------------------------------------\n');
+
+  // 2. Facebook Share Link
+  console.log('2️⃣ Testing Facebook Share Link (https://www.facebook.com/share/p/19Dn6XiewB/)...');
+  const fb = await scrapeDeepLink('https://www.facebook.com/share/p/19Dn6XiewB/');
+  console.log(fb.structuredContextBlock);
+  console.log('----------------------------------------------------------------\n');
+
+  // 3. YouTube Link
+  console.log('3️⃣ Testing YouTube Link (https://youtu.be/dQw4w9WgXcQ)...');
+  const yt = await scrapeDeepLink('https://youtu.be/dQw4w9WgXcQ');
+  console.log(yt.structuredContextBlock);
+  console.log('----------------------------------------------------------------\n');
+
+  // 4. Web Article Link
+  console.log('4️⃣ Testing Generic Web Link (https://example.com)...');
+  const web = await scrapeDeepLink('https://example.com');
+  console.log(web.structuredContextBlock);
+  console.log('================================================================');
 }
 
 main().catch(err => console.error('Error:', err));
+

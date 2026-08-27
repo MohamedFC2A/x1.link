@@ -55,7 +55,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-header px-3 sm:px-8 py-2 sm:py-2.5 select-none transition-colors pt-safe shrink-0 border-b border-white/[0.08]" dir="rtl">
+    <header className="sticky top-0 z-40 w-full bg-[#060709]/80 backdrop-blur-xl border-b border-white/[0.05] px-3 sm:px-8 py-2 sm:py-2.5 select-none transition-colors pt-safe shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.5)]" dir="rtl">
       <div className="w-full max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4 relative z-40">
         
         {/* Right (Start in RTL) - Menu Button */}
@@ -63,10 +63,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={onOpenSidebar}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95 border bg-white/[0.06] hover:bg-white/[0.12] text-zinc-100 border-white/[0.12]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95 border bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 hover:text-white border-white/[0.08]"
             title="سجل المحادثات والقائمة"
           >
-            <Menu className="w-4 h-4 text-zinc-100" />
+            <Menu className="w-4 h-4 text-zinc-200" />
             <span className="hidden sm:inline font-sans text-xs">السجل والقائمة</span>
           </button>
         </div>
@@ -81,14 +81,14 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
 
         {/* Center / Fast Navigation Pills (Desktop & Tablet Only) */}
-        <nav className="hidden md:flex items-center gap-1 bg-[#08080d] p-1 rounded-2xl border border-white/[0.08] shadow-inner">
+        <nav className="hidden md:flex items-center gap-1 bg-white/[0.03] p-1 rounded-2xl border border-white/[0.06] backdrop-blur-md shadow-inner">
           <button
             type="button"
             onClick={onNavigateToChat}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
               currentView === 'chat'
-                ? 'bg-white text-zinc-950 shadow-sm font-bold'
-                : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                ? 'bg-white/[0.12] border border-white/[0.15] text-white shadow-[0_2px_12px_rgba(0,0,0,0.4)] font-bold'
+                : 'text-zinc-400 hover:text-white hover:bg-white/[0.04] border border-transparent'
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5" />
@@ -100,8 +100,8 @@ export const TopBar: React.FC<TopBarProps> = ({
             onClick={onNavigateToPricing}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
               currentView === 'pricing'
-                ? 'bg-white text-zinc-950 shadow-sm font-bold'
-                : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                ? 'bg-white/[0.12] border border-white/[0.15] text-white shadow-[0_2px_12px_rgba(0,0,0,0.4)] font-bold'
+                : 'text-zinc-400 hover:text-white hover:bg-white/[0.04] border border-transparent'
             }`}
           >
             <CreditCard className="w-3.5 h-3.5" />
@@ -113,8 +113,8 @@ export const TopBar: React.FC<TopBarProps> = ({
             onClick={onNavigateToProfile}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
               currentView === 'profile'
-                ? 'bg-white text-zinc-950 shadow-sm font-bold'
-                : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                ? 'bg-white/[0.12] border border-white/[0.15] text-white shadow-[0_2px_12px_rgba(0,0,0,0.4)] font-bold'
+                : 'text-zinc-400 hover:text-white hover:bg-white/[0.04] border border-transparent'
             }`}
           >
             <UserIcon className="w-3.5 h-3.5" />

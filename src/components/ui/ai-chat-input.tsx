@@ -270,25 +270,16 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     // Detect if attachments contain videos, audio, or documents
     const hasNonImageMedia = attachments.some(a => a.mediaType === 'video' || a.mediaType === 'audio' || a.mediaType === 'document');
 
-    const effectiveModel: ModelType = hasNonImageMedia
-      ? 'meta/muse-spark-1.2-contributor'
-      : hasAttachments
-      ? 'deepseek-v4-flash-vision-exp'
-      : hasUrls
-      ? 'deepseek-v4-flash-cyber'
-      : internalModel;
+    // The primary reasoning model chosen by the user is ALWAYS preserved
+    const effectiveModel: ModelType = internalModel;
 
-    const isVisionMode = effectiveModel === 'deepseek-v4-flash-vision-exp';
-    const isCyber21Mode = effectiveModel === 'deepseek-v4-pro-cyber-2.1' || effectiveModel === 'deepseek-v4-flash-cyber-2.1';
-    const isCyber20Mode = effectiveModel === 'deepseek-v4-flash-cyber';
+    const isVisionMode = hasAttachments && !hasNonImageMedia;
+    const isCyber21Mode = internalModel === 'deepseek-v4-pro-cyber-2.1' || internalModel === 'deepseek-v4-flash-cyber-2.1';
+    const isCyber20Mode = internalModel === 'deepseek-v4-flash-cyber';
     const isCyberMode = isCyber20Mode || isCyber21Mode;
-    const isMediaMode = effectiveModel === 'meta/muse-spark-1.2-contributor';
+    const isMediaMode = hasNonImageMedia;
 
-    const activeModelDisplayName = isMediaMode
-      ? "Fathom Spark"
-      : isVisionMode
-      ? "Fathom Cam"
-      : isCyber21Mode
+    const activeModelDisplayName = isCyber21Mode
       ? "Fathom Cyber 2.1"
       : isCyber20Mode
       ? "Fathom Cyber 2.0"
@@ -313,34 +304,24 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           return combined;
         });
         setCyberInputUrl('');
-        setInternalModel('deepseek-v4-flash-cyber');
-        onSelectModel?.('deepseek-v4-flash-cyber');
       }
-    }, [onSelectModel, showUrlLimitToast]);
+    }, [showUrlLimitToast]);
 
     const triggerFileInput = useCallback((acceptType?: 'all' | 'video' | 'audio' | 'image' | 'doc') => {
       if (!fileInputRef.current) return;
       if (acceptType === 'video') {
         fileInputRef.current.accept = "video/*";
-        setInternalModel('meta/muse-spark-1.2-contributor');
-        onSelectModel?.('meta/muse-spark-1.2-contributor');
       } else if (acceptType === 'audio') {
         fileInputRef.current.accept = "audio/*";
-        setInternalModel('meta/muse-spark-1.2-contributor');
-        onSelectModel?.('meta/muse-spark-1.2-contributor');
       } else if (acceptType === 'doc') {
         fileInputRef.current.accept = ".pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.py,.js,.ts,.tsx,.jsx,.html,.css,.sql,.yaml,.yml,.zip";
-        setInternalModel('meta/muse-spark-1.2-contributor');
-        onSelectModel?.('meta/muse-spark-1.2-contributor');
       } else if (acceptType === 'image') {
         fileInputRef.current.accept = "image/*";
-        setInternalModel('deepseek-v4-flash-vision-exp');
-        onSelectModel?.('deepseek-v4-flash-vision-exp');
       } else {
         fileInputRef.current.accept = "image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.py,.js,.ts,.tsx,.jsx,.html,.css,.sql,.yaml,.yml,.zip";
       }
       fileInputRef.current.click();
-    }, [onSelectModel]);
+    }, []);
 
     const handleValueChange = useCallback(
       (val: string) => {
@@ -1040,68 +1021,6 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       </div>
                       <div className="text-[11px] text-zinc-300 font-normal leading-relaxed mt-0.5">
                         استدلال اختطافي فائق واكتشاف علمي مؤتمت مع هندسة سيبرانية سيادية متقدمة
-                      </div>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Model 3: Fathom Cam */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInternalModel('deepseek-v4-flash-vision-exp');
-                    onSelectModel?.('deepseek-v4-flash-vision-exp');
-                    setIsModelMenuOpen(false);
-                    if (attachments.length === 0) {
-                      fileInputRef.current?.click();
-                    }
-                  }}
-                  className={cn(
-                    "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
-                    internalModel === 'deepseek-v4-flash-vision-exp' && !hasNonImageMedia
-                      ? "bg-white/[0.09] text-white font-bold border-white/[0.16] shadow-sm"
-                      : "hover:bg-white/[0.04] text-zinc-300 border-transparent"
-                  )}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
-                      <Camera className="w-4 h-4 text-emerald-400" />
-                    </div>
-                    <div className="min-w-0 text-right">
-                      <div className="font-bold text-xs text-white">Fathom Cam</div>
-                      <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
-                        تحليل بصري، قراءة المستندات، واستخراج الصور
-                      </div>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Model 4: Fathom Spark (Meta Muse Spark 1.2) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInternalModel('meta/muse-spark-1.2-contributor');
-                    onSelectModel?.('meta/muse-spark-1.2-contributor');
-                    setIsModelMenuOpen(false);
-                    if (attachments.length === 0) {
-                      fileInputRef.current?.click();
-                    }
-                  }}
-                  className={cn(
-                    "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
-                    internalModel === 'meta/muse-spark-1.2-contributor' || hasNonImageMedia
-                      ? "bg-white/[0.09] text-white font-bold border-white/[0.16] shadow-sm"
-                      : "hover:bg-white/[0.04] text-zinc-300 border-transparent"
-                  )}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
-                      <Sparkles className="w-4 h-4 text-violet-400" />
-                    </div>
-                    <div className="min-w-0 text-right">
-                      <div className="font-bold text-xs text-white">Fathom Spark</div>
-                      <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
-                        استيعاب شامل للفيديوهات، الصوتيات، والملفات
                       </div>
                     </div>
                   </div>

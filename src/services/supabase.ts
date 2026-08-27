@@ -411,3 +411,143 @@ export async function saveCloudUserMemories(
     console.warn('[Supabase saveUserMemories Exception]:', err);
   }
 }
+
+// ============================================================================
+// MEMORY DETECT 2.0: HYBRID VECTOR SEARCH & KNOWLEDGE GRAPH SUPABASE CLIENT
+// ============================================================================
+
+export interface HybridMemorySearchOptions {
+  query: string;
+  scope?: string;
+  timeFilter?: string;
+  matchThreshold?: number;
+  matchCount?: number;
+  userId?: string | null;
+}
+
+export async function searchCloudMemoriesHybrid(
+  options: HybridMemorySearchOptions
+): Promise<any[]> {
+  const deviceId = getOrCreateDeviceId();
+  try {
+    const { data, error } = await supabase.rpc('match_chat_history', {
+      query_text: options.query,
+      query_embedding: null,
+      match_threshold: options.matchThreshold || 0.15,
+      match_count: options.matchCount || 8,
+      p_user_id: options.userId || null,
+      p_device_id: deviceId,
+      p_scope: options.scope || 'all',
+      p_time_filter: options.timeFilter || 'all_time',
+      rrf_k: 60
+    });
+
+    if (error) {
+      console.warn('[Supabase searchCloudMemoriesHybrid RPC Error]:', error.message);
+      // Direct text fallback
+      let query = supabase
+        .from('x1_semantic_memories')
+        .select('*')
+        .eq('is_latest', true)
+        .order('created_at', { ascending: false })
+        .limit(options.matchCount || 8);
+
+      if (options.userId) {
+        query = query.eq('user_id', options.userId);
+      } else {
+        query = query.eq('device_id', deviceId);
+      }
+
+      if (options.query) {
+        query = query.ilike('content', `%${options.query}%`);
+      }
+
+      const { data: fallbackData } = await query;
+      return fallbackData || [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.warn('[Supabase searchCloudMemoriesHybrid Exception]:', err);
+    return [];
+  }
+}
+
+export async function updateCloudMemoryNode(
+  nodeId: string,
+  newContent: string,
+  reason: string,
+  userId?: string | null
+): Promise<{ success: boolean; updatedId?: string; error?: string }> {
+  const deviceId = getOrCreateDeviceId();
+  try {
+    const { data, error } = await supabase.rpc('update_memory_node_content', {
+      p_node_id: nodeId,
+      p_new_content: newContent,
+      p_reason: reason,
+      p_user_id: userId || null,
+      p_device_id: deviceId
+    });
+
+    if (error) {
+      console.warn('[Supabase updateCloudMemoryNode Error]:', error.message);
+      return { success: false, error: error.message };
+    }
+    return data || { success: true, updatedId: nodeId };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function linkCloudChatSessions(
+  sourceChatId: string,
+  targetChatId: string,
+  relationshipType: string,
+  userId?: string | null,
+  metadata?: Record<string, any>
+): Promise<{ success: boolean; linkId?: string; error?: string }> {
+  const deviceId = getOrCreateDeviceId();
+  try {
+    const { data, error } = await supabase.rpc('link_chat_sessions', {
+      p_source_chat_id: sourceChatId,
+      p_target_chat_id: targetChatId,
+      p_relationship_type: relationshipType,
+      p_confidence: 1.0,
+      p_metadata: metadata || {},
+      p_user_id: userId || null,
+      p_device_id: deviceId
+    });
+
+    if (error) {
+      console.warn('[Supabase linkCloudChatSessions Error]:', error.message);
+      return { success: false, error: error.message };
+    }
+    return data || { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function fetchChatGraphTopology(
+  chatId: string,
+  userId?: string | null
+): Promise<any[]> {
+  const deviceId = getOrCreateDeviceId();
+  try {
+    const { data, error } = await supabase.rpc('get_chat_graph_topology', {
+      p_chat_id: chatId,
+      p_user_id: userId || null,
+      p_device_id: deviceId,
+      p_max_depth: 2
+    });
+
+    if (error) {
+      console.warn('[Supabase fetchChatGraphTopology Error]:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch {
+    return [];
+  }
+}
+

@@ -45,6 +45,8 @@ export interface ChatMessageItem {
   isDiscoveryAuraActive?: boolean;
   discoveryAxiomSummary?: string;
   discoveryStage?: 'anomaly' | 'hypothesis' | 'prover' | 'axiom_integrated';
+  isStopped?: boolean;
+  stoppedReason?: string;
 }
 
 export interface WebAuthnVerificationResult {
@@ -104,7 +106,10 @@ export interface ResolvedLinkInfo {
       hasMonospace: boolean;
     };
   };
-  mediaType?: 'video' | 'website';
+  mediaType?: 'video' | 'post' | 'image' | 'article' | 'website';
+  isVideo?: boolean;
+  postType?: 'video' | 'post' | 'photo' | 'article' | 'discussion';
+  platformLabel?: string;
   videoMetadata?: {
     videoId?: string;
     authorName?: string;
@@ -113,6 +118,7 @@ export interface ResolvedLinkInfo {
     platform?: 'youtube' | 'tiktok' | 'instagram' | 'facebook' | 'twitter';
   };
   rawAnalysisSummaryAr?: string;
+  structuredContextBlock?: string;
 }
 
 export interface MediaFormatOption {
@@ -166,4 +172,50 @@ export interface DownloadDetectResult {
   extractedAt: number;
 }
 
+export type SemanticMemoryScope = 
+  | 'general_chat' 
+  | 'code_snippets' 
+  | 'decisions' 
+  | 'cyber_findings' 
+  | 'user_facts' 
+  | 'target_recon' 
+  | 'all';
 
+export type TimeFilterRange = 'last_day' | 'last_week' | 'last_month' | 'all_time';
+
+export type ChatRelationshipType = 
+  | 'SUPERSEDES' 
+  | 'EXTENDS' 
+  | 'DEPENDS_ON' 
+  | 'SAME_PROJECT' 
+  | 'RELATES_TO' 
+  | 'CONTRADICTS';
+
+export interface SemanticMemoryRecord {
+  id: string;
+  chat_id: string;
+  message_id?: string | null;
+  message_role: 'user' | 'assistant' | 'system' | 'distilled_summary' | 'insight';
+  scope: SemanticMemoryScope;
+  content: string;
+  summary?: string | null;
+  entities: string[];
+  keywords: string[];
+  token_count: number;
+  created_at: string;
+  vector_similarity?: number;
+  text_similarity?: number;
+  rrf_score?: number;
+}
+
+export interface ChatGraphEdge {
+  link_id: string;
+  source_chat_id: string;
+  target_chat_id: string;
+  source_title: string;
+  target_title: string;
+  relationship_type: ChatRelationshipType;
+  confidence: number;
+  metadata: Record<string, any>;
+  created_at: string;
+}

@@ -136,12 +136,23 @@ async function urlToBase64DataUri(url: string, timeoutMs = 8000): Promise<string
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const headers: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+      'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+    };
+    if (url.includes('facebook') || url.includes('fbcdn')) {
+      headers['Referer'] = 'https://www.facebook.com/';
+    } else if (url.includes('tiktok')) {
+      headers['Referer'] = 'https://www.tiktok.com/';
+    } else if (url.includes('instagram')) {
+      headers['Referer'] = 'https://www.instagram.com/';
+    } else if (url.includes('twimg') || url.includes('x.com') || url.includes('twitter')) {
+      headers['Referer'] = 'https://x.com/';
+    }
+
     const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-        'Referer': 'https://www.tiktok.com/',
-      },
+      headers,
       signal: controller.signal,
     });
     clearTimeout(timeout);
@@ -258,57 +269,84 @@ export async function performVideoVisionPerception(
     });
   });
 
-  try {
-    const visionController = new AbortController();
-    const visionTimeout = setTimeout(() => visionController.abort(), 10000);
-    if (signal) {
-      signal.addEventListener('abort', () => visionController.abort(), { once: true });
-    }
-
-    const res = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
+  const openRouterKey = process.env.OPENROUTER_API_KEY || '';
+  const videoGateways: Array<{
+    url: string;
+    key: string;
+    model: string;
+    headers: Record<string, string>;
+  }> = [
+    ...(openRouterKey ? [{
+      url: 'https://openrouter.ai/api/v1/chat/completions',
+      key: openRouterKey,
+      model: 'google/gemini-2.5-flash',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash-vision-exp',
-        messages: [{ role: 'user', content: contentParts }],
-        temperature: 0.2,
-        max_tokens: 4096,
-      }),
-      signal: visionController.signal
-    });
-    clearTimeout(visionTimeout);
-
-    if (res.ok) {
-      const data = await res.json();
-      const content = data.choices?.[0]?.message?.content?.trim();
-      if (content) {
-        console.log(`[VideoVisionEngine] ✓ deepseek-v4-flash-vision-exp succeeded (${content.length} chars)`);
-        const result: VideoVisionResult = {
-          videoId,
-          platform,
-          visualAnalysisAr: content,
-          unspokenDetails: [],
-          temporalTransitions: {
-            initialState: '',
-            intermediateTransitions: '',
-            finalState: '',
-          },
-          keyframes,
-          analyzedAt: Date.now(),
-          cached: false,
-        };
-        setCachedVision(cacheKey, result);
-        return result;
+        'HTTP-Referer': 'https://matany.one',
+        'X-Title': 'Matany AI',
       }
-    } else {
-      const errText = await res.text().catch(() => '');
-      console.warn('[VideoVisionEngine] deepseek-v4-flash-vision-exp HTTP Error:', res.status, errText);
+    }] : []),
+    {
+      url: `${baseUrl}/chat/completions`,
+      key: apiKey,
+      model: 'deepseek-v4-flash-vision-exp',
+      headers: {}
     }
-  } catch (err: any) {
-    console.warn('[VideoVisionEngine] deepseek-v4-flash-vision-exp error:', err?.message);
+  ];
+
+  for (const gw of videoGateways) {
+    try {
+      const visionController = new AbortController();
+      const visionTimeout = setTimeout(() => visionController.abort(), 14000);
+      if (signal) {
+        signal.addEventListener('abort', () => visionController.abort(), { once: true });
+      }
+
+      const res = await fetch(gw.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${gw.key}`,
+          ...gw.headers
+        },
+        body: JSON.stringify({
+          model: gw.model,
+          messages: [{ role: 'user', content: contentParts }],
+          temperature: 0.2,
+          max_tokens: 4096,
+        }),
+        signal: visionController.signal
+      });
+      clearTimeout(visionTimeout);
+
+      if (res.ok) {
+        const data = await res.json();
+        const content = data.choices?.[0]?.message?.content?.trim();
+        if (content) {
+          console.log(`[VideoVisionEngine] ✓ ${gw.model} succeeded (${content.length} chars)`);
+          const result: VideoVisionResult = {
+            videoId,
+            platform,
+            visualAnalysisAr: content,
+            unspokenDetails: [],
+            temporalTransitions: {
+              initialState: '',
+              intermediateTransitions: '',
+              finalState: '',
+            },
+            keyframes,
+            analyzedAt: Date.now(),
+            cached: false,
+          };
+          setCachedVision(cacheKey, result);
+          return result;
+        }
+      } else {
+        const errText = await res.text().catch(() => '');
+        console.warn(`[VideoVisionEngine] ${gw.model} HTTP Error:`, res.status, errText);
+      }
+    } catch (err: any) {
+      console.warn(`[VideoVisionEngine] ${gw.model} error:`, err?.message);
+    }
   }
 
   return null;
@@ -419,4 +457,212 @@ export function buildMasterVideoIntelligenceBlock(
   parts.push(bar);
 
   return parts.join('\n');
+}
+
+// ─── 5. Fathom Cam Post Image & Document Vision Engine ───────────────────────────
+
+export interface PostVisionResult {
+  postId: string;
+  platform: 'facebook' | 'instagram' | 'twitter' | 'youtube' | 'tiktok' | 'generic' | 'web' | string;
+  visualAnalysisAr: string;
+  imageUrls: string[];
+  analyzedAt: number;
+  cached?: boolean;
+}
+
+const postVisionCache = new Map<string, { result: PostVisionResult; expiresAt: number }>();
+
+export async function performPostImageVisionPerception(
+  postId: string,
+  platform: 'facebook' | 'instagram' | 'twitter' | 'youtube' | 'tiktok' | 'generic' | 'web' | string,
+  imageUrls: string[],
+  contextInfo: { title?: string; caption?: string; userPrompt?: string },
+  apiKey: string = process.env.DEEPSEEK_API_KEY || '',
+  baseUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
+  signal?: AbortSignal
+): Promise<PostVisionResult | null> {
+  if (!apiKey || !imageUrls || imageUrls.length === 0) return null;
+
+  const validUrls = Array.from(new Set(imageUrls.filter(Boolean))).slice(0, 4);
+  if (validUrls.length === 0) return null;
+
+  const cacheKey = `post_vision:${platform}:${postId}:${validUrls.join(',')}`;
+  const cached = postVisionCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    console.log(`[FathomCamVision] Cache hit for ${cacheKey}`);
+    return { ...cached.result, cached: true };
+  }
+
+  const platformAr =
+    platform === 'facebook' ? 'فيسبوك (Facebook Post)' :
+    platform === 'instagram' ? 'إنستغرام (Instagram Post)' :
+    platform === 'twitter' ? 'منصة إكس / تويتر (X / Twitter)' : 'المنشور';
+
+  // Convert image URLs to Base64 data URIs in parallel
+  const converted = await Promise.all(
+    validUrls.map(async (imgUrl) => {
+      const b64 = await urlToBase64DataUri(imgUrl);
+      if (!b64 || !b64.startsWith('data:image/')) return null;
+      return { url: imgUrl, dataUri: b64 };
+    })
+  );
+
+  const resolvedImages = converted.filter(Boolean) as { url: string; dataUri: string }[];
+  if (resolvedImages.length === 0) {
+    console.log(`[FathomCamVision] No valid base64 images resolved for ${platform} (${postId})`);
+    return null;
+  }
+
+  console.log(`[FathomCamVision] 👁️ Running deepseek-v4-flash-vision-exp on ${resolvedImages.length} images for ${platform} (${postId})...`);
+
+  const visionPrompt = `[نظام الإدراك البصري الفائق وقراءة الجداول والمستندات والصور — FATHOM CAM VISION ENGINE]:
+تم رصد واستخراج عدد (${resolvedImages.length}) صور ومرفقات بصرية من منشور ${platformAr}:
+• عنوان / موضوع المنشور: "${contextInfo.title || 'غير محدد'}"
+• نص / كابشن المنشور: "${contextInfo.caption || 'غير محدد'}"
+• سؤال واستفسار المستخدم: "${contextInfo.userPrompt || 'حلل محتوى الصور واقرأ النصوص والجداول بدقة.'}"
+
+المطلوب إجراء فحص جنائي، بصري، وميكرو-OCR فائق الدقة باللغة العربية الفصحى يركز على المحاور التالية:
+
+1. 🔍 [استخراج النصوص الكاملة والميكرو-OCR (Micro-OCR & Full Text Extraction)]:
+   - استخرج بدقة 100% كافة النصوص، الجداول، التواريخ، الجداول الزمنية، المراحل، الأرقام، الدرجات، النسب المئوية، والملاحظات المكتوبة داخل الصور.
+   - إذا كانت الصورة لجدول تنسيق، جدول امتحانات، بيان درجات، قرار وزاري، أو منشور تنسيق الثانوية العامة (مثل مواعيد تسجيل الرغبات للمرحلة الثالثة، مواعيد فتح وغلق الموقع، والحدود الدنيا): استخرج كافة التواريخ، الكليات المتاحة، والتعليمات الرسمية بالكامل.
+
+2. 📊 [تفكيك وتحليل المعطيات والجداول (Table & Structured Data Breakdown)]:
+   - حوّل أي جداول أو بيانات مجدولة ظاهرة في الصورة إلى نصوص أو جداول مهيكلة وواضحة.
+
+3. 💡 [الاستنتاج المباشر والإجابة على استفسار المنشور (Direct Contextual Advisory)]:
+   - لخص ما تعنيه الصورة بدقة وقدم التوصية المباشرة وحل الحيرة أو التساؤل المطروح (مثل: هل يتم التسجيل الآن أم الانتظار لموعد محدد وفق الجدول الرسمي الظاهر بالصورة؟).`;
+
+  const contentParts: any[] = [
+    { type: 'text', text: visionPrompt }
+  ];
+
+  resolvedImages.forEach((img, idx) => {
+    contentParts.push({
+      type: 'text',
+      text: `\n=== [صورة مرفقة رقم ${idx + 1}] ===`
+    });
+    contentParts.push({
+      type: 'image_url',
+      image_url: { url: img.dataUri }
+    });
+  });
+
+  const openRouterKey = process.env.OPENROUTER_API_KEY || '';
+  const visionGateways: Array<{
+    url: string;
+    key: string;
+    model: string;
+    headers: Record<string, string>;
+  }> = [
+    ...(openRouterKey ? [{
+      url: 'https://openrouter.ai/api/v1/chat/completions',
+      key: openRouterKey,
+      model: 'google/gemini-2.5-flash',
+      headers: {
+        'HTTP-Referer': 'https://matany.one',
+        'X-Title': 'Matany AI',
+      }
+    }] : []),
+    {
+      url: `${baseUrl}/chat/completions`,
+      key: apiKey,
+      model: 'deepseek-v4-flash-vision-exp',
+      headers: {}
+    }
+  ];
+
+  for (const gw of visionGateways) {
+    try {
+      const visionController = new AbortController();
+      const visionTimeout = setTimeout(() => visionController.abort(), 14000);
+      if (signal) {
+        signal.addEventListener('abort', () => visionController.abort(), { once: true });
+      }
+
+      const res = await fetch(gw.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${gw.key}`,
+          ...gw.headers
+        },
+        body: JSON.stringify({
+          model: gw.model,
+          messages: [{ role: 'user', content: contentParts }],
+          temperature: 0.15,
+          max_tokens: 4096,
+        }),
+        signal: visionController.signal
+      });
+      clearTimeout(visionTimeout);
+
+      if (res.ok) {
+        const data = await res.json();
+        const content = data.choices?.[0]?.message?.content?.trim();
+        if (content) {
+          console.log(`[FathomCamVision] ✓ ${gw.model} succeeded (${content.length} chars)`);
+          const result: PostVisionResult = {
+            postId,
+            platform,
+            visualAnalysisAr: content,
+            imageUrls: validUrls,
+            analyzedAt: Date.now(),
+            cached: false,
+          };
+          postVisionCache.set(cacheKey, { result, expiresAt: Date.now() + CACHE_TTL_MS });
+          return result;
+        }
+      } else {
+        const errText = await res.text().catch(() => '');
+        console.warn(`[FathomCamVision] ${gw.model} HTTP Error:`, res.status, errText);
+      }
+    } catch (err: any) {
+      console.warn(`[FathomCamVision] ${gw.model} error:`, err?.message);
+    }
+  }
+
+  return null;
+}
+
+export function buildPostVisionContextBlock(
+  postData: {
+    platform: string;
+    title: string;
+    caption?: string;
+    canonicalUrl?: string;
+    authorName?: string;
+  },
+  visionResult: PostVisionResult | null
+): string {
+  const pName =
+    postData.platform === 'facebook' ? 'Facebook Post' :
+    postData.platform === 'instagram' ? 'Instagram Post' :
+    postData.platform === 'twitter' ? 'X / Twitter Post' : 'Web Post / Article';
+
+  const lines: string[] = [
+    `[LINK & VISUAL CONTEXT - FATHOM CAM]:`,
+    `- Platform: ${pName}`,
+    `- Post Title: ${postData.title || 'منشور وسائط اجتماعية'}`,
+    `- Post Caption: ${postData.caption || postData.title || 'غير محدد'}`,
+  ];
+
+  if (postData.authorName) {
+    lines.push(`- Author / Page: ${postData.authorName}`);
+  }
+  if (postData.canonicalUrl) {
+    lines.push(`- Canonical URL: ${postData.canonicalUrl}`);
+  }
+
+  if (visionResult && visionResult.visualAnalysisAr) {
+    lines.push(`- Attached Image Visual OCR / Analysis:`);
+    lines.push(`"""`);
+    lines.push(visionResult.visualAnalysisAr.trim());
+    lines.push(`"""`);
+  } else {
+    lines.push(`- Attached Image Visual OCR / Analysis: لم يتم رصد نصوص معقدة إضافية داخل الصور أو تم الاعتماد على التحليل النصي.`);
+  }
+
+  lines.push(`- User Intent: The user is asking for direct advice based on the post and attached image.`);
+  return lines.join('\n');
 }

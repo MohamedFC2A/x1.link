@@ -2,6 +2,7 @@ import { ChatMessageItem } from '../types';
 import { detectAndExtractUrl } from '../lib/utils';
 import { SupabaseChat, saveCloudUserMemories, fetchCloudUserMemories } from './supabase';
 import { scientificDiscoveryEngine, DiscoveryLoopResult } from './scientificDiscoveryEngine';
+import { isPersonalMemoryRecallIntent } from '../lib/featuresRegistry';
 
 /**
  * ============================================================================
@@ -840,8 +841,25 @@ export class ContextMemoryEngine {
       };
     }
 
-    // Detect explicit memory intent keywords
-    const isExplicitMemoryIntent = /(?:memory[-\s]?detect|memorydetect|ميموري\s?ديتكت|الذاكرة\s?العرضية|الذاكرة\s?الديناميكية|الذاكرة\s?السحابية|الذاكرة\s?المتزامنة|استرجاع\s?الذاكرة|تذكر|فاكر|محادث[ةات]|المحادث[ةات]|الشات|الشاتات|سابقاً|السابق[ة]?|اللي فاتت|اللي فات|قبل السابق|كنا اتكلمنا|كنت بقولك|قلتلك قبل|سجل المحادثات|أكثر شيء تم ذكره|اكثر شئ اتكرر|هل تذكر|آخر مرة)/i.test(cleanPrompt);
+    // Strict Personal Memory Recall Disambiguation (Zero False-Positives on Conceptual/Biological Queries)
+    const isExplicitMemoryIntent = isPersonalMemoryRecallIntent(cleanPrompt);
+
+    // If query is not a personal memory recall, skip active memory search entirely
+    if (!isExplicitMemoryIntent) {
+      return {
+        matchedNodes: [],
+        matchedEpisodicNodes: [],
+        matchedTriples: [],
+        matchedConflicts: [],
+        matchedFacts: [],
+        matchedTargets: [],
+        memoryPromptBlock: '',
+        relevanceScore: 0,
+        isMemoryDetectActive: false,
+        activeSummary: '',
+        tiersActive: { working: false, episodic: false, semantic: false, conflictReconciliation: false }
+      };
+    }
 
     // Extract query tokens
     const stopWords = new Set([

@@ -67,12 +67,14 @@ interface SingleLinkCardProps {
 const SingleLinkCard: React.FC<SingleLinkCardProps> = ({ url, linkIndex, onConfirmUrl }) => {
   const [resolvedInfo, setResolvedInfo] = useState<ResolvedLinkInfo | null>(null);
   const [isResolving, setIsResolving] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     if (!url) return;
     let isMounted = true;
     const controller = new AbortController();
     setIsResolving(true);
+    setImgError(false);
 
     resolveLinkTarget(url, controller.signal)
       .then(data => {
@@ -117,7 +119,33 @@ const SingleLinkCard: React.FC<SingleLinkCardProps> = ({ url, linkIndex, onConfi
     ? (extractYouTubeVideoId(targetUrl) || resolvedInfo?.videoMetadata?.videoId)
     : null;
   const isYouTube = Boolean(ytVideoId || resolvedInfo?.videoMetadata?.platform === 'youtube' || /(?:youtube\.com|youtu\.be)/i.test(targetUrl));
-  const isVideo = Boolean(isYouTube || isTikTok || isInstagram || isFacebook || isTwitter || resolvedInfo?.mediaType === 'video');
+
+  // Determine media type (Video vs Post vs Web)
+  const isExplicitFbPost = /(?:facebook\.com|fb\.me)\/(?:share\/p\/|posts\/|permalink\.php|story\.php|photos\/|photo\/)/i.test(targetUrl);
+  const isExplicitFbVideo = /(?:facebook\.com|fb\.watch)\/(?:reel|reels|watch|videos|share\/v\/|share\/r\/)/i.test(targetUrl);
+  const isExplicitIgReel = /(?:instagram\.com|instagr\.am)\/(?:reel|reels|tv)/i.test(targetUrl);
+
+  const isVideo = Boolean(
+    isYouTube ||
+    isTikTok ||
+    (isInstagram && (isExplicitIgReel || resolvedInfo?.mediaType === 'video')) ||
+    (isFacebook && (isExplicitFbVideo || resolvedInfo?.mediaType === 'video') && !isExplicitFbPost) ||
+    (isTwitter && resolvedInfo?.mediaType === 'video') ||
+    (resolvedInfo?.mediaType === 'video' && resolvedInfo?.isVideo !== false)
+  );
+
+  const isSocialPost = Boolean(
+    !isVideo && (
+      resolvedInfo?.mediaType === 'post' ||
+      resolvedInfo?.mediaType === 'image' ||
+      resolvedInfo?.postType === 'post' ||
+      resolvedInfo?.postType === 'photo' ||
+      isExplicitFbPost ||
+      (isFacebook && !isExplicitFbVideo) ||
+      (isInstagram && !isExplicitIgReel) ||
+      isTwitter
+    )
+  );
 
   const videoPlatform: 'youtube' | 'tiktok' | 'instagram' | 'facebook' | 'twitter' = 
     isTikTok ? 'tiktok' :
@@ -125,16 +153,28 @@ const SingleLinkCard: React.FC<SingleLinkCardProps> = ({ url, linkIndex, onConfi
     isFacebook ? 'facebook' :
     isTwitter ? 'twitter' : 'youtube';
 
-  const thumbnailUrl = ytVideoId
+  const rawThumbnailUrl = ytVideoId
     ? getYouTubeThumbnailUrl(ytVideoId)
     : (resolvedInfo?.videoMetadata?.thumbnailUrl || resolvedInfo?.brandAssets?.ogImage || resolvedInfo?.brandAssets?.twitterImage || null);
+  
+  const thumbnailUrl = !imgError ? rawThumbnailUrl : null;
 
-  const platformTitle =
-    videoPlatform === 'tiktok' ? "فيديو تيك توك (TikTok Video)" :
-    videoPlatform === 'instagram' ? "فيديو إنستغرام (Instagram Reel)" :
-    videoPlatform === 'facebook' ? "فيديو فيسبوك (Facebook Video)" :
-    videoPlatform === 'twitter' ? "منشور وسائط إكس (X Video Post)" :
-    "فيديو يوتيوب (YouTube Video)";
+  const platformTitle = resolvedInfo?.platformLabel || (
+    isVideo
+      ? (
+        videoPlatform === 'tiktok' ? "فيديو تيك توك (TikTok Video)" :
+        videoPlatform === 'instagram' ? "فيديو إنستغرام (Instagram Reel)" :
+        videoPlatform === 'facebook' ? "فيديو فيسبوك (Facebook Video)" :
+        videoPlatform === 'twitter' ? "فيديو إكس (X Video)" :
+        "فيديو يوتيوب (YouTube Video)"
+      )
+      : (
+        videoPlatform === 'facebook' ? "منشور فيسبوك (Facebook Post)" :
+        videoPlatform === 'instagram' ? "منشور إنستغرام (Instagram Post)" :
+        videoPlatform === 'twitter' ? "منشور إكس (X Post)" :
+        "منشور وسائط اجتماعية (Social Post)"
+      )
+  );
 
   if (isVideo) {
     return (
@@ -211,6 +251,7 @@ const SingleLinkCard: React.FC<SingleLinkCardProps> = ({ url, linkIndex, onConfi
               <img
                 src={thumbnailUrl}
                 alt={resolvedInfo?.title || 'Video Thumbnail'}
+                onError={() => setImgError(true)}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -259,6 +300,124 @@ const SingleLinkCard: React.FC<SingleLinkCardProps> = ({ url, linkIndex, onConfi
                 "text-red-400"
               )} />
               <span className="truncate text-zinc-300 group-hover/videocard:underline">{displayUrl}</span>
+            </div>
+          </div>
+        </button>
+      </div>
+    );
+  }
+
+  // Social Post Card (Facebook Post, Instagram Post, X Post)
+  if (isSocialPost) {
+    return (
+      <div className={cn(
+        "relative overflow-hidden rounded-2xl border shadow-2xl p-3 sm:p-3.5 text-right animate-in fade-in duration-200 group/postcard",
+        videoPlatform === 'facebook' ? "border-blue-500/30 bg-black/85" :
+        videoPlatform === 'instagram' ? "border-pink-500/30 bg-black/85" :
+        videoPlatform === 'twitter' ? "border-zinc-500/30 bg-black/85" :
+        "border-cyan-500/30 bg-black/85"
+      )}>
+        {thumbnailUrl && (
+          <div
+            className="absolute inset-0 bg-cover bg-center blur-2xl opacity-30 scale-125 pointer-events-none transition-all duration-700 select-none"
+            style={{ backgroundImage: `url(${thumbnailUrl})` }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/80 to-black/60 pointer-events-none" />
+
+        {/* Post Card Header */}
+        <div className="relative z-10 flex items-center justify-between pb-2 mb-2 border-b border-white/[0.08]">
+          <div className="flex items-center gap-2 font-sans font-bold text-xs text-zinc-200">
+            {typeof linkIndex === 'number' && (
+              <span className="w-5 h-5 min-w-[20px] min-h-[20px] aspect-square rounded-full bg-zinc-800/95 text-zinc-200 border border-white/[0.25] font-mono text-[10px] font-bold flex items-center justify-center shadow-inner">
+                {linkIndex}
+              </span>
+            )}
+            <div className={cn(
+              "size-5 rounded-md flex items-center justify-center border",
+              videoPlatform === 'facebook' ? "bg-blue-600/20 border-blue-500/30 text-blue-400" :
+              videoPlatform === 'instagram' ? "bg-pink-500/20 border-pink-500/30 text-pink-400" :
+              videoPlatform === 'twitter' ? "bg-zinc-700/30 border-zinc-500/30 text-zinc-300" :
+              "bg-cyan-600/20 border-cyan-500/30 text-cyan-400"
+            )}>
+              <FileText className="size-3" />
+            </div>
+            <span>{platformTitle}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {isResolving ? (
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border bg-blue-500/15 text-blue-300 border-blue-500/30 font-bold flex items-center gap-1 animate-pulse">
+                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                <span>SCRAPING...</span>
+              </span>
+            ) : (
+              <span className={cn(
+                "text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border flex items-center gap-1",
+                videoPlatform === 'facebook' ? "bg-blue-600/20 text-blue-300 border-blue-500/30" :
+                videoPlatform === 'instagram' ? "bg-pink-500/15 text-pink-300 border-pink-500/30" :
+                videoPlatform === 'twitter' ? "bg-zinc-700/40 text-zinc-200 border-zinc-500/30" :
+                "bg-cyan-600/20 text-cyan-300 border-cyan-500/30"
+              )}>
+                <PlatformLogo url={targetUrl} className="size-3" size={12} />
+                <span className="uppercase">{videoPlatform}</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Clickable Post Preview */}
+        <button
+          type="button"
+          onClick={() => onConfirmUrl(displayUrl || url)}
+          className={cn(
+            "relative z-10 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border transition-all cursor-pointer shadow-lg backdrop-blur-md w-full text-right",
+            videoPlatform === 'facebook' ? "border-white/[0.10] hover:border-blue-500/40" :
+            videoPlatform === 'instagram' ? "border-white/[0.10] hover:border-pink-500/40" :
+            videoPlatform === 'twitter' ? "border-white/[0.10] hover:border-zinc-400/40" :
+            "border-white/[0.10] hover:border-cyan-500/40"
+          )}
+        >
+          {thumbnailUrl ? (
+            <div className="relative shrink-0 rounded-lg overflow-hidden border border-white/[0.15] bg-zinc-950 shadow-md group-hover/postcard:scale-[1.02] transition-transform aspect-video sm:w-36 h-24">
+              <img
+                src={thumbnailUrl}
+                alt={resolvedInfo?.title || 'Post Image'}
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="size-10 sm:size-12 rounded-xl bg-zinc-950/80 border border-white/[0.15] flex items-center justify-center shrink-0 shadow-md backdrop-blur-md">
+              <PlatformLogo url={targetUrl} className="size-6" size={24} />
+            </div>
+          )}
+
+          <div className="flex flex-col justify-center flex-1 min-w-0 text-right gap-1 py-0.5">
+            <h4 className={cn(
+              "text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug transition-colors font-sans",
+              videoPlatform === 'facebook' ? "group-hover/postcard:text-blue-200" :
+              videoPlatform === 'instagram' ? "group-hover/postcard:text-pink-200" :
+              videoPlatform === 'twitter' ? "group-hover/postcard:text-zinc-200" :
+              "group-hover/postcard:text-cyan-200"
+            )} title={resolvedInfo?.title || ''}>
+              {resolvedInfo?.title || 'جاري استخراج تفاصيل ومحتوى المنشور...'}
+            </h4>
+            {resolvedInfo?.videoMetadata?.authorName && (
+              <p className="text-[11px] text-zinc-300 flex items-center gap-1 font-sans">
+                <span className="text-zinc-400 font-medium">صاحب المنشور:</span>
+                <span className="text-zinc-100 font-semibold">{resolvedInfo.videoMetadata.authorName}</span>
+              </p>
+            )}
+            <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono mt-1 dir-ltr text-left">
+              <ExternalLink className={cn(
+                "size-3 shrink-0",
+                videoPlatform === 'facebook' ? "text-blue-400" :
+                videoPlatform === 'instagram' ? "text-pink-400" :
+                videoPlatform === 'twitter' ? "text-zinc-300" :
+                "text-cyan-400"
+              )} />
+              <span className="truncate text-zinc-300 group-hover/postcard:underline">{displayUrl}</span>
             </div>
           </div>
         </button>
@@ -542,18 +701,17 @@ export const TimeDetectTimer: React.FC<{
   const progressPercent = totalSeconds > 0 ? ((totalSeconds - remaining) / totalSeconds) * 100 : 0;
 
   return (
-    <div className="my-3 p-3.5 sm:p-4 rounded-2xl time-detect-badge border border-amber-500/20 text-right animate-in fade-in duration-200 select-none shadow-xl" dir="rtl">
-      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-2.5 mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono font-black uppercase px-2.5 py-0.5 rounded-md bg-zinc-900 border border-amber-500/30 time-detect-text">
-            TIME DETECT
-          </span>
-          <span className="text-xs sm:text-sm font-sans font-bold text-zinc-100 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-amber-400" />
+    <div className="my-4 relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-5 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] transition-all duration-300 hover:border-white/20 text-right select-none animate-in fade-in duration-200" dir="rtl">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-3 mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="size-7 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
+            <Clock className="w-4 h-4" />
+          </div>
+          <span className="text-xs sm:text-sm font-sans font-bold text-zinc-100">
             {title}
           </span>
         </div>
-        <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-zinc-300">
+        <span className="text-[11px] font-mono font-medium px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-zinc-300">
           {durationLabel}
         </span>
       </div>
@@ -680,18 +838,17 @@ export const TimeDetectReminder: React.FC<{
   });
 
   return (
-    <div className="my-3 p-3.5 sm:p-4 rounded-2xl time-detect-badge border border-amber-500/20 text-right animate-in fade-in duration-200 select-none shadow-xl" dir="rtl">
-      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-2.5 mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono font-black uppercase px-2.5 py-0.5 rounded-md bg-zinc-900 border border-amber-500/30 time-detect-text">
-            TIME DETECT
-          </span>
-          <span className="text-xs sm:text-sm font-sans font-bold text-zinc-100 flex items-center gap-1.5">
-            <Bell className="w-4 h-4 text-amber-400" />
+    <div className="my-4 relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-5 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] transition-all duration-300 hover:border-white/20 text-right select-none animate-in fade-in duration-200" dir="rtl">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-3 mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="size-7 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
+            <Bell className="w-4 h-4" />
+          </div>
+          <span className="text-xs sm:text-sm font-sans font-bold text-zinc-100">
             تذكير زمني ذكي مجدول
           </span>
         </div>
-        <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold">
+        <span className="text-[10px] font-sans px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold">
           مجدول
         </span>
       </div>
@@ -766,15 +923,13 @@ export const TimeDetectAutoDelete: React.FC<{
   const progressPercent = Math.max(0, Math.min(100, (remaining / (initialSeconds || 600)) * 100));
 
   return (
-    <div className="my-3 p-4 sm:p-5 rounded-2xl time-detect-glass text-right animate-in fade-in duration-200 select-none shadow-2xl border border-amber-500/30" dir="rtl">
-      <div className="flex items-center justify-between gap-3 border-b border-white/[0.1] pb-3 mb-3.5">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-black uppercase px-2.5 py-0.5 rounded-full time-detect-glass text-amber-300 border border-amber-500/40 shadow-sm">
-            <TimeDetectIcon />
-            <span className="time-detect-text">TIME DETECT</span>
-          </span>
-          <span className="text-xs sm:text-sm font-sans font-bold text-amber-100 flex items-center gap-1.5">
-            <Trash2 className="w-4 h-4 text-amber-400 animate-pulse" />
+    <div className="my-4 relative overflow-hidden rounded-2xl border border-rose-500/20 bg-gradient-to-b from-rose-500/[0.08] to-white/[0.02] p-5 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] transition-all duration-300 hover:border-rose-500/30 text-right select-none animate-in fade-in duration-200" dir="rtl">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.1] pb-3 mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="size-7 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 shadow-inner">
+            <Trash2 className="w-4 h-4 animate-pulse" />
+          </div>
+          <span className="text-xs sm:text-sm font-sans font-bold text-rose-200">
             نظام التدمير الذاتي للمحادثة
           </span>
         </div>
@@ -840,57 +995,117 @@ function getChildText(node: React.ReactNode): string {
   return '';
 }
 
-function parseCustomBadges(rawContent: string, fallbackMediaUrl?: string | null): React.ReactNode | null {
-  // 1. Time Detect - Timer (Interactive widget only)
-  const timerMatch = rawContent.match(/(?:\[[^\]]*?TIME[-\s_]?DETECT[-\s_]?TIMER:\s*(\d+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|TIME[-\s_]?DETECT[-\s_]?TIMER:\s*(\d+))/i);
-  if (timerMatch) {
+function parseCustomBadges(
+  rawContent: string,
+  fallbackMediaUrl?: string | null,
+  handlers?: {
+    setConfirmUrl?: (url: string) => void;
+    setConfirmPhone?: (phone: string) => void;
+    setConfirmEmail?: (email: string) => void;
+  }
+): React.ReactNode | null {
+  if (!rawContent || typeof rawContent !== 'string') return null;
+
+  const widgets: React.ReactNode[] = [];
+  let workingContent = rawContent;
+
+  // 1. AI Detect Badge: [AI-DETECT-BADGE: <verdict> | <score>]
+  const aiBadgeRegex = /(?:\[[^\]]*?AI[-\s_]?DETECT[-\s_]?BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|AI[-\s_]?DETECT[-\s_]?BADGE:\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/gi;
+  let aiMatch: RegExpExecArray | null;
+  while ((aiMatch = aiBadgeRegex.exec(workingContent)) !== null) {
+    const verdict = (aiMatch[1] || aiMatch[3])?.trim() || 'AI-Generated';
+    const score = (aiMatch[2] || aiMatch[4])?.trim() || '99.9%';
+    widgets.push(<AiDetectBadge key={`ai-badge-${aiMatch.index}-${verdict}`} verdict={verdict} score={score} />);
+  }
+  workingContent = workingContent.replace(aiBadgeRegex, '');
+
+  // 2. Time Detect - Timer (Interactive widget only)
+  const timerRegex = /(?:\[[^\]]*?TIME[-\s_]?DETECT[-\s_]?TIMER:\s*(\d+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|TIME[-\s_]?DETECT[-\s_]?TIMER:\s*(\d+))/gi;
+  let timerMatch: RegExpExecArray | null;
+  while ((timerMatch = timerRegex.exec(workingContent)) !== null) {
     const seconds = parseInt(timerMatch[1] || timerMatch[4] || '300', 10);
     const label = timerMatch[2]?.trim() || `${Math.round(seconds / 60)} دقائق`;
     const title = timerMatch[3]?.trim() || 'مؤقت ذكي تفاعلي';
-    return <TimeDetectTimer initialSeconds={seconds} durationLabel={label} title={title} />;
+    widgets.push(<TimeDetectTimer key={`timer-${timerMatch.index}-${seconds}`} initialSeconds={seconds} durationLabel={label} title={title} />);
   }
+  workingContent = workingContent.replace(timerRegex, '');
 
-  // 2. Time Detect - Reminder (Interactive widget only)
-  const reminderMatch = rawContent.match(/(?:\[[^\]]*?TIME[-\s_]?DETECT[-\s_]?REMINDER:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|TIME[-\s_]?DETECT[-\s_]?REMINDER:\s*([^|\n]+))/i);
-  if (reminderMatch) {
+  // 3. Time Detect - Reminder (Interactive widget only)
+  const reminderRegex = /(?:\[[^\]]*?TIME[-\s_]?DETECT[-\s_]?REMINDER:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|TIME[-\s_]?DETECT[-\s_]?REMINDER:\s*([^|\n]+))/gi;
+  let reminderMatch: RegExpExecArray | null;
+  while ((reminderMatch = reminderRegex.exec(workingContent)) !== null) {
     const iso = (reminderMatch[1] || reminderMatch[3])?.trim() || '';
     const text = (reminderMatch[2] || 'تذكير بموعد مهم')?.trim();
-    return <TimeDetectReminder targetDateIso={iso} reminderText={text} />;
+    widgets.push(<TimeDetectReminder key={`reminder-${reminderMatch.index}-${iso}`} targetDateIso={iso} reminderText={text} />);
   }
+  workingContent = workingContent.replace(reminderRegex, '');
 
-  // 3. Time Detect - Auto Delete (Interactive widget only)
-  const autoDeleteMatch = rawContent.match(/(?:\[[^\]]*?TIME[-\s_]?DETECT[-\s_]?AUTODELETE:\s*(\d+)\s*(?:\|\s*([^\]]+))?\]|TIME[-\s_]?DETECT[-\s_]?AUTODELETE:\s*(\d+))/i);
-  if (autoDeleteMatch) {
+  // 4. Time Detect - Auto Delete (Interactive widget only)
+  const autoDeleteRegex = /(?:\[[^\]]*?TIME[-\s_]?DETECT[-\s_]?AUTODELETE:\s*(\d+)\s*(?:\|\s*([^|\]]+))?\]|TIME[-\s_]?DETECT[-\s_]?AUTODELETE:\s*(\d+))/gi;
+  let autoDeleteMatch: RegExpExecArray | null;
+  while ((autoDeleteMatch = autoDeleteRegex.exec(workingContent)) !== null) {
     const seconds = parseInt(autoDeleteMatch[1] || autoDeleteMatch[3] || '600', 10);
     const label = autoDeleteMatch[2]?.trim() || `${Math.round(seconds / 60)} دقائق`;
-    return <TimeDetectAutoDelete initialSeconds={seconds} durationLabel={label} />;
+    widgets.push(<TimeDetectAutoDelete key={`autodelete-${autoDeleteMatch.index}-${seconds}`} initialSeconds={seconds} durationLabel={label} />);
   }
+  workingContent = workingContent.replace(autoDeleteRegex, '');
 
-  // 4. Download Button - Inline Instant Download Action
-  const buttonMatch = rawContent.match(/(?:\[[^\]]*?DOWNLOAD[-\s_]?BUTTON:\s*([^|\]]+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?BUTTON:\s*([^|\n]+)\s*(?:\|\s*([^|\n]+))?)/i);
-  if (buttonMatch) {
+  // 5. Time Detect - Badge: [TIME-DETECT-BADGE: <title> | <subtitle>]
+  const timeBadgeRegex = /(?:\[[^\]]*?TIME[-\s_]?DETECT[-\s_]?BADGE:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\])/gi;
+  let timeBadgeMatch: RegExpExecArray | null;
+  while ((timeBadgeMatch = timeBadgeRegex.exec(workingContent)) !== null) {
+    const title = timeBadgeMatch[1]?.trim() || 'استشعار وتدقيق المعطيات الزمنية الفائقة';
+    const subtitle = timeBadgeMatch[2]?.trim() || 'مطابقة التوقيت والسنة المعتمدة (2026)';
+    widgets.push(<TimeDetectBadge key={`time-badge-${timeBadgeMatch.index}`} title={title} subtitle={subtitle} />);
+  }
+  workingContent = workingContent.replace(timeBadgeRegex, '');
+
+  // 6. Download Button - Inline Instant Download Action
+  const buttonRegex = /(?:\[[^\]]*?DOWNLOAD[-\s_]?BUTTON:\s*([^|\]]+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?BUTTON:\s*([^|\n]+)\s*(?:\|\s*([^|\n]+))?)/gi;
+  let buttonMatch: RegExpExecArray | null;
+  while ((buttonMatch = buttonRegex.exec(workingContent)) !== null) {
     let rawTargetUrl = (buttonMatch[1] || buttonMatch[4])?.trim() || '';
     rawTargetUrl = rawTargetUrl.replace(/\[([^\]]+)\]\(([^)]+)\)/, '$2').replace(/[<>\s]/g, '');
     const quality = (buttonMatch[2] || buttonMatch[5] || '1080p')?.trim();
     const title = buttonMatch[3]?.trim() || '';
     const finalUrl = rawTargetUrl || fallbackMediaUrl || '';
     if (finalUrl) {
-      return <DownloadButton url={finalUrl} quality={quality} title={title} />;
+      widgets.push(<DownloadButton key={`dl-btn-${buttonMatch.index}-${finalUrl}`} url={finalUrl} quality={quality} title={title} />);
     }
   }
+  workingContent = workingContent.replace(buttonRegex, '');
 
-  // 5. Download Detect - Interactive Card (Sleek Compact Widget)
-  const downloadMatch = rawContent.match(/(?:\[[^\]]*?DOWNLOAD[-\s_]?(?:DETECT[-\s_]?)?(?:CARD|BADGE):\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?(?:DETECT[-\s_]?)?(?:CARD|BADGE):\s*([^|\n]+))/i);
-  if (downloadMatch) {
-    let rawTargetUrl = (downloadMatch[1] || downloadMatch[3])?.trim() || '';
+  // 7. Download Detect - Interactive Card (Sleek Compact Widget)
+  const downloadCardRegex = /(?:\[[^\]]*?DOWNLOAD[-\s_]?(?:DETECT[-\s_]?)?(?:CARD|BADGE):\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?(?:DETECT[-\s_]?)?(?:CARD|BADGE):\s*([^|\n]+))/gi;
+  let cardMatch: RegExpExecArray | null;
+  while ((cardMatch = downloadCardRegex.exec(workingContent)) !== null) {
+    let rawTargetUrl = (cardMatch[1] || cardMatch[3])?.trim() || '';
     rawTargetUrl = rawTargetUrl.replace(/\[([^\]]+)\]\(([^)]+)\)/, '$2').replace(/[<>\s]/g, '');
     const finalUrl = rawTargetUrl || fallbackMediaUrl || '';
     if (finalUrl) {
-      return <DownloadDetectCard url={finalUrl} />;
+      widgets.push(<DownloadDetectCard key={`dl-card-${cardMatch.index}-${finalUrl}`} url={finalUrl} />);
     }
   }
+  workingContent = workingContent.replace(downloadCardRegex, '');
 
-  return null;
+  if (widgets.length === 0) return null;
+
+  const remainingText = workingContent.trim();
+
+  return (
+    <div className="my-3 space-y-3">
+      {remainingText && handlers?.setConfirmUrl && (
+        <p className="leading-relaxed text-zinc-200">
+          {renderSmartContentWithLinksAndPhones(remainingText, handlers.setConfirmUrl, handlers.setConfirmPhone || (() => {}), handlers.setConfirmEmail)}
+        </p>
+      )}
+      {widgets.map((w, idx) => (
+        <div key={`widget-item-${idx}`} className="transition-all duration-200">
+          {w}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function CodeBlock({ className, children, language }: { className?: string; children: React.ReactNode; language: string }) {
@@ -976,6 +1191,13 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const hasReasoning = Boolean(effectiveReasoning && effectiveReasoning.trim().length > 0);
   const isThinking = Boolean(message.isThinking);
 
+  const hasImagesInChat = Boolean(
+    Object.keys(globalImageIndexMap).length > 0 ||
+    message.image ||
+    (message as any).imagePreview ||
+    (Array.isArray(message.content) && message.content.some((c: any) => c.type === 'image_url' || c.image_url))
+  );
+
   // Universal Modular Features (نظام الخواص الشامل)
   const activeFeatures = getActiveDetectedFeatures(
     previousUserPrompt,
@@ -984,6 +1206,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     {
       isMemoryDetectTriggered: (message as any).isMemoryDetectTriggered,
       memoryDetectSummary: (message as any).memoryDetectSummary,
+      hasFathomCam: hasImagesInChat,
+      hasImagesInHistory: hasImagesInChat,
+      hasImages: Boolean(message.image || (message as any).imagePreview),
     }
   );
   const hasMemoryDetect = activeFeatures.some(f => f.id === 'memory_detect');
@@ -1049,7 +1274,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         transition={{ duration: 0.15 }}
         className="flex justify-start my-2 group w-full"
       >
-        <div className="w-full max-w-[94%] sm:max-w-[82%] rounded-2xl rounded-tr-sm glass-card text-white p-3 sm:p-4 text-right overflow-hidden break-words">
+        <div className="w-full max-w-[94%] sm:max-w-[82%] rounded-2xl rounded-tr-sm bg-white/[0.05] border border-white/[0.09] p-4 sm:p-5 text-right text-white/95 backdrop-blur-md shadow-sm overflow-hidden break-words transition-all duration-200 hover:border-white/[0.15]">
           
           {messageUrls.length > 0 && (
             <div className="mb-3 flex flex-col gap-2.5">
@@ -1229,7 +1454,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         <span className="text-[11px] font-mono text-zinc-400 font-medium tracking-wide shrink-0" dir="ltr">{normalizeDisplayTimestamp(message.timestamp)}</span>
       </div>
 
-      <div className="w-full rounded-2xl p-3.5 sm:p-5 text-right border transition-all glass-panel text-zinc-100 overflow-hidden break-words">
+      <div className="w-full rounded-2xl p-5 sm:p-6 text-right transition-all duration-300 bg-[#0a0b0e]/70 backdrop-blur-md border border-white/[0.07] hover:border-white/[0.12] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] text-zinc-200 overflow-hidden break-words">
         {(hasReasoning || isThinking) && (
           <ChatReasoning
             reasoningText={effectiveReasoning}
@@ -1344,6 +1569,11 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               </span>
             </div>
           </div>
+        ) : !displayContent.trim() && message.isStopped ? (
+          <div className="py-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-sans select-none animate-in fade-in duration-200">
+            <span className="size-1.5 rounded-full bg-amber-400" />
+            <span>تم إيقاف النموذج بواسطتك</span>
+          </div>
         ) : (
           <>
             {hasDownloadDetect && detectedMediaUrl && !message.content?.includes('[DOWNLOAD-DETECT-CARD:') && !message.content?.includes('[DOWNLOAD-BUTTON:') && (
@@ -1351,7 +1581,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 <DownloadDetectCard url={detectedMediaUrl} />
               </div>
             )}
-            <div className="prose prose-invert max-w-none text-zinc-200 text-xs sm:text-base leading-relaxed break-words font-sans">
+            <div className="prose prose-invert max-w-none text-[#E2E8F0] text-sm sm:text-base leading-relaxed break-words font-sans">
               <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -1411,80 +1641,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 },
                 p: ({ children }) => {
                   const fullText = getChildText(children);
-
-                  // 1. Check if there is a download button tag anywhere in this paragraph
-                  const buttonMatch = fullText.match(/(?:\[[^\]]*?DOWNLOAD[-\s_]?BUTTON:\s*([^|\]]+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?BUTTON:\s*([^|\n]+)\s*(?:\|\s*([^|\n]+))?)/i);
-                  if (buttonMatch) {
-                    let rawTargetUrl = (buttonMatch[1] || buttonMatch[4])?.trim() || '';
-                    rawTargetUrl = rawTargetUrl.replace(/\[([^\]]+)\]\(([^)]+)\)/, '$2').replace(/[<>\s]/g, '');
-                    const quality = (buttonMatch[2] || buttonMatch[5] || '1080p')?.trim();
-                    const title = (buttonMatch[3] || '')?.trim();
-                    const finalUrl = rawTargetUrl || detectedMediaUrl || '';
-
-                    const fullMatchStr = buttonMatch[0];
-                    const matchIdx = fullText.indexOf(fullMatchStr);
-                    const beforeText = matchIdx > 0 ? fullText.slice(0, matchIdx).trim() : '';
-                    const afterText = (matchIdx >= 0 && matchIdx + fullMatchStr.length < fullText.length)
-                      ? fullText.slice(matchIdx + fullMatchStr.length).trim()
-                      : '';
-
-                    return (
-                      <div className="my-3 space-y-2.5">
-                        {beforeText && (
-                          <p className="leading-relaxed text-zinc-200">
-                            {renderSmartContentWithLinksAndPhones(beforeText, setConfirmUrl, setConfirmPhone, setConfirmEmail)}
-                          </p>
-                        )}
-                        {finalUrl && (
-                          <div className="py-1">
-                            <DownloadButton url={finalUrl} quality={quality} title={title} />
-                          </div>
-                        )}
-                        {afterText && (
-                          <p className="leading-relaxed text-zinc-200">
-                            {renderSmartContentWithLinksAndPhones(afterText, setConfirmUrl, setConfirmPhone, setConfirmEmail)}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  // 2. Check if there is a download detect card anywhere in this paragraph
-                  const cardMatch = fullText.match(/(?:\[[^\]]*?DOWNLOAD[-\s_]?(?:DETECT[-\s_]?)?(?:CARD|BADGE):\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?(?:DETECT[-\s_]?)?(?:CARD|BADGE):\s*([^|\n]+))/i);
-                  if (cardMatch) {
-                    let rawTargetUrl = (cardMatch[1] || cardMatch[3])?.trim() || '';
-                    rawTargetUrl = rawTargetUrl.replace(/\[([^\]]+)\]\(([^)]+)\)/, '$2').replace(/[<>\s]/g, '');
-                    const finalUrl = rawTargetUrl || detectedMediaUrl || '';
-
-                    const fullMatchStr = cardMatch[0];
-                    const matchIdx = fullText.indexOf(fullMatchStr);
-                    const beforeText = matchIdx > 0 ? fullText.slice(0, matchIdx).trim() : '';
-                    const afterText = (matchIdx >= 0 && matchIdx + fullMatchStr.length < fullText.length)
-                      ? fullText.slice(matchIdx + fullMatchStr.length).trim()
-                      : '';
-
-                    return (
-                      <div className="my-3 space-y-2.5">
-                        {beforeText && (
-                          <p className="leading-relaxed text-zinc-200">
-                            {renderSmartContentWithLinksAndPhones(beforeText, setConfirmUrl, setConfirmPhone, setConfirmEmail)}
-                          </p>
-                        )}
-                        {finalUrl && (
-                          <div className="py-1">
-                            <DownloadDetectCard url={finalUrl} />
-                          </div>
-                        )}
-                        {afterText && (
-                          <p className="leading-relaxed text-zinc-200">
-                            {renderSmartContentWithLinksAndPhones(afterText, setConfirmUrl, setConfirmPhone, setConfirmEmail)}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl);
+                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl, { setConfirmUrl, setConfirmPhone, setConfirmEmail });
                   if (customBadge) {
                     return customBadge;
                   }
@@ -1492,69 +1649,69 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   // Suppress empty paragraphs that were generated by stripped badges
                   if (!fullText.trim()) return null;
                   return (
-                    <p className="mb-2.5 sm:mb-3 last:mb-0 leading-relaxed">
+                    <p className="mb-3 last:mb-0 leading-relaxed text-[#E2E8F0]">
                       {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                     </p>
                   );
                 },
                 h1: ({ children }) => {
                   const fullText = getChildText(children);
-                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl);
+                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl, { setConfirmUrl, setConfirmPhone, setConfirmEmail });
                   if (customBadge) {
                     return customBadge;
                   }
                   return (
-                    <h1 className="text-base sm:text-xl font-bold text-white my-2 sm:my-3 border-b border-white/[0.1] pb-1.5">
+                    <h1 className="text-lg sm:text-2xl font-bold text-white my-3 sm:my-4 border-b border-white/[0.08] pb-2 tracking-tight">
                       {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                     </h1>
                   );
                 },
                 h2: ({ children }) => {
                   const fullText = getChildText(children);
-                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl);
+                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl, { setConfirmUrl, setConfirmPhone, setConfirmEmail });
                   if (customBadge) {
                     return customBadge;
                   }
                   return (
-                    <h2 className="text-sm sm:text-lg font-semibold text-zinc-100 my-2 sm:my-2.5">
+                    <h2 className="text-base sm:text-xl font-semibold text-white my-2.5 sm:my-3 tracking-tight">
                       {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                     </h2>
                   );
                 },
                 h3: ({ children }) => {
                   const fullText = getChildText(children);
-                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl);
+                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl, { setConfirmUrl, setConfirmPhone, setConfirmEmail });
                   if (customBadge) {
                     return customBadge;
                   }
                   return (
-                    <h3 className="text-xs sm:text-base font-semibold text-white my-1.5 sm:my-2">
+                    <h3 className="text-sm sm:text-lg font-semibold text-white my-2 sm:my-2.5">
                       {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                     </h3>
                   );
                 },
                 li: ({ children }) => (
-                  <li className="my-0.5 leading-relaxed">
+                  <li className="my-1 leading-relaxed text-[#E2E8F0]">
                     {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                   </li>
                 ),
-                ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2 text-zinc-300 pr-1 sm:pr-2">{children}</ul>,
-                ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2 text-zinc-300 pr-1 sm:pr-2">{children}</ol>,
+                ul: ({ children }) => <ul className="list-disc list-inside space-y-1.5 my-2.5 text-zinc-300 pr-1 sm:pr-2">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal list-inside space-y-1.5 my-2.5 text-zinc-300 pr-1 sm:pr-2">{children}</ol>,
                 blockquote: ({ children }) => (
-                  <blockquote className="border-r-2 border-white/30 bg-white/[0.03] pr-2.5 sm:pr-3 py-1.5 sm:py-2 my-2 text-xs sm:text-sm text-zinc-300 rounded-r-lg">
+                  <blockquote className="border-r-2 border-white/20 bg-white/[0.02] pr-3 py-2 my-2.5 text-sm text-zinc-300 rounded-r-lg">
                     {children}
                   </blockquote>
                 ),
                 table: ({ children }) => (
-                  <div className="my-3 overflow-x-auto rounded-xl border border-white/[0.14] bg-zinc-950/60 shadow-inner">
+                  <div className="my-3.5 overflow-x-auto rounded-xl border border-white/[0.08] bg-[#060709]/80 shadow-inner">
                     <table className="w-full text-xs sm:text-sm text-right border-collapse">{children}</table>
                   </div>
                 ),
                 th: ({ children }) => (
-                  <th className="bg-zinc-800/80 p-2.5 text-zinc-100 font-bold border-b border-zinc-700/80 text-xs sm:text-sm">{children}</th>
+                  <th className="bg-white/[0.04] p-3 text-white font-bold border-b border-white/[0.08] text-xs sm:text-sm">{children}</th>
                 ),
                 td: ({ children }) => (
-                  <td className="p-2.5 border-b border-zinc-800/60 text-zinc-200 font-normal">
+                  <td className="p-3 border-b border-white/[0.05] text-[#E2E8F0] font-normal text-xs sm:text-sm">
                     {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                   </td>
                 ),
@@ -1582,7 +1739,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                       {children}
                     </CodeBlock>
                   ) : (
-                    <code className="bg-white/[0.08] text-zinc-200 border border-white/[0.1] px-1.5 py-0.5 rounded font-mono text-xs" {...props}>{children}</code>
+                    <code className="bg-white/[0.06] text-zinc-200 border border-white/[0.08] px-1.5 py-0.5 rounded font-mono text-xs" {...props}>{children}</code>
                   );
                 }
               }}
@@ -1595,6 +1752,13 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
 
             {isStreaming && (
               <span className="inline-block w-1.5 h-4 bg-zinc-300 animate-pulse mr-1 align-middle rounded-full" />
+            )}
+
+            {message.isStopped && displayContent.trim() && (
+              <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-sans select-none animate-in fade-in duration-200">
+                <span className="size-1.5 rounded-full bg-amber-400" />
+                <span>تم إيقاف التوليد بواسطتك</span>
+              </div>
             )}
           </div>
         </>

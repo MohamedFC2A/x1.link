@@ -156,6 +156,25 @@ export const App: React.FC = () => {
   const [totalTokens, setTotalTokens] = useState<number>(() => getLocalUsage().totalTokens);
   const abortControllerRef = useRef<(() => void) | null>(null);
   const activeStreamSessionRef = useRef<number>(0);
+  const activeStreamingMsgRef = useRef<{
+    targetChatId: string | null;
+    assistantPlaceholderId: string;
+    fullAssistantResponse: string;
+    fullAssistantReasoning: string;
+    isThinking: boolean;
+    isMemoryDetectTriggered?: boolean;
+    memoryDetectSummary?: string;
+    isX1Active: boolean;
+    chosenModel: ModelType;
+    newMessagesList: ChatMessageItem[];
+    text: string;
+    userId: string | null;
+    effectivePrompt: string;
+    uniqueImagesDataUrls: string[];
+    resolvedTargetUrl: string | null;
+    meta?: any;
+    currentPlanId?: string;
+  } | null>(null);
 
   // Calculate current active chat tokens
   const currentChatTokens = messages.reduce((acc, m) => {
@@ -485,25 +504,7 @@ export const App: React.FC = () => {
     // Switch to Chat room mode when sending message
     navigateTo('chat');
 
-    let chosenModel: ModelType;
-    if (attachedMediaList.length > 0 || attachedVideoKeyframes.length > 0) {
-      chosenModel = 'meta/muse-spark-1.2-contributor';
-    } else if (attachedImagesDataUrls.length > 0) {
-      chosenModel = 'deepseek-v4-flash-vision-exp';
-    } else if (meta?.model) {
-      chosenModel = meta.model as ModelType;
-    } else if (resolvedTargetUrl) {
-      chosenModel = 'deepseek-v4-flash-cyber';
-    } else {
-      chosenModel = preferredBaseModel || activeModel;
-    }
-
-    // Auto-restore input back to user preferred base model if multi-modal media was sent
-    if (attachedMediaList.length > 0 || attachedImagesDataUrls.length > 0) {
-      setActiveModel(preferredBaseModel);
-    } else if (chosenModel !== activeModel) {
-      setActiveModel(chosenModel);
-    }
+    const chosenModel: ModelType = (meta?.model as ModelType) || activeModel || preferredBaseModel || 'deepseek-v4-flash';
 
     const userCleanDisplayContent = text.trim() || (
       uniqueImagesDataUrls.length > 0
@@ -578,6 +579,27 @@ export const App: React.FC = () => {
     let fullAssistantResponse = '';
     let fullAssistantReasoning = '';
 
+    // Initialize active streaming message tracking for safe manual abortion & state preservation
+    activeStreamingMsgRef.current = {
+      targetChatId,
+      assistantPlaceholderId,
+      fullAssistantResponse: '',
+      fullAssistantReasoning: '',
+      isThinking: true,
+      isMemoryDetectTriggered,
+      memoryDetectSummary,
+      isX1Active,
+      chosenModel,
+      newMessagesList,
+      text,
+      userId,
+      effectivePrompt,
+      uniqueImagesDataUrls,
+      resolvedTargetUrl: resolvedTargetUrl || null,
+      meta,
+      currentPlanId,
+    };
+
     const streamAbortController = new AbortController();
     abortControllerRef.current = () => {
       try {
@@ -592,7 +614,7 @@ export const App: React.FC = () => {
 
     await streamChatCompletion({
       messages: packedMessages,
-      model: attachedImagesDataUrls.length > 0 ? 'deepseek-v4-flash-vision-exp' : chosenModel,
+      model: chosenModel,
       isX1Mode: isX1Active,
       deepSearch: meta?.deepSearch ?? false,
       memoryPrompt: memoryContextPrompt,
@@ -606,6 +628,13 @@ export const App: React.FC = () => {
         if (activeStreamSessionRef.current !== streamSessionId) return;
         fullAssistantResponse = data.content;
         fullAssistantReasoning = data.reasoning;
+
+        if (activeStreamingMsgRef.current) {
+          activeStreamingMsgRef.current.fullAssistantResponse = data.content;
+          activeStreamingMsgRef.current.fullAssistantReasoning = data.reasoning;
+          activeStreamingMsgRef.current.isThinking = data.isThinking ?? false;
+        }
+
         setMessages(prev => {
           const existingIdx = prev.findIndex(m => m.id === assistantPlaceholderId);
           if (existingIdx !== -1) {
@@ -655,6 +684,7 @@ export const App: React.FC = () => {
         if (activeStreamSessionRef.current !== streamSessionId) return;
         setIsStreaming(false);
         abortControllerRef.current = null;
+        activeStreamingMsgRef.current = null;
         setMessages(prev => {
           const existingIdx = prev.findIndex(m => m.id === assistantPlaceholderId);
           if (existingIdx !== -1) {
@@ -688,6 +718,7 @@ export const App: React.FC = () => {
         if (activeStreamSessionRef.current !== streamSessionId) return;
         setIsStreaming(false);
         abortControllerRef.current = null;
+        activeStreamingMsgRef.current = null;
 
         const effectiveFinalContent = fullAssistantResponse && fullAssistantResponse.trim()
           ? fullAssistantResponse.trim()
@@ -745,29 +776,117 @@ export const App: React.FC = () => {
     });
   };
 
-  const handleAbort = () => {
+  const handleAbort = async () => {
+    activeStreamSessionRef.current = 0;
     if (abortControllerRef.current) {
-      abortControllerRef.current();
+      try {
+        abortControllerRef.current();
+      } catch (err) {
+        console.warn('[Abort Controller Notice]:', err);
+      }
       abortControllerRef.current = null;
     }
     setIsStreaming(false);
+
+    const activeStreamInfo = activeStreamingMsgRef.current;
+    if (!activeStreamInfo) {
+      setMessages(prev => {
+        if (prev.length === 0) return prev;
+        const last = prev[prev.length - 1];
+        if (last && last.role === 'assistant') {
+          return [
+            ...prev.slice(0, -1),
+            {
+              ...last,
+              isThinking: false,
+              isStopped: true,
+              stoppedReason: 'user_aborted',
+            }
+          ];
+        }
+        return prev;
+      });
+      return;
+    }
+
+    const {
+      targetChatId,
+      assistantPlaceholderId,
+      fullAssistantResponse,
+      fullAssistantReasoning,
+      isMemoryDetectTriggered,
+      memoryDetectSummary,
+      isX1Active,
+      chosenModel,
+      newMessagesList,
+      text,
+      userId: currentUserId,
+      effectivePrompt,
+      uniqueImagesDataUrls,
+      resolvedTargetUrl,
+      meta,
+      currentPlanId
+    } = activeStreamInfo;
+
+    const effectiveFinalContent = (fullAssistantResponse || '').trim();
+    const effectiveFinalReasoning = (fullAssistantReasoning || '').trim();
+
+    const finalStoppedMsg: ChatMessageItem = {
+      id: assistantPlaceholderId,
+      role: 'assistant',
+      content: effectiveFinalContent,
+      reasoning: effectiveFinalReasoning,
+      isThinking: false,
+      isStopped: true,
+      stoppedReason: 'user_aborted',
+      timestamp: formatEnglishTimestamp(),
+      isX1: isX1Active,
+      model: chosenModel,
+      isMemoryDetectTriggered,
+      memoryDetectSummary,
+    };
+
     setMessages(prev => {
-      if (prev.length === 0) return prev;
+      const existingIdx = prev.findIndex(m => m.id === assistantPlaceholderId);
+      if (existingIdx !== -1) {
+        const updated = [...prev];
+        updated[existingIdx] = finalStoppedMsg;
+        return updated;
+      }
       const last = prev[prev.length - 1];
       if (last && last.role === 'assistant') {
-        if (!last.content || last.content.trim() === '') {
-          return prev.slice(0, -1);
-        }
-        return [
-          ...prev.slice(0, -1),
-          {
-            ...last,
-            isThinking: false,
-          }
-        ];
+        return [...prev.slice(0, -1), finalStoppedMsg];
       }
-      return prev;
+      return [...prev, finalStoppedMsg];
     });
+
+    if (targetChatId) {
+      try {
+        await saveCloudMessage(targetChatId, currentUserId, finalStoppedMsg);
+        const currentChatTitle = cloudChats.find(c => c.id === targetChatId)?.title || text.slice(0, 40);
+        memoryEngine.updateChatMemoryNode(targetChatId, currentChatTitle, [...newMessagesList, finalStoppedMsg]);
+        refreshSidebarChats(currentUserId);
+      } catch (err) {
+        console.warn('[Save Stopped Cloud Message Catch]:', err);
+      }
+
+      // Record real partial usage to Supabase
+      try {
+        await recordRealUsage({
+          model: chosenModel,
+          promptText: effectivePrompt,
+          responseText: effectiveFinalContent || effectiveFinalReasoning || '',
+          reasoningText: effectiveFinalReasoning,
+          hasImages: uniqueImagesDataUrls.length > 0,
+          imagesCount: uniqueImagesDataUrls.length,
+          isCyberScan: !!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
+          userId: currentUserId,
+          currentPlanId: currentPlanId || 'free',
+        });
+      } catch {}
+    }
+
+    activeStreamingMsgRef.current = null;
   };
 
   const handleClearChat = async () => {
