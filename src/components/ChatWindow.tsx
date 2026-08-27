@@ -25,15 +25,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
-  const isPinnedToBottomRef = useRef(true);
+  const isAutoScrollLockedRef = useRef(true);
+  const isUserInteractingRef = useRef(false);
+  const lastScrollHeightRef = useRef(0);
+  const prevMessagesLength = useRef(messages.length);
+
+  // Synchronize locking state
+  const setAutoScrollLocked = useCallback((locked: boolean) => {
+    isAutoScrollLockedRef.current = locked;
+    setShowScrollBottom(!locked);
+  }, []);
 
   // Instant or smooth scroll to absolute bottom
   const scrollToBottom = useCallback((smooth = false) => {
     const container = containerRef.current;
     if (!container) return;
 
-    isPinnedToBottomRef.current = true;
-    setShowScrollBottom(false);
+    setAutoScrollLocked(true);
 
     if (smooth) {
       container.scrollTo({
@@ -43,63 +51,97 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     } else {
       container.scrollTop = container.scrollHeight;
     }
-  }, []);
+  }, [setAutoScrollLocked]);
 
-  // Intelligent, accurate scroll detection based on actual distance
+  // Intelligent scroll threshold tracking
   const handleScroll = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
     
-    // Only show scroll-to-bottom button when genuinely scrolled up (> 220px)
-    if (distFromBottom > 220) {
-      isPinnedToBottomRef.current = false;
-      setShowScrollBottom(true);
-    } else if (distFromBottom <= 80) {
-      isPinnedToBottomRef.current = true;
-      setShowScrollBottom(false);
+    // If user scrolled up by more than 50px, release lock so user can read smoothly without interruptions!
+    if (distFromBottom > 60) {
+      if (isAutoScrollLockedRef.current) {
+        setAutoScrollLocked(false);
+      }
+    } else if (distFromBottom <= 20) {
+      // User naturally scrolled back down to bottom
+      if (!isAutoScrollLockedRef.current) {
+        setAutoScrollLocked(true);
+      }
     }
-  }, []);
+  }, [setAutoScrollLocked]);
 
-  // Lock to bottom immediately on new user message
+  // Decouple user touch / wheel gestures to prevent violent jitter during streaming
   useEffect(() => {
-    if (messages.length > 0) {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const onWheel = (e: WheelEvent) => {
+      // If user is scrolling UP with wheel
+      if (e.deltaY < -2) {
+        setAutoScrollLocked(false);
+      }
+    };
+
+    const onTouchStart = () => {
+      isUserInteractingRef.current = true;
+    };
+
+    const onTouchEnd = () => {
+      isUserInteractingRef.current = false;
+      setTimeout(handleScroll, 60);
+    };
+
+    container.addEventListener('wheel', onWheel, { passive: true });
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('wheel', onWheel);
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [handleScroll, setAutoScrollLocked]);
+
+  // Lock to bottom immediately on new user message submission
+  useEffect(() => {
+    if (messages.length > prevMessagesLength.current) {
       const lastMsg = messages[messages.length - 1];
       if (lastMsg.role === 'user') {
         scrollToBottom(false);
       }
     }
-  }, [messages.length, scrollToBottom]);
+    prevMessagesLength.current = messages.length;
+  }, [messages, scrollToBottom]);
 
-  // Keep pinned while streaming if user hasn't deliberately scrolled up
+  // High-performance intelligent stream follower using RequestAnimationFrame
+  // Eliminates layout thrashing and jitter during thinking or token streaming
   useEffect(() => {
-    if (isStreaming && isPinnedToBottomRef.current) {
-      scrollToBottom(false);
-    }
-  }, [isStreaming, messages, scrollToBottom]);
+    if (!isStreaming) return;
 
-  // ResizeObserver to handle content height expansions smoothly during streaming
-  useEffect(() => {
     const container = containerRef.current;
-    const list = messagesListRef.current;
-    if (!container || !list) return;
+    if (!container) return;
 
     let rafId: number;
-    const ro = new ResizeObserver(() => {
-      if (isStreaming && isPinnedToBottomRef.current) {
-        cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(() => {
-          if (container && isPinnedToBottomRef.current) {
-            container.scrollTop = container.scrollHeight;
-          }
-        });
-      }
-    });
 
-    ro.observe(list);
+    const streamFollower = () => {
+      if (isStreaming && isAutoScrollLockedRef.current && !isUserInteractingRef.current) {
+        const currentHeight = container.scrollHeight;
+        if (currentHeight !== lastScrollHeightRef.current) {
+          lastScrollHeightRef.current = currentHeight;
+          container.scrollTop = currentHeight - container.clientHeight;
+        }
+      }
+      if (isStreaming) {
+        rafId = requestAnimationFrame(streamFollower);
+      }
+    };
+
+    rafId = requestAnimationFrame(streamFollower);
+
     return () => {
-      ro.disconnect();
       cancelAnimationFrame(rafId);
     };
   }, [isStreaming]);
