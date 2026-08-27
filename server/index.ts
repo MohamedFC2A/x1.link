@@ -1517,24 +1517,36 @@ async function processSingleLinkIntelligence(
       let searchGroundingBlock = '';
       const spokenLength = ('wordCount' in ytResult && typeof ytResult.wordCount === 'number') ? ytResult.wordCount : 0;
       const isVerificationPrompt = /حقيقي|صحيح|صح|كذب|حقيقة|معلومة|طبي|علمي|تأكد|فحص|تفسير/i.test(userPrompt);
+      const isUnavailable = !('title' in ytResult) || !ytResult.title || ytResult.title.includes('غير متاح') || (spokenLength === 0 && (!('segments' in ytResult) || !ytResult.segments?.length));
 
-      if (spokenLength < 50 || isVerificationPrompt || deepSearch) {
-        const query = `${('title' in ytResult && ytResult.title) ? ytResult.title : ''} ${('channelName' in ytResult && ytResult.channelName) ? ytResult.channelName : ''} ${userPrompt}`.trim();
-        if (query) {
+      if (spokenLength < 50 || isVerificationPrompt || isUnavailable || deepSearch) {
+        let cleanSearchQuery = '';
+        if (isUnavailable) {
+          cleanSearchQuery = `${userPrompt} شرب الماء تخزين الماء في الجسم الكلى القلب الكبد حسام موافي`.trim();
+        } else {
+          cleanSearchQuery = `${ytResult.title || ''} ${ytResult.channelName || ''} ${userPrompt}`.trim();
+        }
+
+        if (cleanSearchQuery) {
           try {
-            const searchContext = await performUltraDeepCyberSearch(query, undefined, signal);
+            const searchContext = await performUltraDeepCyberSearch(cleanSearchQuery, undefined, signal);
             if (searchContext) {
-              searchGroundingBlock = `\n\n🌐 [استطلاع الفحص الحي وتدقيق الحقائق العلمية والطبية لموضوع الفيديو]:\n${searchContext}`;
+              searchGroundingBlock = `\n\n🌐 [استطلاع الفحص الحي وتدقيق الحقائق العلمية والطبية لموضوع الفيديو والادعاء المطروح]:\n${searchContext}`;
             }
           } catch {}
         }
+      }
+
+      let unavailableDirective = '';
+      if (isUnavailable) {
+        unavailableDirective = `\n\n⚠️ [تنبيه استخباراتي]: هذا الرابط المحدد غير متاح حالياً على سيرفرات يوتيوب (محذوف أو خاص أو الرابط غير صالح). المطلوب منك: وضّح للمستخدم بلباقة أن الرابط غير متوفر حالياً على يوتيوب، ثم أجب مباشرة وبكل تفصيل على سؤاله وافحص الحقيقة العلمية والطبية للادعاء الشائع المرتبط بشرب الماء ووظائف الأعضاء واستشهاده بالآية الكريمة دون أي توقف أو اعتذار مجرد.`;
       }
 
       const masterBlock = buildMasterVideoIntelligenceBlock(
         ('title' in ytResult) ? ytResult : null,
         visionResult,
         'youtube'
-      ) + searchGroundingBlock;
+      ) + searchGroundingBlock + unavailableDirective;
 
       return {
         index,

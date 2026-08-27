@@ -748,29 +748,85 @@ export async function resolveAndProfileUrl(rawInputUrl: string): Promise<Resolve
     const videoId = ytMatch[1];
     const thumbUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
     
+    let isVideoAvailable = false;
+    let videoTitle = '';
+    let videoAuthor = '';
+    let videoDesc = '';
+
+    // 1. Try official oEmbed (watch)
     try {
       const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
       if (oembedRes.ok) {
         const oembedData: any = await oembedRes.json();
-        if (oembedData.title) effectiveTitle = oembedData.title;
-        if (oembedData.author_name) effectiveDescription = `قناة: ${oembedData.author_name}`;
-        videoMetadata = {
-          videoId,
-          authorName: oembedData.author_name || 'YouTube Creator',
-          thumbnailUrl: oembedData.thumbnail_url || thumbUrl,
-          platform: 'youtube',
-        };
+        if (oembedData.title) {
+          videoTitle = oembedData.title;
+          videoAuthor = oembedData.author_name || 'قناة يوتيوب';
+          videoDesc = `قناة: ${videoAuthor}`;
+          isVideoAvailable = true;
+        }
       }
     } catch {}
 
-    if (!videoMetadata) {
-      videoMetadata = {
-        videoId,
-        authorName: 'YouTube Creator',
-        thumbnailUrl: thumbUrl,
-        platform: 'youtube',
-      };
+    // 2. Try noembed fallback
+    if (!isVideoAvailable) {
+      try {
+        const noembedRes = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+        if (noembedRes.ok) {
+          const noembedData: any = await noembedRes.json();
+          if (noembedData.title && !noembedData.error) {
+            videoTitle = noembedData.title;
+            videoAuthor = noembedData.author_name || 'قناة يوتيوب';
+            videoDesc = `قناة: ${videoAuthor}`;
+            isVideoAvailable = true;
+          }
+        }
+      } catch {}
     }
+
+    // 3. Try checking HTML playabilityStatus for Shorts / age-gated / deleted videos
+    if (!isVideoAvailable) {
+      try {
+        const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept-Language': 'ar,en;q=0.9'
+          }
+        });
+        if (pageRes.ok) {
+          const pageHtml = await pageRes.text();
+          const isErrorStatus = pageHtml.includes('"status":"ERROR"') || pageHtml.includes('الفيديو غير متاح') || pageHtml.includes('هذا الفيديو غير متوفّر');
+          if (isErrorStatus) {
+            videoTitle = 'فيديو غير متاح على يوتيوب (محذوف أو خاص)';
+            videoAuthor = 'غير متاح';
+            videoDesc = 'هذا الفيديو غير متوفر حالياً على خوادم يوتيوب (قد يكون محذوفاً، خاصاً، أو تم تغيير رابطه).';
+            isVideoAvailable = false;
+          } else {
+            const ogTitle = pageHtml.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i)?.[1];
+            if (ogTitle && !ogTitle.includes('- YouTube')) {
+              videoTitle = ogTitle;
+              videoAuthor = pageHtml.match(/<link\s+itemprop=["']name["']\s+content=["'](.*?)["']/i)?.[1] || 'قناة يوتيوب';
+              isVideoAvailable = true;
+            }
+          }
+        }
+      } catch {}
+    }
+
+    if (!videoTitle) {
+      videoTitle = 'فيديو غير متاح على يوتيوب (محذوف أو خاص)';
+      videoAuthor = 'غير متاح';
+      videoDesc = 'هذا الفيديو غير متوفر حالياً على خوادم يوتيوب (قد يكون محذوفاً، خاصاً، أو تم تغيير رابطه).';
+    }
+
+    effectiveTitle = videoTitle;
+    effectiveDescription = videoDesc;
+
+    videoMetadata = {
+      videoId,
+      authorName: videoAuthor,
+      thumbnailUrl: thumbUrl,
+      platform: 'youtube',
+    };
 
     effectiveBrandAssets = {
       ...brandAssets,
