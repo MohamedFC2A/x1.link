@@ -71,80 +71,30 @@ export function getOrCreateDeviceId(): string {
 
 const GOOGLE_CLIENT_ID = '953416509444-1e8gq6n84hbsrkncn8lkk8mio75pge87.apps.googleusercontent.com';
 
-// Google Auth Sign In (Prioritizes Google Identity Services Native Popup for matany.one Attribution)
+// Google Auth Sign In (Direct High-Reliability Supabase OAuth)
 export async function signInWithGoogle(): Promise<{ user: User | null; error?: string }> {
-  // Check if Google Identity Services SDK is loaded in window
-  if (typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
-    return new Promise((resolve) => {
-      try {
-        const google = (window as any).google;
-        google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          context: 'signin',
-          ux_mode: 'popup',
-          cancel_on_tap_outside: true,
-          callback: async (response: any) => {
-            if (response?.credential) {
-              const { data, error } = await supabase.auth.signInWithIdToken({
-                provider: 'google',
-                token: response.credential,
-              });
-              if (error) {
-                console.error('[Supabase signInWithIdToken Error]:', error);
-                resolve({ user: null, error: error.message });
-              } else {
-                resolve({ user: data.user, error: undefined });
-              }
-            } else {
-              resolve({ user: null, error: 'لم يتم استلام تصريح الدخول من Google.' });
-            }
-          },
-        });
-
-        // Trigger Google Native Sign-In UI with matany.one branding
-        google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // Fallback to direct OAuth redirect if One-Tap is suppressed
-            supabase.auth.signInWithOAuth({
-              provider: 'google',
-              options: {
-                redirectTo: window.location.origin,
-                queryParams: { prompt: 'select_account' }
-              }
-            }).catch(console.error);
-          }
-        });
-      } catch (err: any) {
-        console.warn('[GIS Init Catch]:', err);
-        supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: window.location.origin,
-            queryParams: { prompt: 'select_account' }
-          }
-        }).catch(console.error);
-        resolve({ user: null });
+  try {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://matany.one';
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: origin,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account',
+        }
       }
     });
-  }
 
-  // Standard OAuth Fallback
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'select_account',
-      }
+    if (error) {
+      console.error('[Supabase signInWithOAuth Error]:', error);
+      return { user: null, error: error.message };
     }
-  });
-
-  if (error) {
-    console.error('[Supabase Auth Error]:', error.message);
-    throw error;
+    return { user: null };
+  } catch (err: any) {
+    console.error('[signInWithGoogle Exception]:', err);
+    return { user: null, error: err.message || 'فشل الاتصال بخدمة Google' };
   }
-  return { user: null };
 }
 
 export async function signOutUser() {
