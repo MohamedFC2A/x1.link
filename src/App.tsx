@@ -82,7 +82,16 @@ export const App: React.FC = () => {
       else if (path === '/pricing') setViewMode('pricing');
       else if (path === '/limits') setViewMode('limits');
       else if (path === '/profile') setViewMode('profile');
-      else setViewMode(localStorage.getItem(STORAGE_KEY_SEEN_LANDING) === 'true' ? 'chat' : 'landing');
+      else {
+        setViewMode(localStorage.getItem(STORAGE_KEY_SEEN_LANDING) === 'true' ? 'chat' : 'landing');
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlChatId = urlParams.get('c') || urlParams.get('chat');
+        if (urlChatId && urlChatId !== currentChatId) {
+          handleSelectChat(urlChatId);
+        } else if (!urlChatId && currentChatId) {
+          handleNewChat();
+        }
+      }
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -152,7 +161,37 @@ export const App: React.FC = () => {
     return acc + estimateTokens(m.content || '', '', m.reasoning);
   }, 0);
 
-  const loadCloudChats = async (userId: string | null, shouldAutoLoadLatest = false) => {
+  const getTargetChatIdFromUrlOrStorage = (): string | null => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramChatId = urlParams.get('c') || urlParams.get('chat');
+      if (paramChatId === 'new') return null;
+      if (paramChatId) return paramChatId;
+
+      const stored = sessionStorage.getItem('matany_active_chat_id');
+      if (stored === 'new') return null;
+      if (stored) return stored;
+    } catch (e) {}
+    return null;
+  };
+
+  const updateActiveChatUrlAndStorage = (chatId: string | null) => {
+    try {
+      const url = new URL(window.location.href);
+      if (chatId) {
+        sessionStorage.setItem('matany_active_chat_id', chatId);
+        url.searchParams.set('c', chatId);
+        window.history.replaceState(null, '', url.toString());
+      } else {
+        sessionStorage.setItem('matany_active_chat_id', 'new');
+        url.searchParams.delete('c');
+        url.searchParams.delete('chat');
+        window.history.replaceState(null, '', url.toString());
+      }
+    } catch (e) {}
+  };
+
+  const loadCloudChats = async (userId: string | null, targetExplicitChatId?: string | null) => {
     const chats = await fetchUserChats(userId);
     setCloudChats(chats);
     if (chats.length > 0) {
@@ -166,13 +205,34 @@ export const App: React.FC = () => {
         });
       }).catch(() => {});
     }
-    if (shouldAutoLoadLatest && chats.length > 0) {
-      setCurrentChatId(chats[0].id);
-      const msgs = await fetchChatMessages(chats[0].id);
-      setMessages(msgs);
-      if (msgs.length > 0) {
-        memoryEngine.updateChatMemoryNode(chats[0].id, chats[0].title, msgs, chats[0].updated_at);
+
+    // Determine what chat should be active
+    const activeTarget = targetExplicitChatId !== undefined 
+      ? targetExplicitChatId 
+      : getTargetChatIdFromUrlOrStorage();
+
+    if (activeTarget && activeTarget !== 'new') {
+      const chatExists = chats.some(c => c.id === activeTarget);
+      if (chatExists) {
+        setCurrentChatId(activeTarget);
+        updateActiveChatUrlAndStorage(activeTarget);
+        const msgs = await fetchChatMessages(activeTarget);
+        setMessages(msgs);
+        if (msgs.length > 0) {
+          const targetChat = chats.find(c => c.id === activeTarget);
+          memoryEngine.updateChatMemoryNode(activeTarget, targetChat?.title || 'محادثة سابقة', msgs, targetChat?.updated_at);
+        }
+      } else {
+        // Chat was deleted or does not exist
+        setCurrentChatId(null);
+        setMessages([]);
+        updateActiveChatUrlAndStorage(null);
       }
+    } else if (targetExplicitChatId === null || (targetExplicitChatId === undefined && activeTarget === null && !currentChatId)) {
+      // Retain clean fresh new chat state
+      setCurrentChatId(null);
+      setMessages([]);
+      updateActiveChatUrlAndStorage(null);
     }
   };
 
@@ -185,7 +245,7 @@ export const App: React.FC = () => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       memoryEngine.setUserIdAndLoad(currentUser?.id ?? null);
-      loadCloudChats(currentUser?.id ?? null, true);
+      loadCloudChats(currentUser?.id ?? null);
       fetchUserSubscription(currentUser?.id ?? null).then(plan => setCurrentPlanId(plan));
       fetchRemoteUsage(currentUser?.id ?? null).then(usage => {
         if (usage) setTotalTokens(usage.totalTokens);
@@ -196,7 +256,7 @@ export const App: React.FC = () => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       memoryEngine.setUserIdAndLoad(currentUser?.id ?? null);
-      loadCloudChats(currentUser?.id ?? null, false);
+      loadCloudChats(currentUser?.id ?? null);
       fetchUserSubscription(currentUser?.id ?? null).then(plan => setCurrentPlanId(plan));
       fetchRemoteUsage(currentUser?.id ?? null).then(usage => {
         if (usage) setTotalTokens(usage.totalTokens);
@@ -448,7 +508,8 @@ export const App: React.FC = () => {
       targetChatId = await createCloudChat(userId, userCleanDisplayContent, chosenModel, isX1Active);
       if (targetChatId) {
         setCurrentChatId(targetChatId);
-        loadCloudChats(userId);
+        updateActiveChatUrlAndStorage(targetChatId);
+        loadCloudChats(userId, targetChatId);
       }
     }
     if (targetChatId) {
@@ -623,15 +684,17 @@ export const App: React.FC = () => {
     purgeAllLocalChatArtifacts();
     if (currentChatId) {
       await deleteCloudChat(currentChatId);
-      loadCloudChats(user?.id ?? null, false);
+      loadCloudChats(user?.id ?? null, null);
     }
     setMessages([]);
     setCurrentChatId(null);
+    updateActiveChatUrlAndStorage(null);
   };
 
   const handleNewChat = () => {
     setMessages([]);
     setCurrentChatId(null);
+    updateActiveChatUrlAndStorage(null);
     navigateTo('chat');
   };
 
@@ -640,7 +703,7 @@ export const App: React.FC = () => {
       if (currentChatId) {
         try {
           await deleteCloudChat(currentChatId);
-          loadCloudChats(user?.id ?? null);
+          loadCloudChats(user?.id ?? null, null);
         } catch (err) {
           console.warn('[AutoDelete Cloud Error]:', err);
         }
@@ -694,6 +757,7 @@ export const App: React.FC = () => {
 
   const handleSelectChat = async (chatId: string) => {
     setCurrentChatId(chatId);
+    updateActiveChatUrlAndStorage(chatId);
     const history = await fetchChatMessages(chatId);
     setMessages(history);
     const targetChat = cloudChats.find(c => c.id === chatId);
