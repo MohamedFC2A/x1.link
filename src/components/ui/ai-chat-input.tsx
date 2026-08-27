@@ -28,13 +28,15 @@ import {
   Mic,
   Music,
   FileCode,
-  FileType
+  FileType,
+  FileSearch
 } from "lucide-react";
 import { ModelType, MediaType } from "@/types";
 import { classifyFileType, formatFileSize, formatMediaDuration, extractVideoClientMetadata, extractAudioClientMetadata, extractTextClientMetadata } from "@/lib/mediaExtractor";
 import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 import { SmartTooltip } from "@/components/ui/SmartTooltip";
 import { PlatformLogo } from "@/components/ui/PlatformLogo";
+import { ImageForensicsModal } from "@/components/ui/ImageForensicsModal";
 
 // ----------------------------------------------------------------------
 // Types
@@ -77,19 +79,21 @@ export interface PromptInputProps {
 // ----------------------------------------------------------------------
 // Attachment Gallery Modal (Lightbox)
 // ----------------------------------------------------------------------
-function AttachmentGalleryModal({
+function AttachmentPreviewModal({
   attachment,
   onClose,
+  onOpenForensics
 }: {
   attachment: Attachment;
   onClose: () => void;
+  onOpenForensics?: (attachment: Attachment) => void;
 }) {
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
   return (
@@ -155,9 +159,25 @@ function AttachmentGalleryModal({
             />
           )}
         </div>
-        <div className="p-3 bg-zinc-900/95 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-300 font-mono">
-          <span className="truncate max-w-[200px] sm:max-w-md">{attachment.name}</span>
-          <span className="text-zinc-400 font-mono">{formatFileSize(attachment.size)}</span>
+        <div className="p-3 bg-zinc-900/95 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-300 font-mono" dir="rtl">
+          <div className="flex items-center gap-2">
+            <span className="truncate max-w-[150px] sm:max-w-md">{attachment.name}</span>
+            <span className="text-zinc-400 font-mono">({formatFileSize(attachment.size)})</span>
+          </div>
+
+          {attachment.mediaType === 'image' && onOpenForensics && (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenForensics(attachment);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-sans font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+            >
+              <FileSearch className="w-3.5 h-3.5" />
+              <span>فحص الميتاداتا والأدلة الجنائية (EXIF / GPS)</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -191,6 +211,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     const [localValue, setLocalValue] = useState(defaultValue);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [activeAttachment, setActiveAttachment] = useState<Attachment | null>(null);
+    const [forensicModalSrc, setForensicModalSrc] = useState<string | File | Blob | null>(null);
     const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
     const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
     const [isTargetUrlBarOpen, setIsTargetUrlBarOpen] = useState(false);
@@ -1201,6 +1222,22 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   <div className="absolute bottom-1 right-1 w-4 h-4 min-w-[16px] min-h-[16px] aspect-square rounded-full bg-zinc-900/90 text-zinc-200 border border-white/[0.3] flex items-center justify-center font-bold text-[9px] shrink-0 font-mono shadow-inner select-none backdrop-blur-md">
                     {idx + 1}
                   </div>
+
+                  {/* Quick Forensics Button for Images */}
+                  {att.mediaType === 'image' && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setForensicModalSrc(att.file || att.url);
+                      }}
+                      className="absolute bottom-1 left-1 size-5 rounded-md bg-black/80 hover:bg-black text-cyan-300 border border-cyan-500/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer shadow"
+                      title="فحص الميتاداتا والأدلة (EXIF / GPS)"
+                    >
+                      <FileSearch className="w-3 h-3" />
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={(e) => {
@@ -1553,11 +1590,19 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
         {/* Lightbox Modal */}
         {activeAttachment && (
-          <AttachmentGalleryModal
+          <AttachmentPreviewModal
             attachment={activeAttachment}
             onClose={() => setActiveAttachment(null)}
+            onOpenForensics={(att) => setForensicModalSrc(att.file || att.url)}
           />
         )}
+
+        {/* Digital Forensics Modal */}
+        <ImageForensicsModal
+          imageSrc={forensicModalSrc}
+          isOpen={Boolean(forensicModalSrc)}
+          onClose={() => setForensicModalSrc(null)}
+        />
       </div>
     );
   }

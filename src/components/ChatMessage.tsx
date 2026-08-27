@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessageItem, ResolvedLinkInfo } from '../types';
 import ChatReasoning from './ui/chat-reasoning';
-import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Zap, Loader2, Play, Pause, Video, Music, FileText, FileCode, FileType, Clock, RotateCcw, Bell, Trash2, Calendar, CheckCircle2 } from 'lucide-react';
+import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Zap, Loader2, Play, Pause, Video, Music, FileText, FileCode, FileType, Clock, RotateCcw, Bell, Trash2, Calendar, CheckCircle2, FileSearch } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { detectAndExtractUrl, extractAllCleanUrls, getFaviconUrl, extractYouTubeVideoId, getYouTubeThumbnailUrl, normalizeDisplayTimestamp, cn } from '@/lib/utils';
 import { formatMediaDuration, formatFileSize } from '@/lib/mediaExtractor';
@@ -12,6 +12,7 @@ import { ThinkingOrb } from './ui/thinking-orbs';
 import { LinkConfirmModal } from './ui/LinkConfirmModal';
 import { PhoneConfirmModal } from './ui/PhoneConfirmModal';
 import { EmailConfirmModal } from './ui/EmailConfirmModal';
+import { ImageForensicsModal } from './ui/ImageForensicsModal';
 import { renderSmartContentWithLinksAndPhones } from '@/lib/smart-content-parser';
 import { PlatformLogo } from './ui/PlatformLogo';
 import { FeaturesBar } from './ui/FeaturesBar';
@@ -905,6 +906,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [forensicImage, setForensicImage] = useState<string | null>(null);
   const [confirmUrl, setConfirmUrl] = useState<string | null>(null);
   const [confirmPhone, setConfirmPhone] = useState<string | null>(null);
   const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
@@ -1012,6 +1014,20 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                         صورة
                       </span>
                     </div>
+
+                    {/* Forensic Analysis Trigger Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setForensicImage(imgSrc);
+                      }}
+                      className="absolute bottom-2.5 left-2.5 opacity-90 sm:opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/80 hover:bg-black text-cyan-300 border border-cyan-500/30 text-[10px] font-sans font-bold shadow-lg backdrop-blur-md cursor-pointer select-none z-10 hover:scale-105 active:scale-95"
+                      title="فحص الميتاداتا والأدلة الجنائية (EXIF / GPS)"
+                    >
+                      <FileSearch className="w-3 h-3 text-cyan-400" />
+                      <span>فحص الميتاداتا</span>
+                    </button>
                   </div>
                 );
               })}
@@ -1124,6 +1140,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         <LinkConfirmModal url={confirmUrl} onClose={() => setConfirmUrl(null)} />
         <PhoneConfirmModal phoneNumber={confirmPhone} onClose={() => setConfirmPhone(null)} />
         <EmailConfirmModal email={confirmEmail} onClose={() => setConfirmEmail(null)} />
+        <ImageForensicsModal imageSrc={forensicImage} isOpen={Boolean(forensicImage)} onClose={() => setForensicImage(null)} />
       </motion.div>
     );
   }
@@ -1467,6 +1484,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       <LinkConfirmModal url={confirmUrl} onClose={() => setConfirmUrl(null)} />
       <PhoneConfirmModal phoneNumber={confirmPhone} onClose={() => setConfirmPhone(null)} />
       <EmailConfirmModal email={confirmEmail} onClose={() => setConfirmEmail(null)} />
+      <ImageForensicsModal imageSrc={forensicImage} isOpen={Boolean(forensicImage)} onClose={() => setForensicImage(null)} />
     </motion.div>
   );
 };
