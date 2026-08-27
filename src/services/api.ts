@@ -154,25 +154,47 @@ export async function streamChatCompletion({
       };
     });
 
-    const response = await fetch('/api/chat', {
+    const requestPayload = {
+      messages: formattedMessages,
+      model,
+      isX1Mode,
+      deepSearch,
+      memoryPrompt,
+      targetUrl: effectiveTargetUrl,
+      targetUrls: targetUrls && targetUrls.length > 0 ? targetUrls : undefined,
+      chatId: chatId || undefined,
+      userId: userId || undefined,
+      deviceId: deviceId || undefined,
+    };
+
+    let response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        messages: formattedMessages,
-        model,
-        isX1Mode,
-        deepSearch,
-        memoryPrompt,
-        targetUrl: effectiveTargetUrl,
-        targetUrls: targetUrls && targetUrls.length > 0 ? targetUrls : undefined,
-        chatId: chatId || undefined,
-        userId: userId || undefined,
-        deviceId: deviceId || undefined,
-      }),
+      body: JSON.stringify(requestPayload),
       signal: controller.signal
     });
+
+    // Automatic single resilient retry on 504 Gateway Timeout or 502/503
+    if (!response.ok && (response.status === 504 || response.status === 502 || response.status === 503)) {
+      console.warn(`[API Stream] Encountered HTTP ${response.status}, attempting immediate fast-failover retry...`);
+      try {
+        response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...requestPayload,
+            deepSearch: false,
+          }),
+          signal: controller.signal
+        });
+      } catch (retryErr) {
+        console.warn('[API Stream] Fast retry exception:', retryErr);
+      }
+    }
 
     if (!response.ok) {
       let errBody = '';

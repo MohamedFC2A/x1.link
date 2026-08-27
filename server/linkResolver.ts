@@ -350,7 +350,7 @@ export async function fetchPageContent(targetUrl: string, existingHtml?: string)
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 3000);
     const resp = await fetch(targetUrl, {
       headers: STEALTH_HEADERS,
       signal: controller.signal,
@@ -370,7 +370,7 @@ export async function fetchPageContent(targetUrl: string, existingHtml?: string)
   // Bypass via Jina Reader Engine
   try {
     const bypassController = new AbortController();
-    const bypassTimeout = setTimeout(() => bypassController.abort(), 5000);
+    const bypassTimeout = setTimeout(() => bypassController.abort(), 2500);
     const bypassRes = await fetch(`https://r.jina.ai/${targetUrl}`, {
       headers: {
         'User-Agent': STEALTH_HEADERS['User-Agent'],

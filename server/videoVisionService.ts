@@ -296,7 +296,7 @@ export async function performVideoVisionPerception(
   for (const gw of videoGateways) {
     try {
       const visionController = new AbortController();
-      const visionTimeout = setTimeout(() => visionController.abort(), 14000);
+      const visionTimeout = setTimeout(() => visionController.abort(), 3500);
       if (signal) {
         signal.addEventListener('abort', () => visionController.abort(), { once: true });
       }
@@ -575,7 +575,7 @@ export async function performPostImageVisionPerception(
   for (const gw of visionGateways) {
     try {
       const visionController = new AbortController();
-      const visionTimeout = setTimeout(() => visionController.abort(), 14000);
+      const visionTimeout = setTimeout(() => visionController.abort(), 3500);
       if (signal) {
         signal.addEventListener('abort', () => visionController.abort(), { once: true });
       }

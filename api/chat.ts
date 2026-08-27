@@ -6,9 +6,8 @@ import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatfor
 import { extractImageForensics, buildForensicReportMarkdown, isForensicAnalysisRequested, type ForensicReport } from '../server/imageForensicsService';
 
 export const config = {
-  runtime: 'edge',
+  maxDuration: 60,
 };
-export const runtime = 'edge';
 export const maxDuration = 60;
 
 // Primary & Fallback API Keys
@@ -1935,8 +1934,8 @@ export default async function handler(req: Request): Promise<Response> {
   const allExtractedUrls = extractAllConversationUrls(cleanedMessages, explicitTargetUrl, targetUrlsArray);
 
   if (allExtractedUrls.length > 0) {
-    console.log(`[MULTI-LINK ENGINE Edge] Discovered (${allExtractedUrls.length}) target URLs. Initiating parallel forensic intelligence...`);
-    const linkPromises = allExtractedUrls.map((url, idx) => {
+    console.log(`[MULTI-LINK ENGINE] Discovered (${allExtractedUrls.length}) target URLs. Initiating fast parallel forensic intelligence...`);
+    const linkPromises = allExtractedUrls.slice(0, 3).map((url, idx) => {
       const singlePromise = processSingleLinkIntelligence(url, idx, rawUserContent, deepSearch, isCyber);
       const timeoutPromise = new Promise<ProcessedLinkData>((resolve) => {
         setTimeout(() => {
@@ -1947,7 +1946,7 @@ export default async function handler(req: Request): Promise<Response> {
             platformLabel: 'استطلاع فوري',
             summaryBlock: `[استطلاع الرابط: ${url}]`
           });
-        }, 25000);
+        }, 4000);
       });
       return Promise.race([singlePromise, timeoutPromise]);
     });
