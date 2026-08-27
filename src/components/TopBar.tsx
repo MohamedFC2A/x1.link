@@ -68,29 +68,15 @@ export const TopBar: React.FC<TopBarProps> = ({
           >
             <Menu className="w-4 h-4 text-zinc-100" />
             <span className="hidden sm:inline font-sans text-xs">السجل والقائمة</span>
-            {cloudChatsCount > 0 && (
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/10 text-zinc-200">
-                {cloudChatsCount}
-              </span>
-            )}
           </button>
         </div>
 
         {/* Center - Mobile View Title / Indicator */}
         <div className="flex md:hidden items-center justify-center flex-1 min-w-0">
-          {isSecondaryPage ? (
+          {isSecondaryPage && (
             <span className="text-xs font-bold text-zinc-200 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 truncate font-sans">
               {getViewTitle()}
             </span>
-          ) : (
-            <div className="flex items-baseline gap-0.5 leading-none cursor-pointer" dir="ltr" onClick={onGoHome}>
-              <span className="font-['Space_Grotesk'] font-bold text-base tracking-tight text-white">
-                matany
-              </span>
-              <span className="font-['Space_Grotesk'] font-bold text-xs text-zinc-400 font-mono">
-                .one
-              </span>
-            </div>
           )}
         </div>
 

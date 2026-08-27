@@ -39,6 +39,16 @@
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
     font-family: "Tajawal", "Readex Pro", "IBM Plex Sans Arabic", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* High-End Geometric Numbers & Monospace Typography */
+  .font-mono, [data-numbers="true"] {
+    font-family: "Space Grotesk", "Outfit", "Plus Jakarta Sans", "Fira Code", monospace !important;
+    font-feature-settings: "tnum", "zero" !important;
+    font-variant-numeric: tabular-nums lining-nums !important;
+    letter-spacing: -0.015em;
   }
 
   /* High-Contrast Luminous Text Selection */

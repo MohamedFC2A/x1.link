@@ -702,9 +702,58 @@ interface SerperOrganicItem {
   date?: string;
 }
 
+function shouldPerformLiveSearch(query: string, explicitDeepSearch = false): boolean {
+  if (explicitDeepSearch) return true;
+  if (!query || query.trim().length < 3) return false;
+
+  const normalized = query.toLowerCase();
+
+  // Search & Knowledge queries trigger live search
+  const searchTriggers = [
+    'ابحث', 'بحث', 'دور على', 'سيرش', 'search', 'find', 'google',
+    'أحدث', 'اخر اخبار', 'آخر أخبار', 'أخبار', 'سعر', 'اسعار', 'أسعار',
+    'كم سعر', 'كم يبلغ', 'اليوم', 'الآن', 'الان', '2026', '2025', '2024',
+    'من هو', 'من هي', 'ما هو', 'ما هي', 'متى تأسس', 'متى حدث', 'نتائج',
+    'مباراة', 'مباريات', 'تحديث', 'إصدار', 'جديد', 'مواصفات', 'مقارنة',
+    'طقس', 'دولار', 'ذهب', 'عملة', 'بورصة', 'سهم', 'شركات', 'تطبيق',
+    'news', 'latest', 'current', 'today', 'price', 'release', 'update', 'replit',
+    'deepseek', 'chatgpt', 'openai', 'gemini', 'claude', 'anthropic', 'meta'
+  ];
+
+  return searchTriggers.some(trigger => normalized.includes(trigger));
+}
+
+function buildTemporalSearchQuery(rawQuery: string): { query: string; isRecencyBiased: boolean } {
+  const currentYear = new Date().getUTCFullYear(); // 2026
+  let clean = rawQuery
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/[؟?؟!]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  clean = clean
+    .replace(/^(ابحث لي عن|ابحث عن|دور لي على|ما هي|ما هو|ماهو|ماهي|كم سعر|اخبرني عن|احكيلي عن|ممكن تبحث عن)\s+/i, '')
+    .trim();
+
+  const isExplicitHistorical = /(تاريخ|قديم|زمان|أصل|نشأة|في عام\s*\d{4}|سنة\s*19\d{2}|سنة\s*20[0-1]\d)/i.test(rawQuery);
+  const hasSpecificYear = /\b(19\d{2}|20\d{2})\b/.test(rawQuery);
+
+  if (!isExplicitHistorical && !hasSpecificYear && clean.length > 2) {
+    return {
+      query: `${clean} ${currentYear} latest update`,
+      isRecencyBiased: true
+    };
+  }
+
+  return {
+    query: clean,
+    isRecencyBiased: false
+  };
+}
+
 /**
- * Ultra-Deep Cyber Reconnaissance & Threat Intelligence Engine (Serper AI 100+ Pages)
- * Scans, correlates, and aggregates deep cybersecurity intelligence across 100+ indexed web sources.
+ * Supercharged Live Web Search & 2026 Real-Time Intelligence Engine (Fathom Search 1.1)
+ * Multi-Tier Sovereign Scraping with DuckDuckGo, Google News RSS, Serper, and Wikipedia.
  */
 async function performUltraDeepCyberSearch(
   userQuery: string,
@@ -714,6 +763,9 @@ async function performUltraDeepCyberSearch(
   const cleanQuery = userQuery.replace(/[\r\n]+/g, ' ').trim().slice(0, 300);
   if (!cleanQuery) return '';
 
+  const currentYear = new Date().getUTCFullYear();
+  const { query: temporalQuery, isRecencyBiased } = buildTemporalSearchQuery(cleanQuery);
+
   const domain = targetUrl ? (() => {
     try {
       return new URL(targetUrl).hostname.replace(/^www\./, '');
@@ -722,95 +774,185 @@ async function performUltraDeepCyberSearch(
     }
   })() : '';
 
-  // Tier 1: Serper.dev Multi-vector Reconnaissance
+  interface SearchHit {
+    title: string;
+    snippet: string;
+    url: string;
+    source: string;
+    date?: string;
+  }
+
+  const collectedHits: SearchHit[] = [];
+  const seenUrls = new Set<string>();
+
+  const addHit = (hit: SearchHit) => {
+    if (!hit.url || seenUrls.has(hit.url)) return;
+    seenUrls.add(hit.url);
+    collectedHits.push(hit);
+  };
+
+  // Tier 1: Serper.dev if API key present
   if (SERPER_API_KEY) {
     try {
-      const searchQueries: { q: string; page: number; category: string }[] = [];
-      searchQueries.push({ q: cleanQuery, page: 1, category: 'Primary Intelligence' });
-      searchQueries.push({ q: cleanQuery, page: 2, category: 'Primary Intelligence' });
-
-      if (domain) {
-        searchQueries.push({ q: `site:${domain} OR inurl:${domain}`, page: 1, category: 'Target Domain Data' });
-      } else {
-        searchQueries.push({ q: `${cleanQuery} details overview`, page: 1, category: 'Deep Context' });
-      }
-
-      const fetchPromises = searchQueries.map(async (item) => {
-        try {
-          const res = await fetch('https://google.serper.dev/search', {
-            method: 'POST',
-            headers: {
-              'X-API-KEY': SERPER_API_KEY,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              q: item.q,
-              page: item.page,
-              num: 15,
-            }),
-            signal,
-          });
-
-          if (!res.ok) return { category: item.category, results: [] as SerperOrganicItem[] };
-          const data = await res.json();
-          return {
-            category: item.category,
-            results: (data.organic || []) as SerperOrganicItem[]
-          };
-        } catch {
-          return { category: item.category, results: [] as SerperOrganicItem[] };
-        }
+      const q = domain ? `site:${domain} ${cleanQuery}` : temporalQuery;
+      const res = await fetch('https://google.serper.dev/search', {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': SERPER_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ q, num: 12 }),
+        signal: signal || AbortSignal.timeout(4500)
       });
-
-      const settled = await Promise.allSettled(fetchPromises);
-      const uniqueMap = new Map<string, { item: SerperOrganicItem; category: string }>();
-
-      for (const res of settled) {
-        if (res.status === 'fulfilled') {
-          const { category, results } = res.value;
-          for (const it of results) {
-            if (it.link && !uniqueMap.has(it.link)) {
-              uniqueMap.set(it.link, { item: it, category });
-            }
+      if (res.ok) {
+        const data = await res.json();
+        for (const item of (data.organic || [])) {
+          if (item.link) {
+            addHit({
+              title: item.title || 'نتيجة بحث',
+              snippet: item.snippet || '',
+              url: item.link,
+              source: 'Google Global Live Index',
+              date: item.date
+            });
           }
         }
-      }
-
-      const topResults = Array.from(uniqueMap.values()).slice(0, 10);
-
-      if (topResults.length > 0) {
-        let output = `\n[🌐 منظومة البحث المباشر في الويب (Live Web Search Intelligence)]:\n`;
-        topResults.forEach(({ item }, idx) => {
-          output += `[${idx + 1}] ${item.title}\n    الرابط: ${item.link}\n    الملخص: ${item.snippet || ''}\n\n`;
-        });
-        output += `\n[توجيه استخباراتي]: استخدم نتائج البحث المباشرة أعلاه لتقديم إجابة محدثة ودقيقة باللغة العربية.`;
-        return output.trim();
       }
     } catch (err: any) {
       console.warn('[Serper Search Exception]:', err?.message);
     }
   }
 
-  // Tier 2: Resilient Jina AI Web Search Fallback
-  try {
-    const jinaRes = await fetch(`https://s.jina.ai/${encodeURIComponent(cleanQuery)}`, {
-      headers: {
-        'Accept': 'text/plain',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-      },
-      signal
-    });
-    if (jinaRes.ok) {
-      const jinaText = await jinaRes.text();
-      if (jinaText && jinaText.trim().length > 80) {
-        return `\n[🌐 نتائج البحث المباشر في الويب (Live Web Intelligence)]:\n${jinaText.slice(0, 3500)}\n\n[توجيه]: استخدم بيانات البحث الحية أعلاه للإجابة بدقة باللغة العربية.`.trim();
+  // Tier 2: DuckDuckGo HTML Live Scraper (Universal, Zero-key, High Reliability)
+  if (collectedHits.length < 5) {
+    try {
+      const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(temporalQuery)}`;
+      const ddgRes = await fetch(searchUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+        },
+        signal: signal || AbortSignal.timeout(4500)
+      });
+      if (ddgRes.ok) {
+        const html = await ddgRes.text();
+        const resultBlocks = html.split(/class="result__body"/g).slice(1, 8);
+        for (const block of resultBlocks) {
+          const urlMatch = block.match(/href="([^"]+)"/);
+          let rawUrl = urlMatch ? urlMatch[1] : '';
+          if (rawUrl.includes('uddg=')) {
+            const decoded = decodeURIComponent(rawUrl.split('uddg=')[1]?.split('&')[0] || '');
+            if (decoded) rawUrl = decoded;
+          }
+          if (!rawUrl.startsWith('http')) continue;
+
+          const titleMatch = block.match(/class="result__snippet[^>]*>([\s\S]*?)<\/a>/) || block.match(/<a[^>]*class="result__url"[^>]*>([\s\S]*?)<\/a>/) || block.match(/<h2[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/);
+          const snippetMatch = block.match(/class="result__snippet[^>]*>([\s\S]*?)<\/a>/) || block.match(/class="result__snippet[^>]*>([\s\S]*?)<\/td>/);
+
+          const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+          const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+
+          if (rawUrl && (title || snippet)) {
+            addHit({
+              title: title || rawUrl,
+              snippet: snippet || title,
+              url: rawUrl,
+              source: 'DuckDuckGo Live Index'
+            });
+          }
+        }
       }
+    } catch (ddgErr: any) {
+      console.warn('[DDG Live Search Catch]:', ddgErr?.message);
     }
-  } catch (jinaErr: any) {
-    console.warn('[Jina Search Fallback Notice]:', jinaErr?.message);
   }
 
-  return '';
+  // Tier 3: Google News RSS Live Stream (for Breaking News & Fresh 2026 Updates)
+  if (collectedHits.length < 6) {
+    try {
+      const cleanNewsQ = cleanQuery.replace(/\b(2026|latest update)\b/gi, '').trim();
+      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(cleanNewsQ)}&hl=ar&gl=EG&ceid=EG:ar`;
+      const newsRes = await fetch(rssUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FathomBot/1.1; +https://matany.one)' },
+        signal: signal || AbortSignal.timeout(3500)
+      });
+      if (newsRes.ok) {
+        const xml = await newsRes.text();
+        const itemMatches = xml.split('<item>').slice(1, 5);
+        for (const itemXml of itemMatches) {
+          const titleMatch = itemXml.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || itemXml.match(/<title>(.*?)<\/title>/);
+          const linkMatch = itemXml.match(/<link>(.*?)<\/link>/) || itemXml.match(/<link><!\[CDATA\[(.*?)\]\]><\/link>/);
+          const pubDateMatch = itemXml.match(/<pubDate>(.*?)<\/pubDate>/);
+
+          const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+          const link = linkMatch ? linkMatch[1].trim() : '';
+          const pubDate = pubDateMatch ? pubDateMatch[1].trim() : '';
+
+          if (title && link) {
+            addHit({
+              title,
+              snippet: `خبر صحفي عاجل ومحدث (${pubDate}): ${title}`,
+              url: link,
+              source: 'Google News Realtime',
+              date: pubDate
+            });
+          }
+        }
+      }
+    } catch {}
+  }
+
+  // Tier 4: Wikipedia / Wikinews API
+  if (collectedHits.length < 7) {
+    try {
+      const cleanWikiQ = cleanQuery.replace(/\b(2026|2025|latest|update)\b/gi, '').trim();
+      const wikiUrl = `https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanWikiQ)}&format=json&utf8=1&srlimit=2`;
+      const wikiRes = await fetch(wikiUrl, { signal: signal || AbortSignal.timeout(3000) });
+      if (wikiRes.ok) {
+        const data = await wikiRes.json();
+        for (const r of (data?.query?.search || [])) {
+          const title = r.title;
+          const snippet = (r.snippet || '').replace(/<[^>]+>/g, '').trim();
+          const pageUrl = `https://ar.wikipedia.org/wiki/${encodeURIComponent(title.replace(/\s+/g, '_'))}`;
+          if (title && snippet) {
+            addHit({
+              title: `ويكيبيديا: ${title}`,
+              snippet,
+              url: pageUrl,
+              source: 'Wikipedia Encyclopedia'
+            });
+          }
+        }
+      }
+    } catch {}
+  }
+
+  if (collectedHits.length === 0) return '';
+
+  const bar = '━'.repeat(55);
+  const lines: string[] = [
+    `🌐 [نتائج البحث الحي المباشر من الويب وفحص الحداثة الفورية — ${currentYear} LIVE WEB INTELLIGENCE]`,
+    `• استعلام البحث الموجه: "${temporalQuery}"`,
+    `• حالة توجيه الحداثة الزمنية: ${isRecencyBiased ? 'تفضيل النتائج الفورية والأحدث لعام ' + currentYear : 'بحث سياقي شامل'}`,
+    bar
+  ];
+
+  collectedHits.slice(0, 8).forEach((item, idx) => {
+    lines.push(`\n[مصدر ${idx + 1} | ${item.source}]:`);
+    lines.push(`• العنوان: ${item.title}`);
+    lines.push(`• الرابط: ${item.url}`);
+    if (item.date) lines.push(`• تاريخ النشر: ${item.date}`);
+    lines.push(`• الملخص المستخرج: ${item.snippet}`);
+  });
+
+  lines.push(`\n${bar}`);
+  lines.push(`[توجيه التعامل مع نتائج البحث الحي]:`);
+  lines.push(`1. اعتمد المعلومات الحية المستخرجة أعلاه كحقائق مؤكدة ومحدثة لعام ${currentYear}.`);
+  lines.push(`2. عند الإشارة لمعلومات من البحث، اذكر اسم المصدر والروابط بدقة داخل ردك بصيغة: [اسم المصدر](الرابط).`);
+  lines.push(`3. صغ إجابتك باللغة العربية الفصحى البليغة مباشرة دون استهلال روتيني.`);
+
+  return lines.join('\n');
 }
 
 // Health check endpoint
@@ -1816,7 +1958,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         };
       }
     }
-  } else if (deepSearch || /(?:ابحث|بحث|تحقق من|تأكد من|أخبار|اخر اخبار|آخر الأخبار|مصدر|بحث عميق|سيرش|search|deep search)/i.test(rawUserContent)) {
+  } else if (shouldPerformLiveSearch(rawUserContent, deepSearch)) {
     console.log(`[FATHOM SEARCH PIPELINE] Initiating Live Web Intelligence for: "${rawUserContent.slice(0, 80)}..."`);
     const searchRes = await performUltraDeepCyberSearch(rawUserContent, undefined, upstreamAbortController.signal);
     if (searchRes) {
