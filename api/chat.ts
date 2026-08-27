@@ -6,9 +6,9 @@ import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatfor
 import { extractImageForensics, buildForensicReportMarkdown, isForensicAnalysisRequested, type ForensicReport } from '../server/imageForensicsService';
 
 export const config = {
-  maxDuration: 60,
+  maxDuration: 300,
 };
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 // Primary & Fallback API Keys
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
@@ -2498,6 +2498,7 @@ export default async function handler(req: Request): Promise<Response> {
             'Content-Type': 'text/event-stream; charset=utf-8',
             'Cache-Control': 'no-cache, no-transform',
             'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',
             'Access-Control-Allow-Origin': '*',
           },
         });
