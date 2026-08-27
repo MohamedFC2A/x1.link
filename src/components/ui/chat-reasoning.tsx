@@ -137,12 +137,17 @@ export default function ChatReasoning({
   className,
 }: ChatReasoningProps) {
   const [value, setValue] = useState<string | undefined>(defaultValue);
+  const prevThinkingRef = useRef(isThinking);
 
-  // Smoothly manage open/close state without violent scroll jumps
+  // Smoothly manage open/close state: open during thinking, auto-close on completion
   useEffect(() => {
     if (isThinking) {
       setValue("reasoning");
+    } else if (prevThinkingRef.current && !isThinking) {
+      // Automatically collapse smoothly once thinking completes
+      setValue(undefined);
     }
+    prevThinkingRef.current = isThinking;
   }, [isThinking]);
 
   // Combine reasoningText or parts

@@ -539,6 +539,13 @@ export const App: React.FC = () => {
       onComplete: async () => {
         setIsStreaming(false);
         abortControllerRef.current = null;
+
+        const effectiveFinalContent = fullAssistantResponse && fullAssistantResponse.trim()
+          ? fullAssistantResponse.trim()
+          : (fullAssistantReasoning && fullAssistantReasoning.trim()
+              ? 'تم اكتمال الاستدلال والتحليل المنطقي بنجاح.'
+              : 'تمت معالجة الطلب.');
+
         setMessages(prev => {
           const last = prev[prev.length - 1];
           if (last && last.id === assistantPlaceholderId) {
@@ -546,6 +553,7 @@ export const App: React.FC = () => {
               ...prev.slice(0, -1),
               {
                 ...last,
+                content: last.content?.trim() ? last.content : effectiveFinalContent,
                 isThinking: false,
                 isMemoryDetectTriggered,
                 memoryDetectSummary,
@@ -559,7 +567,7 @@ export const App: React.FC = () => {
         const updatedUsage = await recordRealUsage({
           model: chosenModel,
           promptText: effectivePrompt,
-          responseText: fullAssistantResponse,
+          responseText: fullAssistantResponse || effectiveFinalContent,
           reasoningText: fullAssistantReasoning,
           hasImages: uniqueImagesDataUrls.length > 0,
           imagesCount: uniqueImagesDataUrls.length,
@@ -570,11 +578,11 @@ export const App: React.FC = () => {
 
         setTotalTokens(updatedUsage.totalTokens);
 
-        if (targetChatId && fullAssistantResponse) {
+        if (targetChatId) {
           const finalAssistantMsg: ChatMessageItem = {
             id: assistantPlaceholderId,
             role: 'assistant',
-            content: fullAssistantResponse,
+            content: fullAssistantResponse?.trim() || effectiveFinalContent,
             reasoning: fullAssistantReasoning,
             isX1: isX1Active,
             timestamp: formatEnglishTimestamp(),
