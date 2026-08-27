@@ -5,7 +5,7 @@ import { ChatMessageItem, ResolvedLinkInfo } from '../types';
 import ChatReasoning from './ui/chat-reasoning';
 import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Zap, Loader2, Play, Pause, Video, Music, FileText, FileCode, FileType, Clock, RotateCcw, Bell, Trash2, Calendar, CheckCircle2, FileSearch } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { detectAndExtractUrl, extractAllCleanUrls, getFaviconUrl, extractYouTubeVideoId, getYouTubeThumbnailUrl, normalizeDisplayTimestamp, cn } from '@/lib/utils';
+import { detectAndExtractUrl, extractAllCleanUrls, getFaviconUrl, extractYouTubeVideoId, getYouTubeThumbnailUrl, normalizeDisplayTimestamp, cleanMarkdownForClipboard, cn } from '@/lib/utils';
 import { formatMediaDuration, formatFileSize } from '@/lib/mediaExtractor';
 import { resolveLinkTarget } from '../services/api';
 import { ThinkingOrb } from './ui/thinking-orbs';
@@ -932,7 +932,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content);
+    const cleanText = cleanMarkdownForClipboard(message.content);
+    navigator.clipboard.writeText(cleanText || message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

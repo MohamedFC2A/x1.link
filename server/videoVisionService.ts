@@ -275,7 +275,7 @@ export async function performVideoVisionPerception(
         model: 'deepseek-v4-flash-vision-exp',
         messages: [{ role: 'user', content: contentParts }],
         temperature: 0.2,
-        max_tokens: 1500,
+        max_tokens: 4096,
       }),
       signal: visionController.signal
     });

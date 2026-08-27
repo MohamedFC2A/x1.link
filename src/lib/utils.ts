@@ -319,6 +319,82 @@ export function formatEnglishTimestamp(date: Date = new Date()): string {
 }
 
 /**
+ * Cleans raw markdown formatting from text to produce ultra-clean, readable plain text
+ * suitable for clipboard copying into any app (WhatsApp, Word, Notes, etc.) without
+ * markdown hashes (#), bold markers (**), code fences, or internal UI badges.
+ */
+export function cleanMarkdownForClipboard(rawText: string | null | undefined): string {
+  if (!rawText || typeof rawText !== 'string') return '';
+
+  let text = rawText;
+
+  // 1. Remove internal UI badges and action tokens
+  text = text.replace(/\[\s*(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?(?:BADGE|CARD|TIMER|REMINDER|AUTODELETE|BUTTON):[^\]]*\]/gi, '');
+  text = text.replace(/(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?(?:BADGE|CARD|TIMER|REMINDER|AUTODELETE|BUTTON):[^\n]*/gi, '');
+  text = text.replace(/\[DOWNLOAD-BUTTON:[^\]]*\]/gi, '');
+  text = text.replace(/\[DOWNLOAD-DETECT-CARD:[^\]]*\]/gi, '');
+
+  // 2. Remove thinking tags <think>...</think> if present in raw content
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  text = text.replace(/<think>[\s\S]*/gi, '');
+  text = text.replace(/<\/think>/gi, '');
+
+  // 3. Remove Markdown image links ![Alt](URL) -> Alt
+  text = text.replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1');
+
+  // 4. Remove table formatting separator rows like |---|---|
+  text = text.replace(/^\|?[\s-:]+\|[\s-:|]+\|?$/gm, '');
+  // Clean table border pipes
+  text = text.replace(/^\|\s*|\s*\|$/gm, '');
+
+  // 5. Clean deliverable code fences and language fences (```lang and ```)
+  text = text.replace(/```(?:prompt|coder|ad|script|[a-zA-Z0-9_-]+)?\r?\n?/gi, '').replace(/```/g, '');
+
+  // 6. Clean inline code `code` -> code
+  text = text.replace(/`([^`\n]+)`/g, '$1');
+
+  // 7. Clean Markdown Headings (e.g. ### Heading -> Heading)
+  text = text.replace(/^[ \t]*#{1,6}\s*/gm, '');
+
+  // 8. Clean Bold, Italic & Strikethrough markdown symbols (including multiline spans)
+  text = text.replace(/\*\*\*([\s\S]*?)\*\*\*/g, '$1');
+  text = text.replace(/___([\s\S]*?)___/g, '$1');
+  text = text.replace(/\*\*([\s\S]*?)\*\*/g, '$1');
+  text = text.replace(/__([\s\S]*?)__/g, '$1');
+  text = text.replace(/~~([\s\S]*?)~~/g, '$1');
+  // Italic with single * or _ (avoid breaking URLs or variables with underscores)
+  text = text.replace(/(^|\s)\*([^\s*][^*]*[^\s*]|\S)\*(\s|$|[.,!?;:،۔])/g, '$1$2$3');
+  text = text.replace(/(^|\s)_([^\s_][^_]*[^\s_]|\S)_(\s|$|[.,!?;:،۔])/g, '$1$2$3');
+
+  // 9. Clean Markdown Links [Title](URL) -> Title (URL) or Title
+  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_match, linkText, url) => {
+    const cleanLinkText = linkText.trim();
+    const cleanUrl = url.trim();
+    if (cleanLinkText === cleanUrl || !cleanLinkText) {
+      return cleanUrl;
+    }
+    if (cleanLinkText.startsWith('tel:') || cleanLinkText.startsWith('mailto:')) {
+      return cleanLinkText.replace(/^(?:tel|mailto):/, '');
+    }
+    return `${cleanLinkText} (${cleanUrl})`;
+  });
+
+  // 10. Clean blockquotes (> quote -> quote)
+  text = text.replace(/^[ \t]*>\s?/gm, '');
+
+  // 11. Clean horizontal rules (--- or *** or ___)
+  text = text.replace(/^[-*_]{3,}\s*$/gm, '');
+
+  // 12. Clean unordered list bullets (- or * or + -> • )
+  text = text.replace(/^[ \t]*[-*+]\s+/gm, '• ');
+
+  // 13. Normalize excessive newlines and whitespace
+  text = text.replace(/\n{3,}/g, '\n\n').trim();
+
+  return text;
+}
+
+/**
  * Normalizes any timestamp string into clean English numerals and AM/PM format
  */
 export function normalizeDisplayTimestamp(ts?: string): string {

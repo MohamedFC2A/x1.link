@@ -236,11 +236,7 @@ export const App: React.FC = () => {
   ) => {
     if (isStreaming) return;
 
-    // Enforce Mandatory Google Sign-In for Cloud-First Security
-    if (!user) {
-      setIsAuthModalOpen(true);
-      return;
-    }
+    // Cloud-First & Guest Adaptive Session
 
     const attachedImagesDataUrls: string[] = [];
     const attachedMediaList: MediaAttachmentItem[] = [];
@@ -343,11 +339,12 @@ export const App: React.FC = () => {
 
     // Enforce Plan Limits: Only actual non-media websites trigger Cyber limits
     const isTargetMedia = isMediaOrVideoUrl(resolvedTargetUrl);
-    const isActualCyber = !isTargetMedia && (!!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber');
+    const isActualCyberUrlScan = !isTargetMedia && Boolean(resolvedTargetUrl);
 
     const limitCheck = checkPlanLimit(currentPlanId, {
       isVision: uniqueImagesDataUrls.length > 0,
-      isCyber: isActualCyber,
+      isCyber: meta?.model === 'deepseek-v4-flash-cyber',
+      isCyberUrlScan: isActualCyberUrlScan,
     });
 
     if (!limitCheck.allowed) {
@@ -543,8 +540,8 @@ export const App: React.FC = () => {
         const effectiveFinalContent = fullAssistantResponse && fullAssistantResponse.trim()
           ? fullAssistantResponse.trim()
           : (fullAssistantReasoning && fullAssistantReasoning.trim()
-              ? 'تم اكتمال الاستدلال والتحليل المنطقي بنجاح.'
-              : 'تمت معالجة الطلب.');
+              ? fullAssistantReasoning.trim()
+              : '');
 
         setMessages(prev => {
           const last = prev[prev.length - 1];
@@ -553,7 +550,7 @@ export const App: React.FC = () => {
               ...prev.slice(0, -1),
               {
                 ...last,
-                content: last.content?.trim() ? last.content : effectiveFinalContent,
+                content: last.content?.trim() ? last.content : (effectiveFinalContent || last.content || ''),
                 isThinking: false,
                 isMemoryDetectTriggered,
                 memoryDetectSummary,

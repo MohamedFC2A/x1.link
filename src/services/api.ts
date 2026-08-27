@@ -259,21 +259,25 @@ export async function streamChatCompletion({
       }
     }
 
-    // Flush any remaining buffer text if not aborted
-    if (!controller.signal.aborted && buffer.trim()) {
-      const trimmed = buffer.trim();
-      if (trimmed.startsWith('data:')) {
-        const payload = trimmed.replace(/^data:\s*/, '');
-        if (payload && payload !== '[DONE]') {
-          try {
-            const parsed = JSON.parse(payload);
-            const content = parsed.choices?.[0]?.delta?.content ?? parsed.content ?? '';
-            const reasoning = parsed.choices?.[0]?.delta?.reasoning_content ?? parsed.choices?.[0]?.delta?.reasoning ?? '';
-            if (content || reasoning) processDelta(content, reasoning);
-          } catch {
-            processDelta(payload);
-          }
-        }
+    // Final stream resolution: ensure unclosed think tags or trailing content are resolved
+    if (!controller.signal.aborted) {
+      if (!accumulatedContent && accumulatedReasoning) {
+        // If content is empty because the model omitted </think> or only sent reasoning,
+        // extract the actual response cleanly
+        accumulatedContent = accumulatedReasoning.trim();
+        isThinking = false;
+        onChunk({
+          content: accumulatedContent,
+          reasoning: accumulatedReasoning,
+          isThinking: false
+        });
+      } else if (isThinking) {
+        isThinking = false;
+        onChunk({
+          content: accumulatedContent,
+          reasoning: accumulatedReasoning,
+          isThinking: false
+        });
       }
     }
 

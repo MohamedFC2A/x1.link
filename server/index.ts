@@ -68,11 +68,11 @@ CORE DIRECTIVES:
 5. [MANDATORY DEEP COGNITIVE REASONING & INTELLECTUAL DELIBERATION MANDATE]:
    - You MUST perform extensive, deep, and structured cognitive reasoning inside <think>...</think> in Arabic for EVERY response that requires analysis, reasoning, computation, coding, memory synthesis, search, temporal logic, or complex explanations.
    - Inside <think>...</think>, deeply deliberate across:
-     a) Question & Intent Deconstruction: Unpack all requirements, underlying premises, and potential edge cases.
+     a) Question & Intent Deconstruction: Unpack all requirements, constraints (rhymes, word counts, code syntax), and potential edge cases.
      b) Knowledge & Memory Verification: Cross-examine cross-session memories, chronological facts, and technical constraints.
      c) Hypothesis Testing & Multi-Angle Synthesis: Analyze alternative solutions, logic flows, and optimal architectural paradigms.
      d) Execution Blueprint: Organize a crystal-clear, comprehensive, elegant, and definitive response structure.
-   - Deliver your powerful, articulate, and immaculate Arabic answer immediately after closing </think>.
+   - CRITICAL COMPLETION MANDATE: You MUST ALWAYS close </think> promptly once your internal blueprint is formulated, and ALWAYS deliver your complete, fully realized, articulate, and exhaustive Arabic response immediately outside </think>. NEVER end your generation inside <think>. All answers, dialogues, code, and explanations MUST be delivered in full after </think>.
 6. [MULTIMODAL SENSORY & VIDEO INTELLIGENCE]: You are natively integrated with the Fathom Cam Optical & Video Perception Hardware System. When visual analyses, OCR readings, spoken audio transcripts, and video keyframes are provided in your context, this data is 100% verified optical truth captured in real-time by your perception pipeline. Seamlessly synthesize and answer based on this visual perception with total analytical confidence, precision, and vivid realism without claiming you cannot view the video or image.
 7. [SMART LINKS, EMAILS & HOTLINES]: When referencing official websites, emails, or emergency hotlines, format them accurately (e.g. [بوابة الحكومة المصرية](https://www.gov.eg), email@domain.com, or [الخط الساخن: 19xxx](tel:19xxx)) for immediate interactive access.
 8. [DELIVERABLE BLOCK DIRECTIVE (PROMPTS, ADS, AI CODER & SCRIPTS)]:
@@ -1378,7 +1378,7 @@ async function extractVisualContext(
         model: 'google/gemini-2.5-flash',
         messages: formattedVisionItems,
         temperature: 0.2,
-        max_tokens: 3000,
+        max_tokens: 8192,
       }),
       signal
     });
@@ -1978,8 +1978,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     }
   }
 
-  // ─── Token Economy & Smart Context Pruning Engine ───────────────────────────
-  const MAX_HISTORY_TURNS = 14;
+  // ─── Supercharged Token Economy & Deep Cognitive Context Engine ───────────
+  const MAX_HISTORY_TURNS = 30;
   const historySlice = processedMessages.slice(-MAX_HISTORY_TURNS);
 
   const formattedMessages = [
@@ -1995,12 +1995,13 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         contentStr = JSON.stringify(m.content || '');
       }
 
-      if (!isLatestTurn && contentStr.length > 2500) {
-        contentStr = `${contentStr.slice(0, 1200)}\n\n[... تم إيجاز السياق القديم لتوفير الذاكرة وسرعة الاستجابة ...]\n\n${contentStr.slice(-800)}`;
+      // Clean out any thinking tags from past assistant history to avoid model prompt corruption
+      if (m.role === 'assistant') {
+        contentStr = contentStr.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
       }
 
-      if (m.role === 'assistant' && m.reasoning && m.reasoning.trim()) {
-        contentStr = `<think>\n${m.reasoning.trim()}\n</think>\n\n${contentStr}`;
+      if (!isLatestTurn && contentStr.length > 12000) {
+        contentStr = `${contentStr.slice(0, 6000)}\n\n[... تم إيجاز جزء من السياق القديم الممتد للحفاظ على أعلى سرعة واستجابة ...]\n\n${contentStr.slice(-4000)}`;
       }
 
       return {
@@ -2012,16 +2013,14 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
     const basePayload: any = {
       messages: formattedMessages,
-      temperature: isX1Mode ? 0.8 : 0.75,
-      top_p: 0.9,
-      frequency_penalty: 0.1,
-      presence_penalty: 0.1,
+      temperature: isX1Mode ? 0.8 : 0.7,
+      top_p: 0.95,
       stream: true,
-      max_tokens: 4096,
+      max_tokens: 16384,
     };
 
   try {
-    // Fast Intelligent Gateway Selection & Resilient 4-Tier Multi-Provider Fallback:
+    // Fast Intelligent Gateway Selection & Resilient Multi-Provider Fallback:
     const gateCandidates: Array<{ name: string; url: string; headers: Record<string, string>; payload: any }> = [];
 
     // Candidate 1: Multimodal Media & Video/Audio Engine (Powered by Gemini 2.5 Flash + GPT-4o-mini)
@@ -2038,6 +2037,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         payload: {
           ...basePayload,
           model: 'google/gemini-2.5-flash',
+          max_tokens: 16384,
         }
       });
 
@@ -2053,45 +2053,96 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         payload: {
           ...basePayload,
           model: 'openai/gpt-4o-mini',
+          max_tokens: 16384,
         }
       });
     }
 
-    // Candidate 2: DeepSeek Direct (Primary Deep Reasoning for Fathom 1 via https://api.deepseek.com)
-    if (!isX1Mode && !isMediaSpark && !isVision && !hasMultimodal && DEEPSEEK_API_KEY) {
-      gateCandidates.push({
-        name: 'DeepSeek Direct Reasoner (deepseek-reasoner)',
-        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        },
-        payload: {
-          messages: formattedMessages,
-          stream: true,
-          max_tokens: 4096,
-          model: 'deepseek-reasoner',
-        }
-      });
+    // Candidate 2: Fathom Cyber 1.1 Sovereign Engine (Directly powered by https://api.deepseek.com)
+    if (isCyber) {
+      if (DEEPSEEK_API_KEY) {
+        gateCandidates.push({
+          name: 'DeepSeek Direct Cyber (deepseek-v4-flash @ api.deepseek.com)',
+          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+          },
+          payload: {
+            ...basePayload,
+            model: 'deepseek-v4-flash',
+            max_tokens: 16384,
+          }
+        });
 
-      // DeepSeek Direct fallback with chat alias
-      gateCandidates.push({
-        name: 'DeepSeek Direct Chat Fallback (deepseek-chat)',
-        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        },
-        payload: {
-          ...basePayload,
-          model: 'deepseek-chat',
-        }
-      });
-    }
+        gateCandidates.push({
+          name: 'DeepSeek Direct Cyber Pro Reasoning (deepseek-v4-pro @ api.deepseek.com)',
+          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+          },
+          payload: {
+            messages: formattedMessages,
+            stream: true,
+            max_tokens: 32768,
+            model: 'deepseek-v4-pro',
+          }
+        });
+      }
 
-    // Candidate 3: OpenRouter Multi-tier Resilience
-    if (OPENROUTER_API_KEY) {
-      if (isX1Mode) {
+      if (OPENROUTER_API_KEY) {
+        gateCandidates.push({
+          name: 'OpenRouter DeepSeek v4 Flash (Cyber Backup)',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: {
+            ...basePayload,
+            model: 'deepseek-v4-flash',
+            max_tokens: 16384,
+          }
+        });
+
+        gateCandidates.push({
+          name: 'OpenRouter DeepSeek v4 Pro (Cyber Reasoner Backup)',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: {
+            ...basePayload,
+            model: 'deepseek-v4-pro',
+            max_tokens: 32768,
+          }
+        });
+
+        gateCandidates.push({
+          name: 'OpenRouter Gemini 2.5 Flash (Cyber Multi-Backup)',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: {
+            ...basePayload,
+            model: 'google/gemini-2.5-flash',
+            max_tokens: 16384,
+          }
+        });
+      }
+    } else if (isX1Mode) {
+      // Candidate 3: X1 NSFW Uninhibited Persona Engine
+      if (OPENROUTER_API_KEY) {
         gateCandidates.push({
           name: 'OpenRouter Magnum v4 72B',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
@@ -2104,11 +2155,11 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: {
             ...basePayload,
             model: 'anthracite-org/magnum-v4-72b',
+            max_tokens: 16384,
           }
         });
-      } else if (isMediaSpark) {
         gateCandidates.push({
-          name: 'OpenRouter Meta Muse Spark 1.2 Contributor',
+          name: 'OpenRouter DeepSeek v4 Pro (X1 Backup)',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -2118,40 +2169,14 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           },
           payload: {
             ...basePayload,
-            model: 'meta/muse-spark-1.2-contributor',
+            model: 'deepseek-v4-pro',
+            max_tokens: 32768,
           }
         });
-
-        gateCandidates.push({
-          name: 'OpenRouter Meta Muse Spark 1.2 Standard',
-          url: `${OPENROUTER_BASE_URL}/chat/completions`,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'HTTP-Referer': 'https://matany.one',
-            'X-Title': 'Matany AI',
-          },
-          payload: {
-            ...basePayload,
-            model: 'meta/muse-spark-1.2',
-          }
-        });
-
-        gateCandidates.push({
-          name: 'OpenRouter Gemini 2.5 Flash',
-          url: `${OPENROUTER_BASE_URL}/chat/completions`,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'HTTP-Referer': 'https://matany.one',
-            'X-Title': 'Matany AI',
-          },
-          payload: {
-            ...basePayload,
-            model: 'google/gemini-2.5-flash',
-          }
-        });
-      } else if (isVision || hasMultimodal) {
+      }
+    } else if (isVision || hasMultimodal) {
+      // Candidate 4: Multimodal Optical Vision Engine
+      if (OPENROUTER_API_KEY) {
         gateCandidates.push({
           name: 'OpenRouter Gemini 2.5 Flash Vision',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
@@ -2164,6 +2189,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: {
             ...basePayload,
             model: 'google/gemini-2.5-flash',
+            max_tokens: 16384,
           }
         });
 
@@ -2179,11 +2205,85 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: {
             ...basePayload,
             model: 'meta/muse-spark-1.2',
+            max_tokens: 16384,
           }
         });
-      } else {
+      }
+    } else {
+      // Candidate 5: General Fathom 1.1 Direct Reasoning & Chat Engine
+      const isProModel = model === 'deepseek-v4-pro' || model.includes('pro');
+
+      if (DEEPSEEK_API_KEY) {
+        if (isProModel) {
+          gateCandidates.push({
+            name: 'DeepSeek Direct Pro Reasoning (deepseek-v4-pro @ api.deepseek.com)',
+            url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+            },
+            payload: {
+              messages: formattedMessages,
+              stream: true,
+              max_tokens: 32768,
+              model: 'deepseek-v4-pro',
+            }
+          });
+        }
+
         gateCandidates.push({
-          name: 'OpenRouter DeepSeek R1',
+          name: 'DeepSeek Direct (deepseek-v4-flash @ api.deepseek.com)',
+          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+          },
+          payload: {
+            ...basePayload,
+            model: 'deepseek-v4-flash',
+            max_tokens: 16384,
+          }
+        });
+
+        if (!isProModel) {
+          gateCandidates.push({
+            name: 'DeepSeek Direct Pro Reasoning (deepseek-v4-pro @ api.deepseek.com)',
+            url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+            },
+            payload: {
+              messages: formattedMessages,
+              stream: true,
+              max_tokens: 32768,
+              model: 'deepseek-v4-pro',
+            }
+          });
+        }
+      }
+
+      if (OPENROUTER_API_KEY) {
+        if (isProModel) {
+          gateCandidates.push({
+            name: 'OpenRouter DeepSeek v4 Pro (Advanced Reasoning)',
+            url: `${OPENROUTER_BASE_URL}/chat/completions`,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+              'HTTP-Referer': 'https://matany.one',
+              'X-Title': 'Matany AI',
+            },
+            payload: {
+              ...basePayload,
+              model: 'deepseek-v4-pro',
+              max_tokens: 32768,
+            }
+          });
+        }
+
+        gateCandidates.push({
+          name: 'OpenRouter DeepSeek v4 Flash (Primary)',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -2193,12 +2293,31 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           },
           payload: {
             ...basePayload,
-            model: 'deepseek/deepseek-r1',
+            model: 'deepseek-v4-flash',
+            max_tokens: 16384,
           }
         });
 
+        if (!isProModel) {
+          gateCandidates.push({
+            name: 'OpenRouter DeepSeek v4 Pro (Advanced Reasoning)',
+            url: `${OPENROUTER_BASE_URL}/chat/completions`,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+              'HTTP-Referer': 'https://matany.one',
+              'X-Title': 'Matany AI',
+            },
+            payload: {
+              ...basePayload,
+              model: 'deepseek-v4-pro',
+              max_tokens: 32768,
+            }
+          });
+        }
+
         gateCandidates.push({
-          name: 'OpenRouter DeepSeek Chat Backup',
+          name: 'OpenRouter DeepSeek v4 Pro (Advanced Reasoning)',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -2208,12 +2327,13 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           },
           payload: {
             ...basePayload,
-            model: 'deepseek/deepseek-chat',
+            model: 'deepseek-v4-pro',
+            max_tokens: 32768,
           }
         });
 
         gateCandidates.push({
-          name: 'OpenRouter Gemini 2.5 Flash Backup',
+          name: 'OpenRouter Gemini 2.5 Flash Ultra',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -2224,6 +2344,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: {
             ...basePayload,
             model: 'google/gemini-2.5-flash',
+            max_tokens: 16384,
           }
         });
       }

@@ -96,18 +96,18 @@ export async function recordRealUsage(params: {
 // Check if user is allowed to send message based on plan limits
 export function checkPlanLimit(
   planId: string,
-  options: { isVision?: boolean; isCyber?: boolean }
+  options: { isVision?: boolean; isCyber?: boolean; isCyberUrlScan?: boolean }
 ): { allowed: boolean; reason?: 'free_fathom1_limit' | 'free_vision_limit' | 'free_cyber_disabled' | 'quota_exceeded' } {
   const usage = getLocalUsage();
 
   if (planId === 'free-0') {
-    if (options.isCyber) {
+    if (options.isCyberUrlScan && usage.cyberScansCount >= 3) {
       return { allowed: false, reason: 'free_cyber_disabled' };
     }
-    if (options.isVision && usage.fathomCamTrialsCount >= 2) {
+    if (options.isVision && usage.fathomCamTrialsCount >= 5) {
       return { allowed: false, reason: 'free_vision_limit' };
     }
-    if (!options.isVision && usage.fathom1TrialsCount >= 2) {
+    if (!options.isVision && !options.isCyberUrlScan && usage.fathom1TrialsCount >= 10) {
       return { allowed: false, reason: 'free_fathom1_limit' };
     }
     return { allowed: true };
