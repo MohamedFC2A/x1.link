@@ -1,4 +1,4 @@
-import { ChatMessageItem, ModelType, ResolvedLinkInfo } from '../types';
+import { ChatMessageItem, ModelType, ResolvedLinkInfo, DownloadDetectResult } from '../types';
 
 export interface StreamChunkData {
   content: string;
@@ -324,4 +324,44 @@ export async function resolveLinkTarget(rawUrl: string, signal?: AbortSignal): P
   }
   return null;
 }
+
+const downloadDetectCache = new Map<string, DownloadDetectResult>();
+
+/**
+ * Universal Media Extraction & Format Resolver for Download Detect
+ */
+export async function fetchDownloadDetect(rawUrl: string, signal?: AbortSignal): Promise<DownloadDetectResult | null> {
+  if (!rawUrl || typeof rawUrl !== 'string') return null;
+  const cleanUrl = rawUrl.trim();
+  if (downloadDetectCache.has(cleanUrl)) {
+    return downloadDetectCache.get(cleanUrl)!;
+  }
+
+  try {
+    const res = await fetch('/api/download-detect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: cleanUrl }),
+      signal,
+    });
+    if (!res.ok) return null;
+    const data: DownloadDetectResult = await res.json();
+    if (data && data.success) {
+      downloadDetectCache.set(cleanUrl, data);
+      return data;
+    }
+  } catch (err) {
+    console.warn('[API fetchDownloadDetect Notice]:', err);
+  }
+  return null;
+}
+
+/**
+ * Generates direct download proxy stream URL for instant 1-click file saving
+ */
+export function getDownloadStreamUrl(mediaUrl: string, filename = 'download_detect_media.mp4', mime = 'video/mp4'): string {
+  if (!mediaUrl) return '';
+  return `/api/download-stream?url=${encodeURIComponent(mediaUrl)}&filename=${encodeURIComponent(filename)}&mime=${encodeURIComponent(mime)}`;
+}
+
 

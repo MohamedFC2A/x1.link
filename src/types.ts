@@ -109,3 +109,55 @@ export interface ResolvedLinkInfo {
   rawAnalysisSummaryAr?: string;
 }
 
+export interface MediaFormatOption {
+  formatId: string;
+  qualityLabel: string;
+  extension: 'mp4' | 'mp3' | 'webm' | 'm4a' | 'jpg' | 'png' | 'webp';
+  type: 'video' | 'audio' | 'image';
+  fileSize?: number;
+  fileSizeFormatted?: string;
+  downloadUrl: string;
+  directStreamUrl?: string;
+  width?: number;
+  height?: number;
+  fps?: number;
+  hasAudio?: boolean;
+  hasVideo?: boolean;
+  isBest?: boolean;
+}
+
+export interface MediaGalleryImage {
+  index: number;
+  url: string;
+  thumbnailUrl?: string;
+  width?: number;
+  height?: number;
+  extension: string;
+  fileSizeFormatted?: string;
+}
+
+export interface DownloadDetectResult {
+  success: boolean;
+  platform: 'youtube' | 'tiktok' | 'instagram' | 'twitter' | 'facebook' | 'reddit' | 'threads' | 'vimeo' | 'generic';
+  platformLabel: string;
+  originalUrl: string;
+  canonicalUrl: string;
+  title: string;
+  description?: string;
+  author: {
+    name: string;
+    username?: string;
+    avatarUrl?: string;
+  };
+  thumbnailUrl: string;
+  durationSeconds?: number;
+  durationFormatted?: string;
+  mediaType: 'video' | 'image_gallery' | 'audio' | 'mixed';
+  formats: MediaFormatOption[];
+  images: MediaGalleryImage[];
+  defaultDownloadUrl?: string;
+  defaultFormat?: MediaFormatOption;
+  extractedAt: number;
+}
+
+

@@ -49,42 +49,42 @@ export const PricingTier: React.FC<PricingTierProps> = ({
   const isCurrentPlan = currentPlanId === id;
 
   const cardClasses = isFeatured
-    ? "relative glass-card-featured text-white rounded-3xl p-6 sm:p-7 flex flex-col w-full"
-    : "relative glass-card text-zinc-200 rounded-3xl p-6 sm:p-7 flex flex-col w-full";
+    ? "relative glass-card-featured text-white rounded-3xl p-5 sm:p-7 flex flex-col w-full shadow-2xl transition-all"
+    : "relative glass-card text-zinc-200 rounded-3xl p-5 sm:p-7 flex flex-col w-full shadow-xl transition-all";
 
   const buttonClasses = isCurrentPlan
-    ? "w-full px-5 py-3 mt-8 text-xs font-semibold rounded-2xl bg-white/[0.04] text-zinc-400 border border-white/[0.08] cursor-default opacity-80"
+    ? "w-full px-5 py-3.5 mt-6 text-xs font-semibold rounded-2xl bg-white/[0.04] text-zinc-400 border border-white/[0.08] cursor-default opacity-80 text-center font-sans"
     : isFeatured
-    ? "w-full px-5 py-3 mt-8 text-xs font-bold rounded-2xl bg-white text-zinc-950 hover:bg-zinc-200 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 shadow-md"
-    : "w-full px-5 py-3 mt-8 text-xs font-bold rounded-2xl bg-white/[0.08] text-white border border-white/15 hover:bg-white/[0.14] hover:border-white/25 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5";
+    ? "w-full px-5 py-3.5 mt-6 text-xs font-bold rounded-2xl bg-white text-zinc-950 hover:bg-zinc-200 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 shadow-md font-sans"
+    : "w-full px-5 py-3.5 mt-6 text-xs font-bold rounded-2xl bg-white/[0.08] text-white border border-white/15 hover:bg-white/[0.14] hover:border-white/25 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 font-sans";
 
   return (
     <div className={cardClasses}>
       {badge && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase bg-white text-zinc-950 shadow-sm border border-white/30">
+          <span className="inline-flex items-center gap-1 px-3.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase bg-white text-zinc-950 shadow-md border border-white/40">
             {badge}
           </span>
         </div>
       )}
 
-      <div className="text-center pt-2">
-        <h3 className="text-lg sm:text-xl font-bold tracking-tight text-white">{name}</h3>
-        <div className="flex items-baseline justify-center mt-3">
+      <div className="text-center pt-1 sm:pt-2">
+        <h3 className="text-lg sm:text-xl font-bold tracking-tight text-white font-sans">{name}</h3>
+        <div className="flex items-baseline justify-center mt-2.5">
           <span className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-white">{price}</span>
           <span className="mr-1.5 text-xs text-zinc-400 font-sans">{frequency}</span>
         </div>
-        <p className="mt-2.5 text-center text-xs text-zinc-400 leading-relaxed min-h-[38px]">{description}</p>
+        <p className="mt-2 text-center text-xs text-zinc-400 leading-relaxed min-h-[36px] font-sans">{description}</p>
       </div>
 
-      <div className="my-5 border-t border-white/[0.08]" />
+      <div className="my-4 sm:my-5 border-t border-white/[0.08]" />
 
       <div className="flex-1">
-        <div className="text-[10px] font-mono font-semibold text-zinc-400 uppercase tracking-wider mb-3 text-right">
+        <div className="text-[10px] font-mono font-semibold text-zinc-400 uppercase tracking-wider mb-2.5 text-right">
           المزايا وحدود الاستهلاك:
         </div>
         
-        <ul className="space-y-2.5 text-right">
+        <ul className="space-y-2.5 text-right font-sans">
           {features.map((feature, index) => (
             <li key={`active-${index}`} className="flex items-start gap-2.5 text-xs text-zinc-200 leading-snug">
               <CheckIcon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${isFeatured ? 'text-white' : 'text-zinc-300'}`} />
@@ -102,7 +102,7 @@ export const PricingTier: React.FC<PricingTierProps> = ({
       </div>
 
       {buttonLink ? (
-        <a href={buttonLink} className={`text-center ${buttonClasses}`}>
+        <a href={buttonLink} className={buttonClasses}>
           {isCurrentPlan ? 'الخطة الحالية المشترك بها' : buttonText}
         </a>
       ) : (

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PricingSection, PricingPlan } from './ui/pricing-tiers';
 import { SubscriptionModal } from './SubscriptionModal';
-import { Shield, Activity, Check, HelpCircle, Zap, Cpu, Gauge, Layers } from 'lucide-react';
+import { Shield, Activity, Check, HelpCircle, Zap, Cpu, Gauge, Layers, ArrowRight, User as UserIcon, MessageSquare } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 
 interface PricingPageProps {
@@ -17,6 +17,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   currentPlanId = 'free-0',
   onSelectPlan,
   onNavigateToLimits,
+  onNavigateToProfile,
+  onNavigateToChat,
   user,
 }) => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
@@ -112,17 +114,41 @@ export const PricingPage: React.FC<PricingPageProps> = ({
       />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-7">
         
+        {/* Top Back Navigation Bar */}
+        <div className="flex items-center justify-between gap-3 mb-5 p-3 rounded-2xl glass-panel">
+          <button
+            type="button"
+            onClick={onNavigateToChat}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white text-zinc-950 font-bold text-xs shadow-md hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer font-sans"
+            title="الرجوع إلى نافذة المحادثة"
+          >
+            <ArrowRight className="w-4 h-4 text-zinc-950" />
+            <span>الرجوع للشات</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onNavigateToProfile}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-xs font-semibold border border-white/[0.08] transition-all cursor-pointer"
+            >
+              <UserIcon className="w-3.5 h-3.5" />
+              <span>الحساب</span>
+            </button>
+          </div>
+        </div>
+
         {/* Billing Toggle (Monthly / Annual) - Glassmorphism Pill */}
         <div className="flex justify-center mb-6">
           <div className="glass-panel p-1 rounded-2xl flex items-center shadow-inner">
             <button
               type="button"
               onClick={() => setBillingCycle('monthly')}
-              className={`px-5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+              className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 billingCycle === 'monthly'
-                  ? 'bg-white text-zinc-950 shadow-sm'
+                  ? 'bg-white text-zinc-950 shadow-sm font-bold'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -131,9 +157,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             <button
               type="button"
               onClick={() => setBillingCycle('annual')}
-              className={`px-5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                 billingCycle === 'annual'
-                  ? 'bg-white text-zinc-950 shadow-sm'
+                  ? 'bg-white text-zinc-950 shadow-sm font-bold'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -163,8 +189,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             </p>
           </div>
 
-          <div className="overflow-x-auto rounded-3xl glass-panel shadow-2xl">
-            <table className="w-full text-right text-xs sm:text-sm">
+          <div className="overflow-x-auto rounded-3xl glass-panel shadow-2xl smooth-scroll">
+            <table className="w-full text-right text-xs sm:text-sm min-w-[500px]">
               <thead>
                 <tr className="border-b border-white/[0.08] bg-white/[0.02]">
                   <th className="p-4 sm:p-5 font-bold text-white">الخاصية والقدرة</th>
@@ -176,7 +202,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               <tbody className="divide-y divide-white/[0.06] text-zinc-300 font-sans">
                 <tr>
                   <td className="p-4 sm:p-5 font-medium flex items-center gap-2">
-                    <Gauge className="w-4 h-4 text-zinc-400" />
+                    <Gauge className="w-4 h-4 text-zinc-400 shrink-0" />
                     <span>رصيد التوكن الشهري (Tokens)</span>
                   </td>
                   <td className="p-4 sm:p-5 text-center font-mono text-zinc-500">مرتان فقط</td>
@@ -185,7 +211,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 </tr>
                 <tr>
                   <td className="p-4 sm:p-5 font-medium flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-zinc-400" />
+                    <Shield className="w-4 h-4 text-zinc-400 shrink-0" />
                     <span>فحوصات Fathom Cyber</span>
                   </td>
                   <td className="p-4 sm:p-5 text-center text-zinc-500">غير مفعل</td>
@@ -194,7 +220,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 </tr>
                 <tr>
                   <td className="p-4 sm:p-5 font-medium flex items-center gap-2">
-                    <Cpu className="w-4 h-4 text-zinc-400" />
+                    <Cpu className="w-4 h-4 text-zinc-400 shrink-0" />
                     <span>تحليل الصور والمستندات (Vision)</span>
                   </td>
                   <td className="p-4 sm:p-5 text-center text-zinc-500">صورتان فقط</td>
@@ -203,20 +229,20 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 </tr>
                 <tr>
                   <td className="p-4 sm:p-5 font-medium flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-zinc-400" />
+                    <Layers className="w-4 h-4 text-zinc-400 shrink-0" />
                     <span>وضع المحادثة الحرة (NSFW Off)</span>
                   </td>
                   <td className="p-4 sm:p-5 text-center text-zinc-500">غير متاح</td>
                   <td className="p-4 sm:p-5 text-center">
-                    <span className="inline-flex items-center gap-1 text-zinc-200 font-semibold"><Check className="w-4 h-4" /> متاح بالبصمة</span>
+                    <span className="inline-flex items-center gap-1 text-zinc-200 font-semibold"><Check className="w-4 h-4 text-emerald-400" /> متاح بالبصمة</span>
                   </td>
                   <td className="p-4 sm:p-5 text-center bg-white/[0.03]">
-                    <span className="inline-flex items-center gap-1 text-white font-semibold"><Check className="w-4 h-4" /> متاح بالبصمة</span>
+                    <span className="inline-flex items-center gap-1 text-white font-semibold"><Check className="w-4 h-4 text-emerald-400" /> متاح بالبصمة</span>
                   </td>
                 </tr>
                 <tr>
                   <td className="p-4 sm:p-5 font-medium flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-zinc-400" />
+                    <Zap className="w-4 h-4 text-zinc-400 shrink-0" />
                     <span>أولوية المعالجة وقنوات الخوادم</span>
                   </td>
                   <td className="p-4 sm:p-5 text-center text-zinc-500">طابور قياسي</td>
@@ -225,7 +251,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 </tr>
                 <tr>
                   <td className="p-4 sm:p-5 font-medium flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-zinc-400" />
+                    <Activity className="w-4 h-4 text-zinc-400 shrink-0" />
                     <span>سعة الذاكرة السحابية المتزامنة</span>
                   </td>
                   <td className="p-4 sm:p-5 text-center text-zinc-500">0 (غير متزامنة)</td>
@@ -237,24 +263,26 @@ export const PricingPage: React.FC<PricingPageProps> = ({
           </div>
         </div>
 
-        {/* Real-time Link to Limits - Frosted Glass Banner */}
-        <div className="mt-8 p-6 rounded-3xl glass-card flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 text-right">
+        {/* Real-time Link to Chat / Activation - Frosted Glass Banner */}
+        <div className="mt-8 p-5 sm:p-6 rounded-3xl glass-card flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 text-right w-full sm:w-auto">
             <div className="size-10 rounded-2xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-zinc-300 shrink-0">
-              <Activity className="w-5 h-5" />
+              <Zap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white mb-0.5">معاينة استهلاكك الفعلي للتوكن</h4>
-              <p className="text-xs text-zinc-400">تابع استهلاك التوكن والفحوصات وسجل الحصص في الوقت الفعلي.</p>
+              <h4 className="text-sm font-bold text-white mb-0.5">جاهز للبدء في استخدام النماذج؟</h4>
+              <p className="text-xs text-zinc-400">انطلق في محادثاتك واستفد من أحدث محركات الذكاء الاصطناعي.</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onNavigateToLimits}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white text-zinc-950 font-bold text-xs hover:bg-zinc-200 transition-all cursor-pointer shrink-0 shadow-md"
-          >
-            صفحة تتبع الاستهلاك
-          </button>
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={onNavigateToChat}
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-white text-zinc-950 font-bold text-xs hover:bg-zinc-200 transition-all active:scale-95 cursor-pointer shadow-md text-center font-sans"
+            >
+              دخول الشات الآن
+            </button>
+          </div>
         </div>
 
         {/* FAQs Section - Sleek Glass Cards */}
@@ -305,6 +333,18 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Bottom Return CTA */}
+        <div className="mt-8 pt-6 border-t border-white/[0.08] flex justify-center">
+          <button
+            type="button"
+            onClick={onNavigateToChat}
+            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs sm:text-sm transition-all active:scale-95 cursor-pointer shadow-lg font-sans"
+          >
+            <ArrowRight className="w-4 h-4 text-zinc-950" />
+            <span>الرجوع إلى الشات الآن</span>
+          </button>
         </div>
 
       </main>

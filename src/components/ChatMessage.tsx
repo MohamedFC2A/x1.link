@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessageItem, ResolvedLinkInfo } from '../types';
@@ -17,7 +17,9 @@ import { renderSmartContentWithLinksAndPhones } from '@/lib/smart-content-parser
 import { PlatformLogo } from './ui/PlatformLogo';
 import { FeaturesBar } from './ui/FeaturesBar';
 import { MemoryDetectBadge } from './ui/MemoryDetectBadge';
-import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon } from '@/lib/featuresRegistry';
+import { DownloadDetectCard } from './ui/DownloadDetectCard';
+import { DownloadButton } from './ui/DownloadButton';
+import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon, DownloadDetectIcon } from '@/lib/featuresRegistry';
 
 const YouTubeIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -852,6 +854,26 @@ function parseCustomBadges(rawContent: string): React.ReactNode | null {
     return <TimeDetectAutoDelete initialSeconds={seconds} durationLabel={label} />;
   }
 
+  // 4. Download Detect - Interactive Card (Sleek Compact Widget)
+  const downloadMatch = rawContent.match(/(?:\[DOWNLOAD[-\s_]?DETECT[-\s_]?(?:CARD|BADGE)?:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?DETECT[-\s_]?(?:CARD|BADGE)?:\s*([^|\n]+))/i);
+  if (downloadMatch) {
+    const rawTargetUrl = (downloadMatch[1] || downloadMatch[3])?.trim() || '';
+    if (rawTargetUrl) {
+      return <DownloadDetectCard url={rawTargetUrl} />;
+    }
+  }
+
+  // 5. Download Button - Inline Instant Download Action
+  const buttonMatch = rawContent.match(/(?:\[DOWNLOAD[-\s_]?BUTTON:\s*([^|\]]+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?BUTTON:\s*([^|\n]+)\s*(?:\|\s*([^|\n]+))?)/i);
+  if (buttonMatch) {
+    const rawTargetUrl = (buttonMatch[1] || buttonMatch[4])?.trim() || '';
+    const quality = (buttonMatch[2] || buttonMatch[5] || '1080p')?.trim();
+    const title = buttonMatch[3]?.trim() || '';
+    if (rawTargetUrl) {
+      return <DownloadButton url={rawTargetUrl} quality={quality} title={title} />;
+    }
+  }
+
   // Note: Static verdict badges (AI Detect, Time Detect, Memory Detect) are already elegantly rendered
   // inside the top FeaturesBar before thinking, so we suppress rendering duplicate static boxes here.
   return null;
@@ -937,6 +959,30 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const isMetadataIntent = /(?:meta[-\s]?data|metadata|exif|ميتاداتا|الميتاداتا|ميتا\s?داتا|الميتا\s?داتا|كاميرا|نوع الجوال|جوال|هاتف|موقع جغرافي|تاريخ الالتقاط|بيانات الصورة|تاريخ الصورة|حجم الصورة)/i.test(promptLower);
   const isAiDetectIntent = /(?:ai[-\s]?detect|aidetect|ذكاء اصطناعي|توليد|مولدة|حقيقية|معدلة|فيك|fake|deepfake|تزييف|بصمة ذكاء|كاشف|فحص الصورة|اصالة|أصالة|فحص النص|تحقق)/i.test(promptLower);
   const isTimeIntent = /(?:time[-\s]?detect|timedetect|الوقت|الساعة|التوقيت|الزمن|الزمني|الزمنية|تاريخ|سنة|عام|سنوات|أعوام|قرن|عقد|توقيت|شهور|أشهر|أيام|يوم|أمس|غداً|الماضي|الحاضر|المستقبل|اليوم|عمره|عمرها|كم سنة|كم عام|كم عمر|متى|تايمر|مؤقت|تذكير|فكرني|احذف الشات|تدمير ذاتي|تاريخ اليوم|اليوم كام|كم الساعة|كم الوقت|كم باقي|كم مر|متبقي على|\b(19\d\d|20\d\d)\b)/i.test(promptLower) || /(?:time[-\s]?detect|timedetect|الفارق الزمني|استشعار الزمن|حساب الزمن)/i.test(message.reasoning || '');
+  const isDownloadIntent = /(?:download[-\s]?detect|downloaddetect|تحميل|تنزيل|حمل|حمّل|نزلي|نزل|نزّل|نزله|نزلها|حمله|حملها|انزل|انزله|انزلها|احمل|احمله|احملها|اسحب|اسحبه|اسحبها|سحب|تنزيل\s*ف[ي]?ديو|تحميل\s*ف[ي]?ديو|تحميل\s*المقطع|تنزيل\s*المقطع|نزل\s*الف[ي]?ديو|حمل\s*الف[ي]?ديو|نزل\s*المقطع|حمل\s*المقطع|ف[ي]?ديو|مقطع|ريلز|شورتس|صوت|mp3|mp4|تحميل\s*صورة|تنزيل\s*الصور|استخراج\s*الوسائط|استخراج\s*الف[ي]?ديو|تنزيل\s*بوست|تحميل\s*البوست|download|extract\s*media|save\s*video|save\s*post|grab\s*video|grab\s*media|reels?\s*download|tiktok\s*download|yt\s*download|youtube\s*download)/i.test(promptLower) || /(?:download detect|استخراج وتنزيل|روابط التحميل|تحميل الفيديو|تنزيل الفيديو|جودة)/i.test(message.reasoning || '');
+  const hasDownloadDetect = activeFeatures.some(f => f.id === 'download_detect') || isDownloadIntent;
+
+  const detectedMediaUrl = useMemo(() => {
+    const mediaRegex = /(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|reddit\.com|threads\.net|vimeo\.com|\.mp4|\.m3u8|\.mp3)/i;
+    
+    // 1. Check current message content for media URL
+    const inContent = extractAllCleanUrls(message.content || '', 5).urls.find(u => mediaRegex.test(u));
+    if (inContent) return inContent;
+
+    // 2. Check previous user prompt
+    const inPrompt = extractAllCleanUrls(previousUserPrompt || '', 5).urls.find(u => mediaRegex.test(u));
+    if (inPrompt) return inPrompt;
+
+    // 3. Check globalUrlIndexMap keys (latest first)
+    const globalUrls = Object.keys(globalUrlIndexMap || {});
+    for (let i = globalUrls.length - 1; i >= 0; i--) {
+      const u = globalUrls[i];
+      if (mediaRegex.test(u)) {
+        return u;
+      }
+    }
+    return null;
+  }, [message.content, previousUserPrompt, globalUrlIndexMap]);
 
   // Dynamic thorough detection status phases
   const [loadingPhase, setLoadingPhase] = useState<'searching' | 'perceiving' | 'detecting'>('searching');
@@ -1206,13 +1252,29 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           <div className="flex items-center gap-2 py-1.5 select-none w-full max-w-full" dir="rtl">
             <div className="inline-flex min-h-8 py-1.5 px-3 max-w-full items-center gap-2.5 rounded-2xl time-detect-glass flex-wrap">
               <ThinkingOrb
-                state={hasMemoryDetect ? "weaving" : isTimeIntent ? "solving" : isMedia ? "weaving" : isCyber ? "searching" : isVision ? (loadingPhase === 'detecting' ? "shaping" : "working") : message.isX1 ? "solving" : "composing"}
+                state={hasDownloadDetect ? "shaping" : hasMemoryDetect ? "weaving" : isTimeIntent ? "solving" : isMedia ? "weaving" : isCyber ? "searching" : isVision ? (loadingPhase === 'detecting' ? "shaping" : "working") : message.isX1 ? "solving" : "composing"}
                 size={20}
                 theme="dark"
                 speed={1.6}
               />
               <span className="text-xs font-sans font-medium text-zinc-300 flex items-center gap-1.5 flex-wrap">
-                {hasMemoryDetect ? (
+                {hasDownloadDetect ? (
+                  loadingPhase === 'searching' ? (
+                    <>
+                      <span>جارِ فحص الرابط واستخراج البث الفوري عبر</span>
+                      <DownloadDetectIcon size={14} />
+                      <span className="download-detect-text font-black text-xs">Download Detect</span>
+                      <span>...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>جارِ استخراج الجودات وتوليد روابط التحميل المباشرة عبر</span>
+                      <DownloadDetectIcon size={14} />
+                      <span className="download-detect-text font-black text-xs">Download Detect</span>
+                      <span>...</span>
+                    </>
+                  )
+                ) : hasMemoryDetect ? (
                   <>
                     <span>جارِ استدعاء الذاكرة السحابية واسترجاع سياق المحادثات عبر</span>
                     <MemoryDetectIcon size={14} />
@@ -1289,8 +1351,14 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             </div>
           </div>
         ) : (
-          <div className="prose prose-invert max-w-none text-zinc-200 text-xs sm:text-base leading-relaxed break-words font-sans">
-            <ReactMarkdown
+          <>
+            {hasDownloadDetect && detectedMediaUrl && !message.content?.includes('[DOWNLOAD-DETECT-CARD:') && !message.content?.includes('[DOWNLOAD-BUTTON:') && (
+              <div className="mb-3">
+                <DownloadDetectCard url={detectedMediaUrl} />
+              </div>
+            )}
+            <div className="prose prose-invert max-w-none text-zinc-200 text-xs sm:text-base leading-relaxed break-words font-sans">
+              <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
                 a: ({ href, children }: any) => {
@@ -1447,8 +1515,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               }}
             >
               {(message.content || '')
-                .replace(/\[\s*(?:AI|TIME|MEMORY)[-\s]?DETECT[-\s]?BADGE:[^\]]*\]/gi, '')
-                .replace(/(?:AI|TIME|MEMORY)[-\s]?DETECT[-\s]?BADGE:[^\n]*/gi, '')
+                .replace(/\[\s*(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?BADGE:[^\]]*\]/gi, '')
+                .replace(/(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?BADGE:[^\n]*/gi, '')
                 .trim()}
             </ReactMarkdown>
 
@@ -1456,7 +1524,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               <span className="inline-block w-1.5 h-4 bg-zinc-300 animate-pulse mr-1 align-middle rounded-full" />
             )}
           </div>
-        )}
+        </>
+      )}
 
         {message.content && !isStreaming && (
           <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-zinc-800/60 flex items-center justify-end text-xs text-zinc-500">

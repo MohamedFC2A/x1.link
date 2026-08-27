@@ -6,7 +6,11 @@ import {
   Camera, 
   Database, 
   Clock, 
-  AlertCircle
+  AlertCircle,
+  ArrowRight,
+  CreditCard,
+  User as UserIcon,
+  MessageSquare
 } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { getLocalUsage, fetchRemoteUsage, UsageLedger } from '../services/usageTracker';
@@ -25,6 +29,9 @@ interface LimitsPageProps {
 export const LimitsPage: React.FC<LimitsPageProps> = ({
   currentPlanId = 'free-0',
   totalTokensUsed = 0,
+  onNavigateToPricing,
+  onNavigateToProfile,
+  onNavigateToChat,
   onSelectPlan,
   user,
 }) => {
@@ -84,13 +91,45 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
       />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-7">
         
+        {/* Top Back Navigation Bar */}
+        <div className="flex items-center justify-between gap-3 mb-5 p-3 rounded-2xl glass-panel">
+          <button
+            type="button"
+            onClick={onNavigateToChat}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white text-zinc-950 font-bold text-xs shadow-md hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer font-sans"
+            title="الرجوع إلى نافذة المحادثة"
+          >
+            <ArrowRight className="w-4 h-4 text-zinc-950" />
+            <span>الرجوع للشات</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onNavigateToPricing}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-xs font-semibold border border-white/[0.08] transition-all cursor-pointer"
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">الاشتراكات</span>
+            </button>
+            <button
+              type="button"
+              onClick={onNavigateToProfile}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-xs font-semibold border border-white/[0.08] transition-all cursor-pointer"
+            >
+              <UserIcon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">الحساب</span>
+            </button>
+          </div>
+        </div>
+
         {/* Top Header Card - Ultra-Glassmorphism */}
-        <div className="p-6 sm:p-8 rounded-3xl glass-panel shadow-2xl mb-6 relative overflow-hidden">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+        <div className="p-5 sm:p-7 rounded-3xl glass-panel shadow-2xl mb-6 relative overflow-hidden">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 relative z-10">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-1.5">
+              <h1 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight mb-1">
                 تتبع الاستهلاك والليميت
               </h1>
               <p className="text-xs sm:text-sm text-zinc-400 max-w-xl leading-relaxed">
@@ -103,7 +142,7 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
                 <button
                   type="button"
                   onClick={() => handleUpgradeClick('pro-29')}
-                  className="px-5 py-2.5 rounded-xl bg-white text-zinc-950 font-bold text-xs hover:bg-zinc-200 transition-all active:scale-95 shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white text-zinc-950 font-bold text-xs hover:bg-zinc-200 transition-all active:scale-95 shadow-md flex items-center justify-center gap-1.5 cursor-pointer font-sans"
                 >
                   <Zap className="w-4 h-4 text-zinc-950" />
                   <span>الترقية لباقة المحترف ($29)</span>
@@ -112,13 +151,13 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
                 <button
                   type="button"
                   onClick={() => handleUpgradeClick('elite-99')}
-                  className="px-5 py-2.5 rounded-xl bg-white text-zinc-950 font-bold text-xs hover:bg-zinc-200 transition-all active:scale-95 shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white text-zinc-950 font-bold text-xs hover:bg-zinc-200 transition-all active:scale-95 shadow-md flex items-center justify-center gap-1.5 cursor-pointer font-sans"
                 >
                   <Zap className="w-4 h-4 text-zinc-950" />
                   <span>ترقية لباقة النخبة ($99)</span>
                 </button>
               ) : (
-                <div className="px-4 py-2 rounded-xl bg-white/[0.06] border border-white/15 text-xs font-mono text-white">
+                <div className="px-4 py-2 rounded-xl bg-white/[0.06] border border-white/15 text-xs font-mono text-white text-center w-full sm:w-auto">
                   باقة النخبة النشطة (سعة مفتوحة)
                 </div>
               )}
@@ -134,7 +173,7 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
           )}
 
           {/* Renewal Indicator */}
-          <div className="mt-5 pt-4 border-t border-white/[0.08] flex items-center text-xs font-mono text-zinc-400">
+          <div className="mt-4 pt-3.5 border-t border-white/[0.08] flex items-center text-xs font-mono text-zinc-400">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-zinc-400" />
               <span>تجديد الحصة: <strong className="text-zinc-200">{isFree ? 'حصة تجريبية محدودة' : 'بعد 18 يوماً (15 سبتمبر)'}</strong></span>
@@ -150,7 +189,7 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="size-9 rounded-xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-white">
+                  <div className="size-9 rounded-xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-white shrink-0">
                     <Zap className="w-4 h-4" />
                   </div>
                   <div>
@@ -188,7 +227,7 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="size-9 rounded-xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-zinc-300">
+                  <div className="size-9 rounded-xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-zinc-300 shrink-0">
                     <Shield className="w-4 h-4" />
                   </div>
                   <div>
@@ -226,7 +265,7 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="size-9 rounded-xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-zinc-300">
+                  <div className="size-9 rounded-xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-zinc-300 shrink-0">
                     <Camera className="w-4 h-4" />
                   </div>
                   <div>
@@ -264,7 +303,7 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="size-9 rounded-xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-zinc-300">
+                  <div className="size-9 rounded-xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-zinc-300 shrink-0">
                     <Database className="w-5 h-5" />
                   </div>
                   <div>
@@ -300,7 +339,7 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
         </div>
 
         {/* Real Token Distribution by Model - Obsidian Glass Card */}
-        <div className="p-6 sm:p-7 rounded-3xl glass-card mb-6">
+        <div className="p-5 sm:p-7 rounded-3xl glass-card mb-6">
           <h3 className="text-sm sm:text-base font-bold text-white mb-1">
             توزيع استهلاك التوكن الفعلي حسب النماذج الذكية
           </h3>
@@ -348,6 +387,18 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Bottom Return CTA */}
+        <div className="mt-8 pt-6 border-t border-white/[0.08] flex justify-center">
+          <button
+            type="button"
+            onClick={onNavigateToChat}
+            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs sm:text-sm transition-all active:scale-95 cursor-pointer shadow-lg font-sans"
+          >
+            <ArrowRight className="w-4 h-4 text-zinc-950" />
+            <span>الرجوع إلى الشات الآن</span>
+          </button>
         </div>
 
       </main>

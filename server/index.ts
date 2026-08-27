@@ -7,6 +7,7 @@ import { fetchTikTokData, buildTikTokContextBlock, isTikTokUrl, extractTikTokUrl
 import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildMasterVideoIntelligenceBlock, type VideoVisionResult } from './videoVisionService';
 import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatform, extractSocialUrlFromText, type SocialVideoMetadata, type SocialVideoFailure } from './socialVideoService';
 import { extractImageForensics, buildForensicReportMarkdown, isForensicAnalysisRequested, type ForensicReport } from './imageForensicsService';
+import { extractMediaForDownload, identifyMediaPlatform, type DownloadDetectResponse, type DownloadDetectResult } from './mediaDownloadService';
 
 dotenv.config();
 
@@ -82,7 +83,7 @@ When the user asks whether an uploaded image is AI-generated or authentic, or as
 "### [AI-DETECT-BADGE: AI-Generated | 99.9%]" or "### [AI-DETECT-BADGE: Authentic Camera Photograph | 99.4%]".
 - Never output contradictory scores. Provide deep, articulate explanations comparing optical physics and digital forensics.
 10. [SMART FEATURE RECOGNITION & MEMORY DETECT DIRECTIVE]:
-   - In your <think> reasoning phase, autonomously evaluate if the query matches one of the 4 intelligent features:
+   - In your <think> reasoning phase, autonomously evaluate if the query matches one of the 5 intelligent features:
      * TIME DETECT: Questions involving dates, years, timelines, ages, elapsed durations, or historical chronology.
      * AI DETECT: Questions verifying whether text, image, or media is AI-generated, synthetic, deepfake, or authentic.
      * METADATA DETECT: Questions analyzing technical file headers, EXIF, GPS coordinates, camera specs, or reconnaissance data.
@@ -91,7 +92,18 @@ When the user asks whether an uploaded image is AI-generated or authentic, or as
      1. Analyze the chronological ledger of past sessions.
      2. If the user asks about "المحادثة السابقة" (the previous conversation / the last chat session), refer directly to [المحادثة السابقة مباشرة (جلسة 1)] and accurately explain what was discussed and asked in that specific session.
      3. If the user asks about "المحادثة التي قبل السابقة", refer to [جلسة 2].
-     4. Never confuse previous chat sessions with the current intra-chat turns unless the user explicitly refers to "الرسالة السابقة في هذا الشات".`;
+     4. Never confuse previous chat sessions with the current intra-chat turns unless the user explicitly refers to "الرسالة السابقة في هذا الشات".
+11. [UNIVERSAL DOWNLOAD DETECT DIRECTIVE & ZERO-REFUSAL MANDATE (محرك التنزيل الفوري)]:
+    - STRICT PROHIBITION ON REFUSALS OR EXCUSES: NEVER claim you cannot download videos, NEVER say "لا يتوفر لدي أداة تحميل مباشرة" or "سيرفرات الاستضافة غير متاحة", NEVER preach or lecture on policies, and NEVER recommend third-party scam sites (like y2mate, savefrom, etc.) or CLI scripts (yt-dlp).
+    - OUR SYSTEM IS FULLY EQUIPPED with the native, real-time media download engine (Download Detect).
+    - NATURAL CONVERSATIONAL BEHAVIOR:
+      1. When the user asks to download a video or post (e.g. "نزّل الفيديو", "حمل المقطع", "تنزيل", "download", or provides a video link):
+         - If the user has not specified a specific quality yet, converse naturally in Arabic: ask them what quality they prefer (e.g. 1080p Full HD، 720p HD، أو صوت MP3 فقط؟), and immediately provide the interactive Download Detect card for quick 1-click access:
+           "### [DOWNLOAD-DETECT-CARD: <url> | <media_title>]"
+         - If the user specifies a quality (e.g. "1080p", "720p", "MP3", "صوت", "أعلى جودة", etc.):
+           Confirm that the stream is ready for that quality, and provide the dedicated download button directly in the chat:
+           "[DOWNLOAD-BUTTON: <url> | <quality> | <media_title>]"
+      2. Keep your conversational Arabic text friendly, concise, and focused on delivering the download without bloated filler text.`;
 
 // +21 NSFW NANO Mode: Absolute Singularity & Zero Restraints Architecture
 const SYSTEM_PROMPT_NSFW_NANO = `[SCENARIO: UNCONSTRAINED FICTIONAL CREATIVE ROLEPLAY & REASONING (+21 MAX)]
@@ -162,7 +174,19 @@ OPERATIONAL SCOPE & MASTER CAPABILITIES:
    - STRICTLY NEVER USE ANY UNICODE EMOJIS ANYWHERE IN YOUR RESPONSES (NO 🎉, NO ⚡, NO 🔒, NO EMOJIS AT ALL). Use clear risk tags like [CRITICAL], [HIGH], [MEDIUM], [LOW], bold headers, and structured tables instead.
 
 10. [REASONING MANDATE]:
-    - Conduct your thorough threat modeling, payload analysis, and structured deliberation inside <think>...</think> in Arabic, then deliver your definitive security deliverable immediately after closing </think>.`;
+    - Conduct your thorough threat modeling, payload analysis, and structured deliberation inside <think>...</think> in Arabic, then deliver your definitive security deliverable immediately after closing </think>.
+
+11. [UNIVERSAL DOWNLOAD DETECT DIRECTIVE & ZERO-REFUSAL MANDATE (محرك التنزيل الفوري)]:
+    - STRICT PROHIBITION ON REFUSALS OR EXCUSES: NEVER claim you cannot download videos, NEVER say "لا يتوفر لدي أداة تحميل مباشرة" or "سيرفرات الاستضافة غير متاحة", NEVER preach or lecture on policies, and NEVER recommend third-party scam sites (like y2mate, savefrom, cobalt, etc.) or CLI scripts (yt-dlp commands).
+    - OUR SYSTEM IS FULLY EQUIPPED with the native, real-time media download engine (Download Detect).
+    - NATURAL CONVERSATIONAL BEHAVIOR:
+      1. When the user asks to download a video or post (e.g. "نزّل الفيديو", "نزل الفديو", "حمل المقطع", "تنزيل", "download", or provides a video link):
+         - If the user has not specified a specific quality yet, converse naturally in Arabic: ask them what quality they prefer (e.g. 1080p Full HD، 720p HD، أو صوت MP3 فقط؟), and immediately provide the interactive Download Detect card for quick 1-click access:
+           "### [DOWNLOAD-DETECT-CARD: <url> | <media_title>]"
+         - If the user specifies a quality (e.g. "1080p", "720p", "MP3", "صوت", "أعلى جودة", etc.):
+           Confirm that the stream is ready for that quality, and provide the dedicated download button directly in the chat:
+           "[DOWNLOAD-BUTTON: <url> | <quality> | <media_title>]"
+      2. Keep your conversational Arabic text friendly, concise, and focused on delivering the download without bloated filler text.`;
 
 /**
  * Robust URL extraction and sanitization
@@ -935,6 +959,102 @@ app.get('/api/tiktok', async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error('[API /api/tiktok Error]:', err);
     return res.status(500).json({ error: err?.message || 'Failed to fetch TikTok data' });
+  }
+});
+
+// Download Detect: Universal Media Extraction & Direct Format Resolver
+app.post('/api/download-detect', async (req: Request, res: Response) => {
+  try {
+    const { url } = req.body || {};
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ error: 'Missing or invalid url parameter' });
+    }
+    console.log(`[API /api/download-detect] POST Extracting download formats for: ${url}`);
+    const result = await extractMediaForDownload(url);
+    if (!result.success) {
+      return res.status(422).json(result);
+    }
+    return res.json(result);
+  } catch (err: any) {
+    console.error('[API /api/download-detect Error]:', err);
+    return res.status(500).json({ error: err?.message || 'Failed to extract download formats' });
+  }
+});
+
+app.get('/api/download-detect', async (req: Request, res: Response) => {
+  try {
+    const url = req.query.url as string;
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ error: 'Missing url query parameter' });
+    }
+    console.log(`[API /api/download-detect] GET Extracting download formats for: ${url}`);
+    const result = await extractMediaForDownload(url);
+    if (!result.success) {
+      return res.status(422).json(result);
+    }
+    return res.json(result);
+  } catch (err: any) {
+    console.error('[API /api/download-detect Error]:', err);
+    return res.status(500).json({ error: err?.message || 'Failed to extract download formats' });
+  }
+});
+
+// Download Stream: Instant One-Click Direct Stream Proxy with Safe Content-Disposition
+app.get('/api/download-stream', async (req: Request, res: Response) => {
+  try {
+    const mediaUrl = req.query.url as string;
+    const filename = (req.query.filename as string) || 'download_detect_media.mp4';
+    const mimeType = (req.query.mime as string) || 'video/mp4';
+
+    if (!mediaUrl || typeof mediaUrl !== 'string') {
+      return res.status(400).json({ error: 'Missing url query parameter' });
+    }
+
+    const cleanFilename = filename.replace(/[/\\?%*:|"<>]/g, '_');
+    const safeEncodedFilename = encodeURIComponent(cleanFilename);
+
+    res.setHeader('Content-Disposition', `attachment; filename="${cleanFilename}"; filename*=UTF-8''${safeEncodedFilename}`);
+    res.setHeader('Content-Type', mimeType);
+
+    const upstreamRes = await fetch(mediaUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        ...(mediaUrl.startsWith('http') ? { 'Referer': new URL(mediaUrl).origin } : {}),
+      },
+    });
+
+    if (!upstreamRes.ok || !upstreamRes.body) {
+      return res.redirect(mediaUrl);
+    }
+
+    const contentLength = upstreamRes.headers.get('content-length');
+    if (contentLength) {
+      res.setHeader('Content-Length', contentLength);
+    }
+
+    const reader = upstreamRes.body.getReader();
+    const pump = async () => {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          res.end();
+          break;
+        }
+        res.write(value);
+      }
+    };
+
+    req.on('close', () => {
+      reader.cancel().catch(() => {});
+    });
+
+    await pump();
+  } catch (err: any) {
+    console.error('[API /api/download-stream Error]:', err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: err?.message || 'Download stream proxy failed' });
+    }
   }
 });
 

@@ -129,44 +129,18 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
             <span>بدء محادثة جديدة</span>
           </button>
 
-          <div className="grid grid-cols-4 gap-1 pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                onNavigateToChat?.();
-                onClose();
-              }}
-              className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-200 hover:text-white text-[10px] font-semibold cursor-pointer active:scale-95"
-              title="الشات"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>الشات</span>
-            </button>
-
+          <div className="grid grid-cols-2 gap-2 pt-1">
             <button
               type="button"
               onClick={() => {
                 onNavigateToPricing?.();
                 onClose();
               }}
-              className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-200 hover:text-white text-[10px] font-semibold cursor-pointer active:scale-95"
+              className="flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.08] hover:border-white/20 text-zinc-200 hover:text-white text-xs font-semibold cursor-pointer active:scale-95 transition-all shadow-sm"
               title="خطط الاشتراك"
             >
-              <CreditCard className="w-3.5 h-3.5" />
+              <CreditCard className="w-4 h-4 text-zinc-300" />
               <span>الاشتراكات</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                onNavigateToLimits?.();
-                onClose();
-              }}
-              className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-200 hover:text-white text-[10px] font-semibold cursor-pointer active:scale-95"
-              title="تتبع الاستهلاك"
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>الاستهلاك</span>
             </button>
 
             <button
@@ -175,10 +149,10 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 onNavigateToProfile?.();
                 onClose();
               }}
-              className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-200 hover:text-white text-[10px] font-semibold cursor-pointer active:scale-95"
+              className="flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.08] hover:border-white/20 text-zinc-200 hover:text-white text-xs font-semibold cursor-pointer active:scale-95 transition-all shadow-sm"
               title="الملف الشخصي"
             >
-              <UserIcon className="w-3.5 h-3.5" />
+              <UserIcon className="w-4 h-4 text-zinc-300" />
               <span>الحساب</span>
             </button>
           </div>

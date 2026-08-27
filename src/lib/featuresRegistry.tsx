@@ -153,6 +153,36 @@ export const MetadataDetectIcon: React.FC<{ className?: string; size?: number }>
   </svg>
 );
 
+export const DownloadDetectIcon: React.FC<{ className?: string; size?: number }> = ({
+  className,
+  size = 14
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="url(#download-detect-grad)"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn("inline-block shrink-0", className)}
+  >
+    <defs>
+      <linearGradient id="download-detect-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#10b981" />
+        <stop offset="25%" stopColor="#34d399" />
+        <stop offset="50%" stopColor="#6ee7b7" />
+        <stop offset="75%" stopColor="#a7f3d0" />
+        <stop offset="100%" stopColor="#059669" />
+      </linearGradient>
+    </defs>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);
+
 /**
  * Universal Modular Features Registry (نظام الخواص الشامل)
  * Central extensible registry managing all detection features:
@@ -328,6 +358,50 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
         summary: 'البحث الجنائي واستخراج طبقات الميتاداتا',
         details: 'تدقيق بيانات العتاد والكاميرا وترويسات الحماية الرقمية',
         statusPill: 'EXIF & SECURITY HEADERS'
+      };
+    }
+  },
+
+  download_detect: {
+    id: 'download_detect',
+    name: 'Download Detect',
+    nameAr: 'استخراج وتنزيل الوسائط الفائق',
+    badgeLabel: 'DOWNLOAD DETECT',
+    textClassName: 'download-detect-text',
+    glassClassName: 'download-detect-glass',
+    badgeClassName: 'download-detect-badge',
+    accentColor: '#10b981',
+    borderHoverColor: 'border-emerald-500/40',
+    icon: DownloadDetectIcon,
+    detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
+      const p = prompt.toLowerCase();
+      const r = (reasoning || '').toLowerCase();
+      const c = (content || '').toLowerCase();
+
+      const hasKeyword = /(?:download[-\s]?detect|downloaddetect|تحميل|تنزيل|حمل|حمّل|نزلي|نزل|نزّل|نزله|نزلها|حمله|حملها|انزل|انزله|انزلها|احمل|احمله|احملها|اسحب|اسحبه|اسحبها|سحب|تنزيل\s*ف[ي]?ديو|تحميل\s*ف[ي]?ديو|تحميل\s*المقطع|تنزيل\s*المقطع|نزل\s*الف[ي]?ديو|حمل\s*الف[ي]?ديو|نزل\s*المقطع|حمل\s*المقطع|ف[ي]?ديو|مقطع|ريلز|شورتس|صوت|mp3|mp4|تحميل\s*صورة|تنزيل\s*الصور|استخراج\s*الوسائط|استخراج\s*الف[ي]?ديو|تنزيل\s*بوست|تحميل\s*البوست|download|extract\s*media|save\s*video|save\s*post|grab\s*video|grab\s*media|reels?\s*download|tiktok\s*download|yt\s*download|youtube\s*download)/i.test(p);
+      const hasMediaUrl = /(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|reddit\.com|threads\.net|vimeo\.com|\.mp4|\.m3u8|\.mp3)/i.test(p) || /(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|reddit\.com|threads\.net|vimeo\.com|\.mp4|\.m3u8|\.mp3)/i.test(context?.targetUrl || '');
+      const hasShortDownloadWord = /(?:نزل|نزّل|حمل|حمّل|نزلي|حملي|سحب|تنزيل|تحميل|download|save|grab)/i.test(p);
+      const hasReasoningRef = r.includes('download detect') || r.includes('استخراج الوسائط') || r.includes('تنزيل الوسائط') || r.includes('تحميل الفيديو') || r.includes('تنزيل الفيديو') || r.includes('جودة');
+      const hasBadge = c.includes('download-detect') || c.includes('[download-detect-card') || c.includes('[download-button') || c.includes('[download-detect-badge');
+      const isContextTriggered = Boolean(context?.isDownloadDetectTriggered) || (hasMediaUrl && hasShortDownloadWord);
+
+      return hasKeyword || hasReasoningRef || hasBadge || isContextTriggered;
+    },
+    extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
+      const badgeMatch = content.match(/(?:\[DOWNLOAD-DETECT-(?:CARD|BADGE):\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD-DETECT-(?:CARD|BADGE):\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);
+
+      const title = badgeMatch
+        ? (badgeMatch[2] || badgeMatch[4] || badgeMatch[1] || badgeMatch[3])?.trim()
+        : 'استخراج وتنزيل الوسائط الفائق (Zero-Ad Direct Stream)';
+
+      return {
+        id: 'download_detect',
+        name: 'Download Detect',
+        nameAr: 'استخراج وتنزيل الوسائط الفائق',
+        badgeLabel: 'DOWNLOAD DETECT',
+        summary: title || 'استخراج وتنزيل الوسائط الفائق (Zero-Ad Direct Stream)',
+        details: 'كشف الجودات العالية (4K/1080p 60fps)، استخلاص MP3، وسحب ألبومات الصور الأصلية',
+        statusPill: 'UNIVERSAL MEDIA ENGINE'
       };
     }
   }

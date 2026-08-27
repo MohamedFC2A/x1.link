@@ -55,18 +55,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </button>
             )}
 
-            {onNavigateToLimits && (
-              <button
-                type="button"
-                onClick={onNavigateToLimits}
-                className="glass-button flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-cyan-300 hover:text-white text-xs font-semibold cursor-pointer active:scale-95 shadow-sm"
-                title="تتبع الاستهلاك والليميت"
-              >
-                <Activity className="w-4 h-4 text-cyan-400" />
-                <span className="hidden sm:inline font-sans">الاستهلاك</span>
-              </button>
-            )}
-
             <button
               type="button"
               onClick={onStartChat}
