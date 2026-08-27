@@ -2,7 +2,7 @@ import { ChatMessageItem } from '../types';
 import { detectAndExtractUrl } from '../lib/utils';
 import { SupabaseChat, saveCloudUserMemories, fetchCloudUserMemories } from './supabase';
 import { scientificDiscoveryEngine, DiscoveryLoopResult } from './scientificDiscoveryEngine';
-import { isPersonalMemoryRecallIntent } from '../lib/featuresRegistry';
+import { isPersonalMemoryRecallIntent } from '../lib/memoryIntentUtils';
 
 /**
  * ============================================================================

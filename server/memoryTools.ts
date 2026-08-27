@@ -1,5 +1,5 @@
 import { MemoryDetectService, IterativeSearchOutput, SemanticMemoryScope, TimeFilterRange, ChatRelationshipType } from './memoryDetectService';
-import { isPersonalMemoryRecallIntent } from '../src/lib/featuresRegistry';
+import { isPersonalMemoryRecallIntent } from '../src/lib/memoryIntentUtils';
 
 /**
  * ============================================================================
