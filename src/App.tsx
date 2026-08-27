@@ -118,10 +118,30 @@ export const App: React.FC = () => {
   const [cloudChats, setCloudChats] = useState<SupabaseChat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
 
-  // Model & Chat State (100% Cloud-First on Supabase, Zero Local Storage)
-  const [activeModel, setActiveModel] = useState<ModelType>('deepseek-v4-flash');
-  const [messages, setMessages] = useState<ChatMessageItem[]>([]);
+  // Model & Chat State (Persistent Smart Preferred Base Model: Fathom 1 or Fathom Cyber)
+  const [preferredBaseModel, setPreferredBaseModel] = useState<ModelType>(() => {
+    try {
+      const saved = localStorage.getItem('matany_preferred_base_model');
+      if (saved === 'deepseek-v4-flash-cyber' || saved === 'deepseek-v4-flash') {
+        return saved as ModelType;
+      }
+    } catch (e) {}
+    return 'deepseek-v4-flash';
+  });
 
+  const [activeModel, setActiveModel] = useState<ModelType>(preferredBaseModel);
+
+  const handleSelectModel = (model: ModelType) => {
+    setActiveModel(model);
+    if (model === 'deepseek-v4-flash' || model === 'deepseek-v4-flash-cyber') {
+      setPreferredBaseModel(model);
+      try {
+        localStorage.setItem('matany_preferred_base_model', model);
+      } catch (e) {}
+    }
+  };
+
+  const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [totalTokens, setTotalTokens] = useState<number>(() => getLocalUsage().totalTokens);
   const abortControllerRef = useRef<(() => void) | null>(null);
@@ -376,10 +396,13 @@ export const App: React.FC = () => {
     } else if (resolvedTargetUrl) {
       chosenModel = 'deepseek-v4-flash-cyber';
     } else {
-      chosenModel = activeModel;
+      chosenModel = preferredBaseModel || activeModel;
     }
 
-    if (chosenModel !== activeModel) {
+    // Auto-restore input back to user preferred base model if multi-modal media was sent
+    if (attachedMediaList.length > 0 || attachedImagesDataUrls.length > 0) {
+      setActiveModel(preferredBaseModel);
+    } else if (chosenModel !== activeModel) {
       setActiveModel(chosenModel);
     }
 
@@ -878,7 +901,7 @@ export const App: React.FC = () => {
                       isX1Active={isX1Active}
                       onToggleX1={handleToggleX1}
                       activeModel={activeModel}
-                      onSelectModel={setActiveModel}
+                      onSelectModel={handleSelectModel}
                       placeholder={
                         activeModel === 'deepseek-v4-flash-cyber'
                           ? "اسأل Fathom Cyber في أي شيء..."

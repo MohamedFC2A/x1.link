@@ -127,13 +127,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         }}
       >
         {messages.length === 0 ? (
-          <div className="min-h-[55vh] flex flex-col items-center justify-center max-w-lg mx-auto py-8 text-center animate-in fade-in duration-300 px-4 relative select-none">
-            {/* High-Clarity Blueprint Laser Grid Aura */}
-            <div className="absolute inset-0 -z-10 bg-grid-laser opacity-40 grid-radial-fade pointer-events-none rounded-3xl" />
-            
+          <div className="min-h-[50vh] flex flex-col items-center justify-center max-w-lg mx-auto py-12 text-center animate-in fade-in duration-300 px-4 relative select-none">
             {/* Master Brand M Emblem with Glassmorphic Squircle */}
             <div className="mb-4 relative group cursor-default">
-              <div className="size-16 sm:size-20 rounded-3xl p-1 bg-gradient-to-b from-white/20 via-white/10 to-white/5 shadow-[0_12px_36px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.25)] border border-white/20 flex items-center justify-center backdrop-blur-2xl group-hover:scale-105 transition-transform duration-300">
+              <div className="size-18 sm:size-20 rounded-3xl p-1 bg-gradient-to-b from-white/20 via-white/10 to-white/5 shadow-[0_12px_36px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.25)] border border-white/20 flex items-center justify-center backdrop-blur-2xl group-hover:scale-105 transition-transform duration-300">
                 <img src="/matany-logo.svg" alt="matany.one" className="size-full rounded-[20px] object-contain drop-shadow" />
               </div>
             </div>
@@ -141,44 +138,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-2">
               ابدأ محادثة مع {isX1Active ? 'matany.one' : 'Fathom'}
             </h2>
-            <p className="text-xs sm:text-sm text-zinc-400 max-w-sm mb-6 leading-relaxed">
-              اسأل في البرمجة، استخراج روابط المواقع، فحص الميتاداتا، أو حل المسائل المعقدة بدقة متناهية وبدون قيود.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-md">
-              <button
-                type="button"
-                onClick={() => onSendPreset("لو وزني 179 وطولي 99 يبقا BMI كم")}
-                className="glass-card p-3 rounded-xl text-xs text-right text-zinc-300 hover:text-white flex items-center gap-2 cursor-pointer select-none"
-              >
-                <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span className="truncate">لو وزني 179 وطولي 99 يبقا BMI كم</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onSendPreset("استخرج جميع الروابط والصور من هذا المقال")}
-                className="glass-card p-3 rounded-xl text-xs text-right text-zinc-300 hover:text-white flex items-center gap-2 cursor-pointer select-none"
-              >
-                <Eye className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="truncate">استخرج الروابط والصور من المقال</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onSendPreset("تحليل عميق لأمن وثغرات الكود البرمجي")}
-                className="glass-card p-3 rounded-xl text-xs text-right text-zinc-300 hover:text-white flex items-center gap-2 cursor-pointer select-none"
-              >
-                <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-                <span className="truncate">تحليل عميق لأمن وثغرات الكود</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onSendPreset("اكتشف بيانات الكاميرا والموقع من هذه الصورة")}
-                className="glass-card p-3 rounded-xl text-xs text-right text-zinc-300 hover:text-white flex items-center gap-2 cursor-pointer select-none"
-              >
-                <Camera className="w-4 h-4 text-violet-400 shrink-0" />
-                <span className="truncate">فحص ميتاداتا الكاميرا والصورة</span>
-              </button>
-            </div>
           </div>
         ) : (
           <div ref={messagesListRef} className="space-y-4 pb-24 sm:pb-32">
