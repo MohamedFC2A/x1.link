@@ -32,6 +32,7 @@ export interface ChatMessageItem {
   isThinking?: boolean;
   image?: string;
   images?: string[];
+  videoKeyframes?: string[];
   mediaAttachments?: MediaAttachmentItem[];
   timestamp: string;
   isX1?: boolean;

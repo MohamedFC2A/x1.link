@@ -1298,7 +1298,8 @@ async function urlToBase64DataUri(url: string, timeoutMs = 8000): Promise<string
 // Multi-Tier Fathom Cam Vision Perception: Powered by native deepseek-v4-flash-vision-exp
 async function extractVisualContext(
   imageMessages: any[],
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  isForensics: boolean = false
 ): Promise<string> {
   if (!DEEPSEEK_API_KEY) {
     console.warn('[Fathom Cam Vision] DEEPSEEK_API_KEY is not set.');
@@ -1328,25 +1329,31 @@ async function extractVisualContext(
             })
           );
 
-          const contentParts: any[] = [
-            {
-              type: 'text',
-              text: `[نظام الإدراك البصري الفائق والتحليل الجنائي المتقدم — deepseek-v4-flash-vision-exp]:
+          const systemPromptText = isForensics
+            ? `[نظام الإدراك البصري الفائق والتحليل الجنائي المتقدم — deepseek-v4-flash-vision-exp]:
 تم رفع عدد (${imgObjs.length}) صور من قبل المستخدم. قم بتحليل كل صورة على حدة وترقيمها بدقة استثنائية باللغة العربية:
 
 1. [فحص وتدقيق أصالة الصورة والذكاء الاصطناعي (Deep Optical AI Detection & Forensics)]:
 قم بفحص تفصيلي للمؤشرات البصرية لتحديد ما إذا كانت الصورة حقيقية أم مولدة بالذكاء الاصطناعي (AI-Generated / Deepfake / Synthetic):
-- ملمس البشرة والمسام (Skin micro-texture): هل البشرة ذات مسام وتجاعيد طبيعية حقيقية أم بلاستيكية شديدة النعومة (Plastic sheen)؟
-- تفاصيل العيون والبؤبؤ (Pupil & Specular reflections): هل انعكاسات الضوء في حدقتي العينين متطابقة هندسياً ومتسقة مع مصادر الضوء؟
-- اليدين والأصابع والأطراف (Hands, Fingers & Limbs): هل عدد الأصابع وشكل الأظافر سليم وطبيعي 100% دون اندماج أو تشوه؟
-- الخلفية والعمق البصري (Background bokeh & depth physics): هل العزل البصري طبيعي بصرياً أم هناك تلاشي شاذ في الحواف (Edge blending artifacts)؟
-- المجوهرات والأقمشة والملابس (Fabric weave & Accessories): هل خطوط الخياطة والأقمشة وتفاصيل التطريز ذات تفاصيل مادية واقعية؟
-- النصوص والخطوط في الخلفية (Text rendering): هل أي كتابات ظاهرة هي حروف حقيقية مقروءة أم رسوم غير مفهومة (AI gibberish)؟
-- النتيجة القطعية: حدد بوضوح قاطع [AI_VERDICT: AI-Generated] بنسبة مئوية (مثال: 99.9%) أو [AI_VERDICT: Authentic Camera Photograph] بنسبة مئوية (مثال: 99.4%) مع سرد الأدلة البصرية.
+- ملمس البشرة والمسام (Skin micro-texture): هل البشرة ذات مسام وتجاعيد طبيعية حقيقية أم بلاستيكية شديدة النعومة؟
+- تفاصيل العيون والبؤبؤ (Pupil & Specular reflections): هل انعكاسات الضوء في حدقتي العينين متطابقة هندسياً؟
+- اليدين والأصابع والأطراف: هل عدد الأصابع وشكل الأظافر سليم وطبيعي 100% دون اندماج أو تشوه؟
+- الخلفية والعمق البصري: هل العزل البصري طبيعي بصرياً أم هناك تلاشي شاذ في الحواف؟
+- النتيجة القطعية: حدد بوضوح قاطع [AI_VERDICT: AI-Generated] أو [AI_VERDICT: Authentic Camera Photograph] بنسبة مئوية مع سرد الأدلة.
 
-2. استخراج النصوص الكامل والفهرسة المنفصلة (Full OCR & Micro-OCR): لكل صورة [صورة رقم X]، استخرج كافة النصوص والكلمات والأرقام والتواريخ والأسماء بدقة 100%.
-3. التمييز والفهرسة المستقلة: اربط كل جزء من التحليل برقم الصورة الخاص به [صورة 1]، [صورة 2] بدقة مطلقة.
-4. الإجابة المباشرة عن طلب المستخدم: "${userQuestion || 'حلل هذه الصور وافحص أصالتها بدقة استثنائية.'}".`
+2. استخراج النصوص الكامل والفهرسة المنفصلة (Full OCR): لكل صورة، استخرج كافة النصوص والكلمات والأرقام والتواريخ بدقة 100%.
+3. الإجابة المباشرة عن طلب المستخدم: "${userQuestion || 'حلل هذه الصور وافحص أصالتها بدقة.'}".`
+            : `[نظام الإدراك البصري الفائق وقراءة المحتوى — deepseek-v4-flash-vision-exp]:
+تم رفع عدد (${imgObjs.length}) لقطات/صور من قبل المستخدم. قم بتحليل المحتوى واستيعاب كافة المعطيات بدقة استثنائية باللغة العربية:
+
+1. استيعاب المشهد والعناصر البصرية: قم بوصف دقيق ومفصل لكافة العناصر والأشخاص والأماكن والرسومات والتفاصيل الظاهرة.
+2. استخراج النصوص الكامل (Full OCR): استخرج بدقة 100% كافة النصوص والكلمات والأرقام والملصقات والأسئلة المكتوبة على الشاشة.
+3. الإجابة المباشرة والذكية عن سؤال واستفسار المستخدم: "${userQuestion || 'حلل هذه اللقطات واستخرج كافة تفاصيلها بدقة.'}".`;
+
+          const contentParts: any[] = [
+            {
+              type: 'text',
+              text: systemPromptText
             }
           ];
 
@@ -1889,12 +1896,38 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   let processedMessages = cleanedMessages;
 
   // Stage 1: Vision Perception & Forensics
-  if (hasMultimodal || isVision) {
-    console.log('[X1-PIPELINE] Multimodal image detected. Step 1: Extracting visual transcript with multi-tier vision...');
-    const visionMessages = cleanedMessages.filter((m: any) => Array.isArray(m.content) || m.role === 'user');
-    const visualExtraction = await extractVisualContext(visionMessages, upstreamAbortController.signal);
+  if (isMediaSpark) {
+    console.log('[X1-PIPELINE] Media Spark (Video/Audio) detected. Fast native multimodal routing activated...');
+    const videoGuidance = `
+[توجيه استيعاب وفحص الفيديو الذكي والوسائط — FATHOM VIDEO & MEDIA INTELLIGENCE DIRECTIVE]:
+1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى:
+   - حلل مشاهد وإطارات الفيديو المتتابعة واقرأ أي نصوص أو ملصقات أو أسئلة ظاهرة على الشاشة (مثل نصوص الاستفسار أو العناوين المكتوبة).
+   - استوعب سياق حديث المتحدث ومضمون كلامه وفكرته الأساسية.
+   - إذا كان المستخدم يسأل "كلامه صحيح ولا فيه خطأ":
+     * استعرض الفكرة المطروحة (مثل خسارة الوزن، التغذية، الأنظمة الصحية، أكل البيت، أو غيرها).
+     * حلل كلام المتحدث من منظور علمي، طبي، وتغذوي دقيق وموثوق.
+     * بيّن ما هو صحيح علمياً، وما قد ينطوي على مبالغة أو مفاهيم مغلوطة أو أضرار محتملة.
+2. بعد إغلاق وسم </think>، قدّم إجابة مباشرة، فخمة، بليغة وذكية تجيب المستخدم عما إذا كان كلام المتحدث صحيحاً أم فيه خطأ علمي بوضوح وشمولية تامة دون أي تكرار أو تقارير فحص صور مصطنعة.`;
 
-    let forensicBlock = '';
+    const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
+    if (lastUserIdx !== -1) {
+      const targetMsg = processedMessages[lastUserIdx];
+      if (Array.isArray(targetMsg.content)) {
+        const textItem = targetMsg.content.find((c: any) => c.type === 'text');
+        if (textItem) {
+          textItem.text = `${textItem.text}\n\n${videoGuidance}`;
+        } else {
+          targetMsg.content.unshift({ type: 'text', text: videoGuidance });
+        }
+      } else {
+        const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
+        processedMessages[lastUserIdx] = {
+          ...targetMsg,
+          content: `${orig}\n\n${videoGuidance}`
+        };
+      }
+    }
+  } else if (hasMultimodal || isVision) {
     const latestUserContent = cleanedMessages.filter((m: any) => m.role === 'user').pop();
     const userPromptForForensics = typeof latestUserContent?.content === 'string'
       ? latestUserContent.content
@@ -1904,8 +1937,13 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
     const isForensicsExplicitlyRequested = isForensicAnalysisRequested(userPromptForForensics);
 
-    if (isForensicsExplicitlyRequested || isCyber || hasMultimodal) {
-      console.log(`[X1-PIPELINE] [FORENSICS] Triggering 5-layer AI Authenticity & Forensics Engine (isCyber: ${isCyber}, requested: ${isForensicsExplicitlyRequested})...`);
+    console.log(`[X1-PIPELINE] Multimodal image detected. Extracting visual transcript (forensics requested: ${isForensicsExplicitlyRequested})...`);
+    const visionMessages = cleanedMessages.filter((m: any) => Array.isArray(m.content) || m.role === 'user');
+    const visualExtraction = await extractVisualContext(visionMessages, upstreamAbortController.signal, isForensicsExplicitlyRequested);
+
+    let forensicBlock = '';
+    if (isForensicsExplicitlyRequested) {
+      console.log(`[X1-PIPELINE] [FORENSICS] Triggering 5-layer AI Authenticity & Forensics Engine...`);
       try {
         const forensicPromises: Promise<ForensicReport>[] = [];
         const lastMsg = visionMessages[visionMessages.length - 1];
@@ -1932,14 +1970,17 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     }
 
     if (visualExtraction || forensicBlock) {
-      const guidance = `
+      const guidance = isForensicsExplicitlyRequested
+        ? `
 [توجيه التحليل والتفكير الذكي الفائق — FATHOM REASONING DIRECTIVE]:
 1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى:
    - حلل المعطيات البصرية والفنية للصورة بدقة هندسية وفيزيائية.
-   - إذا كانت بيانات EXIF الكاميرا موجودة، استعرض طراز الكاميرا والعدسة وإعدادات التصوير بدقة.
-   - إذا كانت بيانات EXIF مجردة (بسبب الضغط أو الحفظ من الويب أو برامج التواصل)، وضّح ذلك بذكاء للمستخدم دون تقديم جداول صماء فارغة، وعوّض عنها بتحليل بصري واستدلالي عميق للأبعاد والإضاءة والنصوص والعناصر الظاهرة.
    - إذا سأل المستخدم عن أصالة الصورة أو الذكاء الاصطناعي، اذكر الشارة الفورية: "### [AI-DETECT-BADGE: AI-Generated | 99.9%]" أو "### [AI-DETECT-BADGE: Authentic Camera Photograph | 99.4%]" مع سرد الأدلة المقنعة.
-2. بعد إغلاق وسم </think>، قدّم تحليلاً شاملاً، فخماً، بليغاً ومباشراً يلبي رغبة المستخدم بأعلى درجات الاحترافية.`;
+2. بعد إغلاق وسم </think>، قدّم تحليلاً شاملاً يلبي رغبة المستخدم بأعلى درجات الاحترافية.`
+        : `
+[توجيه التحليل البصري — FATHOM VISION DIRECTIVE]:
+1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى حول ما تحتويه الصورة من عناصر وتفاصيل ونصوص مكتوبة.
+2. بعد إغلاق وسم </think>، أجب مباشرة عن سؤال واستفسار المستخدم بدقة واحترافية دون أي تقارير فحص أصالة مزيفة.`;
 
       const combinedBlocks = [visualExtraction, forensicBlock, guidance].filter(Boolean).join('\n\n');
       const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
@@ -2024,6 +2065,15 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     { role: 'system', content: activeSystemPrompt },
     ...historySlice.map((m: { role: string; content: any; reasoning?: string }, idx: number) => {
       const isLatestTurn = idx === historySlice.length - 1;
+
+      // Preserve multimodal content array for the latest turn if image/video frames exist
+      if (isLatestTurn && Array.isArray(m.content) && (isMediaSpark || isVision || hasMultimodal)) {
+        return {
+          role: m.role || 'user',
+          content: m.content
+        };
+      }
+
       let contentStr = '';
       if (typeof m.content === 'string') {
         contentStr = m.content.trim();

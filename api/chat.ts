@@ -1559,7 +1559,32 @@ export default async function handler(req: Request): Promise<Response> {
 
   let processedMessages = cleanedMessages;
 
-  if (hasMultimodal || isVision) {
+  if (isMediaSpark) {
+    console.log('[X1-PIPELINE Edge] Media Spark (Video/Audio) detected. Direct multimodal routing activated...');
+    const videoGuidance = `
+[توجيه استيعاب وفحص الفيديو والوسائط — FATHOM VIDEO INTELLIGENCE DIRECTIVE]:
+1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى:
+   - حلل مشاهد وإطارات الفيديو المتتابعة واقرأ أي نصوص أو ملصقات أو أسئلة ظاهرة على الشاشة (مثل نصوص الاستفسار أو العناوين المكتوبة).
+   - استوعب سياق حديث المتحدث ومضمون كلامه وفكرته الأساسية.
+   - إذا كان المستخدم يسأل "كلامه صحيح ولا فيه خطأ":
+     * استعرض الفكرة المطروحة (مثل خسارة الوزن، التغذية، الأنظمة الصحية، أكل البيت، أو غيرها).
+     * حلل كلام المتحدث من منظور علمي، طبي، وتغذوي دقيق وموثوق.
+     * بيّن ما هو صحيح علمياً، وما قد ينطوي على مبالغة أو مفاهيم مغلوطة أو أضرار محتملة.
+2. بعد إغلاق وسم </think>، قدّم إجابة مباشرة، فخمة، بليغة وذكية تجيب المستخدم عما إذا كان كلام المتحدث صحيحاً أم فيه خطأ علمي بوضوح وشمولية تامة دون أي تكرار أو تقارير فحص صور مصطنعة.`;
+
+    processedMessages = cleanedMessages.map((m: any) => {
+      if (Array.isArray(m.content)) {
+        const textItem = m.content.find((c: any) => c.type === 'text');
+        if (textItem) {
+          return {
+            ...m,
+            content: m.content.map((c: any) => c.type === 'text' ? { ...c, text: `${c.text}\n\n${videoGuidance}` } : c)
+          };
+        }
+      }
+      return m;
+    });
+  } else if (hasMultimodal || isVision) {
     const visionMessages = cleanedMessages.filter((m: any) => Array.isArray(m.content) || m.role === 'user');
     const visualExtraction = await extractVisualContext(visionMessages);
 
@@ -1660,6 +1685,15 @@ export default async function handler(req: Request): Promise<Response> {
     { role: 'system', content: activeSystemPrompt },
     ...historySlice.map((m: { role: string; content: any; reasoning?: string }, idx: number) => {
       const isLatestTurn = idx === historySlice.length - 1;
+
+      // Preserve multimodal content array for the latest turn if image/video frames exist
+      if (isLatestTurn && Array.isArray(m.content) && (isMediaSpark || isVision || hasMultimodal)) {
+        return {
+          role: m.role || 'user',
+          content: m.content
+        };
+      }
+
       let contentStr = '';
       if (typeof m.content === 'string') {
         contentStr = m.content.trim();

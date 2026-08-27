@@ -66,6 +66,45 @@ export async function streamChatCompletion({
         }
       });
 
+      const videoItem = msg.mediaAttachments?.find(m => m.type === 'video');
+      const hasKeyframes = Boolean(msg.videoKeyframes && msg.videoKeyframes.length > 0);
+
+      if (hasKeyframes) {
+        if (!isLatestTurn) {
+          return {
+            role: msg.role,
+            content: `${cleanContent}\n[ملاحظة: تم إرفاق وتحليل فيديو "${videoItem?.name || 'فيديو'}" في هذا الدور السابق]`,
+            reasoning: msg.reasoning
+          };
+        }
+
+        const contentParts: any[] = [
+          {
+            type: 'text',
+            text: `${cleanContent}\n\n[إطارات ولقطات بصرية متتابعة مستخرجة من الفيديو: "${videoItem?.name || 'فيديو مرفق'}"]:\n• هذه لقطات زمنية متتابعة من الفيديو لفهم المشاهد وتتبع الأحداث وقراءة أي نصوص أو ملصقات أو أسئلة ظاهرة على الشاشة.\n• المطلوب: استيعاب موضوع وسياق حديث المتحدث في الفيديو، والإجابة عن سؤال واستفسار المستخدم بدقة وموضوعية.`
+          }
+        ];
+
+        msg.videoKeyframes!.forEach((frameUrl, i) => {
+          contentParts.push({
+            type: 'text',
+            text: `[لقطة رقم ${i + 1} من الفيديو]`
+          });
+          contentParts.push({
+            type: 'image_url',
+            image_url: {
+              url: frameUrl
+            }
+          });
+        });
+
+        return {
+          role: msg.role,
+          content: contentParts,
+          reasoning: msg.reasoning
+        };
+      }
+
       const allImages = (msg.images && msg.images.length > 0)
         ? msg.images
         : (msg.image ? [msg.image] : []);
@@ -199,9 +238,19 @@ export async function streamChatCompletion({
           accumulatedContent = preThink ? `${preThink}\n\n${postThink}` : postThink;
         }
       } else {
-        // No think tags present in content stream
-        accumulatedContent = accumulatedRaw;
-        isThinking = false;
+        // Check for orphan closing think tag (e.g. model emitted reasoning and closed with </think>)
+        const orphanCloseIdx = lowerRaw.indexOf('</think>');
+        const orphanThoughtCloseIdx = orphanCloseIdx !== -1 ? orphanCloseIdx : lowerRaw.indexOf('</thought>');
+        if (orphanThoughtCloseIdx !== -1) {
+          const closeTagLength = lowerRaw.startsWith('</thought>', orphanThoughtCloseIdx) ? 10 : 8;
+          accumulatedReasoning = accumulatedRaw.substring(0, orphanThoughtCloseIdx).trim();
+          accumulatedContent = accumulatedRaw.substring(orphanThoughtCloseIdx + closeTagLength).trimStart();
+          isThinking = false;
+        } else {
+          // No think tags present in content stream
+          accumulatedContent = accumulatedRaw;
+          isThinking = false;
+        }
       }
 
       onChunk({

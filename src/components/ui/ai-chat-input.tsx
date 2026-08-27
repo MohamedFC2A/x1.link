@@ -29,10 +29,11 @@ import {
   Music,
   FileCode,
   FileType,
-  FileSearch
+  FileSearch,
+  Loader2
 } from "lucide-react";
 import { ModelType, MediaType } from "@/types";
-import { classifyFileType, formatFileSize, formatMediaDuration, extractVideoClientMetadata, extractAudioClientMetadata, extractTextClientMetadata } from "@/lib/mediaExtractor";
+import { classifyFileType, formatFileSize, formatMediaDuration, extractVideoClientMetadata, extractAudioClientMetadata, extractTextClientMetadata, extractVideoKeyframes } from "@/lib/mediaExtractor";
 import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 import { SmartTooltip } from "@/components/ui/SmartTooltip";
 import { PlatformLogo } from "@/components/ui/PlatformLogo";
@@ -53,12 +54,23 @@ export interface Attachment {
   height?: number;
   textSnippet?: string;
   size: number;
+  uploadProgress?: number; // 0 - 100
+  isProcessing?: boolean;
+  keyframes?: string[];
 }
 
 export interface PromptInputProps {
   onSubmit?: (
     value: string,
-    meta: { model: string; effort: string; attachments: File[]; targetUrl?: string; targetUrls?: string[]; deepSearch?: boolean }
+    meta: {
+      model: string;
+      effort: string;
+      attachments: File[];
+      targetUrl?: string;
+      targetUrls?: string[];
+      deepSearch?: boolean;
+      preloadedKeyframes?: Record<string, string[]>;
+    }
   ) => void;
   placeholder?: string;
   className?: string;
@@ -252,7 +264,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
     const hasAttachments = attachments.length > 0;
     const hasUrls = attachedUrls.length > 0;
-    const hasValue = value.trim() !== "" || hasAttachments || hasUrls;
+    const isAnyAttachmentProcessing = attachments.some(a => a.isProcessing || (a.uploadProgress !== undefined && a.uploadProgress < 100));
+    const hasValue = (value.trim() !== "" || hasAttachments || hasUrls) && !isAnyAttachmentProcessing;
 
     // Detect if attachments contain videos, audio, or documents
     const hasNonImageMedia = attachments.some(a => a.mediaType === 'video' || a.mediaType === 'audio' || a.mediaType === 'document');
@@ -387,19 +400,63 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         });
       } else if (mediaType === 'video') {
         const objectUrl = URL.createObjectURL(file);
-        const meta = await extractVideoClientMetadata(file);
-        return {
+        
+        // Return initial attachment in processing state so user sees preview immediately
+        const initialAttachment: Attachment = {
           id,
           file,
           url: objectUrl,
-          thumbnailUrl: meta.thumbnailUrl || objectUrl,
+          thumbnailUrl: objectUrl,
           name: file.name || fallbackName || 'فيديو مرفق',
           mediaType: 'video',
-          duration: meta.duration,
-          width: meta.width,
-          height: meta.height,
           size: file.size,
+          uploadProgress: 25,
+          isProcessing: true,
+          keyframes: [],
         };
+
+        // Asynchronously process metadata and keyframes in background with progress updates
+        setTimeout(async () => {
+          try {
+            // Step 1: Metadata extraction
+            setAttachments(prev => prev.map(a => a.id === id ? { ...a, uploadProgress: 45 } : a));
+            const meta = await extractVideoClientMetadata(file);
+            setAttachments(prev => prev.map(a => a.id === id ? {
+              ...a,
+              duration: meta.duration,
+              width: meta.width,
+              height: meta.height,
+              thumbnailUrl: meta.thumbnailUrl || objectUrl,
+              uploadProgress: 70,
+            } : a));
+
+            // Step 2: Keyframe optical extraction across duration
+            const keyframes = await extractVideoKeyframes(file, 5);
+            setAttachments(prev => prev.map(a => a.id === id ? {
+              ...a,
+              keyframes,
+              uploadProgress: 95,
+            } : a));
+
+            // Step 3: Complete ready state
+            setTimeout(() => {
+              setAttachments(prev => prev.map(a => a.id === id ? {
+                ...a,
+                uploadProgress: 100,
+                isProcessing: false,
+              } : a));
+            }, 200);
+          } catch (err) {
+            console.warn('[Smart video processing error]:', err);
+            setAttachments(prev => prev.map(a => a.id === id ? {
+              ...a,
+              uploadProgress: 100,
+              isProcessing: false,
+            } : a));
+          }
+        }, 30);
+
+        return initialAttachment;
       } else if (mediaType === 'audio') {
         const objectUrl = URL.createObjectURL(file);
         const meta = await extractAudioClientMetadata(file);
@@ -562,6 +619,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       const inlineExtracted = extractAllCleanUrls(value, 5);
       const allUrlsToSubmit = Array.from(new Set([...attachedUrls, ...inlineExtracted.urls])).slice(0, 5);
 
+      if (isAnyAttachmentProcessing) return;
       if (value.trim() === "" && !hasAttachments && allUrlsToSubmit.length === 0) return;
 
       let effectivePrompt = value.trim();
@@ -581,6 +639,13 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         ? 'deepseek-v4-flash-vision-exp'
         : (allUrlsToSubmit.length > 0 && internalModel === 'deepseek-v4-flash' ? 'deepseek-v4-flash-cyber' : activeBackendModel);
 
+      const preloadedKeyframes: Record<string, string[]> = {};
+      attachments.forEach((a) => {
+        if (a.mediaType === 'video' && a.keyframes && a.keyframes.length > 0) {
+          preloadedKeyframes[a.file.name] = a.keyframes;
+        }
+      });
+
       onSubmit?.(formattedContent, {
         model: targetModel,
         effort: isX1Active ? "X1 MAX" : "Standard",
@@ -588,6 +653,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         targetUrl: allUrlsToSubmit[0] || undefined,
         targetUrls: allUrlsToSubmit.length > 0 ? allUrlsToSubmit : undefined,
         deepSearch: isDeepSearchEffective,
+        preloadedKeyframes,
       });
 
       handleValueChange("");
@@ -1182,11 +1248,42 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                           <Video className="w-5 h-5 text-violet-400" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <div className="size-6 rounded-full bg-black/70 border border-white/30 flex items-center justify-center">
-                          <Video className="w-3 h-3 text-violet-300" />
+                      {/* Circular Progress Bar during video loading & keyframe extraction */}
+                      {att.isProcessing ? (
+                        <div className="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex flex-col items-center justify-center z-10 select-none">
+                          <div className="relative size-9 flex items-center justify-center">
+                            <svg className="size-full -rotate-90" viewBox="0 0 36 36">
+                              <circle
+                                cx="18"
+                                cy="18"
+                                r="14"
+                                className="stroke-white/20 fill-none"
+                                strokeWidth="3"
+                              />
+                              <circle
+                                cx="18"
+                                cy="18"
+                                r="14"
+                                className="stroke-emerald-400 fill-none transition-all duration-300 ease-out"
+                                strokeWidth="3"
+                                strokeDasharray="87.96"
+                                strokeDashoffset={87.96 - (87.96 * (att.uploadProgress || 0)) / 100}
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            <span className="absolute font-mono text-[9px] font-bold text-emerald-300">
+                              {att.uploadProgress || 0}%
+                            </span>
+                          </div>
+                          <span className="text-[7px] text-zinc-300 font-sans mt-0.5 animate-pulse font-medium">جاري الرفع...</span>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                          <div className="size-6 rounded-full bg-black/70 border border-emerald-400/50 shadow-[0_0_8px_rgba(16,185,129,0.4)] flex items-center justify-center">
+                            <Video className="w-3 h-3 text-emerald-400" />
+                          </div>
+                        </div>
+                      )}
                       {att.duration ? (
                         <span className="absolute bottom-1 left-1 text-[8px] font-mono px-1 rounded bg-black/80 text-zinc-200">
                           {formatMediaDuration(att.duration)}
@@ -1478,11 +1575,13 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               <button
                 type="button"
                 onClick={onActionButtonClick}
-                disabled={!hasValue && !isStreaming}
+                disabled={(!hasValue && !isStreaming) || isAnyAttachmentProcessing}
                 className={cn(
                   "flex items-center justify-center size-9 sm:size-10 rounded-2xl transition-all duration-200 cursor-pointer select-none active:scale-90 shadow-lg",
                   isStreaming
                     ? "bg-white hover:bg-zinc-200 text-zinc-950 shadow-white/20"
+                    : isAnyAttachmentProcessing
+                    ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 cursor-wait shadow-none"
                     : hasValue
                     ? activeFusion
                       ? `${activeFusion.sendGradient} font-bold hover:scale-105 shadow-xl`
@@ -1495,10 +1594,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       : "bg-white hover:bg-zinc-100 text-zinc-950 font-bold hover:scale-105 shadow-white/20"
                     : "bg-white/[0.04] text-zinc-600 cursor-not-allowed border border-white/[0.04]"
                 )}
-                title={isStreaming ? "إيقاف التوليد" : "إرسال"}
+                title={isStreaming ? "إيقاف التوليد" : isAnyAttachmentProcessing ? "جاري تجهيز ورفع الفيديو بالكامل..." : "إرسال"}
               >
                 {isStreaming ? (
                   <Square className="w-4 h-4 fill-current text-zinc-950" />
+                ) : isAnyAttachmentProcessing ? (
+                  <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
                 ) : (
                   <ArrowUp className={cn("w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]", (isCyberMode || isDeepSearchEffective || hasAttachments || Boolean(activeFusion)) ? "text-black" : hasValue ? "text-zinc-950" : "text-zinc-600")} />
                 )}

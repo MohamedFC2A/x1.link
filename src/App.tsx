@@ -325,6 +325,7 @@ export const App: React.FC = () => {
     // Cloud-First & Guest Adaptive Session
 
     const attachedImagesDataUrls: string[] = [];
+    const attachedVideoKeyframes: string[] = [];
     const attachedMediaList: MediaAttachmentItem[] = [];
 
     if (meta?.attachments && meta.attachments.length > 0) {
@@ -344,14 +345,19 @@ export const App: React.FC = () => {
           }
         } else if (mediaType === 'video') {
           const metaInfo = await extractVideoClientMetadata(file);
-          // Extract visual keyframes across video for AI optical comprehension
-          try {
-            const keyframes = await extractVideoKeyframes(file, 5);
-            if (keyframes.length > 0) {
-              attachedImagesDataUrls.push(...keyframes);
+          // Check for preloaded keyframes first for 0ms instant send
+          const preloaded = (meta as any)?.preloadedKeyframes?.[file.name];
+          if (preloaded && Array.isArray(preloaded) && preloaded.length > 0) {
+            attachedVideoKeyframes.push(...preloaded);
+          } else {
+            try {
+              const keyframes = await extractVideoKeyframes(file, 5);
+              if (keyframes.length > 0) {
+                attachedVideoKeyframes.push(...keyframes);
+              }
+            } catch (e) {
+              console.warn('[Keyframes extraction caught]:', e);
             }
-          } catch (e) {
-            console.warn('[Keyframes extraction caught]:', e);
           }
 
           attachedMediaList.push({
@@ -480,7 +486,7 @@ export const App: React.FC = () => {
     navigateTo('chat');
 
     let chosenModel: ModelType;
-    if (attachedMediaList.length > 0) {
+    if (attachedMediaList.length > 0 || attachedVideoKeyframes.length > 0) {
       chosenModel = 'meta/muse-spark-1.2-contributor';
     } else if (attachedImagesDataUrls.length > 0) {
       chosenModel = 'deepseek-v4-flash-vision-exp';
@@ -516,7 +522,8 @@ export const App: React.FC = () => {
       role: 'user',
       content: userCleanDisplayContent,
       image: uniqueImagesDataUrls[0],
-      images: uniqueImagesDataUrls,
+      images: uniqueImagesDataUrls.length > 0 ? uniqueImagesDataUrls : undefined,
+      videoKeyframes: attachedVideoKeyframes.length > 0 ? attachedVideoKeyframes : undefined,
       mediaAttachments: attachedMediaList,
       timestamp: formatEnglishTimestamp(),
       isX1: isX1Active,

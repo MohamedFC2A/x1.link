@@ -1014,9 +1014,13 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     const messageUrls = urlExtraction.urls;
     const cleanPromptText = urlExtraction.remainingText;
 
-    const allImages = (message.images && message.images.length > 0)
+    const hasVideoAttachment = message.mediaAttachments?.some(m => m.type === 'video');
+    const rawImages = (message.images && message.images.length > 0)
       ? message.images
       : (message.image ? [message.image] : []);
+    const allImages = hasVideoAttachment
+      ? rawImages.filter(img => !message.videoKeyframes?.includes(img))
+      : rawImages;
 
     return (
       <motion.div
