@@ -191,20 +191,29 @@ export const App: React.FC = () => {
     } catch (e) {}
   };
 
-  const loadCloudChats = async (userId: string | null, targetExplicitChatId?: string | null) => {
-    const chats = await fetchUserChats(userId);
-    setCloudChats(chats);
-    if (chats.length > 0) {
-      memoryEngine.ingestCrossChatSessions(chats);
-      // Preload detailed questions & messages for previous chats in the background
-      fetchCrossChatHistoryForMemory(userId, 20).then(history => {
-        history.forEach(item => {
-          if (item.messages && item.messages.length > 0) {
-            memoryEngine.updateChatMemoryNode(item.chat.id, item.chat.title, item.messages, item.chat.updated_at);
-          }
-        });
-      }).catch(() => {});
+  const refreshSidebarChats = async (userId: string | null) => {
+    try {
+      const chats = await fetchUserChats(userId);
+      setCloudChats(chats);
+      if (chats.length > 0) {
+        memoryEngine.ingestCrossChatSessions(chats);
+        fetchCrossChatHistoryForMemory(userId, 20).then(history => {
+          history.forEach(item => {
+            if (item.messages && item.messages.length > 0) {
+              memoryEngine.updateChatMemoryNode(item.chat.id, item.chat.title, item.messages, item.chat.updated_at);
+            }
+          });
+        }).catch(() => {});
+      }
+      return chats;
+    } catch (err) {
+      console.warn('[Refresh Sidebar Error]:', err);
+      return [];
     }
+  };
+
+  const restoreActiveChatSession = async (userId: string | null, targetExplicitChatId?: string | null) => {
+    const chats = await refreshSidebarChats(userId);
 
     // Determine what chat should be active
     const activeTarget = targetExplicitChatId !== undefined 
@@ -245,7 +254,7 @@ export const App: React.FC = () => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       memoryEngine.setUserIdAndLoad(currentUser?.id ?? null);
-      loadCloudChats(currentUser?.id ?? null);
+      restoreActiveChatSession(currentUser?.id ?? null);
       fetchUserSubscription(currentUser?.id ?? null).then(plan => setCurrentPlanId(plan));
       fetchRemoteUsage(currentUser?.id ?? null).then(usage => {
         if (usage) setTotalTokens(usage.totalTokens);
@@ -256,7 +265,7 @@ export const App: React.FC = () => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       memoryEngine.setUserIdAndLoad(currentUser?.id ?? null);
-      loadCloudChats(currentUser?.id ?? null);
+      refreshSidebarChats(currentUser?.id ?? null);
       fetchUserSubscription(currentUser?.id ?? null).then(plan => setCurrentPlanId(plan));
       fetchRemoteUsage(currentUser?.id ?? null).then(usage => {
         if (usage) setTotalTokens(usage.totalTokens);
@@ -509,7 +518,7 @@ export const App: React.FC = () => {
       if (targetChatId) {
         setCurrentChatId(targetChatId);
         updateActiveChatUrlAndStorage(targetChatId);
-        loadCloudChats(userId, targetChatId);
+        refreshSidebarChats(userId);
       }
     }
     if (targetChatId) {
@@ -557,8 +566,21 @@ export const App: React.FC = () => {
         fullAssistantResponse = data.content;
         fullAssistantReasoning = data.reasoning;
         setMessages(prev => {
+          const existingIdx = prev.findIndex(m => m.id === assistantPlaceholderId);
+          if (existingIdx !== -1) {
+            const updated = [...prev];
+            updated[existingIdx] = {
+              ...updated[existingIdx],
+              content: data.content,
+              reasoning: data.reasoning,
+              isThinking: data.isThinking,
+              isMemoryDetectTriggered,
+              memoryDetectSummary,
+            };
+            return updated;
+          }
           const last = prev[prev.length - 1];
-          if (last && last.id === assistantPlaceholderId) {
+          if (last && last.role === 'assistant') {
             return [
               ...prev.slice(0, -1),
               {
@@ -571,15 +593,41 @@ export const App: React.FC = () => {
               }
             ];
           }
-          return prev;
+          return [
+            ...prev,
+            {
+              id: assistantPlaceholderId,
+              role: 'assistant',
+              content: data.content,
+              reasoning: data.reasoning,
+              isThinking: data.isThinking,
+              timestamp: formatEnglishTimestamp(),
+              isX1: isX1Active,
+              model: chosenModel,
+              isMemoryDetectTriggered,
+              memoryDetectSummary,
+            }
+          ];
         });
       },
       onError: (errMsg: string) => {
         setIsStreaming(false);
         abortControllerRef.current = null;
         setMessages(prev => {
+          const existingIdx = prev.findIndex(m => m.id === assistantPlaceholderId);
+          if (existingIdx !== -1) {
+            const updated = [...prev];
+            updated[existingIdx] = {
+              ...updated[existingIdx],
+              isThinking: false,
+              content: updated[existingIdx].content
+                ? updated[existingIdx].content + `\n\n[خطأ]: ${errMsg}`
+                : `خطأ في الاتصال: ${errMsg}`
+            };
+            return updated;
+          }
           const last = prev[prev.length - 1];
-          if (last && last.id === assistantPlaceholderId) {
+          if (last && last.role === 'assistant') {
             return [
               ...prev.slice(0, -1),
               {
@@ -604,21 +652,29 @@ export const App: React.FC = () => {
               ? fullAssistantReasoning.trim()
               : '');
 
+        const finalAssistantMsg: ChatMessageItem = {
+          id: assistantPlaceholderId,
+          role: 'assistant',
+          content: fullAssistantResponse?.trim() || effectiveFinalContent,
+          reasoning: fullAssistantReasoning,
+          isX1: isX1Active,
+          timestamp: formatEnglishTimestamp(),
+          isMemoryDetectTriggered,
+          memoryDetectSummary,
+        };
+
         setMessages(prev => {
-          const last = prev[prev.length - 1];
-          if (last && last.id === assistantPlaceholderId) {
-            return [
-              ...prev.slice(0, -1),
-              {
-                ...last,
-                content: last.content?.trim() ? last.content : (effectiveFinalContent || last.content || ''),
-                isThinking: false,
-                isMemoryDetectTriggered,
-                memoryDetectSummary,
-              }
-            ];
+          const existingIdx = prev.findIndex(m => m.id === assistantPlaceholderId);
+          if (existingIdx !== -1) {
+            const updated = [...prev];
+            updated[existingIdx] = finalAssistantMsg;
+            return updated;
           }
-          return prev;
+          const last = prev[prev.length - 1];
+          if (last && last.role === 'assistant') {
+            return [...prev.slice(0, -1), finalAssistantMsg];
+          }
+          return [...prev, finalAssistantMsg];
         });
 
         // Record real usage & token metrics to Supabase
@@ -637,19 +693,10 @@ export const App: React.FC = () => {
         setTotalTokens(updatedUsage.totalTokens);
 
         if (targetChatId) {
-          const finalAssistantMsg: ChatMessageItem = {
-            id: assistantPlaceholderId,
-            role: 'assistant',
-            content: fullAssistantResponse?.trim() || effectiveFinalContent,
-            reasoning: fullAssistantReasoning,
-            isX1: isX1Active,
-            timestamp: formatEnglishTimestamp(),
-            isMemoryDetectTriggered,
-            memoryDetectSummary,
-          };
           saveCloudMessage(targetChatId, userId, finalAssistantMsg);
           const currentChatTitle = cloudChats.find(c => c.id === targetChatId)?.title || text.slice(0, 40);
           memoryEngine.updateChatMemoryNode(targetChatId, currentChatTitle, [...newMessagesList, finalAssistantMsg]);
+          refreshSidebarChats(userId);
         }
       }
     });
@@ -684,7 +731,7 @@ export const App: React.FC = () => {
     purgeAllLocalChatArtifacts();
     if (currentChatId) {
       await deleteCloudChat(currentChatId);
-      loadCloudChats(user?.id ?? null, null);
+      refreshSidebarChats(user?.id ?? null);
     }
     setMessages([]);
     setCurrentChatId(null);
@@ -703,7 +750,7 @@ export const App: React.FC = () => {
       if (currentChatId) {
         try {
           await deleteCloudChat(currentChatId);
-          loadCloudChats(user?.id ?? null, null);
+          refreshSidebarChats(user?.id ?? null);
         } catch (err) {
           console.warn('[AutoDelete Cloud Error]:', err);
         }
@@ -773,7 +820,7 @@ export const App: React.FC = () => {
     if (currentChatId === chatId) {
       handleNewChat();
     }
-    loadCloudChats(user?.id ?? null);
+    refreshSidebarChats(user?.id ?? null);
   };
 
   const handleGoogleSignIn = async () => {
@@ -787,7 +834,7 @@ export const App: React.FC = () => {
   const handleSignOut = async () => {
     await signOutUser();
     setUser(null);
-    loadCloudChats(null);
+    refreshSidebarChats(null);
   };
 
   return (
