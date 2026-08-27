@@ -1073,14 +1073,16 @@ async function extractVisualContext(
       return cachedEntry.result;
     }
 
-    const visionRes = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    const visionRes = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://matany.one',
+        'X-Title': 'Matany AI',
       },
       body: JSON.stringify({
-        model: 'deepseek-v4-flash-vision-exp',
+        model: 'google/gemini-2.5-flash',
         messages: formattedVisionItems,
         temperature: 0.2,
         max_tokens: 3000,
@@ -1092,13 +1094,13 @@ async function extractVisualContext(
       const data = await visionRes.json();
       const result = data.choices?.[0]?.message?.content || '';
       if (result && result.trim()) {
-        console.log(`[Fathom Cam Vision] (deepseek-v4-flash-vision-exp) Extracted ${result.length} chars of visual perception.`);
+        console.log(`[Fathom Cam Vision] Extracted ${result.length} chars of visual perception.`);
         visionContextCache.set(cacheKey, { result: result.trim(), expiresAt: Date.now() + VISION_CACHE_TTL_MS });
         return result.trim();
       }
     } else {
       const errText = await visionRes.text().catch(() => '');
-      console.warn('[Fathom Cam Vision] deepseek-v4-flash-vision-exp HTTP Error:', visionRes.status, errText);
+      console.warn('[Fathom Cam Vision] HTTP Error:', visionRes.status, errText);
     }
 
     return '';
@@ -1763,9 +1765,9 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     }
 
     // Candidate 2: DeepSeek Direct (Primary Deep Reasoning for Fathom 1 via https://api.deepseek.com)
-    if (!isX1Mode && !isMediaSpark && DEEPSEEK_API_KEY) {
+    if (!isX1Mode && !isMediaSpark && !isVision && !hasMultimodal && DEEPSEEK_API_KEY) {
       gateCandidates.push({
-        name: isVision ? 'DeepSeek Direct Vision (deepseek-v4-flash-vision-exp)' : 'DeepSeek Direct Reasoner (deepseek-reasoner)',
+        name: 'DeepSeek Direct Reasoner (deepseek-reasoner)',
         url: `${DEEPSEEK_BASE_URL}/chat/completions`,
         headers: {
           'Content-Type': 'application/json',
@@ -1775,7 +1777,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           messages: formattedMessages,
           stream: true,
           max_tokens: 4096,
-          model: isVision ? 'deepseek-v4-flash-vision-exp' : 'deepseek-reasoner',
+          model: 'deepseek-reasoner',
         }
       });
 
@@ -1794,25 +1796,114 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       });
     }
 
-    // Candidate 3: OpenRouter Primary (Magnum v4 72B for +21, or DeepSeek R1)
+    // Candidate 3: OpenRouter Multi-tier Resilience
     if (OPENROUTER_API_KEY) {
-      gateCandidates.push({
-        name: isX1Mode ? 'OpenRouter Magnum v4 72B' : 'OpenRouter DeepSeek R1',
-        url: `${OPENROUTER_BASE_URL}/chat/completions`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://matany.one',
-          'X-Title': 'Matany AI',
-        },
-        payload: {
-          ...basePayload,
-          model: isX1Mode ? 'anthracite-org/magnum-v4-72b' : 'deepseek/deepseek-r1',
-        }
-      });
+      if (isX1Mode) {
+        gateCandidates.push({
+          name: 'OpenRouter Magnum v4 72B',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: {
+            ...basePayload,
+            model: 'anthracite-org/magnum-v4-72b',
+          }
+        });
+      } else if (isMediaSpark) {
+        gateCandidates.push({
+          name: 'OpenRouter Meta Muse Spark 1.2 Contributor',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: {
+            ...basePayload,
+            model: 'meta/muse-spark-1.2-contributor',
+          }
+        });
 
-      // Candidate 4: OpenRouter Fallback Model (DeepSeek Chat)
-      if (!isX1Mode) {
+        gateCandidates.push({
+          name: 'OpenRouter Meta Muse Spark 1.2 Standard',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: {
+            ...basePayload,
+            model: 'meta/muse-spark-1.2',
+          }
+        });
+
+        gateCandidates.push({
+          name: 'OpenRouter Gemini 2.5 Flash',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: {
+            ...basePayload,
+            model: 'google/gemini-2.5-flash',
+          }
+        });
+      } else if (isVision || hasMultimodal) {
+        gateCandidates.push({
+          name: 'OpenRouter Gemini 2.5 Flash Vision',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: {
+            ...basePayload,
+            model: 'google/gemini-2.5-flash',
+          }
+        });
+
+        gateCandidates.push({
+          name: 'OpenRouter Meta Muse Spark 1.2 Vision',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: {
+            ...basePayload,
+            model: 'meta/muse-spark-1.2',
+          }
+        });
+      } else {
+        gateCandidates.push({
+          name: 'OpenRouter DeepSeek R1',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: {
+            ...basePayload,
+            model: 'deepseek/deepseek-r1',
+          }
+        });
+
         gateCandidates.push({
           name: 'OpenRouter DeepSeek Chat Backup',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
@@ -1825,6 +1916,21 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: {
             ...basePayload,
             model: 'deepseek/deepseek-chat',
+          }
+        });
+
+        gateCandidates.push({
+          name: 'OpenRouter Gemini 2.5 Flash Backup',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: {
+            ...basePayload,
+            model: 'google/gemini-2.5-flash',
           }
         });
       }

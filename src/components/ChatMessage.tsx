@@ -971,9 +971,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.15 }}
-        className="flex justify-start my-2 group"
+        className="flex justify-start my-2 group w-full"
       >
-        <div className="max-w-[94%] sm:max-w-[82%] rounded-2xl rounded-tr-sm glass-card text-white p-3 sm:p-4 text-right">
+        <div className="w-full max-w-[94%] sm:max-w-[82%] rounded-2xl rounded-tr-sm glass-card text-white p-3 sm:p-4 text-right overflow-hidden break-words">
           
           {messageUrls.length > 0 && (
             <div className="mb-3 flex flex-col gap-2.5">
@@ -1036,32 +1036,32 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
 
           {/* Attached Videos, Audios, and Documents */}
           {message.mediaAttachments && message.mediaAttachments.length > 0 && (
-            <div className="mb-2.5 flex flex-col gap-2.5">
+            <div className="mb-2.5 flex flex-col gap-2.5 w-full">
               {message.mediaAttachments.map((media, idx) => (
-                <div key={media.id || idx} className="rounded-2xl border border-white/[0.15] bg-white/[0.03] backdrop-blur-2xl p-3 shadow-lg">
+                <div key={media.id || idx} className="rounded-2xl border border-white/[0.15] bg-white/[0.03] backdrop-blur-2xl p-3 shadow-lg overflow-hidden w-full">
                   {media.type === 'video' ? (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-violet-300 flex items-center gap-1.5">
-                          <Video className="w-3.5 h-3.5" />
-                          <span>فيديو مرفق: {media.name}</span>
+                    <div className="flex flex-col gap-2 w-full min-w-0">
+                      <div className="flex items-center justify-between gap-2 min-w-0 w-full">
+                        <span className="text-xs font-semibold text-violet-300 flex items-center gap-1.5 min-w-0 flex-1">
+                          <Video className="w-3.5 h-3.5 shrink-0 text-violet-400" />
+                          <span className="truncate dir-ltr text-right" title={media.name}>فيديو: {media.name}</span>
                         </span>
-                        <span className="text-[10px] font-mono text-zinc-400">
+                        <span className="text-[10px] font-mono text-zinc-400 shrink-0 whitespace-nowrap">
                           {formatFileSize(media.size)} {media.duration ? `• ${formatMediaDuration(media.duration)}` : ''}
                         </span>
                       </div>
                       {media.dataUrl && (
-                        <video src={media.dataUrl} controls className="max-h-56 w-full rounded-xl object-contain bg-black/60" />
+                        <video src={media.dataUrl} controls className="max-h-56 w-full rounded-xl object-contain bg-black/60 shadow-md" />
                       )}
                     </div>
                   ) : media.type === 'audio' ? (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-violet-300 flex items-center gap-1.5">
-                          <Music className="w-3.5 h-3.5" />
-                          <span>تسجيل / مقطع صوتي: {media.name}</span>
+                    <div className="flex flex-col gap-2 w-full min-w-0">
+                      <div className="flex items-center justify-between gap-2 min-w-0 w-full">
+                        <span className="text-xs font-semibold text-violet-300 flex items-center gap-1.5 min-w-0 flex-1">
+                          <Music className="w-3.5 h-3.5 shrink-0 text-violet-400" />
+                          <span className="truncate dir-ltr text-right" title={media.name}>مقطع صوتي: {media.name}</span>
                         </span>
-                        <span className="text-[10px] font-mono text-zinc-400">
+                        <span className="text-[10px] font-mono text-zinc-400 shrink-0 whitespace-nowrap">
                           {formatFileSize(media.size)} {media.duration ? `• ${formatMediaDuration(media.duration)}` : ''}
                         </span>
                       </div>
@@ -1070,13 +1070,13 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                       )}
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="size-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300">
+                    <div className="flex items-center justify-between gap-2 min-w-0 w-full">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="size-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 shrink-0">
                           <FileText className="w-4 h-4" />
                         </div>
-                        <div>
-                          <div className="text-xs font-bold text-white">{media.name}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-bold text-white truncate dir-ltr text-right" title={media.name}>{media.name}</div>
                           <div className="text-[10px] font-mono text-zinc-400">{formatFileSize(media.size)}</div>
                         </div>
                       </div>
@@ -1155,10 +1155,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
-      className="flex flex-col items-start my-2 group"
+      className="flex flex-col items-start my-2 group w-full"
     >
-      <div className="flex items-center gap-2 mb-1.5 px-1 text-xs text-zinc-300">
-        <div className="flex items-center gap-1.5 font-sans font-medium">
+      <div className="flex items-center justify-between w-full mb-1.5 px-1 text-xs text-zinc-300">
+        <div className="flex items-center gap-1.5 font-sans font-medium shrink-0">
           {isMedia ? (
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
               <Sparkles className="w-3.5 h-3.5 text-violet-400" />
@@ -1186,10 +1186,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             </div>
           )}
         </div>
-        <span className="text-[11px] font-mono text-zinc-400 font-medium tracking-wide" dir="ltr">{normalizeDisplayTimestamp(message.timestamp)}</span>
+        <span className="text-[11px] font-mono text-zinc-400 font-medium tracking-wide shrink-0" dir="ltr">{normalizeDisplayTimestamp(message.timestamp)}</span>
       </div>
 
-      <div className="w-full rounded-2xl p-3.5 sm:p-5 text-right border transition-all glass-panel text-zinc-100">
+      <div className="w-full rounded-2xl p-3.5 sm:p-5 text-right border transition-all glass-panel text-zinc-100 overflow-hidden break-words">
         {(hasReasoning || isThinking) && (
           <ChatReasoning
             reasoningText={message.reasoning}
@@ -1203,15 +1203,15 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         )}
 
         {isStreaming && !message.content ? (
-          <div className="flex items-center gap-2 py-1.5 select-none" dir="rtl">
-            <div className="inline-flex h-8 items-center gap-2.5 rounded-full pl-3.5 pr-2.5 time-detect-glass">
+          <div className="flex items-center gap-2 py-1.5 select-none w-full max-w-full" dir="rtl">
+            <div className="inline-flex min-h-8 py-1.5 px-3 max-w-full items-center gap-2.5 rounded-2xl time-detect-glass flex-wrap">
               <ThinkingOrb
                 state={hasMemoryDetect ? "weaving" : isTimeIntent ? "solving" : isMedia ? "weaving" : isCyber ? "searching" : isVision ? (loadingPhase === 'detecting' ? "shaping" : "working") : message.isX1 ? "solving" : "composing"}
                 size={20}
                 theme="dark"
                 speed={1.6}
               />
-              <span className="whitespace-nowrap text-xs font-sans font-medium text-zinc-300 flex items-center gap-1.5">
+              <span className="text-xs font-sans font-medium text-zinc-300 flex items-center gap-1.5 flex-wrap">
                 {hasMemoryDetect ? (
                   <>
                     <span>جارِ استدعاء الذاكرة السحابية واسترجاع سياق المحادثات عبر</span>

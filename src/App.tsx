@@ -406,10 +406,22 @@ export const App: React.FC = () => {
       setActiveModel(chosenModel);
     }
 
+    const userCleanDisplayContent = text.trim() || (
+      uniqueImagesDataUrls.length > 0
+        ? 'تحليل وفحص الصور المرفقة'
+        : (attachedMediaList.length > 0
+            ? (attachedMediaList[0].type === 'audio'
+                ? 'استماع وتحليل المقطع الصوتي المرفق'
+                : attachedMediaList[0].type === 'video'
+                  ? 'تحليل وفحص الفيديو المرفق'
+                  : 'فحص وتحليل المستند المرفق')
+            : effectivePrompt)
+    );
+
     const userMessage: ChatMessageItem = {
       id: 'user-' + Date.now(),
       role: 'user',
-      content: effectivePrompt,
+      content: userCleanDisplayContent,
       image: uniqueImagesDataUrls[0],
       images: uniqueImagesDataUrls,
       mediaAttachments: attachedMediaList,
@@ -436,7 +448,7 @@ export const App: React.FC = () => {
     const userId = user ? user.id : null;
 
     if (!targetChatId) {
-      targetChatId = await createCloudChat(userId, text, chosenModel, isX1Active);
+      targetChatId = await createCloudChat(userId, userCleanDisplayContent, chosenModel, isX1Active);
       if (targetChatId) {
         setCurrentChatId(targetChatId);
         loadCloudChats(userId);
@@ -446,12 +458,21 @@ export const App: React.FC = () => {
       saveCloudMessage(targetChatId, userId, userMessage);
     }
 
+    // For LLM reasoning, inject effectivePrompt with attachments context
+    const messagesForEngine = [
+      ...messages,
+      {
+        ...userMessage,
+        content: effectivePrompt || userCleanDisplayContent
+      }
+    ];
+
     const {
       packedMessages,
       memoryContextPrompt,
       isMemoryDetectTriggered,
       memoryDetectSummary
-    } = memoryEngine.processMessages(newMessagesList, targetChatId);
+    } = memoryEngine.processMessages(messagesForEngine, targetChatId);
 
     let fullAssistantResponse = '';
     let fullAssistantReasoning = '';

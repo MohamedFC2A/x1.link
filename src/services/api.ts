@@ -46,7 +46,8 @@ export async function streamChatCompletion({
     let effectiveTargetUrl = targetUrl;
 
     // Format messages for API (convert multimodal items with images if present)
-    const formattedMessages = messages.map(msg => {
+    const formattedMessages = messages.map((msg, idx) => {
+      const isLatestTurn = idx >= messages.length - 2;
       let cleanContent = msg.content || '';
       
       // Auto-substitute any cached unshortened URLs directly in message content
@@ -64,14 +65,23 @@ export async function streamChatCompletion({
         : (msg.image ? [msg.image] : []);
 
       if (allImages.length > 0) {
+        // If it is an older turn, avoid sending massive duplicate base64 payloads to preserve Vercel limit
+        if (!isLatestTurn) {
+          return {
+            role: msg.role,
+            content: `${cleanContent}\n[ملاحظة: تم إرفاق وتحليل (${allImages.length}) صور في هذا الدور السابق]`,
+            reasoning: msg.reasoning
+          };
+        }
+
         const contentParts: any[] = [
           { type: 'text', text: cleanContent || 'حلل هذه الصور واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.' }
         ];
 
-        allImages.forEach((imgUrl, idx) => {
+        allImages.forEach((imgUrl, i) => {
           contentParts.push({
             type: 'text',
-            text: `\n--- [صورة رقم ${idx + 1} المرفوعة من المستخدم] ---`
+            text: `\n--- [صورة رقم ${i + 1} المرفوعة من المستخدم] ---`
           });
           contentParts.push({
             type: 'image_url',

@@ -823,16 +823,16 @@ async function extractVisualContext(imageMessages: any[]): Promise<string> {
       }
     }
 
-    if (formattedVisionItems.length === 0) return '';
-
-    const visionRes = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    const visionRes = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://matany.one',
+        'X-Title': 'Matany AI',
       },
       body: JSON.stringify({
-        model: 'deepseek-v4-flash-vision-exp',
+        model: 'google/gemini-2.5-flash',
         messages: formattedVisionItems,
         temperature: 0.2,
         max_tokens: 3000,
@@ -1446,16 +1446,17 @@ export default async function handler(req: Request): Promise<Response> {
   // Candidate Gateways with Resilient Zero-500 Failover Loop
   const candidateGateways: Array<{ name: string; url: string; headers: Record<string, string>; payload: any }> = [];
 
-  if (DEEPSEEK_API_KEY && !isX1Mode && !isMediaSpark) {
+  // DeepSeek Direct (Only for text chat & reasoner, not vision or media)
+  if (DEEPSEEK_API_KEY && !isX1Mode && !isMediaSpark && !isVision && !hasMultimodal) {
     candidateGateways.push({
-      name: isVision ? 'DeepSeek Direct Vision' : 'DeepSeek Direct Reasoner',
+      name: 'DeepSeek Direct Reasoner',
       url: `${DEEPSEEK_BASE_URL}/chat/completions`,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
       },
       payload: {
-        model: isVision ? 'deepseek-v4-flash-vision-exp' : 'deepseek-reasoner',
+        model: 'deepseek-reasoner',
         messages: formattedMessages,
         stream: true,
         max_tokens: 4096,
@@ -1463,7 +1464,7 @@ export default async function handler(req: Request): Promise<Response> {
     });
 
     candidateGateways.push({
-      name: 'DeepSeek Direct Chat Alias',
+      name: 'DeepSeek Direct Chat',
       url: `${DEEPSEEK_BASE_URL}/chat/completions`,
       headers: {
         'Content-Type': 'application/json',
@@ -1479,6 +1480,7 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
+  // OpenRouter Multi-tier Resilience
   if (OPENROUTER_API_KEY) {
     if (isX1Mode) {
       candidateGateways.push({
@@ -1498,7 +1500,59 @@ export default async function handler(req: Request): Promise<Response> {
           max_tokens: 4096,
         }
       });
+      candidateGateways.push({
+        name: 'OpenRouter DeepSeek R1 Backup',
+        url: `${OPENROUTER_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
+        },
+        payload: {
+          model: 'deepseek/deepseek-r1',
+          messages: formattedMessages,
+          stream: true,
+          max_tokens: 4096,
+        }
+      });
     } else if (isMediaSpark) {
+      candidateGateways.push({
+        name: 'OpenRouter Meta Muse Spark 1.2 Contributor',
+        url: `${OPENROUTER_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
+        },
+        payload: {
+          model: 'meta/muse-spark-1.2-contributor',
+          messages: formattedMessages,
+          temperature: 0.7,
+          stream: true,
+          max_tokens: 4096,
+        }
+      });
+
+      candidateGateways.push({
+        name: 'OpenRouter Meta Muse Spark 1.2 Standard',
+        url: `${OPENROUTER_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
+        },
+        payload: {
+          model: 'meta/muse-spark-1.2',
+          messages: formattedMessages,
+          temperature: 0.7,
+          stream: true,
+          max_tokens: 4096,
+        }
+      });
+
       candidateGateways.push({
         name: 'OpenRouter Gemini 2.5 Flash',
         url: `${OPENROUTER_BASE_URL}/chat/completions`,
@@ -1512,6 +1566,60 @@ export default async function handler(req: Request): Promise<Response> {
           model: 'google/gemini-2.5-flash',
           messages: formattedMessages,
           temperature: 0.7,
+          stream: true,
+          max_tokens: 4096,
+        }
+      });
+
+      candidateGateways.push({
+        name: 'OpenRouter DeepSeek Chat',
+        url: `${OPENROUTER_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
+        },
+        payload: {
+          model: 'deepseek/deepseek-chat',
+          messages: formattedMessages,
+          temperature: 0.7,
+          stream: true,
+          max_tokens: 4096,
+        }
+      });
+    } else if (isVision || hasMultimodal) {
+      candidateGateways.push({
+        name: 'OpenRouter Gemini 2.5 Flash Vision',
+        url: `${OPENROUTER_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
+        },
+        payload: {
+          model: 'google/gemini-2.5-flash',
+          messages: formattedMessages,
+          temperature: 0.2,
+          stream: true,
+          max_tokens: 4096,
+        }
+      });
+
+      candidateGateways.push({
+        name: 'OpenRouter Meta Muse Spark 1.2 Vision',
+        url: `${OPENROUTER_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
+        },
+        payload: {
+          model: 'meta/muse-spark-1.2',
+          messages: formattedMessages,
+          temperature: 0.2,
           stream: true,
           max_tokens: 4096,
         }
