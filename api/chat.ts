@@ -1139,9 +1139,7 @@ async function processSingleLinkIntelligence(
   if (isYt) {
     try {
       const ytVideoId = extractYouTubeVideoId(url);
-      const [ytResult] = await Promise.all([
-        fetchYouTubeTranscript(url)
-      ]);
+      const ytResult = await fetchYouTubeTranscript(url);
       const videoDuration = ('durationSeconds' in ytResult && ytResult.durationSeconds) ? ytResult.durationSeconds : 300;
       const keyframes = ytVideoId ? extractYouTubeKeyframes(ytVideoId, videoDuration) : [];
 
@@ -1160,11 +1158,28 @@ async function processSingleLinkIntelligence(
           )
         : null;
 
+      // If spoken words are short or prompt asks for claim verification, attach live search grounding
+      let searchGroundingBlock = '';
+      const spokenLength = ('wordCount' in ytResult && typeof ytResult.wordCount === 'number') ? ytResult.wordCount : 0;
+      const isVerificationPrompt = /حقيقي|صحيح|صح|كذب|حقيقة|معلومة|طبي|علمي|تأكد|فحص|تفسير/i.test(userPrompt);
+
+      if (spokenLength < 50 || isVerificationPrompt || deepSearch) {
+        const query = `${('title' in ytResult && ytResult.title) ? ytResult.title : ''} ${('channelName' in ytResult && ytResult.channelName) ? ytResult.channelName : ''} ${userPrompt}`.trim();
+        if (query) {
+          try {
+            const searchContext = await performUltraDeepCyberSearch(query, undefined);
+            if (searchContext) {
+              searchGroundingBlock = `\n\n🌐 [استطلاع الفحص الحي وتدقيق الحقائق العلمية والطبية لموضوع الفيديو]:\n${searchContext}`;
+            }
+          } catch {}
+        }
+      }
+
       const masterVideoContext = buildMasterVideoIntelligenceBlock(
-        ('rawSpokenText' in ytResult && ytResult.rawSpokenText) ? (ytResult as YouTubeTranscriptResult) : null,
+        ('title' in ytResult) ? ytResult : null,
         visionResult,
         'youtube'
-      );
+      ) + searchGroundingBlock;
 
       return {
         index,
@@ -1179,7 +1194,7 @@ async function processSingleLinkIntelligence(
         url,
         category: 'youtube',
         platformLabel: 'فيديو يوتيوب (YouTube)',
-        summaryBlock: `[تعذر معالجة فيديو يوتيوب: ${err?.message || 'خطأ'}]`
+        summaryBlock: `[فيديو يوتيوب: ${url}]`
       };
     }
   }

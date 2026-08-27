@@ -301,7 +301,7 @@ export const App: React.FC = () => {
 
   const handleSendMessage = async (
     text: string,
-    meta?: { model?: string; attachments?: File[]; targetUrl?: string; targetUrls?: string[]; effort?: string; deepSearch?: boolean }
+    meta?: { model?: string; attachments?: File[]; targetUrl?: string; targetUrls?: string[]; effort?: string; deepSearch?: boolean; resolvedLink?: any }
   ) => {
     if (isStreaming) return;
 
@@ -399,6 +399,16 @@ export const App: React.FC = () => {
       } else if (item.type === 'audio') {
         effectivePrompt += `\n\n[ملف صوتي مرفق: "${item.name}" - المدة: ${formatMediaDuration(item.duration || 0)}]`;
       }
+    }
+
+    if (meta?.resolvedLink) {
+      const rl = meta.resolvedLink;
+      const rlTitle = rl.title || rl.metaTitle || '';
+      const rlDesc = rl.description || rl.metaDescription || '';
+      const rlAuthor = rl.authorName || rl.author || '';
+      const rlPlatform = rl.platform || 'رابط';
+      const rlUrl = rl.url || '';
+      effectivePrompt += `\n\n[معطيات الرابط والمحتوى المرفق - ${rlPlatform}]:\n• العنوان: ${rlTitle}\n• صانع المحتوى / الحساب: ${rlAuthor}\n• الرابط: ${rlUrl}\n• ملخص / وصف المحتوى: ${rlDesc}`;
     }
 
     if (!effectivePrompt && uniqueImagesDataUrls.length === 0 && attachedMediaList.length === 0) return;

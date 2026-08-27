@@ -125,22 +125,99 @@ export function extractYouTubeUrlFromText(text: string): string | null {
   return null;
 }
 
-// ─── Metadata Fetcher (oEmbed) ────────────────────────────────────────────────
-
-interface OEmbedMeta { title?: string; author_name?: string; thumbnail_url?: string; }
+interface OEmbedMeta { title?: string; author_name?: string; thumbnail_url?: string; description?: string; }
 
 async function fetchVideoMeta(videoId: string): Promise<OEmbedMeta> {
+  // 1. YouTube official oEmbed (watch)
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4000);
+    const timer = setTimeout(() => controller.abort(), 3500);
     const res = await fetch(
       `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: controller.signal }
+    );
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = await res.json() as OEmbedMeta;
+      if (data.title) return data;
+    }
+  } catch {}
+
+  // 2. YouTube official oEmbed (shorts)
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/shorts/${videoId}&format=json`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: controller.signal }
+    );
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = await res.json() as OEmbedMeta;
+      if (data.title) return data;
+    }
+  } catch {}
+
+  // 3. noembed fallback
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch(
+      `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`,
       { signal: controller.signal }
     );
     clearTimeout(timer);
-    if (!res.ok) return {};
-    return await res.json() as OEmbedMeta;
-  } catch { return {}; }
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.title && !data.error) {
+        return {
+          title: data.title,
+          author_name: data.author_name,
+          thumbnail_url: data.thumbnail_url
+        };
+      }
+    }
+  } catch {}
+
+  // 4. Direct HTML meta tag scraping (for Shorts, mobile & age-gated embeds)
+  for (const pageUrl of [`https://www.youtube.com/watch?v=${videoId}`, `https://www.youtube.com/shorts/${videoId}`]) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(pageUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8'
+        }
+      });
+      clearTimeout(timer);
+      if (res.ok) {
+        const html = await res.text();
+        const ogTitle = html.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i)?.[1]
+          || html.match(/<title>(.*?)<\/title>/i)?.[1]?.replace(/\s*-\s*YouTube$/i, '');
+        const ogDesc = html.match(/<meta\s+property=["']og:description["']\s+content=["'](.*?)["']/i)?.[1];
+        const author = html.match(/<link\s+itemprop=["']name["']\s+content=["'](.*?)["']/i)?.[1]
+          || html.match(/"author":\s*"(.*?)"/i)?.[1]
+          || html.match(/"ownerChannelName":\s*"(.*?)"/i)?.[1];
+        const thumb = html.match(/<meta\s+property=["']og:image["']\s+content=["'](.*?)["']/i)?.[1]
+          || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+        if (ogTitle && !ogTitle.includes('- YouTube')) {
+          return {
+            title: ogTitle,
+            author_name: author,
+            description: ogDesc,
+            thumbnail_url: thumb
+          };
+        }
+      }
+    } catch {}
+  }
+
+  return {
+    thumbnail_url: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+  };
 }
 
 // ─── Speech Normalizer & Cleaner ──────────────────────────────────────────────
@@ -435,32 +512,37 @@ export async function fetchYouTubeTranscript(
       }
     }
   } catch (err: any) {
-    const name = err?.constructor?.name || '';
-    const msg = (err?.message || '').toLowerCase();
-    let et: TranscriptError = 'UNKNOWN';
-    if (name.includes('Disabled') || msg.includes('disabled') || msg.includes('no transcript')) et = 'TRANSCRIPT_DISABLED';
-    else if (name.includes('VideoUnavailable') || msg.includes('unavailable')) et = 'VIDEO_UNAVAILABLE';
-    else if (name.includes('NotAvailableLanguage') || msg.includes('language')) et = 'NO_LANGUAGE';
-    else if (name.includes('TooManyRequest') || msg.includes('429') || msg.includes('rate')) et = 'RATE_LIMITED';
-    else if (msg.includes('network') || msg.includes('enotfound')) et = 'NETWORK_ERROR';
-    const msgs: Record<TranscriptError, string> = {
-      TRANSCRIPT_DISABLED: 'الترجمة أو النصوص المنطوقة معطّلة أو غير متوفرة لهذا الفيديو.',
-      VIDEO_UNAVAILABLE: 'الفيديو غير متاح أو خاص أو محذوف.',
-      NO_LANGUAGE: 'النص المنطوق غير متوفر بالعربية أو الإنجليزية لهذا الفيديو.',
-      RATE_LIMITED: 'تم تجاوز حد الطلبات من يوتيوب. يُرجى الانتظار قليلاً ثم المحاولة.',
-      NETWORK_ERROR: 'خطأ في الاتصال بشبكة يوتيوب.',
-      UNKNOWN: 'تعذّر استخراج الكلام المنطوق من هذا الفيديو.',
-      INVALID_URL: 'رابط الفيديو غير صالح.',
-    };
-    return { error: et, message: msgs[et], videoId };
+    console.warn(`[YouTubeTranscript Exception for ${videoId}]:`, err?.message || err);
   }
 
   if (!speechData || speechData.segments.length === 0) {
-    return {
-      error: 'TRANSCRIPT_DISABLED',
-      message: 'لم يتم العثور على ترجمة أو كلام مسجل متاح لهذا الفيديو (قد يكون الفيديو موسيقياً بحتاً أو بدون كلام).',
+    const title = meta?.title || 'فيديو يوتيوب';
+    const channelName = meta?.author_name || 'صانع المحتوى';
+    const fallbackDesc = meta?.description || '';
+    const fallbackResult: YouTubeTranscriptResult = {
       videoId,
+      videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+      thumbnailUrl: meta?.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      title,
+      channelName,
+      durationSeconds: undefined,
+      language: 'ar',
+      isAutoGenerated: false,
+      rawSpokenText: fallbackDesc,
+      arabicTranslationText: undefined,
+      timestampedBlocks: fallbackDesc ? [{
+        timeRange: '00:00 - 01:00',
+        startSeconds: 0,
+        endSeconds: 60,
+        speechText: fallbackDesc
+      }] : [],
+      segments: [],
+      wordCount: fallbackDesc.split(/\s+/).filter(Boolean).length,
+      charCount: fallbackDesc.length,
+      fetchedAt: Date.now(),
+      cached: false,
     };
+    return fallbackResult;
   }
 
   // 3. Build continuous clean spoken text and timestamped blocks
