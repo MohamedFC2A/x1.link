@@ -827,9 +827,22 @@ export const TimeDetectAutoDelete: React.FC<{
   );
 };
 
-function parseCustomBadges(rawContent: string): React.ReactNode | null {
+function getChildText(node: React.ReactNode): string {
+  if (!node) return '';
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(getChildText).join('');
+  if (React.isValidElement(node)) {
+    const props = node.props as any;
+    if (props?.href) return props.href;
+    if (props?.children) return getChildText(props.children);
+  }
+  return '';
+}
+
+function parseCustomBadges(rawContent: string, fallbackMediaUrl?: string | null): React.ReactNode | null {
   // 1. Time Detect - Timer (Interactive widget only)
-  const timerMatch = rawContent.match(/(?:\[TIME-DETECT-TIMER:\s*(\d+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-TIMER:\s*(\d+))/i);
+  const timerMatch = rawContent.match(/(?:\[[^\]]*?TIME[-\s_]?DETECT[-\s_]?TIMER:\s*(\d+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|TIME[-\s_]?DETECT[-\s_]?TIMER:\s*(\d+))/i);
   if (timerMatch) {
     const seconds = parseInt(timerMatch[1] || timerMatch[4] || '300', 10);
     const label = timerMatch[2]?.trim() || `${Math.round(seconds / 60)} دقائق`;
@@ -838,7 +851,7 @@ function parseCustomBadges(rawContent: string): React.ReactNode | null {
   }
 
   // 2. Time Detect - Reminder (Interactive widget only)
-  const reminderMatch = rawContent.match(/(?:\[TIME-DETECT-REMINDER:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-REMINDER:\s*([^|\n]+))/i);
+  const reminderMatch = rawContent.match(/(?:\[[^\]]*?TIME[-\s_]?DETECT[-\s_]?REMINDER:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|TIME[-\s_]?DETECT[-\s_]?REMINDER:\s*([^|\n]+))/i);
   if (reminderMatch) {
     const iso = (reminderMatch[1] || reminderMatch[3])?.trim() || '';
     const text = (reminderMatch[2] || 'تذكير بموعد مهم')?.trim();
@@ -846,35 +859,37 @@ function parseCustomBadges(rawContent: string): React.ReactNode | null {
   }
 
   // 3. Time Detect - Auto Delete (Interactive widget only)
-  const autoDeleteMatch = rawContent.match(/(?:\[TIME-DETECT-AUTODELETE:\s*(\d+)\s*(?:\|\s*([^\]]+))?\]|TIME-DETECT-AUTODELETE:\s*(\d+))/i);
+  const autoDeleteMatch = rawContent.match(/(?:\[[^\]]*?TIME[-\s_]?DETECT[-\s_]?AUTODELETE:\s*(\d+)\s*(?:\|\s*([^\]]+))?\]|TIME[-\s_]?DETECT[-\s_]?AUTODELETE:\s*(\d+))/i);
   if (autoDeleteMatch) {
     const seconds = parseInt(autoDeleteMatch[1] || autoDeleteMatch[3] || '600', 10);
     const label = autoDeleteMatch[2]?.trim() || `${Math.round(seconds / 60)} دقائق`;
     return <TimeDetectAutoDelete initialSeconds={seconds} durationLabel={label} />;
   }
 
-  // 4. Download Detect - Interactive Card (Sleek Compact Widget)
-  const downloadMatch = rawContent.match(/(?:\[DOWNLOAD[-\s_]?DETECT[-\s_]?(?:CARD|BADGE)?:\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?DETECT[-\s_]?(?:CARD|BADGE)?:\s*([^|\n]+))/i);
-  if (downloadMatch) {
-    const rawTargetUrl = (downloadMatch[1] || downloadMatch[3])?.trim() || '';
-    if (rawTargetUrl) {
-      return <DownloadDetectCard url={rawTargetUrl} />;
-    }
-  }
-
-  // 5. Download Button - Inline Instant Download Action
-  const buttonMatch = rawContent.match(/(?:\[DOWNLOAD[-\s_]?BUTTON:\s*([^|\]]+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?BUTTON:\s*([^|\n]+)\s*(?:\|\s*([^|\n]+))?)/i);
+  // 4. Download Button - Inline Instant Download Action
+  const buttonMatch = rawContent.match(/(?:\[[^\]]*?DOWNLOAD[-\s_]?BUTTON:\s*([^|\]]+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?BUTTON:\s*([^|\n]+)\s*(?:\|\s*([^|\n]+))?)/i);
   if (buttonMatch) {
-    const rawTargetUrl = (buttonMatch[1] || buttonMatch[4])?.trim() || '';
+    let rawTargetUrl = (buttonMatch[1] || buttonMatch[4])?.trim() || '';
+    rawTargetUrl = rawTargetUrl.replace(/\[([^\]]+)\]\(([^)]+)\)/, '$2').replace(/[<>\s]/g, '');
     const quality = (buttonMatch[2] || buttonMatch[5] || '1080p')?.trim();
     const title = buttonMatch[3]?.trim() || '';
-    if (rawTargetUrl) {
-      return <DownloadButton url={rawTargetUrl} quality={quality} title={title} />;
+    const finalUrl = rawTargetUrl || fallbackMediaUrl || '';
+    if (finalUrl) {
+      return <DownloadButton url={finalUrl} quality={quality} title={title} />;
     }
   }
 
-  // Note: Static verdict badges (AI Detect, Time Detect, Memory Detect) are already elegantly rendered
-  // inside the top FeaturesBar before thinking, so we suppress rendering duplicate static boxes here.
+  // 5. Download Detect - Interactive Card (Sleek Compact Widget)
+  const downloadMatch = rawContent.match(/(?:\[[^\]]*?DOWNLOAD[-\s_]?(?:DETECT[-\s_]?)?(?:CARD|BADGE):\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?(?:DETECT[-\s_]?)?(?:CARD|BADGE):\s*([^|\n]+))/i);
+  if (downloadMatch) {
+    let rawTargetUrl = (downloadMatch[1] || downloadMatch[3])?.trim() || '';
+    rawTargetUrl = rawTargetUrl.replace(/\[([^\]]+)\]\(([^)]+)\)/, '$2').replace(/[<>\s]/g, '');
+    const finalUrl = rawTargetUrl || fallbackMediaUrl || '';
+    if (finalUrl) {
+      return <DownloadDetectCard url={finalUrl} />;
+    }
+  }
+
   return null;
 }
 
@@ -1371,13 +1386,87 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   );
                 },
                 p: ({ children }) => {
-                  const rawContent = React.Children.toArray(children).map(c => typeof c === 'string' ? c : '').join('');
-                  const customBadge = parseCustomBadges(rawContent);
+                  const fullText = getChildText(children);
+
+                  // 1. Check if there is a download button tag anywhere in this paragraph
+                  const buttonMatch = fullText.match(/(?:\[[^\]]*?DOWNLOAD[-\s_]?BUTTON:\s*([^|\]]+)\s*(?:\|\s*([^|\]]+))?\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?BUTTON:\s*([^|\n]+)\s*(?:\|\s*([^|\n]+))?)/i);
+                  if (buttonMatch) {
+                    let rawTargetUrl = (buttonMatch[1] || buttonMatch[4])?.trim() || '';
+                    rawTargetUrl = rawTargetUrl.replace(/\[([^\]]+)\]\(([^)]+)\)/, '$2').replace(/[<>\s]/g, '');
+                    const quality = (buttonMatch[2] || buttonMatch[5] || '1080p')?.trim();
+                    const title = (buttonMatch[3] || '')?.trim();
+                    const finalUrl = rawTargetUrl || detectedMediaUrl || '';
+
+                    const fullMatchStr = buttonMatch[0];
+                    const matchIdx = fullText.indexOf(fullMatchStr);
+                    const beforeText = matchIdx > 0 ? fullText.slice(0, matchIdx).trim() : '';
+                    const afterText = (matchIdx >= 0 && matchIdx + fullMatchStr.length < fullText.length)
+                      ? fullText.slice(matchIdx + fullMatchStr.length).trim()
+                      : '';
+
+                    return (
+                      <div className="my-3 space-y-2.5">
+                        {beforeText && (
+                          <p className="leading-relaxed text-zinc-200">
+                            {renderSmartContentWithLinksAndPhones(beforeText, setConfirmUrl, setConfirmPhone, setConfirmEmail)}
+                          </p>
+                        )}
+                        {finalUrl && (
+                          <div className="py-1">
+                            <DownloadButton url={finalUrl} quality={quality} title={title} />
+                          </div>
+                        )}
+                        {afterText && (
+                          <p className="leading-relaxed text-zinc-200">
+                            {renderSmartContentWithLinksAndPhones(afterText, setConfirmUrl, setConfirmPhone, setConfirmEmail)}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // 2. Check if there is a download detect card anywhere in this paragraph
+                  const cardMatch = fullText.match(/(?:\[[^\]]*?DOWNLOAD[-\s_]?(?:DETECT[-\s_]?)?(?:CARD|BADGE):\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD[-\s_]?(?:DETECT[-\s_]?)?(?:CARD|BADGE):\s*([^|\n]+))/i);
+                  if (cardMatch) {
+                    let rawTargetUrl = (cardMatch[1] || cardMatch[3])?.trim() || '';
+                    rawTargetUrl = rawTargetUrl.replace(/\[([^\]]+)\]\(([^)]+)\)/, '$2').replace(/[<>\s]/g, '');
+                    const finalUrl = rawTargetUrl || detectedMediaUrl || '';
+
+                    const fullMatchStr = cardMatch[0];
+                    const matchIdx = fullText.indexOf(fullMatchStr);
+                    const beforeText = matchIdx > 0 ? fullText.slice(0, matchIdx).trim() : '';
+                    const afterText = (matchIdx >= 0 && matchIdx + fullMatchStr.length < fullText.length)
+                      ? fullText.slice(matchIdx + fullMatchStr.length).trim()
+                      : '';
+
+                    return (
+                      <div className="my-3 space-y-2.5">
+                        {beforeText && (
+                          <p className="leading-relaxed text-zinc-200">
+                            {renderSmartContentWithLinksAndPhones(beforeText, setConfirmUrl, setConfirmPhone, setConfirmEmail)}
+                          </p>
+                        )}
+                        {finalUrl && (
+                          <div className="py-1">
+                            <DownloadDetectCard url={finalUrl} />
+                          </div>
+                        )}
+                        {afterText && (
+                          <p className="leading-relaxed text-zinc-200">
+                            {renderSmartContentWithLinksAndPhones(afterText, setConfirmUrl, setConfirmPhone, setConfirmEmail)}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl);
                   if (customBadge) {
                     return customBadge;
                   }
+
                   // Suppress empty paragraphs that were generated by stripped badges
-                  if (!rawContent.trim()) return null;
+                  if (!fullText.trim()) return null;
                   return (
                     <p className="mb-2.5 sm:mb-3 last:mb-0 leading-relaxed">
                       {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
@@ -1385,8 +1474,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   );
                 },
                 h1: ({ children }) => {
-                  const rawContent = React.Children.toArray(children).map(c => typeof c === 'string' ? c : '').join('');
-                  const customBadge = parseCustomBadges(rawContent);
+                  const fullText = getChildText(children);
+                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl);
                   if (customBadge) {
                     return customBadge;
                   }
@@ -1397,8 +1486,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   );
                 },
                 h2: ({ children }) => {
-                  const rawContent = React.Children.toArray(children).map(c => typeof c === 'string' ? c : '').join('');
-                  const customBadge = parseCustomBadges(rawContent);
+                  const fullText = getChildText(children);
+                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl);
                   if (customBadge) {
                     return customBadge;
                   }
@@ -1409,8 +1498,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   );
                 },
                 h3: ({ children }) => {
-                  const rawContent = React.Children.toArray(children).map(c => typeof c === 'string' ? c : '').join('');
-                  const customBadge = parseCustomBadges(rawContent);
+                  const fullText = getChildText(children);
+                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl);
                   if (customBadge) {
                     return customBadge;
                   }

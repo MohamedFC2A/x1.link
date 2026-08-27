@@ -329,10 +329,8 @@ export function cleanMarkdownForClipboard(rawText: string | null | undefined): s
   let text = rawText;
 
   // 1. Remove internal UI badges and action tokens
-  text = text.replace(/\[\s*(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?(?:BADGE|CARD|TIMER|REMINDER|AUTODELETE|BUTTON):[^\]]*\]/gi, '');
-  text = text.replace(/(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?(?:BADGE|CARD|TIMER|REMINDER|AUTODELETE|BUTTON):[^\n]*/gi, '');
-  text = text.replace(/\[DOWNLOAD-BUTTON:[^\]]*\]/gi, '');
-  text = text.replace(/\[DOWNLOAD-DETECT-CARD:[^\]]*\]/gi, '');
+  text = text.replace(/\[[^\]]*?(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s_]?(?:DETECT[-\s_]?)?(?:BADGE|CARD|TIMER|REMINDER|AUTODELETE|BUTTON):[^\]]*\]/gi, '');
+  text = text.replace(/(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s_]?(?:DETECT[-\s_]?)?(?:BADGE|CARD|TIMER|REMINDER|AUTODELETE|BUTTON):[^\n]*/gi, '');
 
   // 2. Remove thinking tags <think>...</think> if present in raw content
   text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
