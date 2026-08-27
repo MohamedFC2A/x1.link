@@ -1,11 +1,5 @@
 {
   "framework": "vite",
-  "functions": {
-    "api/chat.ts": {
-      "maxDuration": 300,
-      "memory": 1024
-    }
-  },
   "rewrites": [
     {
       "source": "/api/:path*",

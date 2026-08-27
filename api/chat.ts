@@ -6,9 +6,10 @@ import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatfor
 import { extractImageForensics, buildForensicReportMarkdown, isForensicAnalysisRequested, type ForensicReport } from '../server/imageForensicsService';
 
 export const config = {
-  maxDuration: 300,
+  runtime: 'edge',
 };
-export const maxDuration = 300;
+export const runtime = 'edge';
+export const maxDuration = 60;
 
 // Primary & Fallback API Keys
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
