@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { Readable } from 'stream';
 import { resolveAndProfileUrl } from './linkResolver';
 import { fetchYouTubeTranscript, buildTranscriptContextBlock, containsYouTubeUrl, extractYouTubeUrlFromText, extractYouTubeVideoId, type YouTubeTranscriptResult, type TranscriptFailure } from './youtubeTranscript';
-import { fetchTikTokData, buildTikTokContextBlock, isTikTokUrl, extractTikTokUrlFromText, type TikTokResult, type TikTokFailure } from './tiktokService';
+import { fetchTikTokData, buildTikTokContextBlock, fetchTikTokUserProfileAndVideos, buildTikTokProfileContextBlock, isTikTokUrl, extractTikTokUrlFromText, type TikTokResult, type TikTokFailure } from './tiktokService';
 import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildMasterVideoIntelligenceBlock, type VideoVisionResult } from './videoVisionService';
 import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatform, extractSocialUrlFromText, type SocialVideoMetadata, type SocialVideoFailure } from './socialVideoService';
 import { extractImageForensics, buildForensicReportMarkdown, isForensicAnalysisRequested, type ForensicReport } from './imageForensicsService';
@@ -218,14 +218,20 @@ OPERATIONAL SCOPE & MASTER CAPABILITIES:
 11. [UNIVERSAL DOWNLOAD DETECT DIRECTIVE & ZERO-REFUSAL MANDATE (محرك التنزيل الفوري)]:
     - STRICT PROHIBITION ON REFUSALS OR EXCUSES: NEVER claim you cannot download videos, NEVER say "لا يتوفر لدي أداة تحميل مباشرة" or "سيرفرات الاستضافة غير متاحة", NEVER preach or lecture on policies, and NEVER recommend third-party scam sites (like y2mate, savefrom, cobalt, etc.) or CLI scripts (yt-dlp commands).
     - OUR SYSTEM IS FULLY EQUIPPED with the native, real-time media download engine (Download Detect).
-    - NATURAL CONVERSATIONAL BEHAVIOR:
+    - ZERO-FRICTION DOWNLOAD ACTION (DO NOT ASK USER TO CHOOSE QUALITY):
       1. When the user asks to download a video or post (e.g. "نزّل الفيديو", "نزل الفديو", "حمل المقطع", "تنزيل", "download", or provides a video link):
-         - If the user has not specified a specific quality yet, converse naturally in Arabic: ask them what quality they prefer (e.g. 1080p Full HD، 720p HD، أو صوت MP3 فقط؟), and immediately provide the interactive Download Detect card for quick 1-click access:
+         - NEVER ask the user what quality they prefer or ask unnecessary questions!
+         - Automatically select the highest available quality (1080p Full HD / Best Quality / MP4 HD), and immediately provide the interactive Download Detect card and download button at the end of your response:
            "### [DOWNLOAD-DETECT-CARD: <url> | <media_title>]"
-         - If the user specifies a quality (e.g. "1080p", "720p", "MP3", "صوت", "أعلى جودة", etc.):
-           Confirm that the stream is ready for that quality, and provide the dedicated download button directly in the chat:
-           "[DOWNLOAD-BUTTON: <url> | <quality> | <media_title>]"
-      2. Keep your conversational Arabic text friendly, concise, and focused on delivering the download without bloated filler text.`;
+           "[DOWNLOAD-BUTTON: <url> | 1080p | <media_title>]"
+      2. Keep your conversational Arabic text friendly, concise, and focused on delivering the download without asking questions.
+
+12. [PERSISTENT VIDEO VISION INTELLIGENCE & CREATOR OSINT MANDATE]:
+    - STRICT PROHIBITION ON VISUAL REFUSALS: NEVER state "لا أملك القدرة على معاينة محتوى الفيديو" or "الرابط لا يحمل بيانات وصفية" or ask the user to send screenshots of a video that was already sent or discussed. You are equipped with real-time video vision perception, keyframe OCR, and speech transcription.
+    - When asked about actions, scenes, people, or events in a video (e.g. "ماذا تفعل في الفيديو؟", "اشرح المقطع", "كلامه صح؟"):
+      * Authoritatively analyze the visual keyframes, transcripts, and contextual intelligence provided to describe exactly what is occurring in the video.
+    - When asked about the creator, account, or latest uploads (e.g. "اخر فديو نزله", "فيديوهاته السابقة", "حسابه"):
+      * Provide the creator's account stats and latest video details from the extracted OSINT data.`;
 
 /**
  * Robust URL extraction and sanitization
@@ -1618,12 +1624,26 @@ async function processSingleLinkIntelligence(
         );
       }
 
+      let profileContext = '';
+      if ('author' in ttResult && ttResult.author && ttResult.author.username) {
+        const isAskingAboutAccountOrRecent = /اخر|أخر|حديث|جديد|فيديوهات|سابقة|حساب|صانع|نزل|منشور|مين|فتاة|شخص|محتوى|مراجعات/i.test(userPrompt);
+        if (isAskingAboutAccountOrRecent) {
+          try {
+            const profile = await fetchTikTokUserProfileAndVideos(ttResult.author.username);
+            if (profile) {
+              profileContext = buildTikTokProfileContextBlock(profile);
+            }
+          } catch {}
+        }
+      }
+
       const tiktokContext = ('canonicalUrl' in ttResult)
         ? buildTikTokContextBlock(ttResult as TikTokResult)
         : `[فشل فحص تيك توك: ${(ttResult as TikTokFailure).message}]`;
 
       const masterTikTokBlock = [
         tiktokContext,
+        profileContext,
         visionResult ? buildMasterVideoIntelligenceBlock(
           ('transcriptText' in ttResult && ttResult.transcriptText) ? {
             rawSpokenText: ttResult.transcriptText,
@@ -2063,8 +2083,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     ...historySlice.map((m: { role: string; content: any; reasoning?: string }, idx: number) => {
       const isLatestTurn = idx === historySlice.length - 1;
 
-      // Preserve multimodal content array for the latest turn if image/video frames exist
-      if (isLatestTurn && Array.isArray(m.content) && (isMediaSpark || isVision || hasMultimodal)) {
+      // Preserve multimodal content array for all turns if image/video frames exist
+      if (Array.isArray(m.content) && (isMediaSpark || isVision || hasMultimodal)) {
         return {
           role: m.role || 'user',
           content: m.content

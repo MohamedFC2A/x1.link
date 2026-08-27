@@ -148,7 +148,61 @@ export const DownloadDetectCard: React.FC<DownloadDetectCardProps> = ({
   }
 
   if (error || !data) {
-    return null;
+    const safeTitle = 'media_download';
+    const fallbackFormat: MediaFormatOption = {
+      formatId: 'best_hd',
+      qualityLabel: 'أفضل جودة متوفرة (1080p HD)',
+      extension: 'mp4',
+      type: 'video',
+      downloadUrl: url,
+      isBest: true,
+    };
+
+    return (
+      <div
+        className={cn(
+          "my-3 rounded-2xl border border-emerald-500/30 bg-gradient-to-b from-[#06140e]/95 via-[#030d09]/95 to-[#010805]/95 p-3 sm:p-3.5 text-right shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_16px_rgba(16,185,129,0.12)] backdrop-blur-2xl relative overflow-hidden select-none space-y-3",
+          className
+        )}
+        dir="rtl"
+      >
+        <div className="flex items-center justify-between gap-2 pb-2 border-b border-emerald-500/15">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/40">
+              <DownloadDetectIcon size={12} />
+              <span className="text-[11px] font-mono font-black text-emerald-200 tracking-wide uppercase">
+                DOWNLOAD DETECT
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] font-medium text-zinc-400">
+              <PlatformLogo url={url} className="size-3" size={12} />
+              <span>تحميل فوري</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <div className="text-xs text-zinc-300 font-sans">
+            الفيديو جاهز للتحميل المباشر بأعلى دقة 1080p:
+          </div>
+          <button
+            type="button"
+            onClick={() => handleDownload(fallbackFormat, url, `${safeTitle}.mp4`)}
+            disabled={downloadingFormatId === 'best_hd'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs font-sans transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
+          >
+            {downloadingFormatId === 'best_hd' ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : downloadedFormatId === 'best_hd' ? (
+              <Check className="size-3.5" />
+            ) : (
+              <Download className="size-3.5" />
+            )}
+            <span>تحميل مباشر 1080p</span>
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

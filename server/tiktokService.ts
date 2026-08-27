@@ -535,9 +535,129 @@ export function buildTikTokContextBlock(result: TikTokResult, maxChars = 10000):
     truncatedText,
     '',
     bar,
-    '[توجيه استخباراتي لتحليل محتوى تيك توك]:',
-    '1. أجب عن سؤال وطلب المستخدم بدقة، وحلل موضوع الفيديو، الرسالة التي يقدمها صانع المحتوى، والهاشتاجات المستهدفة.',
-    '2. قدم تحليلاً دقيقاً لردود الفعل ومستوى التفاعل ومحتوى الصوت/الموسيقى باللغة العربية الفصحى.',
-    bar,
   ].filter(Boolean).join('\n');
+}
+
+// ─── TikTok User Profile & Recent Videos OSINT Engine ───────────────────────────
+
+export interface TikTokUserPost {
+  id: string;
+  title: string;
+  url: string;
+  playUrl?: string;
+  coverUrl?: string;
+  createTime?: number;
+  duration?: number;
+  views?: number;
+  likes?: number;
+  comments?: number;
+}
+
+export interface TikTokUserProfileResult {
+  success: boolean;
+  username: string;
+  nickname: string;
+  avatarUrl?: string;
+  bio?: string;
+  verified?: boolean;
+  followers?: number;
+  following?: number;
+  totalLikes?: number;
+  videoCount?: number;
+  recentVideos: TikTokUserPost[];
+  latestVideo?: TikTokUserPost;
+}
+
+export async function fetchTikTokUserProfileAndVideos(username: string): Promise<TikTokUserProfileResult | null> {
+  const cleanUsername = username.replace(/^@/, '').trim();
+  if (!cleanUsername) return null;
+
+  try {
+    const res = await fetch(`https://www.tikwm.com/api/user/posts?unique_id=${encodeURIComponent(cleanUsername)}&count=12`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(4000)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.code === 0 && data.data) {
+        const videosRaw = Array.isArray(data.data.videos) ? data.data.videos : [];
+        const recentVideos: TikTokUserPost[] = videosRaw.map((v: any) => ({
+          id: String(v.video_id || v.id || ''),
+          title: v.title || v.desc || 'فيديو بدون عنوان',
+          url: `https://www.tiktok.com/@${cleanUsername}/video/${v.video_id || v.id}`,
+          playUrl: v.play || v.wmplay,
+          coverUrl: v.cover || v.origin_cover,
+          createTime: v.create_time ? Number(v.create_time) : undefined,
+          duration: v.duration,
+          views: v.play_count,
+          likes: v.digg_count,
+          comments: v.comment_count,
+        }));
+
+        const latestVideo = recentVideos[0] || undefined;
+        const author = data.data.author || {};
+
+        return {
+          success: true,
+          username: cleanUsername,
+          nickname: author.nickname || cleanUsername,
+          avatarUrl: author.avatar,
+          bio: author.signature || author.bio,
+          verified: Boolean(author.verified),
+          followers: author.follower_count,
+          following: author.following_count,
+          totalLikes: author.heart_count,
+          videoCount: author.video_count,
+          recentVideos,
+          latestVideo,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn(`[TikTok OSINT] Failed to fetch profile for @${cleanUsername}:`, err);
+  }
+
+  return null;
+}
+
+export function buildTikTokProfileContextBlock(profile: TikTokUserProfileResult): string {
+  const bar = '━'.repeat(45);
+  const lines: string[] = [
+    `🎵 [استخبارات حساب صانع المحتوى على تيك توك: @${profile.username}]`,
+    bar,
+    `• الاسم التعريفي: ${profile.nickname} (@${profile.username})` + (profile.verified ? ' [موثق ✅]' : ''),
+    profile.bio ? `• النبذة التعريفية (Bio): ${profile.bio}` : '',
+    profile.followers ? `• المتابعون: ${profile.followers.toLocaleString('ar-EG')}` : '',
+    profile.totalLikes ? `• إجمالي الإعجابات: ${profile.totalLikes.toLocaleString('ar-EG')}` : '',
+    bar,
+  ];
+
+  if (profile.latestVideo) {
+    const latestDate = profile.latestVideo.createTime
+      ? new Date(profile.latestVideo.createTime * 1000).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
+      : 'حديثاً';
+    lines.push(
+      '🌟 [أحدث فيديو تم نشره بواسطة الحساب (Latest Video)]:',
+      `• عنوان/وصف أحدث فيديو: ${profile.latestVideo.title}`,
+      `• رابط أحدث فيديو: ${profile.latestVideo.url}`,
+      `• تاريخ النشر: ${latestDate}`,
+      profile.latestVideo.views ? `• المشاهدات: ${profile.latestVideo.views.toLocaleString('ar-EG')}` : '',
+      profile.latestVideo.likes ? `• الإعجابات: ${profile.latestVideo.likes.toLocaleString('ar-EG')}` : '',
+      bar
+    );
+  }
+
+  if (profile.recentVideos.length > 1) {
+    lines.push('📹 [قائمة الفيديوهات السابقة والحديثة للحساب]:');
+    profile.recentVideos.slice(0, 5).forEach((v, idx) => {
+      lines.push(`${idx + 1}. "${v.title}" — الرابط: ${v.url} (${v.views ? `${v.views} مشاهدة` : ''})`);
+    });
+    lines.push(bar);
+  }
+
+  return lines.filter(Boolean).join('\n');
 }
