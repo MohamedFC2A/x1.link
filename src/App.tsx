@@ -35,6 +35,7 @@ import {
   deleteCloudChat,
   fetchCrossChatHistoryForMemory,
   purgeAllLocalChatArtifacts,
+  getOrCreateDeviceId,
   SupabaseChat
 } from './services/supabase';
 
@@ -154,6 +155,7 @@ export const App: React.FC = () => {
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [totalTokens, setTotalTokens] = useState<number>(() => getLocalUsage().totalTokens);
   const abortControllerRef = useRef<(() => void) | null>(null);
+  const activeStreamSessionRef = useRef<number>(0);
 
   // Calculate current active chat tokens
   const currentChatTokens = messages.reduce((acc, m) => {
@@ -230,6 +232,21 @@ export const App: React.FC = () => {
         if (msgs.length > 0) {
           const targetChat = chats.find(c => c.id === activeTarget);
           memoryEngine.updateChatMemoryNode(activeTarget, targetChat?.title || 'محادثة سابقة', msgs, targetChat?.updated_at);
+
+          // If the last message was from user, the server may still be generating the response in background
+          if (msgs[msgs.length - 1].role === 'user') {
+            let pollAttempts = 0;
+            const pollInterval = setInterval(async () => {
+              pollAttempts++;
+              const latestMsgs = await fetchChatMessages(activeTarget);
+              if (latestMsgs.length > msgs.length && latestMsgs[latestMsgs.length - 1].role === 'assistant') {
+                setMessages(latestMsgs);
+                clearInterval(pollInterval);
+              } else if (pollAttempts >= 18) {
+                clearInterval(pollInterval);
+              }
+            }, 2000);
+          }
         }
       } else {
         // Chat was deleted or does not exist
@@ -563,6 +580,9 @@ export const App: React.FC = () => {
       }
     };
 
+    const streamSessionId = Date.now();
+    activeStreamSessionRef.current = streamSessionId;
+
     await streamChatCompletion({
       messages: packedMessages,
       model: attachedImagesDataUrls.length > 0 ? 'deepseek-v4-flash-vision-exp' : chosenModel,
@@ -571,8 +591,12 @@ export const App: React.FC = () => {
       memoryPrompt: memoryContextPrompt,
       targetUrl: resolvedTargetUrl || undefined,
       targetUrls: meta?.targetUrls || (resolvedTargetUrl ? [resolvedTargetUrl] : undefined),
+      chatId: targetChatId,
+      userId,
+      deviceId: getOrCreateDeviceId(),
       signal: streamAbortController.signal,
       onChunk: (data) => {
+        if (activeStreamSessionRef.current !== streamSessionId) return;
         fullAssistantResponse = data.content;
         fullAssistantReasoning = data.reasoning;
         setMessages(prev => {
@@ -621,6 +645,7 @@ export const App: React.FC = () => {
         });
       },
       onError: (errMsg: string) => {
+        if (activeStreamSessionRef.current !== streamSessionId) return;
         setIsStreaming(false);
         abortControllerRef.current = null;
         setMessages(prev => {
@@ -653,6 +678,7 @@ export const App: React.FC = () => {
         });
       },
       onComplete: async () => {
+        if (activeStreamSessionRef.current !== streamSessionId) return;
         setIsStreaming(false);
         abortControllerRef.current = null;
 
@@ -749,6 +775,14 @@ export const App: React.FC = () => {
   };
 
   const handleNewChat = () => {
+    activeStreamSessionRef.current = 0;
+    if (abortControllerRef.current) {
+      try {
+        abortControllerRef.current();
+      } catch {}
+      abortControllerRef.current = null;
+    }
+    setIsStreaming(false);
     setMessages([]);
     setCurrentChatId(null);
     updateActiveChatUrlAndStorage(null);
@@ -813,6 +847,14 @@ export const App: React.FC = () => {
   }, [isSidebarOpen]);
 
   const handleSelectChat = async (chatId: string) => {
+    activeStreamSessionRef.current = 0;
+    if (abortControllerRef.current) {
+      try {
+        abortControllerRef.current();
+      } catch {}
+      abortControllerRef.current = null;
+    }
+    setIsStreaming(false);
     setCurrentChatId(chatId);
     updateActiveChatUrlAndStorage(chatId);
     const history = await fetchChatMessages(chatId);

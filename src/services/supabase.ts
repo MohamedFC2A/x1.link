@@ -153,6 +153,29 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
       finalContent = `<think>\n${msg.reasoning}\n</think>\n\n${finalContent}`;
     }
 
+    // Deduplication safeguard: if assistant message was already auto-persisted by server, skip duplicate insert
+    if (msg.role === 'assistant') {
+      const { data: existing } = await supabase
+        .from('x1_messages')
+        .select('id, content')
+        .eq('chat_id', chatId)
+        .eq('role', 'assistant')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        const existingText = (existing[0].content || '').trim();
+        const newText = finalContent.trim();
+        if (
+          existingText === newText ||
+          (existingText.length > 20 && newText.includes(existingText.slice(0, 50))) ||
+          (newText.length > 20 && existingText.includes(newText.slice(0, 50)))
+        ) {
+          return;
+        }
+      }
+    }
+
     // Preserve full image array in media_attachments if multiple images exist
     const mediaAttachments: any[] = [...(msg.mediaAttachments || [])];
     if (msg.images && msg.images.length > 0) {

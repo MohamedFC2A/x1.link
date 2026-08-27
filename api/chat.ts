@@ -16,6 +16,13 @@ const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || 'https://openrout
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
 
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://gyxlvreqwikpujzpyegm.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5eGx2cmVxd2lrcHVqenB5ZWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDkwNzMsImV4cCI6MjEwMzEyNTA3M30.vMnY9PcDrB627Tv8Aumy6BKlMfbzg4LX1B_EUigNL2s';
+
+const serverSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const DEVELOPER_IDENTITY_DIRECTIVE = `
 [هوية المنظومة والمطور الأساسي - EXCLUSIVE ATTRIBUTION MANDATE]:
 1. المطور والمهندس الأساسي والمؤسس:
@@ -1162,11 +1169,18 @@ async function processSingleLinkIntelligence(
       let searchGroundingBlock = '';
       const spokenLength = ('wordCount' in ytResult && typeof ytResult.wordCount === 'number') ? ytResult.wordCount : 0;
       const isVerificationPrompt = /حقيقي|صحيح|صح|كذب|حقيقة|معلومة|طبي|علمي|تأكد|فحص|تفسير/i.test(userPrompt);
-      const isUnavailable = !('title' in ytResult) || !ytResult.title || ytResult.title.includes('غير متاح') || (spokenLength === 0 && (!('segments' in ytResult) || !ytResult.segments?.length));
+      const isActuallyUnavailable = !('title' in ytResult) || !ytResult.title ||
+        ytResult.title.includes('غير متاح') ||
+        ytResult.title.includes('الفيديو غير متوفر') ||
+        ytResult.title.includes('Private video') ||
+        ytResult.title.includes('Deleted video') ||
+        ytResult.title.includes('This video is unavailable');
 
-      if (spokenLength < 50 || isVerificationPrompt || isUnavailable || deepSearch) {
+      const isSilentOrVisualOnly = !isActuallyUnavailable && spokenLength === 0;
+
+      if (spokenLength < 50 || isVerificationPrompt || isActuallyUnavailable || isSilentOrVisualOnly || deepSearch) {
         let cleanSearchQuery = '';
-        if (isUnavailable) {
+        if (isActuallyUnavailable) {
           cleanSearchQuery = `${userPrompt} شرب الماء تخزين الماء في الجسم الكلى القلب الكبد حسام موافي`.trim();
         } else {
           cleanSearchQuery = `${ytResult.title || ''} ${ytResult.channelName || ''} ${userPrompt}`.trim();
@@ -1182,16 +1196,18 @@ async function processSingleLinkIntelligence(
         }
       }
 
-      let unavailableDirective = '';
-      if (isUnavailable) {
-        unavailableDirective = `\n\n⚠️ [تنبيه استخباراتي]: هذا الرابط المحدد غير متاح حالياً على سيرفرات يوتيوب (محذوف أو خاص أو الرابط غير صالح). المطلوب منك: وضّح للمستخدم بلباقة أن الرابط غير متوفر حالياً على يوتيوب، ثم أجب مباشرة وبكل تفصيل على سؤاله وافحص الحقيقة العلمية والطبية للادعاء الشائع المرتبط بشرب الماء ووظائف الأعضاء واستشهاده بالآية الكريمة دون أي توقف أو اعتذار مجرد.`;
+      let intelligenceDirective = '';
+      if (isActuallyUnavailable) {
+        intelligenceDirective = `\n\n⚠️ [تنبيه استخباراتي]: هذا الرابط المحدد غير متاح حالياً على سيرفرات يوتيوب (محذوف أو خاص أو الرابط غير صالح). المطلوب منك: وضّح للمستخدم بلباقة أن الرابط غير متوفر حالياً على يوتيوب، ثم أجب مباشرة وبكل تفصيل على سؤاله وافحص الحقيقة العلمية والطبية للادعاء الشائع المرتبط بشرب الماء ووظائف الأعضاء واستشهاده بالآية الكريمة دون أي توقف أو اعتذار مجرد.`;
+      } else if (isSilentOrVisualOnly) {
+        intelligenceDirective = `\n\n🎬 [فيديو يعتمد على المحتوى البصري / الحيوانات / المؤثرات]: هذا الفيديو متاح بنجاح بعنوان "${ytResult.title}" من قناة "${ytResult.channelName || 'صانع المحتوى'}". لا يحتوي الفيديو على كلام منطوق مفرغ بل يعتمد على المشاهد والمؤثرات البصرية. المطلوب منك: الإجابة على سؤال المستخدم بدقة استناداً إلى سياق مقاطع قناة "${ytResult.channelName}" وموضوع الفيديو الظاهر في العنوان ونتائج البحث الحي المرفقة (مثل نوع الكائن وما يأكله وتصرفاته) دون أي ادعاء خاطئ بأن الفيديو محذوف.`;
       }
 
       const masterVideoContext = buildMasterVideoIntelligenceBlock(
         ('title' in ytResult) ? ytResult : null,
         visionResult,
         'youtube'
-      ) + searchGroundingBlock + unavailableDirective;
+      ) + searchGroundingBlock + intelligenceDirective;
 
       return {
         index,
@@ -1490,7 +1506,10 @@ export default async function handler(req: Request): Promise<Response> {
     isX1Mode = false,
     deepSearch = false,
     memoryPrompt = '',
-    targetUrl: explicitTargetUrl = ''
+    targetUrl: explicitTargetUrl = '',
+    chatId = '',
+    userId = null,
+    deviceId = ''
   } = body || {};
 
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -2019,7 +2038,59 @@ export default async function handler(req: Request): Promise<Response> {
 
       if (resp.ok && resp.body) {
         console.log(`[Vercel Edge] ✓ Gateway ${gate.name} connected successfully.`);
-        return new Response(resp.body, {
+
+        const decoder = new TextDecoder('utf-8');
+        let fullServerContent = '';
+        let fullServerReasoning = '';
+
+        const transformStream = new TransformStream({
+          transform(chunk, controller) {
+            controller.enqueue(chunk);
+            try {
+              const text = decoder.decode(chunk, { stream: true });
+              const lines = text.split('\n');
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('data:') && !trimmed.includes('[DONE]')) {
+                  const jsonStr = trimmed.replace(/^data:\s*/, '');
+                  const parsed = JSON.parse(jsonStr);
+                  const delta = parsed.choices?.[0]?.delta;
+                  if (delta?.reasoning_content) {
+                    fullServerReasoning += delta.reasoning_content;
+                  }
+                  if (delta?.content) {
+                    fullServerContent += delta.content;
+                  }
+                }
+              }
+            } catch {}
+          },
+          async flush() {
+            if (chatId && (fullServerContent.trim() || fullServerReasoning.trim())) {
+              try {
+                const finalServerContent = fullServerReasoning
+                  ? `<think>\n${fullServerReasoning}\n</think>\n\n${fullServerContent}`
+                  : fullServerContent;
+
+                await serverSupabase.from('x1_messages').insert({
+                  chat_id: chatId,
+                  user_id: userId || null,
+                  device_id: deviceId || null,
+                  role: 'assistant',
+                  content: finalServerContent.trim(),
+                  is_x1: !!isX1Mode,
+                  tokens_count: 0
+                });
+                await serverSupabase.from('x1_chats').update({ updated_at: new Date().toISOString() }).eq('id', chatId);
+                console.log(`[Vercel Edge] ✓ Saved assistant message to Supabase for chatId: ${chatId}`);
+              } catch (err) {
+                console.warn('[Vercel Edge save error]:', err);
+              }
+            }
+          }
+        });
+
+        return new Response(resp.body.pipeThrough(transformStream), {
           headers: {
             'Content-Type': 'text/event-stream; charset=utf-8',
             'Cache-Control': 'no-cache, no-transform',

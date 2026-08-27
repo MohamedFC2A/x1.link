@@ -14,6 +14,9 @@ export interface SendMessageOptions {
   memoryPrompt?: string;
   targetUrl?: string;
   targetUrls?: string[];
+  chatId?: string | null;
+  userId?: string | null;
+  deviceId?: string;
   signal?: AbortSignal;
   onChunk: (data: StreamChunkData) => void;
   onError: (errorMsg: string) => void;
@@ -28,6 +31,9 @@ export async function streamChatCompletion({
   memoryPrompt = '',
   targetUrl = '',
   targetUrls = [],
+  chatId,
+  userId,
+  deviceId,
   signal,
   onChunk,
   onError,
@@ -118,6 +124,9 @@ export async function streamChatCompletion({
         memoryPrompt,
         targetUrl: effectiveTargetUrl,
         targetUrls: targetUrls && targetUrls.length > 0 ? targetUrls : undefined,
+        chatId: chatId || undefined,
+        userId: userId || undefined,
+        deviceId: deviceId || undefined,
       }),
       signal: controller.signal
     });
