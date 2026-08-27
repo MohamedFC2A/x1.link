@@ -1492,7 +1492,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 ) : (
                   <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20 shrink-0" />
                 )}
-                <span className="hidden sm:inline font-sans text-xs font-semibold">
+                <span className="font-sans text-[11px] sm:text-xs font-semibold tracking-tight">
                   {activeModelDisplayName}
                 </span>
                 <ChevronDown className={cn("w-3 h-3 text-zinc-400 transition-transform duration-200", isModelMenuOpen && "rotate-180")} />

@@ -26,7 +26,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const isPinnedToBottomRef = useRef(true);
-  const touchStartYRef = useRef(0);
 
   // Instant or smooth scroll to absolute bottom
   const scrollToBottom = useCallback((smooth = false) => {
@@ -46,68 +45,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, []);
 
-  // Handle scroll events cleanly (user scroll vs auto scroll)
+  // Intelligent, accurate scroll detection based on actual distance
   const handleScroll = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
     
-    // If within 70px from bottom, consider user pinned to the bottom
-    if (distFromBottom <= 70) {
+    // Only show scroll-to-bottom button when genuinely scrolled up (> 220px)
+    if (distFromBottom > 220) {
+      isPinnedToBottomRef.current = false;
+      setShowScrollBottom(true);
+    } else if (distFromBottom <= 80) {
       isPinnedToBottomRef.current = true;
       setShowScrollBottom(false);
-    } else {
-      // User scrolled up! Immediately detach pinning so user can read earlier text peacefully
-      isPinnedToBottomRef.current = false;
-      setShowScrollBottom(true);
-    }
-  }, []);
-
-  // Detect explicit user mouse wheel intent
-  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    if (e.deltaY < 0) {
-      // Scrolling up intentionally
-      isPinnedToBottomRef.current = false;
-      setShowScrollBottom(true);
-    } else if (e.deltaY > 0) {
-      const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (dist <= 70) {
-        isPinnedToBottomRef.current = true;
-        setShowScrollBottom(false);
-      }
-    }
-  }, []);
-
-  // Detect touch gesture start on mobile
-  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length > 0) {
-      touchStartYRef.current = e.touches[0].clientY;
-    }
-  }, []);
-
-  // Detect touch swipe direction on mobile
-  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    const container = containerRef.current;
-    if (!container || e.touches.length === 0) return;
-
-    const currentY = e.touches[0].clientY;
-    const deltaY = currentY - touchStartYRef.current; // positive means swipe DOWN -> scroll content UP
-
-    if (deltaY > 8) {
-      // Scrolling up to view older messages -> unpin immediately
-      isPinnedToBottomRef.current = false;
-      setShowScrollBottom(true);
-    } else if (deltaY < -8) {
-      // Scrolling down toward newest
-      const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (dist <= 70) {
-        isPinnedToBottomRef.current = true;
-        setShowScrollBottom(false);
-      }
     }
   }, []);
 
@@ -121,20 +72,27 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, [messages.length, scrollToBottom]);
 
-  // ResizeObserver: Only auto-scroll if the user is actively pinned at the bottom
+  // Keep pinned while streaming if user hasn't deliberately scrolled up
   useEffect(() => {
-    const messagesEl = messagesListRef.current;
-    const container = containerRef.current;
-    if (!messagesEl || !container) return;
+    if (isStreaming && isPinnedToBottomRef.current) {
+      scrollToBottom(false);
+    }
+  }, [isStreaming, messages, scrollToBottom]);
 
-    const observer = new ResizeObserver(() => {
+  // ResizeObserver to handle content height expansions smoothly
+  useEffect(() => {
+    const container = containerRef.current;
+    const list = messagesListRef.current;
+    if (!container || !list) return;
+
+    const ro = new ResizeObserver(() => {
       if (isPinnedToBottomRef.current) {
         container.scrollTop = container.scrollHeight;
       }
     });
 
-    observer.observe(messagesEl);
-    return () => observer.disconnect();
+    ro.observe(list);
+    return () => ro.disconnect();
   }, []);
 
   const globalUrlIndexMap = React.useMemo(() => {
@@ -161,9 +119,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        onWheel={handleWheel}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
         className="flex-1 overflow-y-auto px-2.5 sm:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 select-text smooth-scroll scroll-container-optimized no-scrollbar"
         style={{
           scrollBehavior: 'auto',
@@ -183,32 +138,63 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               </div>
             </div>
 
-            {/* Title */}
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 font-sans tracking-tight">
-              كيف يمكن لـ <span className="brand-shimmer-text font-['Space_Grotesk'] font-black">matany.one</span> مساعدتك؟
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-2">
+              ابدأ محادثة مع {isX1Active ? 'matany.one' : 'Fathom'}
             </h2>
-            
-            <p className="text-xs sm:text-sm text-zinc-400 max-w-sm mx-auto font-sans leading-relaxed">
-              ذكاء اصطناعي حر بذاكرة سحابية مليونية وتحليل متعدد الوسائط
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-sm mb-6 leading-relaxed">
+              اسأل في البرمجة، استخراج روابط المواقع، فحص الميتاداتا، أو حل المسائل المعقدة بدقة متناهية وبدون قيود.
             </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-md">
+              <button
+                type="button"
+                onClick={() => onSendPreset("لو وزني 179 وطولي 99 يبقا BMI كم")}
+                className="glass-card p-3 rounded-xl text-xs text-right text-zinc-300 hover:text-white flex items-center gap-2 cursor-pointer select-none"
+              >
+                <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span className="truncate">لو وزني 179 وطولي 99 يبقا BMI كم</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSendPreset("استخرج جميع الروابط والصور من هذا المقال")}
+                className="glass-card p-3 rounded-xl text-xs text-right text-zinc-300 hover:text-white flex items-center gap-2 cursor-pointer select-none"
+              >
+                <Eye className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="truncate">استخرج الروابط والصور من المقال</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSendPreset("تحليل عميق لأمن وثغرات الكود البرمجي")}
+                className="glass-card p-3 rounded-xl text-xs text-right text-zinc-300 hover:text-white flex items-center gap-2 cursor-pointer select-none"
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="truncate">تحليل عميق لأمن وثغرات الكود</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSendPreset("اكتشف بيانات الكاميرا والموقع من هذه الصورة")}
+                className="glass-card p-3 rounded-xl text-xs text-right text-zinc-300 hover:text-white flex items-center gap-2 cursor-pointer select-none"
+              >
+                <Camera className="w-4 h-4 text-violet-400 shrink-0" />
+                <span className="truncate">فحص ميتاداتا الكاميرا والصورة</span>
+              </button>
+            </div>
           </div>
         ) : (
-          <div ref={messagesListRef} className="max-w-3xl mx-auto space-y-3 sm:space-y-4 pb-20 sm:pb-24">
-            {messages.map((msg, index) => {
-              const prevUserMsg = messages
-                .slice(0, index)
-                .reverse()
-                .find(m => m.role === 'user');
-              const previousUserPrompt = prevUserMsg?.content || '';
+          <div ref={messagesListRef} className="space-y-4 pb-24 sm:pb-32">
+            {messages.map((message, index) => {
+              const previousUserPrompt = message.role === 'assistant' 
+                ? [...messages.slice(0, index)].reverse().find(m => m.role === 'user')?.content || ''
+                : '';
 
               return (
                 <ChatMessage
-                  key={msg.id || index}
-                  message={msg}
-                  previousUserPrompt={previousUserPrompt}
+                  key={message.id || index}
+                  message={message}
+                  isStreaming={isStreaming && index === messages.length - 1}
                   globalUrlIndexMap={globalUrlIndexMap}
                   globalImageIndexMap={globalImageIndexMap}
-                  isStreaming={isStreaming && index === messages.length - 1}
+                  previousUserPrompt={previousUserPrompt}
                 />
               );
             })}
@@ -217,15 +203,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         )}
       </div>
 
-      {/* Floating Smart "Scroll to Bottom" Pill Button */}
+      {/* Floating Smart "Scroll to Bottom" Button */}
       <AnimatePresence>
         {showScrollBottom && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.92 }}
+            initial={{ opacity: 0, y: 12, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.92 }}
+            exit={{ opacity: 0, y: 8, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 450, damping: 28 }}
-            className="absolute bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto shadow-2xl"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-auto shadow-2xl"
           >
             <button
               type="button"
@@ -233,7 +219,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 setShowScrollBottom(false);
                 scrollToBottom(true);
               }}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-zinc-950/95 hover:bg-zinc-900 text-zinc-200 hover:text-white border border-white/[0.18] shadow-[0_8px_30px_rgba(0,0,0,0.8)] backdrop-blur-2xl text-[11px] sm:text-xs font-sans font-medium transition-all active:scale-95 cursor-pointer group select-none"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-950/90 hover:bg-zinc-900 text-zinc-200 hover:text-white border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.25)] backdrop-blur-2xl text-xs font-sans font-medium transition-all active:scale-95 cursor-pointer group select-none"
             >
               {isStreaming ? (
                 <span className="relative flex h-2 w-2">
@@ -241,10 +227,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
               ) : (
-                <ArrowDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 group-hover:translate-y-0.5 transition-transform shrink-0" />
+                <div className="size-4 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                  <ArrowDown className="w-2.5 h-2.5 text-zinc-200 group-hover:translate-y-0.5 transition-transform shrink-0" />
+                </div>
               )}
               <span className="leading-none">{isStreaming ? 'جاري الكتابة • انزل للأسفل' : 'الانتقال لأحدث رسالة'}</span>
-              <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-zinc-400 shrink-0" />
             </button>
           </motion.div>
         )}
