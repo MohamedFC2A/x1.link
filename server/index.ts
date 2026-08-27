@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { Readable } from 'stream';
 import { resolveAndProfileUrl } from './linkResolver';
 import { fetchYouTubeTranscript, buildTranscriptContextBlock, containsYouTubeUrl, extractYouTubeUrlFromText, extractYouTubeVideoId, type YouTubeTranscriptResult, type TranscriptFailure } from './youtubeTranscript';
 import { fetchTikTokData, buildTikTokContextBlock, isTikTokUrl, extractTikTokUrlFromText, type TikTokResult, type TikTokFailure } from './tiktokService';
@@ -1190,10 +1191,12 @@ app.get('/api/download-stream', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing url query parameter' });
     }
 
-    const cleanFilename = filename.replace(/[/\\?%*:|"<>]/g, '_');
+    const cleanFilename = filename.replace(/[/\\?%*:|"<>]/g, '_').trim();
+    // RFC 6266: filename must be strictly ASCII to prevent ERR_INVALID_CHAR, UTF-8 encoded in filename*
+    const asciiFallback = cleanFilename.replace(/[^\x20-\x7E]/g, '').replace(/["\\]/g, '_').trim() || (mimeType.includes('audio') ? 'audio.mp3' : 'video.mp4');
     const safeEncodedFilename = encodeURIComponent(cleanFilename);
 
-    res.setHeader('Content-Disposition', `attachment; filename="${cleanFilename}"; filename*=UTF-8''${safeEncodedFilename}`);
+    res.setHeader('Content-Disposition', `attachment; filename="${asciiFallback}"; filename*=UTF-8''${safeEncodedFilename}`);
     res.setHeader('Content-Type', mimeType);
 
     const upstreamRes = await fetch(mediaUrl, {
@@ -1213,8 +1216,14 @@ app.get('/api/download-stream', async (req: Request, res: Response) => {
       res.setHeader('Content-Length', contentLength);
     }
 
-    const reader = upstreamRes.body.getReader();
-    const pump = async () => {
+    if (typeof (Readable as any).fromWeb === 'function') {
+      const nodeStream = (Readable as any).fromWeb(upstreamRes.body);
+      nodeStream.pipe(res);
+      req.on('close', () => {
+        try { nodeStream.destroy(); } catch {}
+      });
+    } else {
+      const reader = upstreamRes.body.getReader();
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
@@ -1223,13 +1232,7 @@ app.get('/api/download-stream', async (req: Request, res: Response) => {
         }
         res.write(value);
       }
-    };
-
-    req.on('close', () => {
-      reader.cancel().catch(() => {});
-    });
-
-    await pump();
+    }
   } catch (err: any) {
     console.error('[API /api/download-stream Error]:', err);
     if (!res.headersSent) {

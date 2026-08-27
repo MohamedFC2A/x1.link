@@ -20,10 +20,11 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: 'Missing url query parameter' });
     }
 
-    const cleanFilename = filename.replace(/[/\\?%*:|"<>]/g, '_');
+    const cleanFilename = filename.replace(/[/\\?%*:|"<>]/g, '_').trim();
+    const asciiFallback = cleanFilename.replace(/[^\x20-\x7E]/g, '').replace(/["\\]/g, '_').trim() || (mimeType.includes('audio') ? 'audio.mp3' : 'video.mp4');
     const safeEncodedFilename = encodeURIComponent(cleanFilename);
 
-    res.setHeader('Content-Disposition', `attachment; filename="${cleanFilename}"; filename*=UTF-8''${safeEncodedFilename}`);
+    res.setHeader('Content-Disposition', `attachment; filename="${asciiFallback}"; filename*=UTF-8''${safeEncodedFilename}`);
     res.setHeader('Content-Type', mimeType);
 
     const upstreamRes = await fetch(mediaUrl, {
