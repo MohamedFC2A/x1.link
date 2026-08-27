@@ -938,7 +938,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             />
             <div
               dir="rtl"
-              className="absolute bottom-full right-2 mb-3 w-[300px] sm:w-[320px] glass-popover rounded-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none"
+              className="absolute bottom-full right-2 mb-3 w-[315px] sm:w-[345px] glass-popover rounded-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="px-2.5 py-1.5 border-b border-white/[0.08] mb-2">
@@ -994,9 +994,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       <ShieldCheck className="w-4 h-4 text-cyan-400" />
                     </div>
                     <div className="min-w-0 text-right">
-                      <div className="font-bold text-xs text-white flex items-center gap-1.5">
-                        <span>Fathom Cyber 2.0</span>
-                        <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm">
+                      <div className="font-bold text-xs text-white flex items-center gap-1.5 flex-nowrap">
+                        <span className="shrink-0">Fathom Cyber 2.0</span>
+                        <span className="text-[9.5px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm shrink-0">
                           New
                         </span>
                       </div>
@@ -1007,7 +1007,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   </div>
                 </button>
 
-                {/* Model 2.1: Fathom Cyber 2.1 (v4 Pro Architecture & O-H-E-U Discovery) */}
+                {/* Model 2.1: Fathom Cyber 2.1 (Super Thinking & O-H-E-U Discovery) */}
                 <button
                   type="button"
                   onClick={() => {
@@ -1027,17 +1027,17 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       <ShieldCheck className="w-4 h-4 text-cyan-400" />
                     </div>
                     <div className="min-w-0 text-right">
-                      <div className="font-bold text-xs text-white flex items-center gap-1.5 flex-wrap">
-                        <span>Fathom Cyber 2.1</span>
-                        <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm">
+                      <div className="font-bold text-xs text-white flex items-center gap-1.5 flex-nowrap">
+                        <span className="shrink-0">Fathom Cyber 2.1</span>
+                        <span className="text-[9.5px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm shrink-0">
                           New
                         </span>
-                        <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm">
+                        <span className="text-[9.5px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm shrink-0">
                           Super Thinking
                         </span>
                       </div>
                       <div className="text-[11px] text-zinc-300 font-normal leading-relaxed mt-0.5">
-                        معمارية v4 Pro الفائقة مع هالة الاكتشاف العلمي المؤتمت والاستدلال الاختطافي الخوارزمي
+                        استدلال اختطافي فائق واكتشاف علمي مؤتمت مع هندسة سيبرانية سيادية متقدمة
                       </div>
                     </div>
                   </div>
