@@ -812,6 +812,98 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       ? 'vision'
       : null;
 
+    // Dynamic Tool & Light Theme Palette matching the active tool's ambient light & glow
+    const currentThemeColor = useMemo(() => {
+      if (activeFusion) {
+        return {
+          strokeRing: 'stroke-fuchsia-400',
+          textPercent: 'text-fuchsia-300',
+          textAccent: 'text-fuchsia-400',
+          bgLoader: 'bg-fuchsia-500/20 border-fuchsia-500/30 text-fuchsia-300',
+          spinnerColor: 'text-fuchsia-400',
+          glowShadow: 'shadow-[0_0_12px_rgba(217,70,239,0.5)]',
+          borderGlow: 'border-fuchsia-400/50',
+          sheen: activeFusion.topSheen,
+        };
+      }
+      if (isMediaMode || hasNonImageMedia) {
+        // Fathom Spark (Video/Audio/Docs) - Violet / Purple / Fuchsia Glow
+        return {
+          strokeRing: 'stroke-violet-400',
+          textPercent: 'text-violet-300',
+          textAccent: 'text-violet-400',
+          bgLoader: 'bg-violet-500/20 border-violet-500/30 text-violet-300',
+          spinnerColor: 'text-violet-400',
+          glowShadow: 'shadow-[0_0_12px_rgba(168,85,247,0.5)]',
+          borderGlow: 'border-violet-400/50',
+          sheen: 'bg-gradient-to-r from-transparent via-violet-400 to-transparent',
+        };
+      }
+      if (isDeepSearchEffective) {
+        // Fathom Search - Emerald / Teal Glow
+        return {
+          strokeRing: 'stroke-emerald-400',
+          textPercent: 'text-emerald-300',
+          textAccent: 'text-emerald-400',
+          bgLoader: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300',
+          spinnerColor: 'text-emerald-400',
+          glowShadow: 'shadow-[0_0_12px_rgba(16,185,129,0.5)]',
+          borderGlow: 'border-emerald-400/50',
+          sheen: 'bg-gradient-to-r from-transparent via-emerald-400 to-transparent',
+        };
+      }
+      if (isCyberMode || hasUrls) {
+        // Fathom Cyber 1.1 - Cyan Glow
+        return {
+          strokeRing: 'stroke-cyan-400',
+          textPercent: 'text-cyan-300',
+          textAccent: 'text-cyan-400',
+          bgLoader: 'bg-cyan-500/20 border-cyan-500/30 text-cyan-300',
+          spinnerColor: 'text-cyan-400',
+          glowShadow: 'shadow-[0_0_12px_rgba(6,182,212,0.5)]',
+          borderGlow: 'border-cyan-400/50',
+          sheen: 'bg-gradient-to-r from-transparent via-cyan-400 to-transparent',
+        };
+      }
+      if (isX1Active) {
+        // NSFW Mode - Rose Glow
+        return {
+          strokeRing: 'stroke-rose-400',
+          textPercent: 'text-rose-300',
+          textAccent: 'text-rose-400',
+          bgLoader: 'bg-rose-500/20 border-rose-500/30 text-rose-300',
+          spinnerColor: 'text-rose-400',
+          glowShadow: 'shadow-[0_0_12px_rgba(244,63,94,0.5)]',
+          borderGlow: 'border-rose-400/50',
+          sheen: 'bg-gradient-to-r from-transparent via-rose-500 to-transparent',
+        };
+      }
+      if (isVisionMode || hasAttachments) {
+        // Fathom Cam - Emerald Glow
+        return {
+          strokeRing: 'stroke-emerald-400',
+          textPercent: 'text-emerald-300',
+          textAccent: 'text-emerald-400',
+          bgLoader: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300',
+          spinnerColor: 'text-emerald-400',
+          glowShadow: 'shadow-[0_0_12px_rgba(16,185,129,0.5)]',
+          borderGlow: 'border-emerald-400/50',
+          sheen: 'bg-gradient-to-r from-transparent via-emerald-400 to-transparent',
+        };
+      }
+      // Default Fathom 1.1 - White / Silver Glow
+      return {
+        strokeRing: 'stroke-white',
+        textPercent: 'text-white',
+        textAccent: 'text-white',
+        bgLoader: 'bg-white/15 border-white/25 text-white',
+        spinnerColor: 'text-white',
+        glowShadow: 'shadow-[0_0_12px_rgba(255,255,255,0.4)]',
+        borderGlow: 'border-white/50',
+        sheen: 'bg-gradient-to-r from-transparent via-white/40 to-transparent',
+      };
+    }, [activeFusion, isMediaMode, hasNonImageMedia, isDeepSearchEffective, isCyberMode, hasUrls, isX1Active, isVisionMode, hasAttachments]);
+
     return (
       <div
         ref={ref}
@@ -1264,23 +1356,23 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                                 cx="18"
                                 cy="18"
                                 r="14"
-                                className="stroke-emerald-400 fill-none transition-all duration-300 ease-out"
+                                className={cn("fill-none transition-all duration-300 ease-out", currentThemeColor.strokeRing)}
                                 strokeWidth="3"
                                 strokeDasharray="87.96"
                                 strokeDashoffset={87.96 - (87.96 * (att.uploadProgress || 0)) / 100}
                                 strokeLinecap="round"
                               />
                             </svg>
-                            <span className="absolute font-mono text-[9px] font-bold text-emerald-300">
+                            <span className={cn("absolute font-mono text-[9px] font-bold", currentThemeColor.textPercent)}>
                               {att.uploadProgress || 0}%
                             </span>
                           </div>
-                          <span className="text-[7px] text-zinc-300 font-sans mt-0.5 animate-pulse font-medium">جاري الرفع...</span>
+                          <span className={cn("text-[7px] font-sans mt-0.5 animate-pulse font-medium", currentThemeColor.textPercent)}>جاري الرفع...</span>
                         </div>
                       ) : (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                          <div className="size-6 rounded-full bg-black/70 border border-emerald-400/50 shadow-[0_0_8px_rgba(16,185,129,0.4)] flex items-center justify-center">
-                            <Video className="w-3 h-3 text-emerald-400" />
+                          <div className={cn("size-6 rounded-full bg-black/70 border flex items-center justify-center", currentThemeColor.borderGlow, currentThemeColor.glowShadow)}>
+                            <Video className={cn("w-3 h-3", currentThemeColor.textAccent)} />
                           </div>
                         </div>
                       )}
@@ -1401,19 +1493,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             <div
               className={cn(
                 "absolute top-0 inset-x-8 h-[1px] rounded-full pointer-events-none transition-all duration-500 z-20",
-                !isSpecialMode
-                  ? "opacity-0"
-                  : activeFusion
-                  ? `${activeFusion.topSheen} opacity-90`
-                  : isDeepSearchEffective
-                  ? "bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-90"
-                  : isCyberMode || hasUrls
-                  ? "bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-90"
-                  : isX1Active
-                  ? "bg-gradient-to-r from-transparent via-rose-500 to-transparent opacity-90"
-                  : hasAttachments
-                  ? "bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-90"
-                  : "opacity-0"
+                !isSpecialMode ? "opacity-0" : cn(currentThemeColor.sheen, "opacity-90")
               )}
             />
 
@@ -1556,6 +1636,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   "w-full bg-transparent text-[15px] sm:text-base leading-relaxed resize-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none border-0 focus:border-0 shadow-none focus:shadow-none font-sans max-h-44 min-h-[38px] py-1 px-1 smooth-scroll no-scrollbar transition-colors",
                   activeFusion
                     ? activeFusion.textColor
+                    : isMediaMode || hasNonImageMedia
+                    ? "text-violet-50 placeholder:text-violet-300/50 selection:bg-violet-500/40"
                     : isDeepSearchEffective
                     ? "text-emerald-50 placeholder:text-emerald-300/50 selection:bg-emerald-500/40"
                     : isCyberMode
@@ -1581,16 +1663,20 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   isStreaming
                     ? "bg-white hover:bg-zinc-200 text-zinc-950 shadow-white/20"
                     : isAnyAttachmentProcessing
-                    ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 cursor-wait shadow-none"
+                    ? cn("cursor-wait shadow-none border", currentThemeColor.bgLoader)
                     : hasValue
                     ? activeFusion
                       ? `${activeFusion.sendGradient} font-bold hover:scale-105 shadow-xl`
+                      : isMediaMode || hasNonImageMedia
+                      ? "bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 text-white font-bold hover:scale-105 shadow-violet-500/30"
                       : isDeepSearchEffective
                       ? "bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-bold hover:scale-105 shadow-emerald-500/30"
                       : isCyberMode
                       ? "bg-cyan-400 hover:bg-cyan-300 text-black font-bold hover:scale-105 shadow-cyan-400/30"
-                      : hasAttachments
+                      : isVisionMode || hasAttachments
                       ? "bg-emerald-400 hover:bg-emerald-300 text-black font-bold hover:scale-105 shadow-emerald-500/30"
+                      : isX1Active
+                      ? "bg-rose-500 hover:bg-rose-400 text-white font-bold hover:scale-105 shadow-rose-500/30"
                       : "bg-white hover:bg-zinc-100 text-zinc-950 font-bold hover:scale-105 shadow-white/20"
                     : "bg-white/[0.04] text-zinc-600 cursor-not-allowed border border-white/[0.04]"
                 )}
@@ -1599,9 +1685,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 {isStreaming ? (
                   <Square className="w-4 h-4 fill-current text-zinc-950" />
                 ) : isAnyAttachmentProcessing ? (
-                  <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+                  <Loader2 className={cn("w-4 h-4 animate-spin", currentThemeColor.spinnerColor)} />
                 ) : (
-                  <ArrowUp className={cn("w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]", (isCyberMode || isDeepSearchEffective || hasAttachments || Boolean(activeFusion)) ? "text-black" : hasValue ? "text-zinc-950" : "text-zinc-600")} />
+                  <ArrowUp className={cn("w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]", (isMediaMode || hasNonImageMedia || isX1Active) ? "text-white" : (isCyberMode || isDeepSearchEffective || hasAttachments || Boolean(activeFusion)) ? "text-black" : hasValue ? "text-zinc-950" : "text-zinc-600")} />
                 )}
               </button>
             </div>
