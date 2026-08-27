@@ -1938,48 +1938,26 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     const isForensicsExplicitlyRequested = isForensicAnalysisRequested(userPromptForForensics);
 
     console.log(`[X1-PIPELINE] Multimodal image detected. Fast native multimodal routing activated (forensics: ${isForensicsExplicitlyRequested})...`);
-    const visionMessages = cleanedMessages.filter((m: any) => Array.isArray(m.content) || m.role === 'user');
-
-    let forensicBlock = '';
-    if (isForensicsExplicitlyRequested) {
-      console.log(`[X1-PIPELINE] [FORENSICS] Triggering 5-layer AI Authenticity & Forensics Engine...`);
-      try {
-        const forensicPromises: Promise<ForensicReport>[] = [];
-        const lastMsg = visionMessages[visionMessages.length - 1];
-        if (lastMsg && Array.isArray(lastMsg.content)) {
-          for (const item of lastMsg.content) {
-            const url = item?.image_url?.url || item?.image_url || '';
-            if (url && typeof url === 'string' && url.startsWith('data:image')) {
-              forensicPromises.push(extractImageForensics(url));
-            }
-          }
-        }
-
-        if (forensicPromises.length > 0) {
-          const reports = await Promise.all(forensicPromises);
-          const validReports = reports.filter(Boolean);
-          if (validReports.length > 0) {
-            forensicBlock = validReports.map((r, i) => buildForensicReportMarkdown(r)).join('\n\n');
-            console.log(`[X1-PIPELINE] [FORENSICS] ✓ 5-layer forensics complete for ${validReports.length} image(s). Score: ${validReports[0].authenticity.overallAiConfidenceScore}%`);
-          }
-        }
-      } catch (fErr: any) {
-        console.warn('[Forensics Pipeline Exception]:', fErr.message);
-      }
-    }
 
     const visionGuidance = `
-[توجيه التحليل البصري والوسائط الشامل — FATHOM MULTIMODAL DIRECTIVE]:
+[توجيه الفحص البصري والتحقق من الذكاء الاصطناعي — FATHOM VISION & AI AUTHENTICITY DIRECTIVE]:
 1. فكّر وتأمّل أولاً حصراً داخل وسم <think> باللغة العربية الفصحى:
-   - استوعب كافة الصور أو مقاطع الفيديو المرفقة أو المشار إليها في هذه المحادثة.
-   - إذا سأل المستخدم عن فيديو أو وسائط سابقة (مثل "الفيديو الأول صحيح؟" أو غيرها): استرجع موضوع الفيديو وافحص صحة كلام المتحدث علمياً ومنطقياً.
-   - إذا سأل عما إذا كانت الصورة حقيقية أم ذكاء اصطناعي (مثل "ذكاء اصطناعي ولا ايه" أو "ذكاء اصطباحي" أو "حقيقية ولا ذكاء" أو أي صيغة تحقق):
-     * افحص ملامح الوجه، ملمس البشرة والمسام، انعكاس الضوء في العيون، تفاصيل الأطراف، والخلفية.
-     * أصدر حكماً قاطعاً وواضحاً: هل الصورة فوتوغرافية حقيقية أم مولدة بالذكاء الاصطناعي مع سرد الأدلة البصرية.
-2. بعد إغلاق وسم </think>، أجب باللغة العربية الفصحى بوضوح ودقة عالية مجيباً عن كل استفسار طرحه المستخدم بشكل منظم ومرتب.
-ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية، وممنوع استخدام كود بلوك thought أو think للإجابة.`;
+   - افحص سياق المحادثة بدقة:
+     * إذا سأل المستخدم عن فيديو أو وسائط سابقة (مثل "الفيديو الأول صحيح؟"): استرجع ما ورد في الفيديو وافحص صحة كلام المتحدث علمياً ومنطقياً (مثل التحذير الطبي القاطع من خطورة أدوية مدرات البول مثل اللازكس Furosemide لإنقاص الوزن، وتوضيح أضرارها الجسيمة كاختلال الكهارل والجفاف وفقدان سوائل وهمي).
+     * بخصوص الصورة المرفقة في هذا الطلب الحالي:
+       - انتبه جيداً: المرفق في هذا الطلب الحالي هو صورة واحدة فقط (وليست أربع صور)! لا تخلط بينها وبين لقطات الفيديو السابقة في المحادثة.
+       - افحص الصورة بصرياً بأعلى درجات التدقيق لكشف ما إذا كانت مولدة بالذكاء الاصطناعي (AI-Generated / Synthetic / Midjourney / Flux / SDXL / DALL-E) أم صورة فوتوغرافية حقيقية التقطتها كاميرا:
+         • ملمس البشرة والمسام (Skin Texture): هل البشرة مصقولة وبلاستيكية بدون مسام وتجاعيد طبيعية حقيقية (Airbrushed / Hyper-smooth)؟
+         • رسم العيون، البؤبؤ، وانعكاسات الضوء (Eyes & Reflections): هل انعكاس الضوء غير متطابق فيزيائياً أو هل العيون تبدو مرسومة أو فيها بريق زجاجي اصطناعي؟
+         • خصلات الشعر واللحية والشارب: هل تفاصيل الشعر مدمجة أو مرسومة بأسلوب محركات الانتشار العصبي؟
+         • الإضاءة والظلال وعزل الخلفية: هل الإضاءة سينمائية بشكل درامي مصطنع أو هل الحواف متلاشية بشكل غير فيزيائي؟
+       - الحكم الحاسم والصادق: إذا كانت الصورة تحمل أي سمة من سمات التوليد بالذكاء الاصطناعي، اذكر بصراحة تامة وبكل وضوح أنها [صورة مولدة بالذكاء الاصطناعي وليست صورة حقيقية التقطتها كاميرا]، وفنّد الأدلة البصرية التي تثبت ذلك. لا تدّعِ أبداً أنها صورة حقيقية إذا كانت مصطنعة!
+2. بعد إغلاق وسم </think>، قدّم إجابتك باللغة العربية الفصحى بشكل منظم وواضح في قسمين منفصلين:
+   - أولاً (الفيديو الأول): التحليل العلمي الدقيق لموضوع الفيديو ومدى صحته أو خطورته.
+   - ثانياً (الصورة المرفقة): الفحص البصري الأمين والمباشر للصورة الواحدة المرفقة وتحديد هل هي ذكاء اصطناعي أم صورة حقيقية مع سرد الأدلة البصرية.
+ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية أو استخدام كود بلوك thought للإجابة.`;
 
-    const combinedBlocks = [forensicBlock, visionGuidance].filter(Boolean).join('\n\n');
+    const combinedBlocks = visionGuidance;
     const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
     if (lastUserIdx !== -1) {
       const targetMsg = processedMessages[lastUserIdx];

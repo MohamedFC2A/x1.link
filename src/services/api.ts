@@ -53,7 +53,7 @@ export async function streamChatCompletion({
 
     // Format messages for API (convert multimodal items with images if present)
     const formattedMessages = messages.map((msg, idx) => {
-      const isLatestTurn = idx >= messages.length - 2;
+      const isLatestTurn = idx === messages.length - 1;
       let cleanContent = msg.content || '';
       
       // Auto-substitute any cached unshortened URLs directly in message content
@@ -119,14 +119,18 @@ export async function streamChatCompletion({
           };
         }
 
+        const imageCountNotice = allImages.length === 1
+          ? 'المرفق في هذا الطلب الحالي: صورة واحدة فقط'
+          : `عدد الصور المرفقة في هذا الطلب: (${allImages.length}) صور`;
+
         const contentParts: any[] = [
-          { type: 'text', text: cleanContent || 'حلل هذه الصور واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.' }
+          { type: 'text', text: `${cleanContent}\n\n[${imageCountNotice}]` }
         ];
 
         allImages.forEach((imgUrl, i) => {
           contentParts.push({
             type: 'text',
-            text: `\n--- [صورة رقم ${i + 1} المرفوعة من المستخدم] ---`
+            text: allImages.length === 1 ? `\n--- [الصورة المرفقة] ---` : `\n--- [صورة رقم ${i + 1} من أصل ${allImages.length}] ---`
           });
           contentParts.push({
             type: 'image_url',
