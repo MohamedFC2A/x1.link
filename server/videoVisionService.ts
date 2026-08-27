@@ -9,7 +9,7 @@
  *   5. Seamless Multimodal AI Injection & Direct Vision Model Routing
  */
 
-import type { TimestampedBlock, YouTubeTranscriptResult } from './youtubeTranscript.js';
+import type { TimestampedBlock, YouTubeTranscriptResult } from './youtubeTranscript';
 
 export interface VideoKeyframe {
   label: string;

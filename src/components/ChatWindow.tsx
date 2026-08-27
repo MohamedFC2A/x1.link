@@ -127,17 +127,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         }}
       >
         {messages.length === 0 ? (
-          <div className="min-h-[50vh] flex flex-col items-center justify-center max-w-lg mx-auto py-12 text-center animate-in fade-in duration-300 px-4 relative select-none">
-            {/* Master Brand M Emblem with Glassmorphic Squircle */}
-            <div className="mb-4 relative group cursor-default">
-              <div className="size-18 sm:size-20 rounded-3xl p-1 bg-gradient-to-b from-white/20 via-white/10 to-white/5 shadow-[0_12px_36px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.25)] border border-white/20 flex items-center justify-center backdrop-blur-2xl group-hover:scale-105 transition-transform duration-300">
-                <img src="/matany-logo.svg" alt="matany.one" className="size-full rounded-[20px] object-contain drop-shadow" />
+          <div className="min-h-[35vh] flex flex-col items-center justify-center max-w-sm mx-auto py-6 sm:py-8 text-center animate-in fade-in duration-300 px-4 relative select-none">
+            {/* Master Brand M Emblem - Sleek Compact Glass Squircle */}
+            <div className="mb-2.5 relative group cursor-default">
+              <div className="size-10 sm:size-11 rounded-2xl p-1 bg-white/[0.06] border border-white/15 flex items-center justify-center backdrop-blur-xl shadow-lg group-hover:scale-105 transition-transform">
+                <img src="/matany-logo.svg" alt="matany.one" className="size-full rounded-[10px] object-contain drop-shadow" />
               </div>
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-2">
+            <h2 className="text-sm sm:text-base font-bold tracking-tight text-white mb-1">
               ابدأ محادثة مع {isX1Active ? 'matany.one' : 'Fathom'}
             </h2>
+            <p className="text-[11px] text-zinc-400 font-sans">
+              اكتب سؤالك، أرفق صورة، أو الصق أي رابط للتحليل الفوري
+            </p>
           </div>
         ) : (
           <div ref={messagesListRef} className="space-y-4 pb-24 sm:pb-32">

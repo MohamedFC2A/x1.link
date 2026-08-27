@@ -13,9 +13,9 @@
  */
 
 import { spawn } from 'child_process';
-import { extractSocialUrlFromText, detectSocialPlatform } from './socialVideoService.js';
-import { extractYouTubeVideoId, containsYouTubeUrl } from './youtubeTranscript.js';
-import { isTikTokUrl } from './tiktokService.js';
+import { extractSocialUrlFromText, detectSocialPlatform } from './socialVideoService';
+import { extractYouTubeVideoId, containsYouTubeUrl } from './youtubeTranscript';
+import { isTikTokUrl } from './tiktokService';
 
 export interface MediaFormatOption {
   formatId: string;

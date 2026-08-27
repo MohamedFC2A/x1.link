@@ -13,7 +13,7 @@
  *   - Forensic 5-Pillar Multimodal Vision & Micro-OCR integration
  */
 
-import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildMasterVideoIntelligenceBlock, type VideoKeyframe, type VideoVisionResult } from './videoVisionService.js';
+import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildMasterVideoIntelligenceBlock, type VideoKeyframe, type VideoVisionResult } from './videoVisionService';
 
 export interface PostComment {
   author: string;

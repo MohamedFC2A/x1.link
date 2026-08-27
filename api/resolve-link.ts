@@ -1,5 +1,9 @@
 import { resolveAndProfileUrl } from '../server/linkResolver';
 
+export const config = {
+  runtime: 'edge',
+};
+export const runtime = 'edge';
 export const maxDuration = 60;
 
 export default async function handler(req: Request) {

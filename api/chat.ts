@@ -4,6 +4,10 @@ import { fetchTikTokData, buildTikTokContextBlock, isTikTokUrl, extractTikTokUrl
 import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildMasterVideoIntelligenceBlock, type VideoVisionResult } from '../server/videoVisionService';
 import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatform, extractSocialUrlFromText, type SocialVideoMetadata, type SocialVideoFailure } from '../server/socialVideoService';
 
+export const config = {
+  runtime: 'edge',
+};
+export const runtime = 'edge';
 export const maxDuration = 60;
 
 // Primary & Fallback API Keys
