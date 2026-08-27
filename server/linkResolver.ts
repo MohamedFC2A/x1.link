@@ -98,6 +98,11 @@ const SHORTENER_DOMAINS = new Set([
   'shorturl.at',
   'lnkd.in',
   'fb.me',
+  'fb.watch',
+  'fb.com',
+  'fb.gg',
+  'pin.it',
+  'redd.it',
   'wp.me',
   'amzn.to',
   't.me',
@@ -732,7 +737,7 @@ export async function resolveAndProfileUrl(rawInputUrl: string): Promise<Resolve
   const isYouTube = /(?:youtube\.com|youtu\.be)\//i.test(finalUrl);
   const isTikTok = /(?:tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com)\//i.test(finalUrl);
   const isInstagram = /(?:instagram\.com|instagr\.am|ig\.me)\//i.test(finalUrl);
-  const isFacebook = /(?:facebook\.com|fb\.watch|fb\.me|m\.facebook\.com)\//i.test(finalUrl);
+  const isFacebook = /(?:facebook\.com|fb\.watch|fb\.me|fb\.com|fb\.gg|m\.facebook\.com|web\.facebook\.com|touch\.facebook\.com|mbasic\.facebook\.com)/i.test(finalUrl);
   const isTwitter = /(?:x\.com|twitter\.com|t\.co)\//i.test(finalUrl);
 
   const isVideoPlatform = isYouTube || isTikTok || isInstagram || isFacebook || isTwitter;
@@ -916,12 +921,21 @@ export async function resolveAndProfileUrl(rawInputUrl: string): Promise<Resolve
       infrastructure: [],
     };
   } else if (isFacebook) {
-    const idMatch = finalUrl.match(/(?:videos|reel|watch\/\?v=)\/?([0-9]+)/i);
+    const idMatch = finalUrl.match(/(?:videos|reel|watch\/\?v=|watch\?v=|share\/v\/|share\/r\/|share\/p\/|posts\/|fbid=)\/?([0-9a-zA-Z_-]+)/i);
     const videoId = idMatch ? idMatch[1] : undefined;
+
+    let authorName = 'Facebook Creator';
+    if (title.includes('|')) {
+      authorName = title.split('|')[0].trim();
+    } else if (title.includes(' - ')) {
+      authorName = title.split(' - ')[0].trim();
+    } else if (/on facebook/i.test(title)) {
+      authorName = title.split(/on facebook/i)[0].trim();
+    }
 
     videoMetadata = {
       videoId,
-      authorName: title.includes('|') ? title.split('|')[0].trim() : 'Facebook Creator',
+      authorName: authorName || 'Facebook Creator',
       thumbnailUrl: brandAssets.ogImage || brandAssets.twitterImage || 'https://static.xx.fbcdn.net/rsrc.php/yT/r/a9Pl9FiAbJy.ico',
       platform: 'facebook',
     };

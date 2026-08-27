@@ -8,12 +8,14 @@ export type SupportedPlatform =
   | 'instagram'
   | 'facebook'
   | 'twitter'
+  | 'threads'
   | 'github'
   | 'reddit'
   | 'linkedin'
   | 'telegram'
   | 'discord'
   | 'pinterest'
+  | 'vimeo'
   | 'twitch'
   | 'spotify'
   | 'generic';
@@ -55,7 +57,7 @@ export function detectPlatformDetails(urlOrDomain: string): PlatformDetails {
   }
 
   // 3. Instagram
-  if (clean.includes('instagram.com') || clean.includes('instagr.am')) {
+  if (clean.includes('instagram.com') || clean.includes('instagr.am') || clean.includes('ig.me')) {
     return { platform: 'instagram', displayName: 'Instagram', canonicalDomain: 'instagram.com' };
   }
 
@@ -64,9 +66,19 @@ export function detectPlatformDetails(urlOrDomain: string): PlatformDetails {
     clean.includes('facebook.com') ||
     clean.includes('fb.watch') ||
     clean.includes('fb.com') ||
-    clean.includes('m.facebook.com')
+    clean.includes('fb.me') ||
+    clean.includes('fb.gg') ||
+    clean.includes('m.facebook.com') ||
+    clean.includes('web.facebook.com') ||
+    clean.includes('touch.facebook.com') ||
+    clean.includes('mbasic.facebook.com')
   ) {
     return { platform: 'facebook', displayName: 'Facebook', canonicalDomain: 'facebook.com' };
+  }
+
+  // 4.5. Threads
+  if (clean.includes('threads.net')) {
+    return { platform: 'threads', displayName: 'Threads', canonicalDomain: 'threads.net' };
   }
 
   // 5. X / Twitter
@@ -122,6 +134,11 @@ export function detectPlatformDetails(urlOrDomain: string): PlatformDetails {
   // 13. Pinterest
   if (clean.includes('pinterest.com') || clean.includes('pin.it')) {
     return { platform: 'pinterest', displayName: 'Pinterest', canonicalDomain: 'pinterest.com' };
+  }
+
+  // 14. Vimeo
+  if (clean.includes('vimeo.com')) {
+    return { platform: 'vimeo', displayName: 'Vimeo', canonicalDomain: 'vimeo.com' };
   }
 
   // Generic domain fallback
@@ -220,6 +237,12 @@ export const DiscordBrandIcon: React.FC<{ className?: string }> = ({ className =
   </svg>
 );
 
+export const ThreadsBrandIcon: React.FC<{ className?: string }> = ({ className = 'size-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12.004 0C5.373 0 0 5.373 0 12.004c0 6.63 5.373 12.003 12.004 12.003 6.63 0 12.003-5.373 12.003-12.003C24.007 5.373 18.634 0 12.004 0zm0 21.823c-5.415 0-9.82-4.405-9.82-9.82 0-5.414 4.405-9.818 9.82-9.818 5.414 0 9.818 4.404 9.818 9.818 0 5.415-4.404 9.82-9.818 9.82zm5.72-8.528c-.08-.346-.226-1.115-.815-1.848-.75-.933-1.884-1.427-3.37-1.468-1.503-.04-2.825.434-3.717 1.334-.897.904-1.39 2.184-1.39 3.606 0 1.488.544 2.766 1.53 3.597.985.83 2.308 1.196 3.725 1.028 1.458-.173 2.658-.87 3.38-1.963l-1.68-.968c-.463.702-1.238 1.096-2.186 1.209-.908.107-1.748-.124-2.365-.65-.623-.53-.96-1.343-.96-2.315h7.848v-.562zm-6.85-1.13c.49-.494 1.26-.74 2.227-.714.935.025 1.63.298 2.068.81.25.293.402.66.47 1.082H10.42c.07-.464.22-.84.454-1.178z" />
+  </svg>
+);
+
 // ─── Master PlatformLogo Component ───────────────────────────────────────────
 
 export interface PlatformLogoProps {
@@ -248,6 +271,8 @@ export const PlatformLogo: React.FC<PlatformLogoProps> = ({
       return <FacebookBrandIcon className={cn('shrink-0 drop-shadow-sm', className)} />;
     case 'twitter':
       return <TwitterXBrandIcon className={cn('shrink-0 text-white drop-shadow-sm', className)} />;
+    case 'threads':
+      return <ThreadsBrandIcon className={cn('shrink-0 text-white drop-shadow-sm', className)} />;
     case 'github':
       return <GitHubBrandIcon className={cn('shrink-0 text-white drop-shadow-sm', className)} />;
     case 'telegram':

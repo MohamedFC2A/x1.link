@@ -555,15 +555,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           return combined;
         });
 
-        const hasOnlyMediaUrls = extracted.urls.every(u => isMediaOrVideoUrl(u));
-        if (hasOnlyMediaUrls) {
-          // Keep conversational model or use Spark Multi for video transcript analysis
-          // Do not trigger Cyber security recon mode for YouTube/TikTok/Media links
-        } else {
-          // Switch to Fathom Cyber only for actual website security & link reconnaissance
-          setInternalModel('deepseek-v4-flash-cyber');
-          onSelectModel?.('deepseek-v4-flash-cyber');
-        }
+        // Always activate Fathom Cyber URL Mode on link detection
+        setInternalModel('deepseek-v4-flash-cyber');
+        onSelectModel?.('deepseek-v4-flash-cyber');
 
         if (extracted.remainingText) {
           const existingValue = value.trim();
@@ -1485,7 +1479,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
             {/* Target URL Input Bar */}
             <AnimatePresence initial={false}>
-              {isTargetUrlBarOpen && isCyberMode && !hasAttachments && (
+              {isTargetUrlBarOpen && !hasAttachments && (
                 <motion.div
                   initial={{ opacity: 0, height: 0, y: -6 }}
                   animate={{ opacity: 1, height: 'auto', y: 0 }}
@@ -1542,7 +1536,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
             {/* Attached Multi-URLs Chips Preview Bar (High-End Pure Glassmorphism Capsule System) */}
             <AnimatePresence initial={false}>
-              {attachedUrls.length > 0 && isCyberMode && !hasAttachments && (
+              {attachedUrls.length > 0 && !hasAttachments && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}

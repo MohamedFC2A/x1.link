@@ -31,8 +31,8 @@ export function detectAndExtractUrl(rawText: string): DetectedUrlInfo {
   // 3. Matches IP addresses with optional ports (e.g. 192.168.1.1:8080, 10.0.0.1)
   const ipMatch = rawText.match(/(?:\/|\s|^)(https?:\/\/)?((?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/i);
 
-  // 4. Matches domain.tld formats (e.g. upstore.one, github.com, sub.target.co.uk)
-  const domainMatch = rawText.match(/(?:\/|\s|^)([a-zA-Z0-9-]+\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/i);
+  // 4. Matches domain.tld formats (e.g. upstore.one, fb.watch, fb.me, github.com, sub.target.co.uk)
+  const domainMatch = rawText.match(/(?:\/|\s|^)([a-zA-Z0-9-]+\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|watch|it|fi|be|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/i);
 
   let rawUrlFound = '';
 
@@ -106,13 +106,15 @@ export function getFaviconUrl(domainOrUrl: string | null | undefined): string | 
     if (!clean || !clean.includes('.')) return null;
 
     // Canonicalize top platform shorteners and subdomains
-    if (clean.includes('tiktok.com')) clean = 'tiktok.com';
-    else if (clean.includes('youtube.com') || clean.includes('youtu.be')) clean = 'youtube.com';
-    else if (clean.includes('instagram.com') || clean.includes('instagr.am')) clean = 'instagram.com';
-    else if (clean.includes('facebook.com') || clean.includes('fb.watch') || clean.includes('fb.com')) clean = 'facebook.com';
+    if (clean.includes('tiktok.com') || clean.includes('douyin.com')) clean = 'tiktok.com';
+    else if (clean.includes('youtube.com') || clean.includes('youtu.be') || clean.includes('yt.be')) clean = 'youtube.com';
+    else if (clean.includes('instagram.com') || clean.includes('instagr.am') || clean.includes('ig.me')) clean = 'instagram.com';
+    else if (clean.includes('facebook.com') || clean.includes('fb.watch') || clean.includes('fb.com') || clean.includes('fb.me') || clean.includes('fb.gg')) clean = 'facebook.com';
     else if (clean.includes('twitter.com') || clean.includes('x.com') || clean.includes('t.co')) clean = 'x.com';
+    else if (clean.includes('threads.net')) clean = 'threads.net';
     else if (clean.includes('linkedin.com') || clean.includes('lnkd.in')) clean = 'linkedin.com';
     else if (clean.includes('reddit.com') || clean.includes('redd.it')) clean = 'reddit.com';
+    else if (clean.includes('pinterest.com') || clean.includes('pin.it')) clean = 'pinterest.com';
     else if (clean.includes('telegram.org') || clean.includes('t.me')) clean = 'telegram.org';
     else if (clean.includes('discord.com') || clean.includes('discord.gg')) clean = 'discord.com';
 
@@ -162,7 +164,7 @@ export function isYouTubeShortsUrl(url: string | null | undefined): boolean {
 }
 
 /**
- * Checks if a URL belongs to a media/video platform (YouTube, TikTok, Instagram, Twitter, etc.)
+ * Checks if a URL belongs to a media/video platform (YouTube, TikTok, Instagram, Facebook, Twitter/X, Reddit, Threads, Pinterest, Vimeo, etc.)
  */
 export function isMediaOrVideoUrl(url: string | null | undefined): boolean {
   if (!url || typeof url !== 'string') return false;
@@ -170,16 +172,31 @@ export function isMediaOrVideoUrl(url: string | null | undefined): boolean {
   return (
     lower.includes('youtube.com') ||
     lower.includes('youtu.be') ||
+    lower.includes('yt.be') ||
     lower.includes('tiktok.com') ||
+    lower.includes('douyin.com') ||
     lower.includes('instagram.com') ||
-    lower.includes('twitter.com') ||
-    lower.includes('x.com') ||
+    lower.includes('instagr.am') ||
+    lower.includes('ig.me') ||
     lower.includes('facebook.com') ||
     lower.includes('fb.watch') ||
+    lower.includes('fb.com') ||
+    lower.includes('fb.me') ||
+    lower.includes('fb.gg') ||
+    lower.includes('twitter.com') ||
+    lower.includes('x.com') ||
+    lower.includes('t.co') ||
+    lower.includes('threads.net') ||
+    lower.includes('reddit.com') ||
+    lower.includes('redd.it') ||
+    lower.includes('pinterest.com') ||
+    lower.includes('pin.it') ||
     lower.includes('vimeo.com') ||
     lower.includes('dailymotion.com') ||
+    lower.includes('dai.ly') ||
     lower.includes('soundcloud.com') ||
-    lower.includes('spotify.com')
+    lower.includes('spotify.com') ||
+    /\.(mp4|webm|mkv|mov|mp3|wav|m4a|m3u8)(?:\?.*)?$/i.test(lower)
   );
 }
 
@@ -209,7 +226,7 @@ export function extractAllCleanUrls(
   }
 
   // Regex matching http/https/www URLs and standard domain patterns
-  const urlRegex = /(?:https?:\/\/[^\s<>"'{}|\\^`]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+[^\s<>"'{}|\\^`]*|[a-zA-Z0-9-]+\.(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/gi;
+  const urlRegex = /(?:https?:\/\/[^\s<>"'{}|\\^`]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+[^\s<>"'{}|\\^`]*|[a-zA-Z0-9-]+\.(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|watch|it|fi|be|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/gi;
 
   const rawMatches = rawText.match(urlRegex) || [];
   const cleanList: string[] = [];

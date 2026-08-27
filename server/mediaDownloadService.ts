@@ -34,6 +34,19 @@ export interface MediaFormatOption {
   isBest?: boolean;
 }
 
+function decodeHtmlEntities(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)))
+    .replace(/&#([0-9]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 10)))
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .trim();
+}
+
 export interface MediaGalleryImage {
   index: number;
   url: string;
@@ -46,7 +59,7 @@ export interface MediaGalleryImage {
 
 export interface DownloadDetectResult {
   success: boolean;
-  platform: 'youtube' | 'tiktok' | 'instagram' | 'twitter' | 'facebook' | 'reddit' | 'threads' | 'vimeo' | 'generic';
+  platform: 'youtube' | 'tiktok' | 'instagram' | 'twitter' | 'facebook' | 'reddit' | 'threads' | 'pinterest' | 'vimeo' | 'generic';
   platformLabel: string;
   originalUrl: string;
   canonicalUrl: string;
@@ -196,26 +209,47 @@ export function identifyMediaPlatform(url: string): {
   platformLabel: string;
 } {
   const lower = (url || '').toLowerCase();
-  if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+  const host = lower.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0].split(':')[0].split('?')[0];
+
+  if (lower.includes('youtube.com') || lower.includes('youtu.be') || lower.includes('yt.be')) {
     return { platform: 'youtube', platformLabel: 'يوتيوب (YouTube)' };
   }
-  if (lower.includes('tiktok.com')) {
+  if (lower.includes('tiktok.com') || lower.includes('douyin.com')) {
     return { platform: 'tiktok', platformLabel: 'تيك توك (TikTok)' };
   }
   if (lower.includes('instagram.com') || lower.includes('instagr.am') || lower.includes('ig.me')) {
     return { platform: 'instagram', platformLabel: 'إنستغرام (Instagram)' };
   }
-  if (lower.includes('x.com') || lower.includes('twitter.com') || lower.includes('t.co')) {
-    return { platform: 'twitter', platformLabel: 'منصة إكس / تويتر (X / Twitter)' };
-  }
-  if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.me') || lower.includes('m.facebook.com')) {
+  if (
+    lower.includes('facebook.com') ||
+    lower.includes('fb.watch') ||
+    lower.includes('fb.me') ||
+    lower.includes('fb.com') ||
+    lower.includes('fb.gg') ||
+    lower.includes('m.facebook.com') ||
+    lower.includes('web.facebook.com') ||
+    lower.includes('touch.facebook.com') ||
+    lower.includes('mbasic.facebook.com')
+  ) {
     return { platform: 'facebook', platformLabel: 'فيسبوك (Facebook)' };
+  }
+  if (
+    lower.includes('twitter.com') ||
+    lower.includes('x.com') ||
+    lower.includes('mobile.twitter.com') ||
+    host === 't.co' ||
+    host.endsWith('.t.co')
+  ) {
+    return { platform: 'twitter', platformLabel: 'منصة إكس / تويتر (X / Twitter)' };
   }
   if (lower.includes('reddit.com') || lower.includes('redd.it')) {
     return { platform: 'reddit', platformLabel: 'ريديت (Reddit)' };
   }
   if (lower.includes('threads.net')) {
     return { platform: 'threads', platformLabel: 'ثريدز (Threads)' };
+  }
+  if (lower.includes('pinterest.com') || lower.includes('pin.it')) {
+    return { platform: 'pinterest', platformLabel: 'بينتيريست (Pinterest)' };
   }
   if (lower.includes('vimeo.com')) {
     return { platform: 'vimeo', platformLabel: 'فيميو (Vimeo)' };
@@ -758,6 +792,319 @@ async function extractTwitterMediaFallback(url: string): Promise<DownloadDetectR
 }
 
 /**
+ * Specialized Fallback Scraper for Facebook Videos, Reels, Watch, & Photo Posts
+ */
+async function extractFacebookMediaFallback(url: string): Promise<DownloadDetectResult | null> {
+  try {
+    let currentUrl = url;
+    let html = '';
+
+    // Step 1: Follow redirects with Facebook bot headers
+    const res = await fetch(currentUrl, {
+      headers: {
+        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php) Facebot Twitterbot/1.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+      },
+      redirect: 'follow',
+    });
+
+    if (res.ok) {
+      currentUrl = res.url || currentUrl;
+      html = await res.text();
+    }
+
+    // Step 2: Fallback to mobile fetch if body is small
+    let mobileHtml = '';
+    if (html.length < 5000 || !html.includes('og:description')) {
+      try {
+        const mobileUrl = currentUrl
+          .replace(/www\.facebook\.com/i, 'm.facebook.com')
+          .replace(/mbasic\.facebook\.com/i, 'm.facebook.com');
+        const mRes = await fetch(mobileUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          },
+          redirect: 'follow',
+        });
+        if (mRes.ok) {
+          mobileHtml = await mRes.text();
+        }
+      } catch {}
+    }
+
+    const combinedHtml = `${html}\n${mobileHtml}`;
+
+    const ogTitle = decodeHtmlEntities(combinedHtml.match(/<meta[^>]+property=["']og:title["'][^>]+content=["'](.*?)["']/i)?.[1] || '');
+    const ogDesc = decodeHtmlEntities(combinedHtml.match(/<meta[^>]+property=["']og:description["'][^>]+content=["'](.*?)["']/i)?.[1] || '');
+    const ogImg = decodeHtmlEntities(combinedHtml.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i)?.[1] || '');
+    const ogVideo = decodeHtmlEntities(combinedHtml.match(/<meta[^>]+property=["']og:video(?::secure_url|:url)?["'][^>]+content=["']([^"']+)["']/i)?.[1] || '');
+
+    // Extract script HD / SD video streams
+    const hdMatch = combinedHtml.match(/"playable_url_quality_hd"\s*:\s*"([^"]+)"/i) || combinedHtml.match(/"browser_native_hd_url"\s*:\s*"([^"]+)"/i) || combinedHtml.match(/"hd_src"\s*:\s*"([^"]+)"/i);
+    const sdMatch = combinedHtml.match(/"playable_url"\s*:\s*"([^"]+)"/i) || combinedHtml.match(/"browser_native_sd_url"\s*:\s*"([^"]+)"/i) || combinedHtml.match(/"sd_src"\s*:\s*"([^"]+)"/i);
+
+    const hdVideoUrl = hdMatch?.[1] ? decodeHtmlEntities(hdMatch[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/')) : '';
+    const sdVideoUrl = sdMatch?.[1] ? decodeHtmlEntities(sdMatch[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/')) : '';
+    const bestVideoUrl = hdVideoUrl || sdVideoUrl || ogVideo;
+
+    // Harvest photo gallery images
+    const images: MediaGalleryImage[] = [];
+    const seenImages = new Set<string>();
+    if (ogImg) {
+      seenImages.add(ogImg);
+      images.push({ index: 1, url: ogImg, thumbnailUrl: ogImg, extension: 'jpg' });
+    }
+
+    const cdnImgMatches = combinedHtml.matchAll(/https:\/\/(?:scontent|external)[^\s"'<>]+\.fbcdn\.net\/[^\s"'<>]+(?:\.jpg|\.png|\.webp|\.jpeg)[^\s"'<>]*/gi);
+    for (const m of cdnImgMatches) {
+      const cleanImg = decodeHtmlEntities(m[0].replace(/&amp;/g, '&'));
+      if (!cleanImg.includes('/rsrc.php') && !cleanImg.includes('16x16') && !cleanImg.includes('32x32') && !seenImages.has(cleanImg)) {
+        seenImages.add(cleanImg);
+        images.push({
+          index: images.length + 1,
+          url: cleanImg,
+          thumbnailUrl: cleanImg,
+          extension: 'jpg',
+        });
+      }
+      if (images.length >= 10) break;
+    }
+
+    let authorName = 'Facebook Creator';
+    if (ogTitle.includes('|')) {
+      authorName = ogTitle.split('|')[0].trim();
+    } else if (ogTitle.includes(' - ')) {
+      authorName = ogTitle.split(' - ')[0].trim();
+    } else if (/on facebook/i.test(ogTitle)) {
+      authorName = ogTitle.split(/on facebook/i)[0].trim();
+    }
+
+    const formats: MediaFormatOption[] = [];
+    if (hdVideoUrl) {
+      formats.push({
+        formatId: 'facebook-video-hd',
+        qualityLabel: '1080p / 720p HD Video',
+        extension: 'mp4',
+        type: 'video',
+        downloadUrl: hdVideoUrl,
+        directStreamUrl: hdVideoUrl,
+        hasAudio: true,
+        hasVideo: true,
+        isBest: true,
+      });
+    }
+    if (sdVideoUrl && sdVideoUrl !== hdVideoUrl) {
+      formats.push({
+        formatId: 'facebook-video-sd',
+        qualityLabel: '480p / 360p SD Video',
+        extension: 'mp4',
+        type: 'video',
+        downloadUrl: sdVideoUrl,
+        directStreamUrl: sdVideoUrl,
+        hasAudio: true,
+        hasVideo: true,
+        isBest: formats.length === 0,
+      });
+    } else if (!hdVideoUrl && ogVideo) {
+      formats.push({
+        formatId: 'facebook-video-best',
+        qualityLabel: 'HD Video (Best Quality)',
+        extension: 'mp4',
+        type: 'video',
+        downloadUrl: ogVideo,
+        directStreamUrl: ogVideo,
+        hasAudio: true,
+        hasVideo: true,
+        isBest: true,
+      });
+    }
+
+    if (bestVideoUrl) {
+      formats.push({
+        formatId: 'facebook-audio',
+        qualityLabel: 'الصوت فائق النقاء (MP3 Audio)',
+        extension: 'mp3',
+        type: 'audio',
+        downloadUrl: bestVideoUrl,
+        directStreamUrl: bestVideoUrl,
+        hasAudio: true,
+        hasVideo: false,
+      });
+    }
+
+    const isVideo = formats.some(f => f.type === 'video');
+    const mediaType: DownloadDetectResult['mediaType'] = isVideo ? 'video' : (images.length > 1 ? 'image_gallery' : 'image_gallery');
+
+    return {
+      success: true,
+      platform: 'facebook',
+      platformLabel: 'فيسبوك (Facebook)',
+      originalUrl: url,
+      canonicalUrl: currentUrl,
+      title: ogTitle || 'منشور فيسبوك',
+      description: ogDesc,
+      author: {
+        name: authorName,
+        username: authorName.toLowerCase().replace(/\s+/g, '_'),
+      },
+      thumbnailUrl: ogImg || images[0]?.url || '',
+      mediaType,
+      formats,
+      images,
+      defaultDownloadUrl: bestVideoUrl || ogImg || images[0]?.url,
+      defaultFormat: formats[0],
+      extractedAt: Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Specialized Fallback Scraper for Reddit Videos & Image Posts
+ */
+async function extractRedditMediaFallback(url: string): Promise<DownloadDetectResult | null> {
+  try {
+    const jsonUrl = url.split('?')[0].replace(/\/$/, '') + '.json';
+    const res = await fetch(jsonUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const post = data?.[0]?.data?.children?.[0]?.data;
+    if (!post) return null;
+
+    const formats: MediaFormatOption[] = [];
+    const images: MediaGalleryImage[] = [];
+
+    const redditVideo = post.media?.reddit_video || post.secure_media?.reddit_video;
+    const videoUrl = redditVideo?.fallback_url || redditVideo?.scrubber_media_url;
+
+    if (videoUrl) {
+      formats.push({
+        formatId: 'reddit-video-hd',
+        qualityLabel: `${redditVideo.height || 720}p HD Video`,
+        extension: 'mp4',
+        type: 'video',
+        downloadUrl: videoUrl,
+        directStreamUrl: videoUrl,
+        hasAudio: true,
+        hasVideo: true,
+        isBest: true,
+      });
+    }
+
+    if (post.url && /\.(jpg|jpeg|png|webp|gif)/i.test(post.url)) {
+      images.push({
+        index: 1,
+        url: post.url,
+        thumbnailUrl: post.url,
+        extension: (post.url.split('.').pop() || 'jpg').split('?')[0],
+      });
+    }
+
+    return {
+      success: true,
+      platform: 'reddit',
+      platformLabel: 'ريديت (Reddit)',
+      originalUrl: url,
+      canonicalUrl: `https://www.reddit.com${post.permalink}`,
+      title: post.title || 'منشور ريديت',
+      description: post.selftext,
+      author: {
+        name: `u/${post.author}`,
+        username: post.author,
+      },
+      thumbnailUrl: post.thumbnail && post.thumbnail.startsWith('http') ? post.thumbnail : (images[0]?.url || ''),
+      mediaType: formats.length > 0 ? 'video' : 'image_gallery',
+      formats,
+      images,
+      defaultDownloadUrl: formats[0]?.downloadUrl || images[0]?.url,
+      defaultFormat: formats[0],
+      extractedAt: Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Specialized Fallback Scraper for Threads Posts & Videos
+ */
+async function extractThreadsMediaFallback(url: string): Promise<DownloadDetectResult | null> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php) Facebot Twitterbot/1.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const ogTitle = decodeHtmlEntities(html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["'](.*?)["']/i)?.[1] || '');
+    const ogDesc = decodeHtmlEntities(html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["'](.*?)["']/i)?.[1] || '');
+    const ogImg = decodeHtmlEntities(html.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i)?.[1] || '');
+    const ogVideo = decodeHtmlEntities(html.match(/<meta[^>]+property=["']og:video(?::secure_url|:url)?["'][^>]+content=["']([^"']+)["']/i)?.[1] || '');
+
+    const formats: MediaFormatOption[] = [];
+    const images: MediaGalleryImage[] = [];
+
+    if (ogVideo) {
+      formats.push({
+        formatId: 'threads-video-hd',
+        qualityLabel: 'HD Video',
+        extension: 'mp4',
+        type: 'video',
+        downloadUrl: ogVideo,
+        directStreamUrl: ogVideo,
+        hasAudio: true,
+        hasVideo: true,
+        isBest: true,
+      });
+    }
+
+    if (ogImg) {
+      images.push({
+        index: 1,
+        url: ogImg,
+        thumbnailUrl: ogImg,
+        extension: 'jpg',
+      });
+    }
+
+    return {
+      success: true,
+      platform: 'threads',
+      platformLabel: 'ثريدز (Threads)',
+      originalUrl: url,
+      canonicalUrl: url,
+      title: ogTitle || 'منشور ثريدز',
+      description: ogDesc,
+      author: {
+        name: ogTitle.includes('(@') ? ogTitle.split('(@')[0].trim() : 'Threads User',
+        username: ogTitle.match(/@([a-zA-Z0-9_.]+)/)?.[1] || 'threads_user',
+      },
+      thumbnailUrl: ogImg || '',
+      mediaType: ogVideo ? 'video' : 'image_gallery',
+      formats,
+      images,
+      defaultDownloadUrl: ogVideo || ogImg,
+      defaultFormat: formats[0],
+      extractedAt: Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Master Universal Media Resolution Pipeline (Zero-Failure Architecture)
  */
 export async function extractMediaForDownload(rawUrl: string): Promise<DownloadDetectResponse> {
@@ -835,6 +1182,12 @@ export async function extractMediaForDownload(rawUrl: string): Promise<DownloadD
     fallbackResult = await extractInstagramMediaFallback(cleanUrl);
   } else if (platform === 'twitter') {
     fallbackResult = await extractTwitterMediaFallback(cleanUrl);
+  } else if (platform === 'facebook') {
+    fallbackResult = await extractFacebookMediaFallback(cleanUrl);
+  } else if (platform === 'reddit') {
+    fallbackResult = await extractRedditMediaFallback(cleanUrl);
+  } else if (platform === 'threads') {
+    fallbackResult = await extractThreadsMediaFallback(cleanUrl);
   }
 
   if (fallbackResult) {

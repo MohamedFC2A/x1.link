@@ -96,18 +96,31 @@ export function detectSocialPlatform(url: string): 'instagram' | 'facebook' | 't
   if (!url) return null;
   const lower = url.toLowerCase();
   if (lower.includes('instagram.com') || lower.includes('instagr.am') || lower.includes('ig.me')) return 'instagram';
-  if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.me') || lower.includes('m.facebook.com')) return 'facebook';
+  if (
+    lower.includes('facebook.com') ||
+    lower.includes('fb.watch') ||
+    lower.includes('fb.me') ||
+    lower.includes('fb.com') ||
+    lower.includes('fb.gg') ||
+    lower.includes('m.facebook.com') ||
+    lower.includes('web.facebook.com') ||
+    lower.includes('touch.facebook.com') ||
+    lower.includes('mbasic.facebook.com')
+  ) return 'facebook';
   if (lower.includes('x.com') || lower.includes('twitter.com') || lower.includes('t.co')) return 'twitter';
-  if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube';
-  if (lower.includes('tiktok.com')) return 'tiktok';
+  if (lower.includes('youtube.com') || lower.includes('youtu.be') || lower.includes('yt.be')) return 'youtube';
+  if (lower.includes('tiktok.com') || lower.includes('douyin.com')) return 'tiktok';
   return null;
 }
 
 export function extractSocialUrlFromText(text: string): { url: string; platform: 'instagram' | 'facebook' | 'twitter' | 'youtube' | 'tiktok' } | null {
   if (!text) return null;
-  const match = text.match(/https?:\/\/[^\s<>"'{}|\\^`]+/i);
+  const match = text.match(/(?:https?:\/\/[^\s<>"'{}|\\^`]+|(?:www\.)?(?:facebook\.com|fb\.watch|fb\.me|fb\.com|fb\.gg|instagram\.com|instagr\.am|tiktok\.com|youtube\.com|youtu\.be|twitter\.com|x\.com)[^\s<>"'{}|\\^`]*)/i);
   if (!match) return null;
-  const cleanUrl = match[0].replace(/[.,;:)>\]"']+$/, '');
+  let cleanUrl = match[0].replace(/[.,;:)>\]"']+$/, '');
+  if (!/^https?:\/\//i.test(cleanUrl)) {
+    cleanUrl = 'https://' + cleanUrl;
+  }
   const platform = detectSocialPlatform(cleanUrl);
   if (platform) return { url: cleanUrl, platform };
   return null;
@@ -381,6 +394,21 @@ export async function fetchFacebookVideoData(url: string): Promise<SocialVideoRe
       if (allMediaUrls.length >= 6) break;
     }
 
+    // Step 7.5: Extract direct Facebook playable video streams (HD / SD) from script tags
+    let scriptVideoHd = '';
+    let scriptVideoSd = '';
+    const hdMatch = combinedHtml.match(/"playable_url_quality_hd"\s*:\s*"([^"]+)"/i) || combinedHtml.match(/"browser_native_hd_url"\s*:\s*"([^"]+)"/i) || combinedHtml.match(/"hd_src"\s*:\s*"([^"]+)"/i);
+    const sdMatch = combinedHtml.match(/"playable_url"\s*:\s*"([^"]+)"/i) || combinedHtml.match(/"browser_native_sd_url"\s*:\s*"([^"]+)"/i) || combinedHtml.match(/"sd_src"\s*:\s*"([^"]+)"/i);
+
+    if (hdMatch?.[1]) {
+      scriptVideoHd = decodeHtmlEntities(hdMatch[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/'));
+    }
+    if (sdMatch?.[1]) {
+      scriptVideoSd = decodeHtmlEntities(sdMatch[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/'));
+    }
+
+    const directVideoUrl = scriptVideoHd || scriptVideoSd || ogVideo || jsonLdVideoUrl || undefined;
+
     // Determine author name
     let authorName = jsonLdAuthor || '';
     if (!authorName && ogTitle) {
@@ -396,12 +424,12 @@ export async function fetchFacebookVideoData(url: string): Promise<SocialVideoRe
 
     // Determine full text content
     const bestFullContent = jsonLdBody || rawPostText || ogDesc || metaDesc || ogTitle || 'محتوى منشور فيسبوك';
-    const isVideo = Boolean(ogVideo || jsonLdVideoUrl || ogType.includes('video') || /(?:videos|reel|watch)\//i.test(currentUrl));
+    const isVideo = Boolean(directVideoUrl || ogType.includes('video') || /(?:videos|reel|watch|share\/v|share\/r)\//i.test(currentUrl));
     const isPhoto = Boolean(!isVideo && (allMediaUrls.length > 0 || ogType.includes('photo')));
     const postType: SocialVideoMetadata['postType'] = isVideo ? 'video' : isPhoto ? 'photo' : 'post';
 
     // Extract ID
-    const idMatch = currentUrl.match(/(?:videos|reel|watch\/\?v=|posts\/|photos\/|permalink\/|fbid=)([0-9]+|[a-zA-Z0-9_-]+)/i);
+    const idMatch = currentUrl.match(/(?:videos|reel|watch\/\?v=|watch\?v=|share\/v\/|share\/r\/|share\/p\/|posts\/|photos\/|permalink\/|fbid=)([0-9a-zA-Z_-]+)/i);
     const videoId = idMatch ? idMatch[1] : undefined;
 
     const result: SocialVideoMetadata = {
@@ -423,7 +451,7 @@ export async function fetchFacebookVideoData(url: string): Promise<SocialVideoRe
         shares: sharesCount,
       },
       thumbnailUrl: ogImg || allMediaUrls[0] || undefined,
-      videoUrl: ogVideo || jsonLdVideoUrl || undefined,
+      videoUrl: directVideoUrl,
       mediaUrls: allMediaUrls,
       commentsList: allComments.slice(0, 10),
       hashtags: extractHashtags(`${ogTitle} ${bestFullContent}`),

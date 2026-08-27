@@ -106,7 +106,7 @@ const SingleLinkCard: React.FC<SingleLinkCardProps> = ({ url, linkIndex, onConfi
     resolvedInfo?.videoMetadata?.platform === 'instagram'
   );
   const isFacebook = Boolean(
-    /(?:facebook\.com|fb\.watch|fb\.me|m\.facebook\.com)/i.test(targetUrl) ||
+    /(?:facebook\.com|fb\.watch|fb\.me|fb\.com|fb\.gg|m\.facebook\.com|web\.facebook\.com|touch\.facebook\.com|mbasic\.facebook\.com)/i.test(targetUrl) ||
     resolvedInfo?.videoMetadata?.platform === 'facebook'
   );
   const isTwitter = Boolean(
@@ -997,7 +997,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
 
   const detectedMediaUrl = useMemo(() => {
     if (!hasDownloadDetect) return null;
-    const mediaRegex = /(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|reddit\.com|threads\.net|vimeo\.com|\.mp4|\.m3u8|\.mp3)/i;
+    const mediaRegex = /(?:youtube\.com|youtu\.be|yt\.be|tiktok\.com|douyin\.com|instagram\.com|instagr\.am|ig\.me|twitter\.com|x\.com|t\.co|facebook\.com|fb\.watch|fb\.me|fb\.com|fb\.gg|reddit\.com|redd\.it|threads\.net|pinterest\.com|pin\.it|vimeo\.com|dailymotion\.com|dai\.ly|\.mp4|\.webm|\.mov|\.mkv|\.m3u8|\.mp3|\.wav|\.m4a)/i;
     
     // 1. Check current message content for media URL
     const inContent = extractAllCleanUrls(message.content || '', 5).urls.find(u => mediaRegex.test(u));
