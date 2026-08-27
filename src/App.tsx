@@ -683,11 +683,11 @@ export const App: React.FC = () => {
       {/* Intelligent Interactive High-Tech Laser Blueprint Grid (Dynamic Cursor Tracking & Laser Crispness) */}
       <InteractiveGridBackground />
 
-      {/* Ambient Dark Luminescence for Enhanced Glassmorphism Depth */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0 select-none opacity-40">
-        <div className="absolute -top-[15%] right-[10%] w-[550px] h-[550px] rounded-full bg-gradient-to-br from-indigo-950/40 via-purple-950/20 to-transparent blur-[130px]" />
-        <div className="absolute top-[35%] -left-[10%] w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-cyan-950/30 via-slate-900/30 to-transparent blur-[140px]" />
-        <div className="absolute -bottom-[15%] right-[20%] w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-zinc-800/30 via-indigo-950/25 to-transparent blur-[130px]" />
+      {/* Ambient Neutral Monochrome Luminescence (Sleek Obsidian & Pure Grey Depth) */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0 select-none opacity-30">
+        <div className="absolute -top-[15%] right-[10%] w-[550px] h-[550px] rounded-full bg-gradient-to-br from-zinc-700/20 via-zinc-800/10 to-transparent blur-[140px]" />
+        <div className="absolute top-[35%] -left-[10%] w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-zinc-800/20 via-zinc-900/15 to-transparent blur-[150px]" />
+        <div className="absolute -bottom-[15%] right-[20%] w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-zinc-700/15 via-zinc-800/10 to-transparent blur-[140px]" />
       </div>
       
       {/* 18+ Mandatory Age Disclaimer Modal */}

@@ -1394,15 +1394,15 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   </blockquote>
                 ),
                 table: ({ children }) => (
-                  <div className="my-3 overflow-x-auto rounded-xl border border-white/[0.1]">
-                    <table className="w-full text-xs text-right border-collapse">{children}</table>
+                  <div className="my-3 overflow-x-auto rounded-xl border border-white/[0.14] bg-zinc-950/60 shadow-inner">
+                    <table className="w-full text-xs sm:text-sm text-right border-collapse">{children}</table>
                   </div>
                 ),
                 th: ({ children }) => (
-                  <th className="bg-white/[0.06] p-2 text-zinc-200 font-semibold border-b border-white/[0.1]">{children}</th>
+                  <th className="bg-zinc-800/80 p-2.5 text-zinc-100 font-bold border-b border-zinc-700/80 text-xs sm:text-sm">{children}</th>
                 ),
                 td: ({ children }) => (
-                  <td className="p-2 border-b border-white/[0.06] text-zinc-300">
+                  <td className="p-2.5 border-b border-zinc-800/60 text-zinc-200 font-normal">
                     {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                   </td>
                 ),
