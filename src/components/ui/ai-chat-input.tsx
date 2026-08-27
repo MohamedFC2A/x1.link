@@ -815,7 +815,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     <div className="min-w-0 text-right">
                       <div className="font-bold text-xs text-white">Fathom Cyber</div>
                       <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
-                        استخبارات وفحص أمني سيبراني متقدم
+                        استخبارات أمنية وهندسة سيبرانية سيادية واختراق أخلاقي
                       </div>
                     </div>
                   </div>

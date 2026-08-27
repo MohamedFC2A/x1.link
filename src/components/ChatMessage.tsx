@@ -857,6 +857,45 @@ function parseCustomBadges(rawContent: string): React.ReactNode | null {
   return null;
 }
 
+function CodeBlock({ className, children, language }: { className?: string; children: React.ReactNode; language: string }) {
+  const [copied, setCopied] = useState(false);
+  const codeText = String(children).replace(/\n$/, '');
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(codeText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="my-2.5 sm:my-3 rounded-xl border border-white/[0.1] bg-black/85 overflow-hidden font-mono text-xs text-left shadow-lg" dir="ltr">
+      <div className="flex justify-between items-center bg-white/[0.05] px-3 py-1.5 border-b border-white/[0.08] text-zinc-400 text-[11px]">
+        <span className="font-mono text-zinc-300 font-semibold uppercase">{language || 'code'}</span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="hover:text-white flex items-center gap-1.5 font-medium transition-colors cursor-pointer select-none active:scale-95 px-2 py-0.5 rounded hover:bg-white/[0.08]"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3 h-3 text-emerald-400" />
+              <span className="text-emerald-400 text-[11px]">تم النسخ</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3 h-3 text-zinc-400" />
+              <span>نسخ الكود</span>
+            </>
+          )}
+        </button>
+      </div>
+      <pre className="p-3 sm:p-3.5 overflow-x-auto text-zinc-200 text-xs leading-relaxed selection:bg-zinc-700">
+        <code className={className}>{children}</code>
+      </pre>
+    </div>
+  );
+}
+
 const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   message,
   previousUserPrompt = '',
@@ -1382,22 +1421,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   }
 
                   return !inline ? (
-                    <div className="my-2.5 sm:my-3 rounded-xl border border-white/[0.1] bg-black/80 overflow-hidden font-mono text-xs text-left" dir="ltr">
-                      <div className="flex justify-between items-center bg-white/[0.04] px-3 py-1.5 border-b border-white/[0.08] text-zinc-400 text-[11px]">
-                        <span className="font-mono text-zinc-300 uppercase">{match ? match[1] : 'code'}</span>
-                        <button
-                          type="button"
-                          onClick={() => navigator.clipboard.writeText(String(children).replace(/\n$/, ''))}
-                          className="hover:text-white flex items-center gap-1 font-medium transition-colors cursor-pointer select-none active:scale-95"
-                        >
-                          <Copy className="w-3 h-3 text-zinc-400" />
-                          نسخ الكود
-                        </button>
-                      </div>
-                      <pre className="p-3 sm:p-3.5 overflow-x-auto text-zinc-200 text-xs leading-relaxed">
-                        <code className={className} {...props}>{children}</code>
-                      </pre>
-                    </div>
+                    <CodeBlock className={className} language={match ? match[1] : 'code'}>
+                      {children}
+                    </CodeBlock>
                   ) : (
                     <code className="bg-white/[0.08] text-zinc-200 border border-white/[0.1] px-1.5 py-0.5 rounded font-mono text-xs" {...props}>{children}</code>
                   );
