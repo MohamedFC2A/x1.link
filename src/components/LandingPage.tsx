@@ -93,7 +93,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Subtitle */}
         <p className="text-xs sm:text-base lg:text-lg text-zinc-400 max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed font-sans font-normal px-2">
-          منظومة محادثة فائقة الذكاء تجمع بين محرك <strong className="text-zinc-200 font-semibold">Fathom 1</strong> للتوليد اللغوي الحر، وإدراك <strong className="text-zinc-200 font-semibold">Fathom Cam</strong> البصري، وتدقيق <strong className="text-cyan-300 font-semibold">Fathom Cyber</strong> الأمني، ووضع <strong className="text-white font-semibold font-['Space_Grotesk']">NSFW Off</strong> المحمي بيومترياً.
+          منظومة محادثة فائقة الذكاء تجمع بين محرك <strong className="text-zinc-200 font-semibold">Fathom 1.1</strong> للتوليد اللغوي الحر، وإدراك <strong className="text-zinc-200 font-semibold">Fathom Cam</strong> البصري، وتدقيق <strong className="text-cyan-300 font-semibold">Fathom Cyber 1.1</strong> الأمني، ووضع <strong className="text-white font-semibold font-['Space_Grotesk']">NSFW Off</strong> المحمي بيومترياً.
         </p>
 
         {/* Primary CTA Buttons */}
@@ -136,7 +136,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-right">
             
-            {/* Card 1: Fathom 1 */}
+            {/* Card 1: Fathom 1.1 */}
             <motion.div
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.97 }}
@@ -149,7 +149,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/[0.04] text-zinc-300 border border-white/[0.08]">
-                  FATHOM 1
+                  FATHOM 1.1
                 </span>
               </div>
 
@@ -235,7 +235,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </motion.div>
 
-            {/* Card 4: Fathom Cyber */}
+            {/* Card 4: Fathom Cyber 1.1 */}
             <motion.div
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.97 }}
@@ -248,7 +248,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/[0.04] text-zinc-300 border border-white/[0.08]">
-                  FATHOM CYBER
+                  FATHOM CYBER 1.1
                 </span>
               </div>
 

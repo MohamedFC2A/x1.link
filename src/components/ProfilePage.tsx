@@ -163,7 +163,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               <h3 className="text-base sm:text-lg font-bold text-white mb-1">{planName}</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
                 {isFree 
-                  ? 'تجربة مرتان فقط لـ Fathom 1 و Fathom Cam' 
+                  ? 'تجربة مرتان فقط لـ Fathom 1.1 و Fathom Cam' 
                   : isElite 
                   ? 'سعة هائلة (500M توكن) وفحوصات واستخبارات غير محدودة' 
                   : '100M توكن شهرياً و 500 فحص سيبراني و 1000 ملف بصري'}

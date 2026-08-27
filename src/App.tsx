@@ -118,7 +118,7 @@ export const App: React.FC = () => {
   const [cloudChats, setCloudChats] = useState<SupabaseChat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
 
-  // Model & Chat State (Persistent Smart Preferred Base Model: Fathom 1 or Fathom Cyber)
+  // Model & Chat State (Persistent Smart Preferred Base Model: Fathom 1.1 or Fathom Cyber 1.1)
   const [preferredBaseModel, setPreferredBaseModel] = useState<ModelType>(() => {
     try {
       const saved = localStorage.getItem('matany_preferred_base_model');
@@ -354,11 +354,11 @@ export const App: React.FC = () => {
       navigateTo('chat');
       let limitMsg = '';
       if (limitCheck.reason === 'free_fathom1_limit') {
-        limitMsg = 'لقد استهلكت حد التجربة المتاح في الخطة المجانية لنموذج Fathom 1 (مرتان فقط). يرجى الترقية إلى باقة المحترف ($29) أو النخبة ($99) للمتابعة بلا قيود.';
+        limitMsg = 'لقد استهلكت حد التجربة المتاح في الخطة المجانية لنموذج Fathom 1.1 (مرتان فقط). يرجى الترقية إلى باقة المحترف ($29) أو النخبة ($99) للمتابعة بلا قيود.';
       } else if (limitCheck.reason === 'free_vision_limit') {
         limitMsg = 'لقد استهلكت حد التجربة المتاح في الخطة المجانية لإدراك Fathom Cam البصري (صورتان فقط). يرجى الترقية إلى باقة المحترف ($29) أو النخبة ($99) لتحليل غير محدود.';
       } else if (limitCheck.reason === 'free_cyber_disabled') {
-        limitMsg = 'فحوصات Fathom Cyber والاستخبارات السيبرانية غير مفعلة في الخطة المجانية. يرجى تفعيل باقة المحترف ($29) أو النخبة ($99).';
+        limitMsg = 'فحوصات Fathom Cyber 1.1 والاستخبارات السيبرانية غير مفعلة في الخطة المجانية. يرجى تفعيل باقة المحترف ($29) أو النخبة ($99).';
       } else {
         limitMsg = 'لقد بلغت الحد الأقصى لرصيد التوكن الشهري لخطة اشتراكك الحالية. يمكنك الترقية لباقة النخبة ($99) للحصول على سعة مفتوحة.';
       }
@@ -925,12 +925,12 @@ export const App: React.FC = () => {
                       onSelectModel={handleSelectModel}
                       placeholder={
                         activeModel === 'deepseek-v4-flash-cyber'
-                          ? "اسأل Fathom Cyber في أي شيء..."
+                          ? "اسأل Fathom Cyber 1.1 في أي شيء..."
                           : activeModel === 'deepseek-v4-flash-vision-exp'
                           ? "اسأل Fathom Cam أو أرفق صور..."
                           : isX1Active
                           ? "اسأل matany.one في أي شيء..."
-                          : "اسأل Fathom 1 في أي شيء..."
+                          : "اسأل Fathom 1.1 في أي شيء..."
                       }
                     />
                   </div>

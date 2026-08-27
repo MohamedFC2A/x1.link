@@ -39,7 +39,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
     },
     {
       id: 4,
-      title: 'المرحلة الرابعة: التوليد اللغوي الفصيح فائق الأداء (Fathom 1 Core)',
+      title: 'المرحلة الرابعة: التوليد اللغوي الفصيح فائق الأداء (Fathom 1.1 Core)',
       description: 'صياغة الردود باللغة العربية الفصحى البليغة، بأعلى معايير الإبداع، التماسك المنطقي، وعمق الطرح.',
       timestamp: 'المرحلة 04 • التوليد النهائي',
       status: 'pending',

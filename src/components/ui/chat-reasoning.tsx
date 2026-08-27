@@ -42,7 +42,7 @@ function parseReasoningMilestones(rawText: string, isThinking: boolean): Milesto
       return [
         {
           id: 'step-1',
-          text: 'تفكيك فرضيات السؤال واستدعاء المعارف والروابط المنطقية',
+          text: 'تفكيك معطيات السؤال واستدعاء المعارف والروابط المنطقية',
           status: 'in-progress',
         },
       ];
@@ -50,49 +50,65 @@ function parseReasoningMilestones(rawText: string, isThinking: boolean): Milesto
     return [];
   }
 
-  // Clean raw text from think tags
+  // Clean raw text from think tags and sanitize any system prompt / policy leaks
   const cleaned = rawText
     .replace(/<think>/gi, '')
     .replace(/<\/think>/gi, '')
     .trim();
 
+  // Forbidden prompt leak pattern: filter out any mention of system prompt instructions or developer identity rules
+  const isPromptLeak = (str: string) => {
+    return /(?:DEVELOPER_IDENTITY|SYSTEM_PROMPT|النظام\s*يقول|حظر\s*مطلق|قاعدة\s*الاستجابة|تعليمات\s*الهوية|قواعد\s*النظام|المطور\s*الأساسي|Mohamed\s*Ahmed\s*Matany|MatanyLabs|Context-Proportional\s*Attribution|Strict\s*Exclusivity|Identity\s*vs\s*Conversations)/i.test(str);
+  };
+
   // Split lines
-  const lines = cleaned.split('\n').map(l => l.trim()).filter(Boolean);
+  const lines = cleaned.split('\n')
+    .map(l => l.trim())
+    .filter(l => Boolean(l) && !isPromptLeak(l));
+
   const candidateSteps: string[] = [];
 
   let currentBlock = '';
   for (const line of lines) {
     const isBullet = /^[-*•–—\d+.)\]]\s*/.test(line) || /^(أولاً|ثانياً|ثالثاً|رابعاً|خامساً|الهدف|التحليل|الملاحظة|الاستنتاج|الخلاصة|الخطوة|مسار)\s*[:]/i.test(line);
     if (isBullet && currentBlock) {
-      candidateSteps.push(currentBlock.trim());
+      if (!isPromptLeak(currentBlock)) candidateSteps.push(currentBlock.trim());
       currentBlock = line;
     } else {
       currentBlock = currentBlock ? `${currentBlock} ${line}` : line;
     }
   }
-  if (currentBlock) {
+  if (currentBlock && !isPromptLeak(currentBlock)) {
     candidateSteps.push(currentBlock.trim());
   }
 
   // If only 1 massive block without bullets, split by sentence endings
   let rawSteps = candidateSteps;
   if (rawSteps.length <= 1 && cleaned.length > 70) {
-    const sentences = cleaned.split(/(?<=[.؟!])\s+/).filter(s => s.trim().length > 10);
+    const sentences = cleaned.split(/(?<=[.؟!])\s+/).filter(s => s.trim().length > 10 && !isPromptLeak(s));
     if (sentences.length > 1) {
       rawSteps = sentences;
     }
   }
 
-  // Fallback if still 1 block: create progressive milestones from the content
-  if (rawSteps.length <= 1) {
+  // Filter out any leaked steps
+  rawSteps = rawSteps.filter(s => !isPromptLeak(s));
+
+  // Fallback if still empty or 1 block
+  if (rawSteps.length === 0) {
     rawSteps = [
-      cleaned.slice(0, 140) + (cleaned.length > 140 ? '...' : ''),
+      'تفكيك فرضيات ومعطيات المسألة وتحليل الأبعاد التقنية',
+      'تدقيق النتائج وصياغة الاستجابة الفصحى بدقة'
+    ];
+  } else if (rawSteps.length === 1) {
+    rawSteps = [
+      rawSteps[0].slice(0, 140) + (rawSteps[0].length > 140 ? '...' : ''),
       'تدقيق المعطيات واستخلاص النتائج وصياغة الطرح'
     ];
   }
 
-  // Limit to max 5 milestones for ultra-clean UI
-  const maxSteps = Math.min(rawSteps.length, 5);
+  // Limit to max 4 milestones for ultra-clean, elegant UI
+  const maxSteps = Math.min(rawSteps.length, 4);
   const sliced = rawSteps.slice(0, maxSteps);
 
   return sliced.map((stepText, idx) => {
@@ -121,7 +137,6 @@ export default function ChatReasoning({
   className,
 }: ChatReasoningProps) {
   const [value, setValue] = useState<string | undefined>(defaultValue);
-  const [showRawText, setShowRawText] = useState(false);
 
   // Smoothly manage open/close state without violent scroll jumps
   useEffect(() => {
@@ -139,8 +154,6 @@ export default function ChatReasoning({
   }, [fullText, isThinking]);
 
   if (!fullText && !isThinking) return null;
-
-  const hasMemoryDetect = activeFeatures.some(f => f.id === 'memory_detect');
 
   return (
     <Accordion
@@ -215,8 +228,7 @@ export default function ChatReasoning({
 
         <AccordionContent className="p-0 pt-3 pb-3 border-t border-white/[0.06]">
           <div className="pt-1 px-1 text-right">
-            
-            {/* Vertical Smart Milestones Path (Ultra Clean Image 2 style) */}
+            {/* Vertical Smart Milestones Path */}
             <div className="relative pr-1 space-y-3.5">
               {milestones.map((step, idx) => {
                 const isLast = idx === milestones.length - 1;
@@ -225,7 +237,6 @@ export default function ChatReasoning({
 
                 return (
                   <div key={step.id} className="relative flex items-start gap-3 group">
-                    
                     {/* Vertical Connecting Line */}
                     {!isLast && (
                       <div className="absolute right-[9px] top-5 bottom-[-14px] w-[1.5px] bg-zinc-800" />
@@ -259,27 +270,6 @@ export default function ChatReasoning({
                 );
               })}
             </div>
-
-            {/* Full Raw Thought Trace Toggle */}
-            {fullText && (
-              <div className="mt-4 pt-3 border-t border-white/[0.06] text-right">
-                <button
-                  type="button"
-                  onClick={() => setShowRawText(prev => !prev)}
-                  className="text-[11px] font-sans text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-white/[0.04]"
-                >
-                  <ChevronRight className={cn("size-3 transition-transform", showRawText && "rotate-90")} />
-                  <span>{showRawText ? "إخفاء النص التفصيلي الكامل" : "عرض مسار الاستدلال الخام للتفكير"}</span>
-                </button>
-
-                {showRawText && (
-                  <div className="mt-2 p-3 rounded-xl bg-black/60 border border-white/[0.06] text-xs text-zinc-300 leading-relaxed font-sans whitespace-pre-wrap break-words max-h-60 overflow-y-auto smooth-scroll">
-                    {fullText}
-                  </div>
-                )}
-              </div>
-            )}
-
           </div>
         </AccordionContent>
       </AccordionItem>

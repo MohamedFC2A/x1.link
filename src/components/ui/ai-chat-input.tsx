@@ -192,7 +192,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
   (
     {
       onSubmit,
-      placeholder = "اسأل Fathom 1 في أي شيء...",
+      placeholder = "اسأل Fathom 1.1 في أي شيء...",
       className,
       defaultValue = "",
       value: controlledValue,
@@ -274,8 +274,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       : isVisionMode
       ? "Fathom Cam"
       : isCyberMode
-      ? "Fathom Cyber"
-      : "Fathom 1";
+      ? "Fathom Cyber 1.1"
+      : "Fathom 1.1";
 
     const activeBackendModel = effectiveModel;
 
@@ -784,7 +784,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               </div>
 
               <div className="space-y-1.5">
-                {/* Model 1: Fathom 1 */}
+                {/* Model 1: Fathom 1.1 */}
                 <button
                   type="button"
                   onClick={() => {
@@ -804,7 +804,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       <Zap className="w-4 h-4 text-zinc-100 fill-zinc-100/40 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" />
                     </div>
                     <div className="min-w-0 text-right">
-                      <div className="font-bold text-xs text-white">Fathom 1</div>
+                      <div className="font-bold text-xs text-white">Fathom 1.1</div>
                       <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
                         توليد لغوي حر وتحليل فكري متقدم
                       </div>
@@ -815,7 +815,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   )}
                 </button>
 
-                {/* Model 2: Fathom Cyber */}
+                {/* Model 2: Fathom Cyber 1.1 */}
                 <button
                   type="button"
                   onClick={() => {
@@ -835,7 +835,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       <ShieldCheck className="w-4 h-4 text-cyan-400" />
                     </div>
                     <div className="min-w-0 text-right">
-                      <div className="font-bold text-xs text-white">Fathom Cyber</div>
+                      <div className="font-bold text-xs text-white">Fathom Cyber 1.1</div>
                       <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
                         استخبارات أمنية وهندسة سيبرانية سيادية واختراق أخلاقي
                       </div>
@@ -1447,12 +1447,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     : isDeepSearchEffective
                     ? "ابحث في الويب مباشرة مع Fathom Search..."
                     : isCyberMode
-                    ? "أدخل رابط الهدف أو اسأل Fathom Cyber..."
+                    ? "أدخل رابط الهدف أو اسأل Fathom Cyber 1.1..."
                     : isVisionMode || hasAttachments
                     ? "اسأل Fathom Cam عن الصورة المرفقة..."
                     : isX1Active
                     ? "اسأل matany.one في أي شيء..."
-                    : (placeholder || "اسأل Fathom 1 في أي شيء...")
+                    : (placeholder || "اسأل Fathom 1.1 في أي شيء...")
                 }
                 rows={1}
                 className={cn(
