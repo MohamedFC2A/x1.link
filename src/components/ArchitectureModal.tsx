@@ -46,8 +46,8 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
     },
     {
       id: 5,
-      title: 'المرحلة الخامسة: الاكتشاف العلمي المؤتمت والاستدلال الاختطافي (Fathom Cyber 2.1 Pro - DeepSeek v4 Pro)',
-      description: 'معمارية DeepSeek v4 Pro المتقدمة مع حلقة المعرفة المغلقة (O-H-E-U Loop): رصد الشذوذ والمعضلات، صياغة الفرضيات بنصل أوكام، والتحقق الآلي عبر بيئة برهان شكلي (Lean/Coq) وتثبيت البديهيات.',
+      title: 'المرحلة الخامسة: الاكتشاف العلمي المؤتمت والاستدلال الاختطافي (Fathom Cyber 2.1 Pro - v4 Pro)',
+      description: 'معمارية v4 Pro المتقدمة مع حلقة المعرفة المغلقة (O-H-E-U Loop): رصد الشذوذ والمعضلات، صياغة الفرضيات بنصل أوكام، والتحقق الآلي عبر بيئة برهان شكلي (Lean/Coq) وتثبيت البديهيات.',
       timestamp: 'المرحلة 05 • الاكتشاف العلمي ومعمارية v4 Pro',
       status: 'in-progress',
     },

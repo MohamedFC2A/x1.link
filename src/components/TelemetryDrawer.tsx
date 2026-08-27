@@ -52,22 +52,22 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
           <div className="space-y-3 text-xs">
             <div className="bg-black/50 p-3 rounded-xl border border-white/[0.08]">
               <span className="text-zinc-400 block text-[10px] uppercase font-bold">API ENDPOINT & SPECS</span>
-              <span className="text-zinc-200 font-bold block mt-1">https://api.deepseek.com</span>
-              <span className="text-zinc-500 block text-[10px] mt-0.5">Runtime: Vercel Edge Runtime // Sub-5ms Pro Vector & Discovery Engine</span>
+              <span className="text-zinc-200 font-bold block mt-1">SOVEREIGN AI GATEWAY // V4-PRO RUNTIME</span>
+              <span className="text-zinc-500 block text-[10px] mt-0.5">Runtime: Vercel Edge Runtime // Sub-5ms Vector & Discovery Engine</span>
             </div>
 
             <div className="bg-black/50 p-3 rounded-xl border border-white/[0.08]">
               <span className="text-zinc-400 block text-[10px] uppercase font-bold">CURRENT ACTIVE MODEL</span>
               <span className="text-white font-bold block mt-1">
                 {isCyber21 
-                  ? 'Fathom Cyber 2.1 (deepseek-v4-pro-cyber-2.1)' 
+                  ? 'Fathom Cyber 2.1 (v4-pro-cyber-2.1)' 
                   : isCyber20 
-                  ? 'Fathom Cyber 2.0 (deepseek-v4-flash-cyber)' 
+                  ? 'Fathom Cyber 2.0 (v4-flash-cyber)' 
                   : activeModel}
               </span>
               <span className="text-[10px] text-cyan-400 block mt-0.5 font-bold">
                 {isCyber21
-                  ? 'DEEPSEEK-V4-PRO // O-H-E-U SCIENTIFIC DISCOVERY & 3-TIER MEMORY'
+                  ? 'V4-PRO ENGINE // O-H-E-U SCIENTIFIC DISCOVERY & 3-TIER MEMORY'
                   : isCyber20 
                   ? '3-TIER UNIFIED EPISODIC & SEMANTIC DYNAMIC MEMORY AURA' 
                   : activeModel.includes('vision') 

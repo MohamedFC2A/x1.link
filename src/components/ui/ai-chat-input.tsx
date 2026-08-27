@@ -30,8 +30,7 @@ import {
   FileCode,
   FileType,
   FileSearch,
-  Loader2,
-  Atom
+  Loader2
 } from "lucide-react";
 import { ModelType, MediaType } from "@/types";
 import { classifyFileType, formatFileSize, formatMediaDuration, extractVideoClientMetadata, extractAudioClientMetadata, extractTextClientMetadata, extractVideoKeyframes } from "@/lib/mediaExtractor";
@@ -1008,7 +1007,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   </div>
                 </button>
 
-                {/* Model 2.1: Fathom Cyber 2.1 (DeepSeek v4 Pro Architecture & O-H-E-U Discovery) */}
+                {/* Model 2.1: Fathom Cyber 2.1 (v4 Pro Architecture & O-H-E-U Discovery) */}
                 <button
                   type="button"
                   onClick={() => {
@@ -1024,18 +1023,21 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   )}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-white shrink-0">
-                      <Atom className="w-4 h-4 text-cyan-300 animate-pulse" />
+                    <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
+                      <ShieldCheck className="w-4 h-4 text-cyan-400" />
                     </div>
                     <div className="min-w-0 text-right">
-                      <div className="font-bold text-xs text-white flex items-center gap-1.5">
+                      <div className="font-bold text-xs text-white flex items-center gap-1.5 flex-wrap">
                         <span>Fathom Cyber 2.1</span>
                         <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm">
                           New
                         </span>
+                        <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm">
+                          Super Thinking
+                        </span>
                       </div>
                       <div className="text-[11px] text-zinc-300 font-normal leading-relaxed mt-0.5">
-                        معمارية DeepSeek v4 Pro الفائقة مع هالة الاكتشاف العلمي المؤتمت والاستدلال الاختطافي الخوارزمي
+                        معمارية v4 Pro الفائقة مع هالة الاكتشاف العلمي المؤتمت والاستدلال الاختطافي الخوارزمي
                       </div>
                     </div>
                   </div>

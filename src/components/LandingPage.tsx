@@ -258,7 +258,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300">v4-Pro</span>
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed font-sans line-clamp-2 sm:line-clamp-3">
-                  معمارية DeepSeek v4 Pro الفائقة مع هالة الاكتشاف العلمي المؤتمت والاستدلال الاختطافي الخوارزمي، مدعومة بالذاكرة ثلاثية المستويات.
+                  معمارية v4 Pro الفائقة مع هالة الاكتشاف العلمي المؤتمت والاستدلال الاختطافي الخوارزمي، مدعومة بالذاكرة ثلاثية المستويات.
                 </p>
               </div>
 
