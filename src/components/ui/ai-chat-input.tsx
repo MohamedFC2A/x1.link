@@ -821,85 +821,71 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           textAccent: 'text-fuchsia-400',
           bgLoader: 'bg-fuchsia-500/20 border-fuchsia-500/30 text-fuchsia-300',
           spinnerColor: 'text-fuchsia-400',
-          glowShadow: 'shadow-[0_0_12px_rgba(217,70,239,0.5)]',
-          borderGlow: 'border-fuchsia-400/50',
           sheen: activeFusion.topSheen,
         };
       }
       if (isMediaMode || hasNonImageMedia) {
-        // Fathom Spark (Video/Audio/Docs) - Violet / Purple / Fuchsia Glow
+        // Fathom Spark (Video/Audio/Docs) - Violet / Purple / Fuchsia
         return {
           strokeRing: 'stroke-violet-400',
           textPercent: 'text-violet-300',
           textAccent: 'text-violet-400',
           bgLoader: 'bg-violet-500/20 border-violet-500/30 text-violet-300',
           spinnerColor: 'text-violet-400',
-          glowShadow: 'shadow-[0_0_12px_rgba(168,85,247,0.5)]',
-          borderGlow: 'border-violet-400/50',
           sheen: 'bg-gradient-to-r from-transparent via-violet-400 to-transparent',
         };
       }
       if (isDeepSearchEffective) {
-        // Fathom Search - Emerald / Teal Glow
+        // Fathom Search - Emerald / Teal
         return {
           strokeRing: 'stroke-emerald-400',
           textPercent: 'text-emerald-300',
           textAccent: 'text-emerald-400',
           bgLoader: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300',
           spinnerColor: 'text-emerald-400',
-          glowShadow: 'shadow-[0_0_12px_rgba(16,185,129,0.5)]',
-          borderGlow: 'border-emerald-400/50',
           sheen: 'bg-gradient-to-r from-transparent via-emerald-400 to-transparent',
         };
       }
       if (isCyberMode || hasUrls) {
-        // Fathom Cyber 1.1 - Cyan Glow
+        // Fathom Cyber 1.1 - Cyan
         return {
           strokeRing: 'stroke-cyan-400',
           textPercent: 'text-cyan-300',
           textAccent: 'text-cyan-400',
           bgLoader: 'bg-cyan-500/20 border-cyan-500/30 text-cyan-300',
           spinnerColor: 'text-cyan-400',
-          glowShadow: 'shadow-[0_0_12px_rgba(6,182,212,0.5)]',
-          borderGlow: 'border-cyan-400/50',
           sheen: 'bg-gradient-to-r from-transparent via-cyan-400 to-transparent',
         };
       }
       if (isX1Active) {
-        // NSFW Mode - Rose Glow
+        // NSFW Mode - Rose
         return {
           strokeRing: 'stroke-rose-400',
           textPercent: 'text-rose-300',
           textAccent: 'text-rose-400',
           bgLoader: 'bg-rose-500/20 border-rose-500/30 text-rose-300',
           spinnerColor: 'text-rose-400',
-          glowShadow: 'shadow-[0_0_12px_rgba(244,63,94,0.5)]',
-          borderGlow: 'border-rose-400/50',
           sheen: 'bg-gradient-to-r from-transparent via-rose-500 to-transparent',
         };
       }
       if (isVisionMode || hasAttachments) {
-        // Fathom Cam - Emerald Glow
+        // Fathom Cam - Emerald
         return {
           strokeRing: 'stroke-emerald-400',
           textPercent: 'text-emerald-300',
           textAccent: 'text-emerald-400',
           bgLoader: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300',
           spinnerColor: 'text-emerald-400',
-          glowShadow: 'shadow-[0_0_12px_rgba(16,185,129,0.5)]',
-          borderGlow: 'border-emerald-400/50',
           sheen: 'bg-gradient-to-r from-transparent via-emerald-400 to-transparent',
         };
       }
-      // Default Fathom 1.1 - White / Silver Glow
+      // Default Fathom 1.1 - White / Silver
       return {
         strokeRing: 'stroke-white',
         textPercent: 'text-white',
         textAccent: 'text-white',
         bgLoader: 'bg-white/15 border-white/25 text-white',
         spinnerColor: 'text-white',
-        glowShadow: 'shadow-[0_0_12px_rgba(255,255,255,0.4)]',
-        borderGlow: 'border-white/50',
         sheen: 'bg-gradient-to-r from-transparent via-white/40 to-transparent',
       };
     }, [activeFusion, isMediaMode, hasNonImageMedia, isDeepSearchEffective, isCyberMode, hasUrls, isX1Active, isVisionMode, hasAttachments]);
@@ -1370,9 +1356,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                           <span className={cn("text-[7px] font-sans mt-0.5 animate-pulse font-medium", currentThemeColor.textPercent)}>جاري الرفع...</span>
                         </div>
                       ) : (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                          <div className={cn("size-6 rounded-full bg-black/70 border flex items-center justify-center", currentThemeColor.borderGlow, currentThemeColor.glowShadow)}>
-                            <Video className={cn("w-3 h-3", currentThemeColor.textAccent)} />
+                        <div className="absolute inset-0 bg-black/25 flex items-center justify-center pointer-events-none">
+                          <div className="size-6 rounded-full bg-black/80 border border-white/20 flex items-center justify-center shadow-none">
+                            <Video className="w-3 h-3 text-white/90" />
                           </div>
                         </div>
                       )}
