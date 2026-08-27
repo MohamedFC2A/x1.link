@@ -23,7 +23,8 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
   hasContent = false,
   className,
 }) => {
-  const isCyber = model === "deepseek-v4-flash-cyber";
+  const isCyber21 = model === "deepseek-v4-pro-cyber-2.1" || model === "deepseek-v4-flash-cyber-2.1";
+  const isCyber = model === "deepseek-v4-flash-cyber" || isCyber21;
 
   // Step 1: Input / Recon
   const step1Done = true;
@@ -51,7 +52,11 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
             <CheckCircle2 className="size-3 sm:size-3.5" />
           </div>
           <span className="text-zinc-300 font-sans font-medium text-[10px] sm:text-xs">
-            {isCyber ? "استخبارات ومسح 100+ صفحة" : "معالجة المدخلات"}
+            {isCyber21
+              ? "رصد الشذوذ والاستدلال الاختطافي"
+              : isCyber
+              ? "استخبارات ومسح 100+ صفحة"
+              : "معالجة المدخلات"}
           </span>
         </div>
 
@@ -83,8 +88,10 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
               step2Active ? "text-white font-semibold" : step2Done ? "text-zinc-200" : "text-zinc-500"
             )}
           >
-            {isCyber
-              ? "تحليل ومطابقة الأدلة"
+            {isCyber21
+              ? "توليد الفرضية والمحاكي الآلي (O-H-E-U)"
+              : isCyber
+              ? "تزامن الذاكرة العرضية وشبكة المفاهيم"
               : isX1
               ? "استدعاء معمارية X1 MAX"
               : "التفكير والتحليل المنطقي"}
@@ -122,8 +129,8 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
             {isStreaming && step3Active
               ? "توليد الرد المباشر..."
               : step3Done
-              ? "اكتمل التوليد"
-              : "التوليد النهائي"}
+              ? (isCyber21 ? "اكتمل البرهان والتثبيت البديهي" : "اكتمل التوليد")
+              : (isCyber21 ? "تثبيت البديهيات والصياغة" : "التوليد النهائي")}
           </span>
         </div>
       </div>

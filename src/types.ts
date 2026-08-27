@@ -2,6 +2,8 @@ export type ModelType =
   | 'deepseek-v4-flash' 
   | 'deepseek-v4-flash-vision-exp' 
   | 'deepseek-v4-flash-cyber' 
+  | 'deepseek-v4-pro-cyber-2.1'
+  | 'deepseek-v4-flash-cyber-2.1'
   | 'meta/muse-spark-1.2-contributor';
 
 export type MediaType = 'image' | 'video' | 'audio' | 'document' | 'other';
@@ -40,6 +42,9 @@ export interface ChatMessageItem {
   tokensCount?: number;
   isMemoryDetectTriggered?: boolean;
   memoryDetectSummary?: string;
+  isDiscoveryAuraActive?: boolean;
+  discoveryAxiomSummary?: string;
+  discoveryStage?: 'anomaly' | 'hypothesis' | 'prover' | 'axiom_integrated';
 }
 
 export interface WebAuthnVerificationResult {

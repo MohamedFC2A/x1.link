@@ -231,7 +231,7 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
                     <Shield className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white">فحوصات Fathom Cyber 1.1</h3>
+                    <h3 className="text-sm font-bold text-white">فحوصات Fathom Cyber (2.0 / 2.1)</h3>
                     <p className="text-[11px] text-zinc-400">الاستخبارات والمسح الأمني</p>
                   </div>
                 </div>
@@ -376,7 +376,7 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
 
             <div>
               <div className="flex justify-between text-xs font-sans text-zinc-300 mb-1.5">
-                <span className="font-semibold">Fathom Cyber 1.1 (فحص السطح الهجومي والاستخبارات)</span>
+                <span className="font-semibold">Fathom Cyber (2.0 / 2.1) (الاستخبارات والذاكرة والاستدلال)</span>
                 <span className="font-mono text-zinc-400">{usage.fathomCyberTokens.toLocaleString()} توكن</span>
               </div>
               <div className="w-full bg-zinc-950/80 h-1.5 rounded-full overflow-hidden border border-white/[0.04]">

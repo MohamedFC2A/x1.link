@@ -128,11 +128,11 @@ export const App: React.FC = () => {
   const [cloudChats, setCloudChats] = useState<SupabaseChat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
 
-  // Model & Chat State (Persistent Smart Preferred Base Model: Fathom 1.1 or Fathom Cyber 1.1)
+  // Model & Chat State (Persistent Smart Preferred Base Model: Fathom 1.1, Fathom Cyber 2.0 or Fathom Cyber 2.1 Pro)
   const [preferredBaseModel, setPreferredBaseModel] = useState<ModelType>(() => {
     try {
       const saved = localStorage.getItem('matany_preferred_base_model');
-      if (saved === 'deepseek-v4-flash-cyber' || saved === 'deepseek-v4-flash') {
+      if (saved === 'deepseek-v4-pro-cyber-2.1' || saved === 'deepseek-v4-flash-cyber-2.1' || saved === 'deepseek-v4-flash-cyber' || saved === 'deepseek-v4-flash') {
         return saved as ModelType;
       }
     } catch (e) {}
@@ -143,7 +143,7 @@ export const App: React.FC = () => {
 
   const handleSelectModel = (model: ModelType) => {
     setActiveModel(model);
-    if (model === 'deepseek-v4-flash' || model === 'deepseek-v4-flash-cyber') {
+    if (model === 'deepseek-v4-flash' || model === 'deepseek-v4-flash-cyber' || model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') {
       setPreferredBaseModel(model);
       try {
         localStorage.setItem('matany_preferred_base_model', model);
@@ -445,7 +445,7 @@ export const App: React.FC = () => {
 
     const limitCheck = checkPlanLimit(currentPlanId, {
       isVision: uniqueImagesDataUrls.length > 0,
-      isCyber: meta?.model === 'deepseek-v4-flash-cyber',
+      isCyber: meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
       isCyberUrlScan: isActualCyberUrlScan,
     });
 
@@ -457,7 +457,7 @@ export const App: React.FC = () => {
       } else if (limitCheck.reason === 'free_vision_limit') {
         limitMsg = 'لقد استهلكت حد التجربة المتاح في الخطة المجانية لإدراك Fathom Cam البصري (صورتان فقط). يرجى الترقية إلى باقة المحترف ($29) أو النخبة ($99) لتحليل غير محدود.';
       } else if (limitCheck.reason === 'free_cyber_disabled') {
-        limitMsg = 'فحوصات Fathom Cyber 1.1 والاستخبارات السيبرانية غير مفعلة في الخطة المجانية. يرجى تفعيل باقة المحترف ($29) أو النخبة ($99).';
+        limitMsg = 'فحوصات Fathom Cyber (2.0 / 2.1) والاستخبارات السيبرانية غير مفعلة في الخطة المجانية. يرجى تفعيل باقة المحترف ($29) أو النخبة ($99).';
       } else {
         limitMsg = 'لقد بلغت الحد الأقصى لرصيد التوكن الشهري لخطة اشتراكك الحالية. يمكنك الترقية لباقة النخبة ($99) للحصول على سعة مفتوحة.';
       }
@@ -728,7 +728,7 @@ export const App: React.FC = () => {
           reasoningText: fullAssistantReasoning,
           hasImages: uniqueImagesDataUrls.length > 0,
           imagesCount: uniqueImagesDataUrls.length,
-          isCyberScan: !!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber',
+          isCyberScan: !!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
           userId,
           currentPlanId,
         });
@@ -1099,8 +1099,10 @@ export const App: React.FC = () => {
                       activeModel={activeModel}
                       onSelectModel={handleSelectModel}
                       placeholder={
-                        activeModel === 'deepseek-v4-flash-cyber'
-                          ? "اسأل Fathom Cyber 1.1 في أي شيء..."
+                        activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1'
+                          ? "اطرح فرضية، معضلة علمية، أو افحص أمنياً مع Fathom Cyber 2.1 Pro..."
+                          : activeModel === 'deepseek-v4-flash-cyber'
+                          ? "اسأل Fathom Cyber 2.0 في أي شيء..."
                           : activeModel === 'deepseek-v4-flash-vision-exp'
                           ? "اسأل Fathom Cam أو أرفق صور..."
                           : isX1Active

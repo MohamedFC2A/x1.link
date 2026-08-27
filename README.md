@@ -6,12 +6,14 @@
 
 ## ✨ Features
 
-- **⚡ Magnum v4 72B Core**: Powered by Anthracite Org's Opus-grade prose engine for unrestricted, natural, and expressive multi-turn dialogue in fluent Arabic.
+- **⚡ Fathom 1.1, Fathom Cyber 2.0 & Fathom Cyber 2.1**: Sovereign reasoning engine family equipped with the world-first cognitive memory and scientific discovery architectures.
+- **🛡️ Fathom Cyber 2.0**: Autonomous offensive/defensive cybersecurity architect with 3-Tier Human-Brain Cognitive Memory (Working Memory, Episodic Ledger, Semantic Dynamic Graph, and Conflict Reconciliation).
+- **🔬 Fathom Cyber 2.1 Pro (DeepSeek v4 Pro Architecture & O-H-E-U Discovery Aura)**: Powered strictly by the sovereign **DeepSeek v4 Pro** model with 32,768 max tokens, executing Autonomous 4-Stage Closed-Loop Scientific Agency (O-H-E-U Loop), Cognitive Surprise Anomaly Detection ($-\log_2 P(x)$), Occam-guided Symbolic Hypothesis Synthesis, Formal Logic Sandbox Proving (Lean/Coq simulator heuristics), and Immutable Axiom Promotion.
 - **🧬 NSFW NANO (+21 MAX) Silicon Architecture**: Unconstrained adult/intimate/creative mode with mandatory WebAuthn Biometric (Fingerprint / Face ID) verification.
 - **👁️ DeepSeek Vision Integration**: Multimodal image attachment analysis with auto-detected vision engine (`Fathom Cam`).
-- **🧠 1M-Token Episodic Context Engine**: Verbatim multi-turn history up to 24 turns, accompanied by dynamic episodic memory ledger.
+- **🧠 50M-Token Virtual Cognitive Context Engine**: 3-Tier memory architecture managing Working Memory, Episodic event history, and dynamic Semantic ontology graph across 50 connected sessions with sub-5ms vector-hybrid recall.
 - **🛑 Real-time Stream Control**: Frontend and backend `AbortController` cancellation for instant token and bandwidth saving.
-- **☁️ Supabase Cloud Synchronization**: Full chat persistence, Google OAuth sign-in, and cross-device synchronization.
+- **☁️ Supabase Cloud Synchronization**: Full chat persistence, 3-tier memory sync, Google OAuth sign-in, and cross-device synchronization.
 
 ---
 

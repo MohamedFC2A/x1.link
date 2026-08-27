@@ -100,7 +100,7 @@ export function checkPlanLimit(
 ): { allowed: boolean; reason?: 'free_fathom1_limit' | 'free_vision_limit' | 'free_cyber_disabled' | 'quota_exceeded' } {
   const usage = getLocalUsage();
 
-  if (planId === 'free-0') {
+  if (planId === 'free-0' || planId === 'free') {
     if (options.isCyberUrlScan && usage.cyberScansCount >= 3) {
       return { allowed: false, reason: 'free_cyber_disabled' };
     }

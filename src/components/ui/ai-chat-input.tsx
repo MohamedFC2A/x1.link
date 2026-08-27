@@ -30,7 +30,8 @@ import {
   FileCode,
   FileType,
   FileSearch,
-  Loader2
+  Loader2,
+  Atom
 } from "lucide-react";
 import { ModelType, MediaType } from "@/types";
 import { classifyFileType, formatFileSize, formatMediaDuration, extractVideoClientMetadata, extractAudioClientMetadata, extractTextClientMetadata, extractVideoKeyframes } from "@/lib/mediaExtractor";
@@ -279,15 +280,19 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       : internalModel;
 
     const isVisionMode = effectiveModel === 'deepseek-v4-flash-vision-exp';
-    const isCyberMode = effectiveModel === 'deepseek-v4-flash-cyber';
+    const isCyber21Mode = effectiveModel === 'deepseek-v4-pro-cyber-2.1' || effectiveModel === 'deepseek-v4-flash-cyber-2.1';
+    const isCyber20Mode = effectiveModel === 'deepseek-v4-flash-cyber';
+    const isCyberMode = isCyber20Mode || isCyber21Mode;
     const isMediaMode = effectiveModel === 'meta/muse-spark-1.2-contributor';
 
     const activeModelDisplayName = isMediaMode
       ? "Fathom Spark"
       : isVisionMode
       ? "Fathom Cam"
-      : isCyberMode
-      ? "Fathom Cyber 1.1"
+      : isCyber21Mode
+      ? "Fathom Cyber 2.1"
+      : isCyber20Mode
+      ? "Fathom Cyber 2.0"
       : "Fathom 1.1";
 
     const activeBackendModel = effectiveModel;
@@ -973,7 +978,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   )}
                 </button>
 
-                {/* Model 2: Fathom Cyber 1.1 */}
+                {/* Model 2: Fathom Cyber 2.0 */}
                 <button
                   type="button"
                   onClick={() => {
@@ -993,14 +998,56 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       <ShieldCheck className="w-4 h-4 text-cyan-400" />
                     </div>
                     <div className="min-w-0 text-right">
-                      <div className="font-bold text-xs text-white">Fathom Cyber 1.1</div>
+                      <div className="font-bold text-xs text-white flex items-center gap-1.5">
+                        <span>Fathom Cyber 2.0</span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-normal">3-Tier Memory</span>
+                      </div>
                       <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
-                        استخبارات أمنية وهندسة سيبرانية سيادية واختراق أخلاقي
+                        استخبارات أمنية وهندسة سيبرانية سيادية مع الذاكرة العرضية والدلالية الديناميكية
                       </div>
                     </div>
                   </div>
                   {internalModel === 'deepseek-v4-flash-cyber' && (
                     <span className="size-1.5 rounded-full bg-cyan-400 shrink-0 mr-2" />
+                  )}
+                </button>
+
+                {/* Model 2.1: Fathom Cyber 2.1 (DeepSeek v4 Pro Architecture & O-H-E-U Discovery) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInternalModel('deepseek-v4-pro-cyber-2.1');
+                    onSelectModel?.('deepseek-v4-pro-cyber-2.1');
+                    setIsModelMenuOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
+                    internalModel === 'deepseek-v4-pro-cyber-2.1' || internalModel === 'deepseek-v4-flash-cyber-2.1'
+                      ? "bg-white/[0.09] text-white font-bold border-white/[0.16] shadow-sm"
+                      : "hover:bg-white/[0.04] text-zinc-300 border-transparent"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-white shrink-0">
+                      <Atom className="w-4 h-4 text-cyan-300 animate-pulse" />
+                    </div>
+                    <div className="min-w-0 text-right">
+                      <div className="font-bold text-xs text-white flex items-center gap-1.5 flex-wrap">
+                        <span>Fathom Cyber 2.1</span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-gradient-to-r from-cyan-500/30 to-purple-500/30 text-cyan-200 font-bold border border-cyan-400/30">
+                          v4-Pro Engine
+                        </span>
+                        <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-purple-500/20 text-purple-200 font-normal">
+                          O-H-E-U Loop
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-zinc-300 font-normal leading-relaxed mt-0.5">
+                        معمارية DeepSeek v4 Pro الفائقة مع هالة الاكتشاف العلمي المؤتمت والاستدلال الاختطافي الخوارزمي
+                      </div>
+                    </div>
+                  </div>
+                  {(internalModel === 'deepseek-v4-pro-cyber-2.1' || internalModel === 'deepseek-v4-flash-cyber-2.1') && (
+                    <span className="size-1.5 rounded-full bg-cyan-300 shrink-0 mr-2 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
                   )}
                 </button>
 
@@ -1650,8 +1697,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     ? activeFusion.placeholder
                     : isDeepSearchEffective
                     ? "ابحث في الويب مباشرة مع Fathom Search..."
-                    : isCyberMode
-                    ? "أدخل رابط الهدف أو اسأل Fathom Cyber 1.1..."
+                    : isCyber21Mode
+                    ? "اطرح فرضية أو مسألة علمية أو افحص أمنياً مع Fathom Cyber 2.1..."
+                    : isCyber20Mode || isCyberMode
+                    ? "أدخل رابط الهدف أو اسأل Fathom Cyber 2.0..."
                     : isVisionMode || hasAttachments
                     ? "اسأل Fathom Cam عن الصورة المرفقة..."
                     : isX1Active

@@ -93,7 +93,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Subtitle */}
         <p className="text-xs sm:text-base lg:text-lg text-zinc-400 max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed font-sans font-normal px-2">
-          منظومة محادثة فائقة الذكاء تجمع بين محرك <strong className="text-zinc-200 font-semibold">Fathom 1.1</strong> للتوليد اللغوي الحر، وإدراك <strong className="text-zinc-200 font-semibold">Fathom Cam</strong> البصري، وتدقيق <strong className="text-cyan-300 font-semibold">Fathom Cyber 1.1</strong> الأمني، ووضع <strong className="text-white font-semibold font-['Space_Grotesk']">NSFW Off</strong> المحمي بيومترياً.
+          منظومة محادثة فائقة الذكاء تجمع بين محرك <strong className="text-zinc-200 font-semibold">Fathom 1.1</strong> للتوليد اللغوي الحر، وإدراك <strong className="text-zinc-200 font-semibold">Fathom Cam</strong> البصري، وتدقيق <strong className="text-cyan-300 font-semibold">Fathom Cyber (2.0 / 2.1)</strong> بهالة الذاكرة ثلاثية المستويات والاستدلال الاختطافي الخوارزمي، ووضع <strong className="text-white font-semibold font-['Space_Grotesk']">NSFW Off</strong> المحمي بيومترياً.
         </p>
 
         {/* Primary CTA Buttons */}
@@ -235,34 +235,35 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </motion.div>
 
-            {/* Card 4: Fathom Cyber 1.1 */}
+            {/* Card 4: Fathom Cyber 2.1 */}
             <motion.div
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.97 }}
               transition={{ type: "spring", stiffness: 450, damping: 25 }}
-              onClick={() => onSelectPreset('افحص هذا الرابط أمنياً واستخرج كافة المعلومات والترويسات ونقاط السطح الهجومي https://matany.one')}
+              onClick={() => onSelectPreset('اطرح فرضية علمية تفسر هذا الشذوذ المعرفي أو افحص هذا الرابط أمنياً https://matany.one')}
               className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl glass-card transition-colors cursor-pointer flex flex-col justify-between group min-h-[190px] sm:min-h-[240px] select-none"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="size-10 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300">
+                <div className="size-10 rounded-xl bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-cyan-300">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/[0.04] text-zinc-300 border border-white/[0.08]">
-                  FATHOM CYBER 1.1
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-200 border border-cyan-400/30">
+                  FATHOM CYBER 2.1 PRO
                 </span>
               </div>
 
               <div>
-                <h3 className="text-sm sm:text-base font-bold text-white mb-1 group-hover:text-zinc-200 transition-colors font-sans">
-                  الأمن والبحث والاستخبارات
+                <h3 className="text-sm sm:text-base font-bold text-white mb-1 group-hover:text-zinc-200 transition-colors font-sans flex items-center gap-1.5">
+                  <span>الأمن والاستدلال الاختطافي</span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300">v4-Pro</span>
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed font-sans line-clamp-2 sm:line-clamp-3">
-                  بحث واستخبارات سيبرانية فائقة العمق تمسح 100+ صفحة ومصدر، وتحلل الثغرات والسطح الهجومي.
+                  معمارية DeepSeek v4 Pro الفائقة مع هالة الاكتشاف العلمي المؤتمت والاستدلال الاختطافي الخوارزمي، مدعومة بالذاكرة ثلاثية المستويات.
                 </p>
               </div>
 
               <div className="pt-3 mt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-zinc-300 font-mono font-semibold">
-                <span>بحث أمني عميق</span>
+                <span>بحث واكتشاف استدلالي</span>
                 <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
               </div>
             </motion.div>

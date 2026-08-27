@@ -118,7 +118,7 @@ export async function createCloudChat(userId: string | null, title: string, mode
     const payload: any = {
       title: title.slice(0, 60),
       mode: isX1 ? 'x1' : 'base',
-      model: model === 'deepseek-v4-flash-cyber' ? 'Fathom Cyber 1.1' : model === 'deepseek-v4-flash-vision-exp' ? 'Fathom Cam' : 'Fathom 1.1',
+      model: (model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') ? 'Fathom Cyber 2.1' : model === 'deepseek-v4-flash-cyber' ? 'Fathom Cyber 2.0' : model === 'deepseek-v4-flash-vision-exp' ? 'Fathom Cam' : 'Fathom 1.1',
       device_id: deviceId,
     };
 
@@ -369,26 +369,40 @@ export async function fetchCloudUserMemories(userId: string | null): Promise<any
 export async function saveCloudUserMemories(
   userId: string | null,
   snapshot: {
-    crossChatNodes: any[];
-    keyInsights: string[];
-    userProfileFacts: string[];
-    targetReconRegistry: string[];
-    indexedChatsCount: number;
+    workingMemory?: any;
+    episodicEpisodes?: any[];
+    semanticConcepts?: Record<string, any>;
+    semanticTriples?: any[];
+    resolvedConflicts?: any[];
+    crossChatNodes?: any[];
+    keyInsights?: string[];
+    userProfileFacts?: string[];
+    targetReconRegistry?: string[];
+    indexedChatsCount?: number;
   }
 ): Promise<void> {
   if (!userId) return;
   try {
+    const payload: any = {
+      user_id: userId,
+      cross_chat_nodes: snapshot.crossChatNodes || [],
+      key_insights: snapshot.keyInsights || [],
+      user_profile_facts: snapshot.userProfileFacts || [],
+      target_recon_registry: snapshot.targetReconRegistry || [],
+      indexed_chats_count: snapshot.indexedChatsCount || 0,
+      updated_at: new Date().toISOString()
+    };
+
+    if (snapshot.workingMemory) payload.working_memory = snapshot.workingMemory;
+    if (snapshot.episodicEpisodes) payload.episodic_episodes = snapshot.episodicEpisodes;
+    if (snapshot.semanticConcepts) payload.semantic_concepts = snapshot.semanticConcepts;
+    if (snapshot.semanticTriples) payload.semantic_triples = snapshot.semanticTriples;
+    if (snapshot.resolvedConflicts) payload.resolved_conflicts = snapshot.resolvedConflicts;
+    if ((snapshot as any).axioms) payload.axioms = (snapshot as any).axioms;
+
     const { error } = await supabase
       .from('x1_user_memories')
-      .upsert({
-        user_id: userId,
-        cross_chat_nodes: snapshot.crossChatNodes || [],
-        key_insights: snapshot.keyInsights || [],
-        user_profile_facts: snapshot.userProfileFacts || [],
-        target_recon_registry: snapshot.targetReconRegistry || [],
-        indexed_chats_count: snapshot.indexedChatsCount || 0,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
+      .upsert(payload, { onConflict: 'user_id' });
 
     if (error) {
       console.warn('[Supabase saveUserMemories Error]:', error.message);

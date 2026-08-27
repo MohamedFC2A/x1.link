@@ -63,7 +63,7 @@ export const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({
               <span>1. قبول الشروط والأهلية</span>
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 mb-2 leading-relaxed">
-              باستخدامك لمنصة <strong className="text-white">matany.one</strong> أو أي من خدماتها ونماذجها الذكية (Fathom 1.1, Fathom Cam, Fathom Cyber 1.1)، فإنك توافق على الالتزام بهذه الشروط وسياسة الخصوصية.
+              باستخدامك لمنصة <strong className="text-white">matany.one</strong> أو أي من خدماتها ونماذجها الذكية (Fathom 1.1, Fathom Cam, Fathom Cyber 2.0, Fathom Cyber 2.1)، فإنك توافق على الالتزام بهذه الشروط وسياسة الخصوصية.
             </p>
             <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
               الخدمة موجهة للمستخدمين الذين يبلغون من العمر 18 عاماً فأكثر. وتتطلب بعض الأوضاع المتقدمة (مثل وضع المحادثة الحرة NSFW Off) مصادقة بيومترية اختيارية وموافقة صريحة.
