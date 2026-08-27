@@ -178,18 +178,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         }}
       >
         {messages.length === 0 ? (
-          <div className="min-h-[35vh] flex flex-col items-center justify-center max-w-sm mx-auto py-6 sm:py-8 text-center animate-in fade-in duration-300 px-4 relative select-none">
-            {/* Master Brand M Emblem - Sleek Compact Glass Squircle */}
-            <div className="mb-2.5 relative group cursor-default">
-              <div className="size-10 sm:size-11 rounded-2xl p-1 bg-white/[0.06] border border-white/15 flex items-center justify-center backdrop-blur-xl shadow-lg group-hover:scale-105 transition-transform">
-                <img src="/matany-logo.svg" alt="matany.one" className="size-full rounded-[10px] object-contain drop-shadow" />
-              </div>
-            </div>
-
-            <h2 className="text-sm sm:text-base font-bold tracking-tight text-white mb-1">
-              ابدأ محادثة مع {isX1Active ? 'matany.one' : 'Fathom'}
+          <div className="min-h-[45vh] flex flex-col items-center justify-center max-w-md mx-auto py-8 sm:py-12 text-center animate-in fade-in duration-300 px-4 relative select-none">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white mb-2.5 font-sans">
+              ابدأ محادثة مع {isX1Active ? 'matany.one' : 'Fathom 1.1'}
             </h2>
-            <p className="text-[11px] text-zinc-400 font-sans">
+            <p className="text-xs sm:text-sm md:text-base text-zinc-400 font-sans leading-relaxed">
               اكتب سؤالك، أرفق صورة، أو الصق أي رابط للتحليل الفوري
             </p>
           </div>
