@@ -637,6 +637,16 @@
     border-color: transparent !important;
   }
 
+  .scroll-container-optimized {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  .scroll-container-optimized::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
   /* ==========================================================================
      Intelligent High-Tech Laser Blueprint Grid System (Razor-Sharp & Dynamic)
      ========================================================================== */

@@ -868,28 +868,28 @@ export const App: React.FC = () => {
                   />
                 </main>
 
-                {/* Floating AI Chat Input with Luminous White Grid Aura */}
-                <div className="sticky bottom-0 z-30 w-full px-3 sm:px-6 pb-3 sm:pb-4 pt-1 bg-gradient-to-t from-black via-black/85 to-transparent pb-safe max-w-4xl mx-auto relative">
-                  {/* Crisp Laser Blueprint Grid Aura Under Input */}
-                  <div className="absolute inset-x-3 sm:inset-x-6 bottom-3 sm:bottom-4 top-1 -z-10 bg-grid-laser opacity-55 grid-radial-fade pointer-events-none rounded-3xl" />
-                  <PromptInput
-                    onSubmit={(val, meta) => handleSendMessage(val, meta)}
-                    isStreaming={isStreaming}
-                    onAbort={handleAbort}
-                    isX1Active={isX1Active}
-                    onToggleX1={handleToggleX1}
-                    activeModel={activeModel}
-                    onSelectModel={setActiveModel}
-                    placeholder={
-                      activeModel === 'deepseek-v4-flash-cyber'
-                        ? "اسأل Fathom Cyber في أي شيء..."
-                        : activeModel === 'deepseek-v4-flash-vision-exp'
-                        ? "اسأل Fathom Cam أو أرفق صور..."
-                        : isX1Active
-                        ? "اسأل matany.one في أي شيء..."
-                        : "اسأل Fathom 1 في أي شيء..."
-                    }
-                  />
+                {/* Full-Width Seamless Floating AI Chat Input Wrapper */}
+                <div className="sticky bottom-0 z-30 w-full pb-3 sm:pb-4 pt-4 bg-gradient-to-t from-[#030306] via-[#030306]/90 to-transparent pb-safe pointer-events-none">
+                  <div className="max-w-4xl mx-auto px-3 sm:px-6 pointer-events-auto">
+                    <PromptInput
+                      onSubmit={(val, meta) => handleSendMessage(val, meta)}
+                      isStreaming={isStreaming}
+                      onAbort={handleAbort}
+                      isX1Active={isX1Active}
+                      onToggleX1={handleToggleX1}
+                      activeModel={activeModel}
+                      onSelectModel={setActiveModel}
+                      placeholder={
+                        activeModel === 'deepseek-v4-flash-cyber'
+                          ? "اسأل Fathom Cyber في أي شيء..."
+                          : activeModel === 'deepseek-v4-flash-vision-exp'
+                          ? "اسأل Fathom Cam أو أرفق صور..."
+                          : isX1Active
+                          ? "اسأل matany.one في أي شيء..."
+                          : "اسأل Fathom 1 في أي شيء..."
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             )}
