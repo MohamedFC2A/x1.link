@@ -5,10 +5,9 @@ import { ChatMessageItem, ResolvedLinkInfo } from '../types';
 import ChatReasoning from './ui/chat-reasoning';
 import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Zap, Loader2, Play, Pause, Video, Music, FileText, FileCode, FileType, Clock, RotateCcw, Bell, Trash2, Calendar, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { detectAndExtractUrl, extractAllCleanUrls, getFaviconUrl, extractYouTubeVideoId, getYouTubeThumbnailUrl } from '@/lib/utils';
+import { detectAndExtractUrl, extractAllCleanUrls, getFaviconUrl, extractYouTubeVideoId, getYouTubeThumbnailUrl, normalizeDisplayTimestamp, cn } from '@/lib/utils';
 import { formatMediaDuration, formatFileSize } from '@/lib/mediaExtractor';
 import { resolveLinkTarget } from '../services/api';
-import { cn } from '@/lib/utils';
 import { ThinkingOrb } from './ui/thinking-orbs';
 import { LinkConfirmModal } from './ui/LinkConfirmModal';
 import { PhoneConfirmModal } from './ui/PhoneConfirmModal';
@@ -1099,8 +1098,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           )}
 
           <div className="mt-2 pt-1.5 border-t border-white/[0.08] flex items-center justify-between text-xs text-zinc-400">
-            <span className="text-[10px] font-mono text-zinc-400">
-              {message.timestamp}
+            <span className="text-[11px] font-mono text-zinc-400 font-medium" dir="ltr">
+              {normalizeDisplayTimestamp(message.timestamp)}
             </span>
             <button
               type="button"
@@ -1150,27 +1149,27 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             </div>
           ) : isCyber ? (
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
-              <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
+              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
               <span className="font-semibold text-xs text-zinc-100">منظومة Fathom Cyber</span>
             </div>
           ) : message.isX1 ? (
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
-              <Flame className="w-3.5 h-3.5 text-amber-300" />
+              <Flame className="w-3.5 h-3.5 text-rose-400" />
               <span className="font-semibold text-xs text-zinc-100">بروتوكول X1 MAX</span>
             </div>
           ) : isVision ? (
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
-              <Camera className="w-3.5 h-3.5 text-zinc-300" />
+              <Camera className="w-3.5 h-3.5 text-emerald-400" />
               <span className="font-semibold text-xs text-zinc-100">محرك Fathom Cam</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
-              <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />
+              <Zap className="w-3.5 h-3.5 text-zinc-100 fill-zinc-100/40 drop-shadow-[0_0_6px_rgba(255,255,255,0.7)]" />
               <span className="font-semibold text-xs text-zinc-100">محرك Fathom 1</span>
             </div>
           )}
         </div>
-        <span className="text-[10px] font-mono text-zinc-400">{message.timestamp}</span>
+        <span className="text-[11px] font-mono text-zinc-400 font-medium tracking-wide" dir="ltr">{normalizeDisplayTimestamp(message.timestamp)}</span>
       </div>
 
       <div className="w-full rounded-2xl p-3.5 sm:p-5 text-right border transition-all glass-panel text-zinc-100">
@@ -1443,19 +1442,17 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         )}
 
         {message.content && !isStreaming && (
-          <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-500">
-            <span className="text-[10px] sm:text-[11px] font-mono text-zinc-400">
-              {isMedia ? 'محرك Fathom Spark' : isCyber ? 'منظومة Fathom Cyber' : message.isX1 ? 'بروتوكول X1 MAX' : message.image ? 'محرك Fathom Cam' : 'محرك Fathom 1'}
-            </span>
+          <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-zinc-800/60 flex items-center justify-end text-xs text-zinc-500">
             <button
               type="button"
               onClick={handleCopy}
-              className="flex items-center gap-1 text-zinc-400 hover:text-zinc-200 transition-colors px-2 py-1 rounded-lg hover:bg-zinc-800 active:scale-95"
+              className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-200 transition-colors px-2.5 py-1 rounded-lg hover:bg-zinc-800/80 active:scale-95 text-xs font-medium cursor-pointer"
+              title="نسخ الرد"
             >
               {copied ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400 text-xs">تم النسخ</span>
+                  <span className="text-emerald-400 text-xs font-medium">تم النسخ</span>
                 </>
               ) : (
                 <>

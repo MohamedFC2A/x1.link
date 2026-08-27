@@ -38,7 +38,7 @@
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
-    font-family: "Readex Pro", "IBM Plex Sans Arabic", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    font-family: "Tajawal", "Readex Pro", "IBM Plex Sans Arabic", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   }
 
   /* High-Contrast Luminous Text Selection */
@@ -731,6 +731,81 @@
     background-size: 144px 144px;
     background-image: 
       radial-gradient(circle at 1px 1px, rgba(34, 211, 238, 0.95) 1.5px, transparent 1.5px);
+  }
+
+  /* Vision / Cam Mode - High-Tech Emerald Laser Grid */
+  .bg-grid-vision-laser {
+    background-size: 36px 36px;
+    background-image: 
+      linear-gradient(to right, rgba(16, 185, 129, 0.16) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(16, 185, 129, 0.16) 1px, transparent 1px);
+  }
+  .bg-grid-vision-bright {
+    background-size: 36px 36px;
+    background-image: 
+      linear-gradient(to right, rgba(52, 211, 153, 0.38) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(52, 211, 153, 0.38) 1px, transparent 1px);
+  }
+  .bg-grid-vision-macro {
+    background-size: 144px 144px;
+    background-image: 
+      linear-gradient(to right, rgba(16, 185, 129, 0.26) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(16, 185, 129, 0.26) 1px, transparent 1px);
+  }
+  .bg-grid-vision-crosshairs {
+    background-size: 144px 144px;
+    background-image: 
+      radial-gradient(circle at 1px 1px, rgba(52, 211, 153, 0.95) 1.5px, transparent 1.5px);
+  }
+
+  /* Media / Spark Mode - Cosmic Violet Laser Grid */
+  .bg-grid-media-laser {
+    background-size: 36px 36px;
+    background-image: 
+      linear-gradient(to right, rgba(168, 85, 247, 0.16) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(168, 85, 247, 0.16) 1px, transparent 1px);
+  }
+  .bg-grid-media-bright {
+    background-size: 36px 36px;
+    background-image: 
+      linear-gradient(to right, rgba(192, 132, 252, 0.38) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(192, 132, 252, 0.38) 1px, transparent 1px);
+  }
+  .bg-grid-media-macro {
+    background-size: 144px 144px;
+    background-image: 
+      linear-gradient(to right, rgba(168, 85, 247, 0.26) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(168, 85, 247, 0.26) 1px, transparent 1px);
+  }
+  .bg-grid-media-crosshairs {
+    background-size: 144px 144px;
+    background-image: 
+      radial-gradient(circle at 1px 1px, rgba(192, 132, 252, 0.95) 1.5px, transparent 1.5px);
+  }
+
+  /* X1 Protocol / Flame Mode - Crimson Rose Laser Grid */
+  .bg-grid-x1-laser {
+    background-size: 36px 36px;
+    background-image: 
+      linear-gradient(to right, rgba(244, 63, 94, 0.16) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(244, 63, 94, 0.16) 1px, transparent 1px);
+  }
+  .bg-grid-x1-bright {
+    background-size: 36px 36px;
+    background-image: 
+      linear-gradient(to right, rgba(251, 113, 133, 0.38) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(251, 113, 133, 0.38) 1px, transparent 1px);
+  }
+  .bg-grid-x1-macro {
+    background-size: 144px 144px;
+    background-image: 
+      linear-gradient(to right, rgba(244, 63, 94, 0.26) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(244, 63, 94, 0.26) 1px, transparent 1px);
+  }
+  .bg-grid-x1-crosshairs {
+    background-size: 144px 144px;
+    background-image: 
+      radial-gradient(circle at 1px 1px, rgba(251, 113, 133, 0.95) 1.5px, transparent 1.5px);
   }
 
   .bg-grid-white-subtle {

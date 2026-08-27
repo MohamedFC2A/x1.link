@@ -20,7 +20,7 @@ import { ChatMessageItem, ModelType, WebAuthnVerificationResult, MediaAttachment
 import { streamChatCompletion } from './services/api';
 import { memoryEngine } from './services/memoryManager';
 import { compressImageFile } from './lib/imageCompressor';
-import { detectAndExtractUrl, isMediaOrVideoUrl } from './lib/utils';
+import { detectAndExtractUrl, isMediaOrVideoUrl, formatEnglishTimestamp } from './lib/utils';
 import { classifyFileType, extractVideoClientMetadata, extractAudioClientMetadata, extractTextClientMetadata, extractVideoKeyframes, formatMediaDuration } from './lib/mediaExtractor';
 import { fetchUserSubscription } from './services/subscriptionService';
 import { recordRealUsage, checkPlanLimit, getLocalUsage, fetchRemoteUsage, estimateTokens } from './services/usageTracker';
@@ -349,13 +349,13 @@ export const App: React.FC = () => {
           id: 'user-' + Date.now(),
           role: 'user',
           content: effectivePrompt,
-          timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: formatEnglishTimestamp(),
         },
         {
           id: 'assistant-' + Date.now(),
           role: 'assistant',
           content: limitMsg,
-          timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: formatEnglishTimestamp(),
         }
       ]);
       setSubModalTargetPlan('pro-29');
@@ -390,7 +390,7 @@ export const App: React.FC = () => {
       image: uniqueImagesDataUrls[0],
       images: uniqueImagesDataUrls,
       mediaAttachments: attachedMediaList,
-      timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: formatEnglishTimestamp(),
       isX1: isX1Active,
       model: chosenModel,
     };
@@ -400,7 +400,7 @@ export const App: React.FC = () => {
       id: assistantPlaceholderId,
       role: 'assistant',
       content: '',
-      timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: formatEnglishTimestamp(),
       isX1: isX1Active,
       model: chosenModel,
     };
@@ -533,7 +533,7 @@ export const App: React.FC = () => {
             content: fullAssistantResponse,
             reasoning: fullAssistantReasoning,
             isX1: isX1Active,
-            timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: formatEnglishTimestamp(),
             isMemoryDetectTriggered,
             memoryDetectSummary,
           };
@@ -680,8 +680,8 @@ export const App: React.FC = () => {
   return (
     <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-[#030306] text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-white selection:text-black relative" dir="rtl">
       
-      {/* Intelligent Interactive High-Tech Laser Blueprint Grid (Dynamic Cursor Tracking & Laser Crispness) */}
-      <InteractiveGridBackground isCyberActive={activeModel === 'deepseek-v4-flash-cyber'} />
+      {/* Intelligent Interactive High-Tech Laser Blueprint Grid (Dynamic Cursor Tracking & Multi-Model Color Auras) */}
+      <InteractiveGridBackground activeModel={activeModel} isX1Active={isX1Active} />
 
       {/* Ambient Neutral Monochrome Luminescence (Sleek Obsidian & Pure Grey Depth) */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0 select-none opacity-30">

@@ -306,3 +306,31 @@ export function getConversationGlobalImages(messages: Array<{ role?: string; ima
 
   return globalImages;
 }
+
+/**
+ * Generates a clean, correct English format timestamp (e.g. "01:53 AM")
+ */
+export function formatEnglishTimestamp(date: Date = new Date()): string {
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
+/**
+ * Normalizes any timestamp string into clean English numerals and AM/PM format
+ */
+export function normalizeDisplayTimestamp(ts?: string): string {
+  if (!ts) return '';
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  let formatted = ts;
+  arabicDigits.forEach((d, idx) => {
+    formatted = formatted.replace(new RegExp(d, 'g'), String(idx));
+  });
+  return formatted
+    .replace(/ص/g, 'AM')
+    .replace(/م/g, 'PM')
+    .replace(/\s+/g, ' ')
+    .trim();
+}

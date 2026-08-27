@@ -29,7 +29,7 @@ export const FeaturesBar: React.FC<FeaturesBarProps> = ({
         {/* Crisp "الخواص النشطة" Badge */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.12]">
-            <Zap className="size-3 text-amber-400 fill-amber-400/30 shrink-0" />
+            <Zap className="size-3 text-zinc-100 fill-zinc-100/40 drop-shadow-[0_0_6px_rgba(255,255,255,0.7)] shrink-0" />
             <span className="text-xs font-sans font-bold text-white tracking-wide">
               الخواص النشطة
             </span>

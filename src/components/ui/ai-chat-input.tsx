@@ -779,7 +779,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
-                      <Zap className="w-4 h-4 text-amber-400 fill-amber-400/20" />
+                      <Zap className="w-4 h-4 text-zinc-100 fill-zinc-100/40 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" />
                     </div>
                     <div className="min-w-0 text-right">
                       <div className="font-bold text-xs text-white">Fathom 1</div>
@@ -1490,7 +1490,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 ) : isVisionMode ? (
                   <Camera className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 ) : (
-                  <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20 shrink-0" />
+                  <Zap className="w-3.5 h-3.5 text-zinc-100 fill-zinc-100/40 drop-shadow-[0_0_6px_rgba(255,255,255,0.7)] shrink-0" />
                 )}
                 <span className="font-sans text-[11px] sm:text-xs font-semibold tracking-tight">
                   {activeModelDisplayName}
