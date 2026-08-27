@@ -4,12 +4,14 @@ interface InteractiveGridBackgroundProps {
   className?: string;
   gridSize?: number;
   macroSize?: number;
+  isCyberActive?: boolean;
 }
 
 export const InteractiveGridBackground: React.FC<InteractiveGridBackgroundProps> = ({
   className = '',
   gridSize = 36,
   macroSize = 144,
+  isCyberActive = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -56,23 +58,27 @@ export const InteractiveGridBackground: React.FC<InteractiveGridBackgroundProps>
   return (
     <div
       ref={containerRef}
-      className={`pointer-events-none fixed inset-0 z-0 select-none overflow-hidden ${className}`}
+      className={`pointer-events-none fixed inset-0 z-0 select-none overflow-hidden transition-colors duration-700 ${className}`}
       style={{
         '--mouse-x': '-1000px',
         '--mouse-y': '-1000px',
       } as React.CSSProperties}
     >
-      {/* 1. Base Static High-Clarity Blueprint Grid */}
+      {/* 1. Base Static Blueprint Grid Layer (Monochrome or Cyber Cyan) */}
       <div 
-        className="absolute inset-0 bg-grid-laser opacity-55 transition-opacity duration-700"
+        className={`absolute inset-0 transition-opacity duration-700 ${
+          isCyberActive ? 'bg-grid-cyber-laser opacity-70' : 'bg-grid-laser opacity-55'
+        }`}
         style={{
           backgroundSize: `${gridSize}px ${gridSize}px`,
         }}
       />
 
-      {/* 2. Macro Structural Grid Lines (Architectural Scale) */}
+      {/* 2. Macro Structural Grid Lines */}
       <div 
-        className="absolute inset-0 bg-grid-macro opacity-40"
+        className={`absolute inset-0 transition-opacity duration-700 ${
+          isCyberActive ? 'bg-grid-cyber-macro opacity-60' : 'bg-grid-macro opacity-40'
+        }`}
         style={{
           backgroundSize: `${macroSize}px ${macroSize}px`,
         }}
@@ -80,27 +86,33 @@ export const InteractiveGridBackground: React.FC<InteractiveGridBackgroundProps>
 
       {/* 3. Glowing Laser Crosshair / Intersection Nodes (+) Pattern */}
       <div 
-        className="absolute inset-0 bg-grid-crosshairs opacity-35"
+        className={`absolute inset-0 transition-opacity duration-700 ${
+          isCyberActive ? 'bg-grid-cyber-crosshairs opacity-60' : 'bg-grid-crosshairs opacity-35'
+        }`}
         style={{
           backgroundSize: `${macroSize}px ${macroSize}px`,
         }}
       />
 
-      {/* 4. Intelligent Dynamic Cursor Spotlight (Reveals razor-sharp illuminated grid) */}
+      {/* 4. Dynamic Cursor Spotlight (Reveals razor-sharp illuminated grid) */}
       <div 
-        className="absolute inset-0 bg-grid-laser-bright opacity-95 pointer-events-none"
+        className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ${
+          isCyberActive ? 'bg-grid-cyber-bright opacity-95' : 'bg-grid-laser-bright opacity-95'
+        }`}
         style={{
           backgroundSize: `${gridSize}px ${gridSize}px`,
-          maskImage: 'radial-gradient(420px circle at var(--mouse-x) var(--mouse-y), rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 45%, transparent 80%)',
-          WebkitMaskImage: 'radial-gradient(420px circle at var(--mouse-x) var(--mouse-y), rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 45%, transparent 80%)',
+          maskImage: 'radial-gradient(440px circle at var(--mouse-x) var(--mouse-y), rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 45%, transparent 80%)',
+          WebkitMaskImage: 'radial-gradient(440px circle at var(--mouse-x) var(--mouse-y), rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 45%, transparent 80%)',
         }}
       />
 
       {/* 5. Ambient Atmospheric Spotlight Halo Following Pointer */}
       <div 
-        className="absolute inset-0 pointer-events-none opacity-50"
+        className="absolute inset-0 pointer-events-none transition-all duration-700"
         style={{
-          background: 'radial-gradient(550px circle at var(--mouse-x) var(--mouse-y), rgba(255,255,255,0.07), rgba(125,211,252,0.02) 40%, transparent 75%)',
+          background: isCyberActive
+            ? 'radial-gradient(580px circle at var(--mouse-x) var(--mouse-y), rgba(6,182,212,0.09), rgba(6,182,212,0.02) 45%, transparent 75%)'
+            : 'radial-gradient(550px circle at var(--mouse-x) var(--mouse-y), rgba(255,255,255,0.08), rgba(255,255,255,0.01) 40%, transparent 75%)',
         }}
       />
 
@@ -108,7 +120,9 @@ export const InteractiveGridBackground: React.FC<InteractiveGridBackgroundProps>
       <div className="absolute inset-0 bg-radial-vignette pointer-events-none" />
 
       {/* 7. Subtle Ambient Breathing Wave for mobile / idle aura */}
-      <div className="absolute inset-0 bg-grid-wave pointer-events-none opacity-20" />
+      <div className={`absolute inset-0 pointer-events-none transition-opacity duration-700 ${
+        isCyberActive ? 'bg-grid-wave opacity-35' : 'bg-grid-wave opacity-20'
+      }`} />
     </div>
   );
 };

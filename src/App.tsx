@@ -681,7 +681,7 @@ export const App: React.FC = () => {
     <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-[#030306] text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-white selection:text-black relative" dir="rtl">
       
       {/* Intelligent Interactive High-Tech Laser Blueprint Grid (Dynamic Cursor Tracking & Laser Crispness) */}
-      <InteractiveGridBackground />
+      <InteractiveGridBackground isCyberActive={activeModel === 'deepseek-v4-flash-cyber'} />
 
       {/* Ambient Neutral Monochrome Luminescence (Sleek Obsidian & Pure Grey Depth) */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0 select-none opacity-30">
