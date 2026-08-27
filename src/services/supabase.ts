@@ -197,12 +197,36 @@ export async function createCloudChat(userId: string | null, title: string, mode
 export async function saveCloudMessage(chatId: string, userId: string | null, msg: ChatMessageItem): Promise<void> {
   const deviceId = getOrCreateDeviceId();
   try {
+    // Encode reasoning into content if assistant message to guarantee persistence
+    let finalContent = msg.content || '';
+    if (msg.role === 'assistant' && msg.reasoning && !finalContent.includes('<think>')) {
+      finalContent = `<think>\n${msg.reasoning}\n</think>\n\n${finalContent}`;
+    }
+
+    // Preserve full image array in media_attachments if multiple images exist
+    const mediaAttachments: any[] = [...(msg.mediaAttachments || [])];
+    if (msg.images && msg.images.length > 0) {
+      msg.images.forEach((img, idx) => {
+        if (!mediaAttachments.some((m: any) => m.url === img || m.dataUrl === img)) {
+          mediaAttachments.push({
+            id: `img-${idx}-${Date.now()}`,
+            name: `صورة ${idx + 1}`,
+            type: 'image',
+            mimeType: 'image/jpeg',
+            size: 0,
+            url: img,
+            dataUrl: img,
+          });
+        }
+      });
+    }
+
     const payload: any = {
       chat_id: chatId,
       role: msg.role,
-      content: msg.content,
-      image_url: msg.image || null,
-      media_attachments: msg.mediaAttachments || [],
+      content: finalContent,
+      image_url: msg.image || (msg.images && msg.images[0]) || null,
+      media_attachments: mediaAttachments,
       is_x1: !!msg.isX1,
       tokens_count: msg.tokensCount || 0,
       device_id: deviceId,
@@ -262,16 +286,45 @@ export async function fetchChatMessages(chatId: string): Promise<ChatMessageItem
       return [];
     }
 
-    return (data || []).map(row => ({
-      id: row.id,
-      role: row.role as 'user' | 'assistant' | 'system',
-      content: row.content,
-      image: row.image_url || undefined,
-      mediaAttachments: row.media_attachments && row.media_attachments.length > 0 ? row.media_attachments : undefined,
-      isX1: row.is_x1,
-      tokensCount: row.tokens_count,
-      timestamp: formatEnglishTimestamp(new Date(row.created_at)),
-    }));
+    return (data || []).map(row => {
+      let content = row.content || '';
+      let reasoning: string | undefined = row.reasoning || undefined;
+
+      // Extract reasoning embedded in <think>...</think>
+      if (!reasoning && content.includes('<think>') && content.includes('</think>')) {
+        const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/i);
+        if (thinkMatch) {
+          reasoning = thinkMatch[1].trim();
+          content = content.replace(/<think>[\s\S]*?<\/think>/i, '').trim();
+        }
+      }
+
+      // Restore images array from media_attachments or image_url
+      const imageAttachments = Array.isArray(row.media_attachments)
+        ? row.media_attachments.filter((m: any) => m.type === 'image').map((m: any) => m.url || m.dataUrl).filter(Boolean)
+        : [];
+      
+      const images = imageAttachments.length > 0
+        ? imageAttachments
+        : (row.image_url ? [row.image_url] : undefined);
+
+      const nonImageAttachments = Array.isArray(row.media_attachments)
+        ? row.media_attachments.filter((m: any) => m.type !== 'image')
+        : undefined;
+
+      return {
+        id: row.id,
+        role: row.role as 'user' | 'assistant' | 'system',
+        content,
+        reasoning,
+        image: images?.[0] || row.image_url || undefined,
+        images: images && images.length > 0 ? images : undefined,
+        mediaAttachments: nonImageAttachments && nonImageAttachments.length > 0 ? nonImageAttachments : undefined,
+        isX1: row.is_x1,
+        tokensCount: row.tokens_count,
+        timestamp: formatEnglishTimestamp(new Date(row.created_at)),
+      };
+    });
   } catch {
     return [];
   }

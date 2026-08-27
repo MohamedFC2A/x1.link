@@ -208,8 +208,8 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
       const r = (reasoning || '').toLowerCase();
       const c = (content || '').toLowerCase();
       
-      const hasExplicitKeyword = /(?:memory[-\s]?detect|memorydetect|ميموري\s?ديتكت|الذاكرة\s?السحابية|الذاكرة\s?المتزامنة|استرجاع\s?الذاكرة|تذكر|فاكر|محادث[ةات]|المحادث[ةات]|الشات|الشاتات|سابقاً|السابق[ة]?|اللي فاتت|اللي فات|قبل السابق|كنا اتكلمنا|كنت بقولك|قلتلك قبل|سجل المحادثات|أكثر شيء تم ذكره|اكثر شئ اتكرر)/i.test(p);
-      const hasReasoningRef = r.includes('memory detect') || r.includes('الذاكرة السحابية') || r.includes('سياق الذاكرة') || r.includes('المحادثة السابقة');
+      const hasExplicitKeyword = /(?:memory[-\s]?detect|memorydetect|ميموري\s?ديتكت|الذاكرة\s?السحابية|الذاكرة\s?المتزامنة|استرجاع\s?الذاكرة|سجل المحادثات|أكثر شيء تم ذكره|اكثر شئ اتكرر|المحادثة السابقة|المحادثات السابقة|الشات السابق|الشاتات السابقة)/i.test(p);
+      const hasReasoningRef = r.includes('memory detect') || r.includes('الذاكرة السحابية') || r.includes('المحادثة السابقة مباشرة');
       const hasBadge = c.includes('memory-detect') || c.includes('[memory-detect-badge');
       const isContextTriggered = Boolean(context?.isMemoryDetectTriggered);
 
@@ -255,9 +255,9 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
       const r = (reasoning || '').toLowerCase();
       const c = (content || '').toLowerCase();
 
-      const hasKeyword = /(?:time[-\s]?detect|timedetect|الوقت|الساعة|التوقيت|الزمن|الزمني|الزمنية|تاريخ|سنة|عام|سنوات|أعوام|قرن|عقد|توقيت|شهور|أشهر|أيام|يوم|أمس|غداً|الماضي|الحاضر|المستقبل|اليوم|عمره|عمرها|كم سنة|كم عام|كم عمر|متى|تايمر|مؤقت|تذكير|فكرني|احذف الشات|تدمير ذاتي|تاريخ اليوم|اليوم كام|كم الساعة|كم الوقت|كم باقي|كم مر|متبقي على|\b(19\d\d|20\d\d)\b)/i.test(p);
-      const hasReasoningRef = r.includes('time detect') || r.includes('استشعار الزمن') || r.includes('الفارق الزمني');
-      const hasBadge = c.includes('time-detect') || c.includes('[time-detect-badge');
+      const hasKeyword = /(?:time[-\s]?detect|timedetect|كم الساعة|كم الوقت|تاريخ اليوم|اليوم كام|سنة كام|السنة الحالية|تاريخ اليوم|كم عمر|عمره كام|عمرها كام|كم سنة بين|فارق السنين|متى ولد|متى توفي|مؤقت|تايمر|تذكير بعد|احسب الفرق الزمني|التقويم|التوقيت الحالي)/i.test(p);
+      const hasReasoningRef = r.includes('time detect') || r.includes('استشعار الإحداثيات الزمنية');
+      const hasBadge = c.includes('time-detect') || c.includes('[time-detect-badge') || c.includes('[time-detect-timer');
 
       return hasKeyword || hasReasoningRef || hasBadge;
     },
@@ -300,8 +300,8 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
       const r = (reasoning || '').toLowerCase();
       const c = (content || '').toLowerCase();
 
-      const hasKeyword = /(?:ai[-\s]?detect|aidetect|ذكاء اصطناعي|توليد|مولدة|حقيقية|معدلة|فيك|fake|deepfake|تزييف|بصمة ذكاء|كاشف|فحص الصورة|اصالة|أصالة|فحص النص|تحقق)/i.test(p);
-      const hasReasoningRef = r.includes('ai detect') || r.includes('توليد الذكاء الاصطناعي') || r.includes('صورة مولدة');
+      const hasKeyword = /(?:ai[-\s]?detect|aidetect|ذكاء اصطناعي|مولدة بذكاء|مصنوعة بذكاء|مولد ب|مصنوع ب|ai\??|حقيقية ولا|حقيقي ولا|فيك|deepfake|تزييف|بصمة ذكاء|كاشف الذكاء|فحص الاصالة|أصالة الصورة|فحص الصورة ai)/i.test(p);
+      const hasReasoningRef = r.includes('ai detect') || r.includes('ai-detect-badge') || r.includes('توليد الذكاء الاصطناعي');
       const hasBadge = c.includes('ai-detect') || c.includes('[ai-detect-badge');
 
       return hasKeyword || hasReasoningRef || hasBadge;
@@ -343,9 +343,9 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
       const r = (reasoning || '').toLowerCase();
       const c = (content || '').toLowerCase();
 
-      const hasKeyword = /(?:meta[-\s]?data|metadata|exif|ميتاداتا|الميتاداتا|ميتا\s?داتا|الميتا\s?داتا|كاميرا|نوع الجوال|جوال|هاتف|موقع جغرافي|تاريخ الالتقاط|بيانات الصورة|تاريخ الصورة|حجم الصورة)/i.test(p);
-      const hasReasoningRef = r.includes('metadata') || r.includes('exif') || r.includes('الميتاداتا');
-      const hasBadge = c.includes('metadata') || c.includes('exif');
+      const hasKeyword = /(?:meta[-\s]?data|metadata|exif|ميتاداتا|الميتاداتا|ميتا\s?داتا|بيانات الـ exif|بيانات الكاميرا|موقع التقاط الصورة|إحداثيات gps|نوع الكاميرا المستخدمة)/i.test(p);
+      const hasReasoningRef = r.includes('metadata detect') || r.includes('استخراج الميتاداتا');
+      const hasBadge = c.includes('metadata-detect') || c.includes('[metadata-detect');
 
       return hasKeyword || hasReasoningRef || hasBadge;
     },
@@ -378,14 +378,15 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
       const r = (reasoning || '').toLowerCase();
       const c = (content || '').toLowerCase();
 
-      const hasKeyword = /(?:download[-\s]?detect|downloaddetect|تحميل|تنزيل|حمل|حمّل|نزلي|نزل|نزّل|نزله|نزلها|حمله|حملها|انزل|انزله|انزلها|احمل|احمله|احملها|اسحب|اسحبه|اسحبها|سحب|تنزيل\s*ف[ي]?ديو|تحميل\s*ف[ي]?ديو|تحميل\s*المقطع|تنزيل\s*المقطع|نزل\s*الف[ي]?ديو|حمل\s*الف[ي]?ديو|نزل\s*المقطع|حمل\s*المقطع|ف[ي]?ديو|مقطع|ريلز|شورتس|صوت|mp3|mp4|تحميل\s*صورة|تنزيل\s*الصور|استخراج\s*الوسائط|استخراج\s*الف[ي]?ديو|تنزيل\s*بوست|تحميل\s*البوست|download|extract\s*media|save\s*video|save\s*post|grab\s*video|grab\s*media|reels?\s*download|tiktok\s*download|yt\s*download|youtube\s*download)/i.test(p);
-      const hasMediaUrl = /(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|reddit\.com|threads\.net|vimeo\.com|\.mp4|\.m3u8|\.mp3)/i.test(p) || /(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|reddit\.com|threads\.net|vimeo\.com|\.mp4|\.m3u8|\.mp3)/i.test(context?.targetUrl || '');
-      const hasShortDownloadWord = /(?:نزل|نزّل|حمل|حمّل|نزلي|حملي|سحب|تنزيل|تحميل|download|save|grab)/i.test(p);
-      const hasReasoningRef = r.includes('download detect') || r.includes('استخراج الوسائط') || r.includes('تنزيل الوسائط') || r.includes('تحميل الفيديو') || r.includes('تنزيل الفيديو') || r.includes('جودة');
-      const hasBadge = c.includes('download-detect') || c.includes('[download-detect-card') || c.includes('[download-button') || c.includes('[download-detect-badge');
-      const isContextTriggered = Boolean(context?.isDownloadDetectTriggered) || (hasMediaUrl && hasShortDownloadWord);
+      // Explicit download action verbs
+      const hasExplicitDownloadAction = /(?:تحميل|تنزيل|حمل|حمّل|نزلي|نزل|نزّل|نزله|نزلها|حمله|حملها|انزل|انزله|احمل|احمله|اسحب|اسحبه|download|save|grab)\b/i.test(p);
+      const hasDownloadPhrases = /(?:download[-\s]?detect|downloaddetect|تنزيل\s*ف[ي]?ديو|تحميل\s*ف[ي]?ديو|تحميل\s*المقطع|تنزيل\s*المقطع|نزل\s*الف[ي]?ديو|حمل\s*الف[ي]?ديو|نزل\s*المقطع|حمل\s*المقطع|تحميل\s*صورة|تنزيل\s*الصور|استخراج\s*الوسائط|تنزيل\s*بوست|تحميل\s*البوست|سحب\s*الفيديو|سحب\s*المقطع|extract\s*media|save\s*video|save\s*post|grab\s*video|grab\s*media|reels?\s*download|tiktok\s*download|yt\s*download|youtube\s*download)/i.test(p);
+      const hasMediaUrl = /(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|reddit\.com|threads\.net|vimeo\.com|\.mp4|\.m3u8|\.mp3)/i.test(p);
+      const hasBadgeInContent = c.includes('[download-detect-card:') || c.includes('[download-button:') || c.includes('[download-detect-badge:');
+      const hasReasoningRef = (r.includes('download detect') || r.includes('استخراج وتنزيل الوسائط')) && (hasExplicitDownloadAction || hasMediaUrl);
 
-      return hasKeyword || hasReasoningRef || hasBadge || isContextTriggered;
+      // Must have genuine download request: either explicit download phrase, or explicit download verb with a media link, or explicit badge
+      return hasDownloadPhrases || (hasExplicitDownloadAction && hasMediaUrl) || hasBadgeInContent || hasReasoningRef;
     },
     extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
       const badgeMatch = content.match(/(?:\[DOWNLOAD-DETECT-(?:CARD|BADGE):\s*([^|\]]+)\s*(?:\|\s*([^\]]+))?\]|DOWNLOAD-DETECT-(?:CARD|BADGE):\s*([^|\n]+)\s*(?:\|\s*([^\n\]]+))?)/i);

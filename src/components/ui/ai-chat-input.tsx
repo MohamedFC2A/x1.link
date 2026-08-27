@@ -112,36 +112,51 @@ function AttachmentPreviewModal({
       </button>
 
       <div
-        className="relative max-w-4xl max-h-[85vh] w-full overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-950 shadow-2xl flex flex-col"
+        className="relative max-w-4xl w-full max-h-[90vh] bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-4 bg-black/40">
+        <div className="p-3 bg-zinc-900/90 border-b border-zinc-800 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          <div className="flex items-center gap-2 text-xs font-medium text-zinc-300">
+            {attachment.mediaType === 'image' && <Camera className="w-3.5 h-3.5 text-emerald-400" />}
+            {attachment.mediaType === 'video' && <Video className="w-3.5 h-3.5 text-violet-400" />}
+            {attachment.mediaType === 'audio' && <Music className="w-3.5 h-3.5 text-cyan-400" />}
+            {attachment.mediaType === 'document' && <FileText className="w-3.5 h-3.5 text-amber-400" />}
+            <span>{attachment.name}</span>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-black/40 min-h-[300px]">
           {attachment.mediaType === 'video' ? (
             <video
               src={attachment.url}
               controls
               autoPlay
-              className="max-h-[70vh] w-auto max-w-full rounded-lg shadow-md"
+              className="max-h-[75vh] w-auto max-w-full rounded-lg shadow-md"
             />
           ) : attachment.mediaType === 'audio' ? (
-            <div className="w-full max-w-md p-6 rounded-2xl bg-zinc-900/90 border border-zinc-700 flex flex-col items-center gap-4">
-              <div className="size-16 rounded-full bg-violet-500/20 border border-violet-500/40 flex items-center justify-center text-violet-400">
-                <Music className="w-8 h-8" />
+            <div className="flex flex-col items-center gap-4 p-8 w-full max-w-md bg-zinc-900/80 rounded-2xl border border-white/[0.08]">
+              <div className="w-16 h-16 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
+                <Music className="w-8 h-8 text-cyan-400" />
               </div>
               <div className="text-center">
-                <div className="font-bold text-white text-sm">{attachment.name}</div>
-                <div className="text-xs text-zinc-400 mt-1">{formatFileSize(attachment.size)} • {formatMediaDuration(attachment.duration || 0)}</div>
+                <div className="text-sm font-semibold text-white truncate max-w-xs">{attachment.name}</div>
+                <div className="text-xs text-zinc-400 mt-1">{formatFileSize(attachment.size)}</div>
               </div>
               <audio src={attachment.url} controls className="w-full mt-2" />
             </div>
           ) : attachment.mediaType === 'document' ? (
-            <div className="w-full max-w-lg p-6 rounded-2xl bg-zinc-900/90 border border-zinc-700 flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <div className="size-12 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="font-bold text-white text-sm">{attachment.name}</div>
+            <div className="flex flex-col gap-3 w-full max-w-2xl">
+              <div className="p-4 bg-zinc-900/90 rounded-xl border border-zinc-800 flex items-center gap-3">
+                <FileText className="w-6 h-6 text-amber-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-white truncate">{attachment.name}</div>
                   <div className="text-xs text-zinc-400">{formatFileSize(attachment.size)}</div>
                 </div>
               </div>
@@ -164,20 +179,6 @@ function AttachmentPreviewModal({
             <span className="truncate max-w-[150px] sm:max-w-md">{attachment.name}</span>
             <span className="text-zinc-400 font-mono">({formatFileSize(attachment.size)})</span>
           </div>
-
-          {attachment.mediaType === 'image' && onOpenForensics && (
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onOpenForensics(attachment);
-              }}
-              className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-sans font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
-            >
-              <FileSearch className="w-3.5 h-3.5" />
-              <span>فحص الميتاداتا والأدلة الجنائية (EXIF / GPS)</span>
-            </button>
-          )}
         </div>
       </div>
     </div>

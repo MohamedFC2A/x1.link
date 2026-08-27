@@ -79,21 +79,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, [isStreaming, messages, scrollToBottom]);
 
-  // ResizeObserver to handle content height expansions smoothly
+  // ResizeObserver to handle content height expansions smoothly during streaming
   useEffect(() => {
     const container = containerRef.current;
     const list = messagesListRef.current;
     if (!container || !list) return;
 
+    let rafId: number;
     const ro = new ResizeObserver(() => {
-      if (isPinnedToBottomRef.current) {
-        container.scrollTop = container.scrollHeight;
+      if (isStreaming && isPinnedToBottomRef.current) {
+        cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          if (container && isPinnedToBottomRef.current) {
+            container.scrollTop = container.scrollHeight;
+          }
+        });
       }
     });
 
     ro.observe(list);
-    return () => ro.disconnect();
-  }, []);
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(rafId);
+    };
+  }, [isStreaming]);
 
   const globalUrlIndexMap = React.useMemo(() => {
     const urls = getConversationGlobalUrls(messages);
@@ -122,7 +131,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         className="flex-1 overflow-y-auto px-2.5 sm:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 select-text smooth-scroll scroll-container-optimized no-scrollbar"
         style={{
           scrollBehavior: 'auto',
-          overflowAnchor: 'none', // We manage exact anchoring via ResizeObserver
+          overflowAnchor: 'auto', // Native smooth scroll anchoring
           overscrollBehaviorY: 'contain'
         }}
       >

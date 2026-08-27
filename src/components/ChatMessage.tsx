@@ -12,7 +12,6 @@ import { ThinkingOrb } from './ui/thinking-orbs';
 import { LinkConfirmModal } from './ui/LinkConfirmModal';
 import { PhoneConfirmModal } from './ui/PhoneConfirmModal';
 import { EmailConfirmModal } from './ui/EmailConfirmModal';
-import { ImageForensicsModal } from './ui/ImageForensicsModal';
 import { renderSmartContentWithLinksAndPhones } from '@/lib/smart-content-parser';
 import { PlatformLogo } from './ui/PlatformLogo';
 import { FeaturesBar } from './ui/FeaturesBar';
@@ -928,7 +927,6 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [forensicImage, setForensicImage] = useState<string | null>(null);
   const [confirmUrl, setConfirmUrl] = useState<string | null>(null);
   const [confirmPhone, setConfirmPhone] = useState<string | null>(null);
   const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
@@ -954,15 +952,15 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   );
   const hasMemoryDetect = activeFeatures.some(f => f.id === 'memory_detect');
 
-  // Intent classification on user request
+  // Intent classification on user request matching active features 100%
   const promptLower = previousUserPrompt.toLowerCase();
-  const isMetadataIntent = /(?:meta[-\s]?data|metadata|exif|ميتاداتا|الميتاداتا|ميتا\s?داتا|الميتا\s?داتا|كاميرا|نوع الجوال|جوال|هاتف|موقع جغرافي|تاريخ الالتقاط|بيانات الصورة|تاريخ الصورة|حجم الصورة)/i.test(promptLower);
-  const isAiDetectIntent = /(?:ai[-\s]?detect|aidetect|ذكاء اصطناعي|توليد|مولدة|حقيقية|معدلة|فيك|fake|deepfake|تزييف|بصمة ذكاء|كاشف|فحص الصورة|اصالة|أصالة|فحص النص|تحقق)/i.test(promptLower);
-  const isTimeIntent = /(?:time[-\s]?detect|timedetect|الوقت|الساعة|التوقيت|الزمن|الزمني|الزمنية|تاريخ|سنة|عام|سنوات|أعوام|قرن|عقد|توقيت|شهور|أشهر|أيام|يوم|أمس|غداً|الماضي|الحاضر|المستقبل|اليوم|عمره|عمرها|كم سنة|كم عام|كم عمر|متى|تايمر|مؤقت|تذكير|فكرني|احذف الشات|تدمير ذاتي|تاريخ اليوم|اليوم كام|كم الساعة|كم الوقت|كم باقي|كم مر|متبقي على|\b(19\d\d|20\d\d)\b)/i.test(promptLower) || /(?:time[-\s]?detect|timedetect|الفارق الزمني|استشعار الزمن|حساب الزمن)/i.test(message.reasoning || '');
-  const isDownloadIntent = /(?:download[-\s]?detect|downloaddetect|تحميل|تنزيل|حمل|حمّل|نزلي|نزل|نزّل|نزله|نزلها|حمله|حملها|انزل|انزله|انزلها|احمل|احمله|احملها|اسحب|اسحبه|اسحبها|سحب|تنزيل\s*ف[ي]?ديو|تحميل\s*ف[ي]?ديو|تحميل\s*المقطع|تنزيل\s*المقطع|نزل\s*الف[ي]?ديو|حمل\s*الف[ي]?ديو|نزل\s*المقطع|حمل\s*المقطع|ف[ي]?ديو|مقطع|ريلز|شورتس|صوت|mp3|mp4|تحميل\s*صورة|تنزيل\s*الصور|استخراج\s*الوسائط|استخراج\s*الف[ي]?ديو|تنزيل\s*بوست|تحميل\s*البوست|download|extract\s*media|save\s*video|save\s*post|grab\s*video|grab\s*media|reels?\s*download|tiktok\s*download|yt\s*download|youtube\s*download)/i.test(promptLower) || /(?:download detect|استخراج وتنزيل|روابط التحميل|تحميل الفيديو|تنزيل الفيديو|جودة)/i.test(message.reasoning || '');
-  const hasDownloadDetect = activeFeatures.some(f => f.id === 'download_detect') || isDownloadIntent;
+  const isMetadataIntent = activeFeatures.some(f => f.id === 'metadata_detect');
+  const isAiDetectIntent = activeFeatures.some(f => f.id === 'ai_detect');
+  const isTimeIntent = activeFeatures.some(f => f.id === 'time_detect');
+  const hasDownloadDetect = activeFeatures.some(f => f.id === 'download_detect');
 
   const detectedMediaUrl = useMemo(() => {
+    if (!hasDownloadDetect) return null;
     const mediaRegex = /(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|reddit\.com|threads\.net|vimeo\.com|\.mp4|\.m3u8|\.mp3)/i;
     
     // 1. Check current message content for media URL
@@ -973,16 +971,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     const inPrompt = extractAllCleanUrls(previousUserPrompt || '', 5).urls.find(u => mediaRegex.test(u));
     if (inPrompt) return inPrompt;
 
-    // 3. Check globalUrlIndexMap keys (latest first)
-    const globalUrls = Object.keys(globalUrlIndexMap || {});
-    for (let i = globalUrls.length - 1; i >= 0; i--) {
-      const u = globalUrls[i];
-      if (mediaRegex.test(u)) {
-        return u;
-      }
-    }
     return null;
-  }, [message.content, previousUserPrompt, globalUrlIndexMap]);
+  }, [hasDownloadDetect, message.content, previousUserPrompt]);
 
   // Dynamic thorough detection status phases
   const [loadingPhase, setLoadingPhase] = useState<'searching' | 'perceiving' | 'detecting'>('searching');
@@ -1060,20 +1050,6 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                         صورة
                       </span>
                     </div>
-
-                    {/* Forensic Analysis Trigger Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setForensicImage(imgSrc);
-                      }}
-                      className="absolute bottom-2.5 left-2.5 opacity-90 sm:opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/80 hover:bg-black text-cyan-300 border border-cyan-500/30 text-[10px] font-sans font-bold shadow-lg backdrop-blur-md cursor-pointer select-none z-10 hover:scale-105 active:scale-95"
-                      title="فحص الميتاداتا والأدلة الجنائية (EXIF / GPS)"
-                    >
-                      <FileSearch className="w-3 h-3 text-cyan-400" />
-                      <span>فحص الميتاداتا</span>
-                    </button>
                   </div>
                 );
               })}
@@ -1186,7 +1162,6 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         <LinkConfirmModal url={confirmUrl} onClose={() => setConfirmUrl(null)} />
         <PhoneConfirmModal phoneNumber={confirmPhone} onClose={() => setConfirmPhone(null)} />
         <EmailConfirmModal email={confirmEmail} onClose={() => setConfirmEmail(null)} />
-        <ImageForensicsModal imageSrc={forensicImage} isOpen={Boolean(forensicImage)} onClose={() => setForensicImage(null)} />
       </motion.div>
     );
   }
@@ -1203,33 +1178,12 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       transition={{ duration: 0.15 }}
       className="flex flex-col items-start my-2 group w-full"
     >
-      <div className="flex items-center justify-between w-full mb-1.5 px-1 text-xs text-zinc-300">
-        <div className="flex items-center gap-1.5 font-sans font-medium shrink-0">
-          {isMedia ? (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
-              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-              <span className="font-semibold text-xs text-zinc-100">محرك Fathom Spark</span>
-            </div>
-          ) : isCyber ? (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
-              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="font-semibold text-xs text-zinc-100">منظومة Fathom Cyber</span>
-            </div>
-          ) : message.isX1 ? (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
-              <Flame className="w-3.5 h-3.5 text-rose-400" />
-              <span className="font-semibold text-xs text-zinc-100">بروتوكول X1 MAX</span>
-            </div>
-          ) : isVision ? (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
-              <Camera className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="font-semibold text-xs text-zinc-100">محرك Fathom Cam</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-white/[0.12] text-zinc-200">
-              <Zap className="w-3.5 h-3.5 text-zinc-100 fill-zinc-100/40 drop-shadow-[0_0_6px_rgba(255,255,255,0.7)]" />
-              <span className="font-semibold text-xs text-zinc-100">محرك Fathom 1</span>
-            </div>
+      <div className="flex items-center justify-between w-full mb-1.5 px-1 text-xs text-zinc-400 select-none">
+        <div className="flex items-center gap-1.5 font-sans font-medium">
+          {message.isX1 && (
+            <span className="text-[10px] font-mono font-bold text-rose-400/90 tracking-wide px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20">
+              X1 MAX
+            </span>
           )}
         </div>
         <span className="text-[11px] font-mono text-zinc-400 font-medium tracking-wide shrink-0" dir="ltr">{normalizeDisplayTimestamp(message.timestamp)}</span>
@@ -1553,7 +1507,6 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       <LinkConfirmModal url={confirmUrl} onClose={() => setConfirmUrl(null)} />
       <PhoneConfirmModal phoneNumber={confirmPhone} onClose={() => setConfirmPhone(null)} />
       <EmailConfirmModal email={confirmEmail} onClose={() => setConfirmEmail(null)} />
-      <ImageForensicsModal imageSrc={forensicImage} isOpen={Boolean(forensicImage)} onClose={() => setForensicImage(null)} />
     </motion.div>
   );
 };

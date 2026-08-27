@@ -120,27 +120,15 @@ export default function ChatReasoning({
   defaultValue,
   className,
 }: ChatReasoningProps) {
-  const [value, setValue] = useState<string | undefined>(
-    isThinking ? "reasoning" : defaultValue
-  );
+  const [value, setValue] = useState<string | undefined>(defaultValue);
   const [showRawText, setShowRawText] = useState(false);
-  const prevIsThinkingRef = useRef(isThinking);
-  const prevIsStreamingRef = useRef(isStreaming);
 
-  // Auto-collapse when thinking or whole stream completes
+  // Smoothly manage open/close state without violent scroll jumps
   useEffect(() => {
-    if (isThinking && !prevIsThinkingRef.current) {
+    if (isThinking) {
       setValue("reasoning");
-    } else if (!isThinking && prevIsThinkingRef.current) {
-      // Auto-collapse seamlessly when thinking finishes!
-      setValue(undefined);
-    } else if (!isStreaming && prevIsStreamingRef.current) {
-      // Auto-collapse when whole message stream completes!
-      setValue(undefined);
     }
-    prevIsThinkingRef.current = isThinking;
-    prevIsStreamingRef.current = isStreaming;
-  }, [isThinking, isStreaming]);
+  }, [isThinking]);
 
   // Combine reasoningText or parts
   const fullText = reasoningText || partsInAccordion.map(p => p.text || '').filter(Boolean).join('\n\n');

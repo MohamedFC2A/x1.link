@@ -900,8 +900,8 @@ export const App: React.FC = () => {
 
             {viewMode === 'chat' && (
               <div className="flex flex-col h-full min-h-0 animate-in fade-in duration-150">
-                {/* Chat Messages Body */}
-                <main className="flex-1 flex flex-col max-w-4xl w-full mx-auto relative overflow-hidden min-h-0">
+                {/* Chat Messages Body - Smart Spacious Width */}
+                <main className="flex-1 flex flex-col max-w-5xl w-full mx-auto relative overflow-hidden min-h-0 px-1 sm:px-3">
                   <ChatWindow
                     messages={messages}
                     isStreaming={isStreaming}
@@ -914,7 +914,7 @@ export const App: React.FC = () => {
 
                 {/* Full-Width Seamless Floating AI Chat Input Wrapper */}
                 <div className="sticky bottom-0 z-30 w-full pb-3 sm:pb-4 pt-4 bg-gradient-to-t from-[#030306] via-[#030306]/90 to-transparent pb-safe pointer-events-none">
-                  <div className="max-w-4xl mx-auto px-3 sm:px-6 pointer-events-auto">
+                  <div className="max-w-5xl mx-auto px-2.5 sm:px-6 pointer-events-auto">
                     <PromptInput
                       onSubmit={(val, meta) => handleSendMessage(val, meta)}
                       isStreaming={isStreaming}
