@@ -94,12 +94,15 @@
     overflow-anchor: auto !important;
     contain: layout paint;
     will-change: scroll-position;
+    -webkit-overflow-scrolling: touch;
+    transform: translateZ(0);
   }
 
   /* GPU Rendering Boost for Message Bubbles */
   .gpu-layer {
-    transform: translateZ(0);
+    transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
+    will-change: transform;
   }
 
   /* Hide scrollbar while keeping scroll functionality */

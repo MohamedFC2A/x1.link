@@ -5,6 +5,7 @@
  * and documents/code (pdf, docx, txt, md, csv, json, py, js, ts, etc.).
  */
 
+import JSZip from 'jszip';
 import { MediaType, MediaAttachmentItem } from '../types';
 
 export function formatFileSize(bytes: number): string {
@@ -55,7 +56,7 @@ export function classifyFileType(file: File): MediaType {
     return 'image';
   }
 
-  // 4. Documents & Code
+  // 4. Documents, Code & Archives
   if (
     mime.startsWith('text/') ||
     mime.includes('pdf') ||
@@ -63,7 +64,10 @@ export function classifyFileType(file: File): MediaType {
     mime.includes('xml') ||
     mime.includes('document') ||
     mime.includes('spreadsheet') ||
-    /\.(pdf|doc|docx|txt|md|csv|json|xml|log|py|js|ts|tsx|jsx|html|css|scss|java|c|cpp|cs|go|rs|php|rb|sql|sh|yaml|yml|toml|ini|env)$/i.test(name)
+    mime.includes('zip') ||
+    mime.includes('tar') ||
+    mime.includes('archive') ||
+    /\.(pdf|doc|docx|txt|md|csv|json|xml|log|py|js|ts|tsx|jsx|html|css|scss|java|c|cpp|cs|go|rs|php|rb|sql|sh|yaml|yml|toml|ini|env|zip|tar|gz|7z|rar)$/i.test(name)
   ) {
     return 'document';
   }
@@ -225,15 +229,114 @@ export async function extractAudioClientMetadata(file: File): Promise<{
 }
 
 /**
- * Extracts text content from document or code files
+ * Detects if a file path or extension represents a readable text/code file
+ */
+function isReadableCodeOrTextFile(filePath: string): boolean {
+  const lower = filePath.toLowerCase();
+  // Exclude node_modules, git internals, or build caches if present in archives
+  if (lower.includes('node_modules/') || lower.includes('.git/') || lower.includes('dist/') || lower.includes('build/')) {
+    return false;
+  }
+  const codeExtensions = [
+    '.ts', '.tsx', '.js', '.jsx', '.json', '.html', '.css', '.scss', '.sass', '.less',
+    '.py', '.md', '.txt', '.csv', '.xml', '.yaml', '.yml', '.toml', '.env', '.env.example',
+    '.sql', '.sh', '.bash', '.zsh', '.bat', '.ps1', '.c', '.cpp', '.h', '.hpp', '.cs',
+    '.go', '.rs', '.java', '.kt', '.php', '.rb', '.swift', '.r', '.m', '.vue', '.svelte',
+    '.graphql', '.proto', '.ini', '.cfg', '.conf', '.dockerfile', '.gitignore'
+  ];
+  return codeExtensions.some(ext => lower.endsWith(ext)) || lower.endsWith('dockerfile') || lower.endsWith('makefile') || lower.endsWith('license') || lower.endsWith('readme');
+}
+
+/**
+ * Extracts text content from document, code files, or decompresses ZIP archives
  */
 export async function extractTextClientMetadata(file: File): Promise<{
   textSnippet: string;
   lineCount: number;
   wordCount: number;
 }> {
+  const fileName = file.name || 'ملف مرفق';
+  const isZip = fileName.toLowerCase().endsWith('.zip') || file.type.includes('zip') || file.type.includes('compressed');
+
+  // Handle ZIP Archives with JSZip
+  if (isZip) {
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const filePaths: string[] = [];
+      const extractedFiles: Array<{ path: string; content: string; size: number }> = [];
+
+      let totalExtractedLength = 0;
+      const MAX_TOTAL_ARCHIVE_TEXT = 120000; // 120k chars per archive
+
+      const entries = Object.keys(zip.files);
+      for (const rawPath of entries) {
+        const entry = zip.files[rawPath];
+        if (entry.dir) {
+          filePaths.push(`📁 ${rawPath}`);
+          continue;
+        }
+
+        filePaths.push(`📄 ${rawPath} (${formatFileSize((entry as any)._data?.uncompressedSize || 0)})`);
+
+        if (isReadableCodeOrTextFile(rawPath) && totalExtractedLength < MAX_TOTAL_ARCHIVE_TEXT) {
+          try {
+            const text = await entry.async('text');
+            if (text && text.trim()) {
+              const remainingBudget = MAX_TOTAL_ARCHIVE_TEXT - totalExtractedLength;
+              const contentToTake = text.slice(0, remainingBudget);
+              totalExtractedLength += contentToTake.length;
+              extractedFiles.push({
+                path: rawPath,
+                content: contentToTake,
+                size: text.length
+              });
+            }
+          } catch (e) {
+            console.warn(`[JSZip read file warning: ${rawPath}]`, e);
+          }
+        }
+      }
+
+      // Format clean directory tree representation
+      const treeBlock = filePaths.slice(0, 100).join('\n') + (filePaths.length > 100 ? `\n... و(${filePaths.length - 100}) ملفات ومجلدات أخرى` : '');
+
+      // Format individual code blocks with syntax tags
+      const codeBlocks = extractedFiles.map(f => {
+        const ext = f.path.split('.').pop()?.toLowerCase() || '';
+        const lang = ext === 'ts' || ext === 'tsx' ? 'typescript' : ext === 'js' || ext === 'jsx' ? 'javascript' : ext === 'py' ? 'python' : ext === 'json' ? 'json' : ext === 'html' ? 'html' : ext === 'css' ? 'css' : ext === 'sql' ? 'sql' : ext === 'md' ? 'markdown' : '';
+        return `\n--- [الملف: ${f.path}] ---\n\`\`\`${lang}\n${f.content}\n\`\`\``;
+      }).join('\n');
+
+      const fullArchiveRepresentation = [
+        `[أرشيف مضغوط مفكوك ومستوعب عبر Fathom Spark: "${fileName}"]`,
+        `• إجمالي الملفات والمجلدات: ${filePaths.length}`,
+        `• ملفات الأكواد والنصوص المستخرجة: ${extractedFiles.length}`,
+        `• شجرة الملفات والمجلدات:\n${treeBlock}`,
+        codeBlocks ? `\n[الأكواد والمحتويات المفحوصة في الأرشيف]:\n${codeBlocks}` : '',
+        `\n[نهاية أرشيف "${fileName}"]`
+      ].filter(Boolean).join('\n');
+
+      const lines = fullArchiveRepresentation.split('\n');
+      const words = fullArchiveRepresentation.split(/\s+/).filter(Boolean);
+
+      return {
+        textSnippet: fullArchiveRepresentation,
+        lineCount: lines.length,
+        wordCount: words.length,
+      };
+    } catch (zipErr) {
+      console.error('[JSZip Extraction Error]:', zipErr);
+      return {
+        textSnippet: `[تعذر فك أرشيف الـ ZIP "${fileName}"]: يرجى التأكد من سلامة الملف المضغوط.`,
+        lineCount: 1,
+        wordCount: 10,
+      };
+    }
+  }
+
+  // Handle Standard Text / Code / Document Files
   return new Promise((resolve) => {
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 10 * 1024 * 1024) {
       resolve({ textSnippet: `[ملف كبير بحجم ${formatFileSize(file.size)}]`, lineCount: 0, wordCount: 0 });
       return;
     }
@@ -244,7 +347,7 @@ export async function extractTextClientMetadata(file: File): Promise<{
       const lines = rawText.split('\n');
       const words = rawText.split(/\s+/).filter(Boolean);
       resolve({
-        textSnippet: rawText.slice(0, 15000),
+        textSnippet: rawText.slice(0, 60000),
         lineCount: lines.length,
         wordCount: words.length,
       });

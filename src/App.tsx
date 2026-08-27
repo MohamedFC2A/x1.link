@@ -455,7 +455,8 @@ export const App: React.FC = () => {
 
     if (!effectivePrompt && uniqueImagesDataUrls.length === 0 && attachedMediaList.length === 0) return;
 
-    const detectedUrlInfo = detectAndExtractUrl(effectivePrompt);
+    // Only extract target URL from user's explicitly typed text (never from code/file attachments)
+    const detectedUrlInfo = detectAndExtractUrl(trimmedText);
     const resolvedTargetUrl = meta?.targetUrl || (detectedUrlInfo.hasUrl ? detectedUrlInfo.cleanUrl : undefined);
 
     // Enforce Plan Limits: Only actual non-media websites trigger Cyber limits
@@ -1092,18 +1093,10 @@ export const App: React.FC = () => {
       {viewMode === 'landing' ? (
         <LandingPage
           onStartChat={() => {
-            if (!user) {
-              setIsAuthModalOpen(true);
-              return;
-            }
             localStorage.setItem(STORAGE_KEY_SEEN_LANDING, 'true');
             navigateTo('chat');
           }}
           onSelectPreset={(preset) => {
-            if (!user) {
-              setIsAuthModalOpen(true);
-              return;
-            }
             localStorage.setItem(STORAGE_KEY_SEEN_LANDING, 'true');
             navigateTo('chat');
             handleSendMessage(preset);

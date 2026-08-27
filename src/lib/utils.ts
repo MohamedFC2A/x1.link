@@ -429,3 +429,25 @@ export function normalizeDisplayTimestamp(ts?: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+/**
+ * Sanitizes markdown content before UI rendering to strip runaway underscores,
+ * repetitive divider characters, and any accidental system wrapper echoes.
+ */
+export function sanitizeMarkdownDisplay(rawText: string | null | undefined): string {
+  if (!rawText || typeof rawText !== 'string') return '';
+  let text = rawText;
+
+  // 1. Remove runaway continuous underscores (e.g. ________...) that deform tables or markdown layout
+  text = text.replace(/_{4,}/g, '');
+
+  // 2. Replace runaway continuous hyphens/dashes (e.g. -----------) with standard 3-hyphen dividers
+  text = text.replace(/^-{4,}$/gm, '---');
+  text = text.replace(/(?<!-)-{4,}(?!-)/g, '---');
+
+  // 3. Strip accidental system wrapper echoes if leaked
+  text = text.replace(/---\s*\[(?:محتوى المستند\/الكود المرفق|نهاية المستند|نهاية أرشيف)[^\]]*\]\s*---/gi, '');
+  text = text.replace(/\[(?:أرشيف مضغوط مفكوك ومستوعب عبر Fathom Spark|نهاية أرشيف)[^\]]*\]/gi, '');
+
+  return text;
+}

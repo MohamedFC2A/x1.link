@@ -81,15 +81,16 @@ const EMOJI_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>
 };
 
 const EMOJI_REGEX = /([\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}])/gu;
+const EMOJI_FAST_TEST = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
 
 export function purgeEmojis(text: string): string {
-  if (!text) return '';
+  if (!text || typeof text !== 'string' || !EMOJI_FAST_TEST.test(text)) return text || '';
+  EMOJI_REGEX.lastIndex = 0;
   return text.replace(EMOJI_REGEX, '').replace(/\s{2,}/g, ' ');
 }
 
 export function renderSmartTextWithIcons(text: string): React.ReactNode {
-  if (!text || typeof text !== 'string') return text;
-  if (!EMOJI_REGEX.test(text)) return text;
+  if (!text || typeof text !== 'string' || !EMOJI_FAST_TEST.test(text)) return text;
 
   EMOJI_REGEX.lastIndex = 0;
 
@@ -126,5 +127,5 @@ export function renderSmartTextWithIcons(text: string): React.ReactNode {
     parts.push(text.substring(lastIndex));
   }
 
-  return React.createElement(React.Fragment, null, ...parts);
+  return parts.length === 1 ? parts[0] : React.createElement(React.Fragment, null, ...parts);
 }

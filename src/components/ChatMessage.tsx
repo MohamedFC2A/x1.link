@@ -5,7 +5,7 @@ import { ChatMessageItem, ResolvedLinkInfo } from '../types';
 import ChatReasoning from './ui/chat-reasoning';
 import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Zap, Loader2, Play, Pause, Video, Music, FileText, FileCode, FileType, Clock, RotateCcw, Bell, Trash2, Calendar, CheckCircle2, FileSearch } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { detectAndExtractUrl, extractAllCleanUrls, getFaviconUrl, extractYouTubeVideoId, getYouTubeThumbnailUrl, normalizeDisplayTimestamp, cleanMarkdownForClipboard, cn } from '@/lib/utils';
+import { detectAndExtractUrl, extractAllCleanUrls, getFaviconUrl, extractYouTubeVideoId, getYouTubeThumbnailUrl, normalizeDisplayTimestamp, cleanMarkdownForClipboard, sanitizeMarkdownDisplay, cn } from '@/lib/utils';
 import { formatMediaDuration, formatFileSize } from '@/lib/mediaExtractor';
 import { resolveLinkTarget } from '../services/api';
 import { ThinkingOrb } from './ui/thinking-orbs';
@@ -1004,7 +1004,7 @@ function parseCustomBadges(
     setConfirmEmail?: (email: string) => void;
   }
 ): React.ReactNode | null {
-  if (!rawContent || typeof rawContent !== 'string') return null;
+  if (!rawContent || typeof rawContent !== 'string' || !/(?:DETECT|TIMER|REMINDER|AUTODELETE|DOWNLOAD)/i.test(rawContent)) return null;
 
   const widgets: React.ReactNode[] = [];
   let workingContent = rawContent;
@@ -1198,6 +1198,15 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     (Array.isArray(message.content) && message.content.some((c: any) => c.type === 'image_url' || c.image_url))
   );
 
+  const hasFilesAttached = Boolean(
+    (message as any).hasMedia ||
+    (message as any).hasFiles ||
+    (message as any).attachments?.length ||
+    (message as any).files?.length ||
+    message.model === 'meta/muse-spark-1.2-contributor' ||
+    message.model?.includes('spark')
+  );
+
   // Universal Modular Features (نظام الخواص الشامل)
   const activeFeatures = getActiveDetectedFeatures(
     previousUserPrompt,
@@ -1206,7 +1215,11 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     {
       isMemoryDetectTriggered: (message as any).isMemoryDetectTriggered,
       memoryDetectSummary: (message as any).memoryDetectSummary,
-      hasFathomCam: hasImagesInChat,
+      hasFathomCam: hasImagesInChat && !hasFilesAttached,
+      hasFathomSpark: hasFilesAttached || /(?:zip|rar|tar|gz|كود|أكواد|مستند|فيديو|صوت|spark|ملفات|ملف)/i.test(previousUserPrompt),
+      hasNonImageMedia: hasFilesAttached,
+      hasZip: Boolean(message.content?.includes('.zip') || previousUserPrompt?.includes('.zip') || message.reasoning?.includes('.zip')),
+      hasSpark: hasFilesAttached,
       hasImagesInHistory: hasImagesInChat,
       hasImages: Boolean(message.image || (message as any).imagePreview),
     }
@@ -1272,7 +1285,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.15 }}
-        className="flex justify-start my-2 group w-full"
+        className="flex justify-start my-2 group w-full gpu-layer"
       >
         <div className="w-full max-w-[94%] sm:max-w-[82%] rounded-2xl rounded-tr-sm bg-white/[0.05] border border-white/[0.09] p-4 sm:p-5 text-right text-white/95 backdrop-blur-md shadow-sm overflow-hidden break-words transition-all duration-200 hover:border-white/[0.15]">
           
@@ -1441,7 +1454,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
-      className="flex flex-col items-start my-2 group w-full"
+      className="flex flex-col items-start my-2 group w-full gpu-layer"
     >
       <div className="flex items-center justify-between w-full mb-1.5 px-1 text-xs text-zinc-400 select-none">
         <div className="flex items-center gap-1.5 font-sans font-medium">
@@ -1703,21 +1716,43 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   </blockquote>
                 ),
                 table: ({ children }) => (
-                  <div className="my-3.5 overflow-x-auto rounded-xl border border-white/[0.08] bg-[#060709]/80 shadow-inner">
-                    <table className="w-full text-xs sm:text-sm text-right border-collapse">{children}</table>
+                  <div className="my-5 overflow-x-auto rounded-xl border border-white/[0.1] bg-[#07080b] shadow-[0_16px_40px_rgba(0,0,0,0.7)] backdrop-blur-2xl">
+                    <table className="w-full min-w-[620px] text-xs sm:text-sm text-right border-collapse select-text" dir="rtl">
+                      {children}
+                    </table>
                   </div>
                 ),
+                thead: ({ children }) => (
+                  <thead className="bg-[#0e1117] border-b border-white/[0.12] select-none">
+                    {children}
+                  </thead>
+                ),
+                tbody: ({ children }) => (
+                  <tbody className="divide-y divide-white/[0.05]">
+                    {children}
+                  </tbody>
+                ),
+                tr: ({ children }) => (
+                  <tr className="transition-colors duration-150 hover:bg-white/[0.025] odd:bg-transparent even:bg-white/[0.01]">
+                    {children}
+                  </tr>
+                ),
                 th: ({ children }) => (
-                  <th className="bg-white/[0.04] p-3 text-white font-bold border-b border-white/[0.08] text-xs sm:text-sm">{children}</th>
+                  <th className="px-4 py-3.5 text-zinc-100 font-bold text-xs sm:text-sm tracking-tight border-l border-white/[0.07] last:border-l-0 text-right">
+                    <span className="font-sans inline-block">
+                      {children}
+                    </span>
+                  </th>
                 ),
                 td: ({ children }) => (
-                  <td className="p-3 border-b border-white/[0.05] text-[#E2E8F0] font-normal text-xs sm:text-sm">
+                  <td className="px-4 py-3.5 text-zinc-300 font-normal text-xs sm:text-sm leading-relaxed border-l border-white/[0.05] last:border-l-0 align-top break-words">
                     {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
                   </td>
                 ),
                 code: ({ inline, className, children, ...props }: any) => {
                   const match = /language-(\w+)/.exec(className || '');
                   const lang = match ? match[1].toLowerCase() : '';
+                  const isInline = inline !== undefined ? inline : (!match && !String(children).includes('\n'));
 
                   const isPromptLang = ['prompt', 'prompts', 'ai-prompt', 'prompt-ai'].includes(lang);
                   const isAdLang = ['ad', 'ads', 'advertisement', 'copy', 'marketing'].includes(lang);
@@ -1725,29 +1760,29 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   const isScriptLang = ['script', 'scenario', 'hook'].includes(lang);
                   const isThoughtLang = ['thought', 'think', 'thinking', 'reasoning'].includes(lang);
 
-                  if (!inline && isThoughtLang) {
+                  if (!isInline && isThoughtLang) {
                     return null;
                   }
 
-                  if (!inline && (isPromptLang || isAdLang || isCoderLang || isScriptLang)) {
+                  if (!isInline && (isPromptLang || isAdLang || isCoderLang || isScriptLang)) {
                     const type = isAdLang ? 'ad' : isCoderLang ? 'coder' : isScriptLang ? 'script' : 'prompt';
                     return <PromptCard text={String(children).replace(/\n$/, '')} type={type} />;
                   }
 
-                  return !inline ? (
+                  return !isInline ? (
                     <CodeBlock className={className} language={match ? match[1] : 'code'}>
                       {children}
                     </CodeBlock>
                   ) : (
-                    <code className="bg-white/[0.06] text-zinc-200 border border-white/[0.08] px-1.5 py-0.5 rounded font-mono text-xs" {...props}>{children}</code>
+                    <code dir="ltr" className="inline text-zinc-200 font-mono text-[11.5px] px-1 py-0.5 rounded bg-white/[0.05] border border-white/[0.06] select-text" {...props}>{children}</code>
                   );
                 }
               }}
             >
-              {(displayContent || '')
+              {sanitizeMarkdownDisplay((displayContent || '')
                 .replace(/\[\s*(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?BADGE:[^\]]*\]/gi, '')
                 .replace(/(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?BADGE:[^\n]*/gi, '')
-                .trim()}
+                .trim())}
             </ReactMarkdown>
 
             {isStreaming && (
@@ -1794,5 +1829,22 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   );
 };
 
-export default ChatMessageComponent;
-export { ChatMessageComponent as ChatMessage };
+const areMessagePropsEqual = (prev: ChatMessageProps, next: ChatMessageProps) => {
+  if (prev.isStreaming !== next.isStreaming) return false;
+  if (prev.message !== next.message) {
+    if (prev.message.id !== next.message.id) return false;
+    if (prev.message.content !== next.message.content) return false;
+    if (prev.message.reasoning !== next.message.reasoning) return false;
+    if (prev.message.isThinking !== next.message.isThinking) return false;
+    if (prev.message.isStopped !== next.message.isStopped) return false;
+    if (prev.message.timestamp !== next.message.timestamp) return false;
+    if (prev.message.model !== next.message.model) return false;
+  }
+  if (prev.previousUserPrompt !== next.previousUserPrompt) return false;
+  if (prev.globalUrlIndexMap !== next.globalUrlIndexMap) return false;
+  if (prev.globalImageIndexMap !== next.globalImageIndexMap) return false;
+  return true;
+};
+
+export const ChatMessage = React.memo(ChatMessageComponent, areMessagePropsEqual);
+export default ChatMessage;

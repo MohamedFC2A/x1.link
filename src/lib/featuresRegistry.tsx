@@ -2,7 +2,7 @@ import React from 'react';
 import { Sparkles, ShieldCheck, Database, BrainCircuit, Clock, Flame, Zap } from 'lucide-react';
 import { cn } from './utils';
 
-export type FeatureIntentType = 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | 'download_detect' | 'fathom_cam';
+export type FeatureIntentType = 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | 'download_detect' | 'fathom_cam' | 'fathom_spark';
 
 export type IntentCategory = 'actionable' | 'informational' | 'none';
 
@@ -232,6 +232,36 @@ export const FathomCamIcon: React.FC<{ className?: string; size?: number }> = ({
     </defs>
     <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
     <circle cx="12" cy="13" r="3" />
+  </svg>
+);
+
+export const FathomSparkIcon: React.FC<{ className?: string; size?: number }> = ({
+  className,
+  size = 14
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="url(#fathom-spark-grad)"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn("inline-block shrink-0", className)}
+  >
+    <defs>
+      <linearGradient id="fathom-spark-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#c084fc" />
+        <stop offset="50%" stopColor="#ffffff" />
+        <stop offset="100%" stopColor="#a78bfa" />
+      </linearGradient>
+    </defs>
+    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+    <path d="M5 3v4" />
+    <path d="M19 17v4" />
+    <path d="M3 5h4" />
+    <path d="M17 19h4" />
   </svg>
 );
 
@@ -489,6 +519,37 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
         summary: 'المسح البصري الفعلي والميكرو-OCR وقراءة الجداول المرفقة بالمنشور',
         details: 'تم تفكيك الصور والجداول واستخراج النصوص بدقة عبر محرك الرؤية Fathom Cam',
         statusPill: 'VISUAL OCR & TABLE PERCEPTION',
+        confidence: 0.98,
+        category: 'actionable'
+      };
+    }
+  },
+
+  // ── 7. Fathom Spark Multimodal & Code/Doc Intelligence Engine
+  fathom_spark: {
+    id: 'fathom_spark',
+    name: 'Fathom Spark',
+    nameAr: 'استيعاب وفحص الوسائط والمستندات والأكواد',
+    badgeLabel: 'FATHOM SPARK',
+    textClassName: 'text-violet-400 font-bold',
+    glassClassName: 'bg-violet-950/70 border border-violet-400/50 text-violet-300 shadow-[0_0_15px_rgba(167,139,250,0.3)]',
+    badgeClassName: 'bg-violet-950/70 text-violet-300 border border-violet-400/40',
+    accentColor: '#a78bfa',
+    borderHoverColor: 'border-violet-400/50',
+    icon: FathomSparkIcon,
+    detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
+      const plan = routeFeatureIntent('fathom_spark', prompt, reasoning, content, context);
+      return plan.confidence >= 0.6;
+    },
+    extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
+      return {
+        id: 'fathom_spark',
+        name: 'Fathom Spark',
+        nameAr: 'استيعاب وفحص الوسائط والمستندات والأكواد',
+        badgeLabel: 'FATHOM SPARK',
+        summary: 'استيعاب وسائط الفيديو والصوت وفك الأرشيفات المضغوطة وقراءة الأكواد البرمجية',
+        details: 'تم استيعاب وتفكيك ملفات الأكواد والمستندات والوسائط المرفقة بدقة فائقة عبر محرك Fathom Spark',
+        statusPill: 'MULTIMODAL & CODE INTELLIGENCE',
         confidence: 0.98,
         category: 'actionable'
       };
@@ -831,11 +892,11 @@ export function routeFeatureIntent(
     return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No memory recall intent.' };
   }
 
-  // 6. Fathom Cam Vision Intent
+  // 6. Fathom Cam Vision Intent (Pure optical image & screenshot inspection)
   if (featureId === 'fathom_cam') {
     const hasFathomBadge = cLower.includes('fathom cam') || cLower.includes('[link & visual context') || cLower.includes('fathom-cam');
     const hasFathomReasoning = rLower.includes('fathom cam') || rLower.includes('fathom_cam') || rLower.includes('محرك الرؤية') || rLower.includes('فحص الصور') || rLower.includes('قراءة الجداول') || rLower.includes('المسح البصري') || rLower.includes('تحليل الواجهة') || rLower.includes('واجهة');
-    const isVisionPrompt = /(?:الواجه|الواجهة|الصورة|الصور|التصميم|الاسكرين|الشاشة|الجدول|المستند|المرفق|البوست|الشعار|اللوجو|الأيقون|الألوان|الخطوة\s*الرابعة|جدول\s*الرغبات)/i.test(pLower);
+    const isVisionPrompt = /(?:الواجه|الواجهة|الصورة|الصور|التصميم|الاسكرين|الشاشة|الجدول|البوست|الشعار|اللوجو|الأيقون|الألوان|الخطوة\s*الرابعة|جدول\s*الرغبات)/i.test(pLower);
     const isContextTriggered = Boolean(context?.hasFathomCam || context?.hasVisualPerception || context?.hasImagesInHistory || context?.hasImages);
 
     if (hasFathomBadge || isContextTriggered || (hasFathomReasoning && (isVisionPrompt || isContextTriggered))) {
@@ -865,6 +926,40 @@ export function routeFeatureIntent(
     return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No Fathom Cam vision intent.' };
   }
 
+  // 7. Fathom Spark Media, Code, Zip & Document Intent
+  if (featureId === 'fathom_spark') {
+    const hasSparkBadge = cLower.includes('fathom spark') || cLower.includes('fathom-spark') || cLower.includes('[fathom spark]') || cLower.includes('muse-spark');
+    const hasSparkReasoning = rLower.includes('fathom spark') || rLower.includes('fathom_spark') || rLower.includes('spark') || rLower.includes('استيعاب وتفكيك') || rLower.includes('أرشيف') || rLower.includes('الأكواد') || rLower.includes('تفريغ الصوت') || rLower.includes('فيديو');
+    const isSparkPrompt = /(?:كود|أكواد|ملف|ملفات|مستند|مستندات|فيديو|مقطع|صوت|صوتيات|أرشيف|مضغوط|zip|tar|script|code|compare|مقارنة|النسخة|قبل|بعد)/i.test(pLower);
+    const isContextTriggered = Boolean(context?.hasNonImageMedia || context?.hasDocs || context?.hasZip || context?.hasSpark || context?.hasMediaAttachments || context?.hasVideo || context?.hasAudio);
+
+    if (hasSparkBadge || isContextTriggered || (hasSparkReasoning && (isSparkPrompt || isContextTriggered))) {
+      return {
+        featureId,
+        confidence: 1.0,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: {},
+        reason: 'Fathom Spark code, archive, document, or media context active.'
+      };
+    }
+
+    if (hasSparkReasoning) {
+      return {
+        featureId,
+        confidence: 0.95,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: {},
+        reason: 'Fathom Spark reasoning active.'
+      };
+    }
+
+    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No Fathom Spark intent.' };
+  }
+
   return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Unknown feature.' };
 }
 
@@ -878,7 +973,7 @@ export function detectIntentsMulti(
   content: string = '',
   context: any = {}
 ): MultiIntentPlan {
-  const featureIds: FeatureIntentType[] = ['download_detect', 'fathom_cam', 'ai_detect', 'metadata_detect', 'memory_detect', 'time_detect'];
+  const featureIds: FeatureIntentType[] = ['download_detect', 'fathom_spark', 'fathom_cam', 'ai_detect', 'metadata_detect', 'memory_detect', 'time_detect'];
   
   const plans: Record<FeatureIntentType, FeatureActivationPlan> = {} as any;
   const activeFeatures: DetectedFeatureData[] = [];

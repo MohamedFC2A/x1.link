@@ -127,21 +127,19 @@ function parseReasoningMilestones(
     ];
   }
 
-  // Automatically inject Fathom Cam milestone if active and not already mentioned
-  if (hasFathomCam) {
-    const alreadyHasFathom = rawSteps.some(s => /(?:Fathom\s*Cam|FathomCam|المسح\s*البصري|فحص\s*الصور|قراءة\s*الجداول|FATHOM)/i.test(s));
+  // Automatically inject Fathom Cam milestone only when genuine image vision is active (and no non-image files/spark active)
+  if (hasFathomCam && !hasFathomSpark) {
+    const alreadyHasFathom = rawSteps.some(s => /(?:Fathom\s*Cam|FathomCam|فاثوم\s*كام|المسح\s*البصري|فحص\s*الصور)/i.test(s));
     if (!alreadyHasFathom) {
-      const insertIdx = Math.min(1, rawSteps.length);
-      rawSteps.splice(insertIdx, 0, 'المسح البصري الميكروي وقراءة نصوص الجداول والصور المرفقة عبر Fathom Cam');
+      rawSteps.unshift('المسح البصري الميكروي وقراءة نصوص الصور والمستندات البصرية عبر Fathom Cam');
     }
   }
 
-  // Automatically inject Fathom Spark milestone if active and not already mentioned
+  // Automatically inject Fathom Spark milestone if active
   if (hasFathomSpark) {
-    const alreadyHasSpark = rawSteps.some(s => /(?:Fathom\s*Spark|FathomSpark|استيعاب\s*الفيديو|تفكيك\s*الفيديو|تفريغ\s*الصوت|وسائط\s*الفيديو)/i.test(s));
+    const alreadyHasSpark = rawSteps.some(s => /(?:Fathom\s*Spark|FathomSpark|فاثوم\s*سبارك|استيعاب\s*وتفكيك|استيعاب\s*الفيديو|تفكيك\s*الفيديو|تفريغ\s*الصوت|وسائط\s*الفيديو|الأكواد\s*المرفقة)/i.test(s));
     if (!alreadyHasSpark) {
-      const insertIdx = Math.min(1, rawSteps.length);
-      rawSteps.splice(insertIdx, 0, 'استيعاب وتفكيك وسائط الفيديو والصوتيات والملفات المرفقة عبر Fathom Spark');
+      rawSteps.unshift('استيعاب وتفكيك وسائط الفيديو والصوتيات والأكواد المرفقة عبر Fathom Spark');
     }
   }
 
@@ -165,7 +163,8 @@ function parseReasoningMilestones(
 
 function renderMilestoneText(text: string) {
   if (!text) return null;
-  const engineRegex = /(?:\[?FATHOM(?:\s*CAM)?(?:\s*VISION)?\]?|Fathom\s*Cam(?:\s*Vision)?|\[?FATHOM(?:\s*SPARK)?\]?|Fathom\s*Spark)/gi;
+  // Match Fathom Spark / Spark, Fathom Cam / Cam, and variations
+  const engineRegex = /(?:\[?FATHOM\s*SPARK\]?|Fathom\s*Spark|\bFathom-Spark\b|FathomSpark|فاثوم\s*سبارك|\[?SPARK\]?|\bSpark\b|\[?FATHOM\s*CAM(?:\s*VISION)?\]?|Fathom\s*Cam(?:\s*Vision)?|\bFathom-Cam\b|FathomCam|فاثوم\s*كام|\[?FATHOM\s*VISION\]?)/gi;
 
   if (!engineRegex.test(text)) {
     return text;
@@ -178,28 +177,30 @@ function renderMilestoneText(text: string) {
     <span>
       {parts.map((part, i) => {
         const match = matches[i];
-        const isSpark = match && /spark/i.test(match);
-        const isCam = match && !isSpark;
+        if (!match) return <React.Fragment key={i}>{part}</React.Fragment>;
+
+        const isSpark = /spark|سبارك/i.test(match);
+        const isCam = !isSpark && /cam|vision|كام/i.test(match);
 
         return (
           <React.Fragment key={i}>
             {part}
             {isCam && (
               <span dir="ltr" className="inline-flex items-center gap-1 mx-1.5 select-none font-sans font-black tracking-wide align-baseline">
-                <span className="text-emerald-400 font-black tracking-tight drop-shadow-[0_0_10px_rgba(52,211,153,0.85)] [text-shadow:0_0_12px_rgba(52,211,153,0.8)]">
+                <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                   Fathom
                 </span>
-                <span className="text-white font-black tracking-tight drop-shadow-[0_0_10px_rgba(255,255,255,1)] [text-shadow:0_0_14px_rgba(255,255,255,0.95)]">
+                <span className="bg-gradient-to-b from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                   Cam
                 </span>
               </span>
             )}
             {isSpark && (
               <span dir="ltr" className="inline-flex items-center gap-1 mx-1.5 select-none font-sans font-black tracking-wide align-baseline">
-                <span className="text-violet-400 font-black tracking-tight drop-shadow-[0_0_10px_rgba(167,139,250,0.85)] [text-shadow:0_0_12px_rgba(167,139,250,0.8)]">
+                <span className="bg-gradient-to-r from-violet-300 via-purple-200 to-indigo-300 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                   Fathom
                 </span>
-                <span className="text-white font-black tracking-tight drop-shadow-[0_0_10px_rgba(255,255,255,1)] [text-shadow:0_0_14px_rgba(255,255,255,0.95)]">
+                <span className="bg-gradient-to-b from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                   Spark
                 </span>
               </span>
@@ -239,28 +240,32 @@ export default function ChatReasoning({
   // Combine reasoningText or parts
   const fullText = reasoningText || partsInAccordion.map(p => p.text || '').filter(Boolean).join('\n\n');
 
-  // Detect whether Fathom Cam was used
-  const isFathomCamActive = useMemo(() => {
-    return (
-      activeFeatures.some(f => f.id === 'fathom_cam') ||
-      /(?:\[?FATHOM(?:\s*CAM)?(?:\s*VISION)?\]?|Fathom\s*Cam|tansik\.digital\.gov\.eg|الخطوة\s*الرابعة|جدول\s*الرغبات|فحص\s*الصور|المسح\s*البصري|قراءة\s*الجداول|تحليل\s*الصورة|تحليل\s*الواجهة|واجهة\s*سوق|واجهة\s*المستخدم|عناصر\s*الواجهة|لقطة\s*الشاشة|الصورة\s*المرفقة)/i.test(fullText)
-    );
-  }, [activeFeatures, fullText]);
-
-  // Detect whether Fathom Spark was used
+  // Detect whether Fathom Spark was used (videos, audio, code files, zip archives, docs)
   const isFathomSparkActive = useMemo(() => {
     return (
       activeFeatures.some(f => f.id === 'fathom_spark' || f.id === 'download_detect') ||
-      /(?:\[?FATHOM(?:\s*SPARK)?\]?|Fathom\s*Spark|استيعاب\s*الفيديو|تفكيك\s*الفيديو|تفريغ\s*الصوت|videoVision|تحليل\s*المقطع|المقطع\s*المرئي|الملفات\s*المرفقة)/i.test(fullText)
+      /(?:\[?FATHOM\s*SPARK\]?|Fathom\s*Spark|\bSpark\b|فاثوم\s*سبارك|سبارك|استيعاب\s*الفيديو|تفكيك\s*الفيديو|تفريغ\s*الصوت|videoVision|تحليل\s*المقطع|المقطع\s*المرئي|الملفات\s*المرفقة|أرشيف\s*مضغوط|أرشيف|الأكواد\s*المستخرجة|الأكواد\s*المرفقة|محتوى\s*المستند|محتوى\s*الكود|\.zip|\.rar|\.tar|\.gz|ZIP\s*files|ZIP\s*archive)/i.test(fullText)
     );
   }, [activeFeatures, fullText]);
+
+  // Detect whether Fathom Cam was used (pure image vision only)
+  const isFathomCamActive = useMemo(() => {
+    // If Spark is active and no explicit fathom_cam in activeFeatures, Fathom Cam is strictly false
+    if (isFathomSparkActive && !activeFeatures.some(f => f.id === 'fathom_cam')) {
+      return false;
+    }
+    return (
+      activeFeatures.some(f => f.id === 'fathom_cam') ||
+      /(?:\[?FATHOM\s*CAM(?:\s*VISION)?\]?|Fathom\s*Cam|tansik\.digital\.gov\.eg|الخطوة\s*الرابعة|جدول\s*الرغبات|فحص\s*الصور|المسح\s*البصري|تحليل\s*الصورة|تحليل\s*الواجهة|واجهة\s*سوق|واجهة\s*المستخدم|عناصر\s*الواجهة|لقطة\s*الشاشة|الصورة\s*المرفقة)/i.test(fullText)
+    );
+  }, [activeFeatures, fullText, isFathomSparkActive]);
 
   // Parse into smart milestones with Fathom Cam & Spark awareness
   const milestones = useMemo(() => {
     return parseReasoningMilestones(fullText, isThinking, isFathomCamActive, isFathomSparkActive);
   }, [fullText, isThinking, isFathomCamActive, isFathomSparkActive]);
 
-  // Fathom Cam and Fathom Spark are rendered exclusively inside thinking milestones, NOT in the top header features
+  // Fathom Cam and Fathom Spark are displayed strictly inside the text milestones, NOT as header badges
   const visibleHeaderFeatures = useMemo(() => {
     return activeFeatures.filter(f => f.id !== 'fathom_cam' && f.id !== 'fathom_spark');
   }, [activeFeatures]);
@@ -346,8 +351,8 @@ export default function ChatReasoning({
                 const isLast = idx === milestones.length - 1;
                 const isProgress = step.status === 'in-progress';
                 const isDone = step.status === 'completed';
-                const isFathomStep = /(?:\[?FATHOM(?:\s*CAM)?(?:\s*VISION)?\]?|Fathom\s*Cam(?:\s*Vision)?)/i.test(step.text);
-                const isSparkStep = /(?:\[?FATHOM(?:\s*SPARK)?\]?|Fathom\s*Spark)/i.test(step.text);
+                const isFathomStep = /(?:\[?FATHOM\s*CAM(?:\s*VISION)?\]?|Fathom\s*Cam(?:\s*Vision)?)/i.test(step.text);
+                const isSparkStep = /(?:\[?FATHOM\s*SPARK\]?|Fathom\s*Spark|\bSpark\b)/i.test(step.text);
 
                 return (
                   <div key={step.id} className="relative flex items-start gap-3 group">

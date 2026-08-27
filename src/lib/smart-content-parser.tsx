@@ -12,16 +12,16 @@ const URL_REGEX = /(https?:\/\/[^\s<>"'()]+|(?:www\.)[a-zA-Z0-9-]+\.[a-zA-Z0-9.-
 const PHONE_REGEX = /(?:\+?[0-9]{1,4}[\s-]?)?(?:\(0[0-9]{1,3}\)|0[0-9]{1,3})[\s-]?[0-9]{3,4}[\s-]?[0-9]{3,4}|(?:\b1[56789][0-9]{3}\b)|(?:\b0900[0-9]{4,7}\b)|(?:\b0800[0-9]{4,7}\b)|(?:\b01[0125][0-9]{8}\b)/;
 
 // Keywords for AI Detect and Affirmation styling
-const AI_KEYWORD_REGEX = /\b(AI[-\s]?DETECT|AI[-\s]?GENERATED)\b|(?:\b(نعم)\b)/;
+const AI_KEYWORD_REGEX = /\b(AI[-\s]?DETECT|AI[-\s]?GENERATED)\b/i;
 
 // Keywords for Meta Data / EXIF styling (Blue & White radiant styling)
-const METADATA_KEYWORD_REGEX = /\b(Meta[-\s]?Data|Metadata|EXIF)\b|(?:\b(الميتا\s?داتا|الميتاداتا|ميتا\s?داتا|ميتاداتا)\b)/;
+const METADATA_KEYWORD_REGEX = /\b(Meta[-\s]?Data|Metadata|EXIF)\b/i;
 
 // Keywords for Time Detect (Aurora Multi-Color Temporal styling)
-const TIME_KEYWORD_REGEX = /\b(Time[-\s]?Detect|TimeDetect)\b|(?:\b(تايم\s?ديتكت|تايم\s?ديتيكت|استشعار\s?الوقت|استشعار\s?الزمن)\b)/i;
+const TIME_KEYWORD_REGEX = /\b(Time[-\s]?Detect|TimeDetect)\b/i;
 
 // Keywords for Memory Detect (50-Session Synced Cloud Memory Neural styling)
-const MEMORY_KEYWORD_REGEX = /\b(Memory[-\s]?Detect|MemoryDetect)\b|(?:\b(ميموري\s?ديتكت|ميموري\s?ديتيكت|الذاكرة\s?السحابية|الذاكرة\s?المتزامنة|استرجاع\s?الذاكرة|ذاكرة\s?سحابية)\b)/i;
+const MEMORY_KEYWORD_REGEX = /\b(Memory[-\s]?Detect|MemoryDetect)\b/i;
 
 const COMBINED_SCANNER = new RegExp(
   `(${EMAIL_REGEX.source})|(${URL_REGEX.source})|(${PHONE_REGEX.source})|(${AI_KEYWORD_REGEX.source})|(${METADATA_KEYWORD_REGEX.source})|(${TIME_KEYWORD_REGEX.source})|(${MEMORY_KEYWORD_REGEX.source})`,
@@ -61,6 +61,9 @@ function isValidPhoneToken(str: string): boolean {
   return false;
 }
 
+// Fast pre-check to bypass heavy combined scanning for standard text strings
+const QUICK_TRIGGER_CHECK = /[@:]|\b(?:www|https?|AI|Meta|Metadata|Time|Memory|EXIF|Detect)\b|\d{3,}|[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/iu;
+
 export function renderSmartContentWithLinksAndPhones(
   text: string,
   onUrlClick: (url: string) => void,
@@ -68,6 +71,9 @@ export function renderSmartContentWithLinksAndPhones(
   onEmailClick?: (email: string) => void
 ): React.ReactNode {
   if (!text || typeof text !== "string") return text;
+  if (!QUICK_TRIGGER_CHECK.test(text)) {
+    return renderSmartTextWithIcons(text);
+  }
 
   COMBINED_SCANNER.lastIndex = 0;
   const parts: React.ReactNode[] = [];

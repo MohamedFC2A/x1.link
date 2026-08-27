@@ -631,10 +631,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         const urlsSection = allUrlsToSubmit.join('\n');
         formattedContent = effectivePrompt ? `${urlsSection}\n\n${effectivePrompt}` : urlsSection;
       } else if (!effectivePrompt && hasAttachments) {
-        formattedContent = "حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.";
+        formattedContent = hasNonImageMedia
+          ? "قم بتحليل واستيعاب كافة المعطيات والملفات والأكواد المرفقة بدقة تامة."
+          : "حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.";
       }
 
-      const targetModel = (hasAttachments)
+      const targetModel = hasNonImageMedia
+        ? 'meta/muse-spark-1.2-contributor'
+        : (hasAttachments)
         ? 'deepseek-v4-flash-vision-exp'
         : (allUrlsToSubmit.length > 0 && internalModel === 'deepseek-v4-flash' ? 'deepseek-v4-flash-cyber' : activeBackendModel);
 

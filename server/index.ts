@@ -1608,14 +1608,23 @@ function extractAllConversationUrls(
     }
   };
 
+  const stripAttachmentBlocks = (str: string): string => {
+    if (!str) return '';
+    return str
+      .replace(/---\s*\[(?:محتوى المستند\/الكود المرفق|نهاية المستند|نهاية أرشيف)[^\]]*\]\s*---[\s\S]*?(?:---\s*\[نهاية المستند\]\s*---|\[نهاية أرشيف[^\]]*\]|$)/gi, '')
+      .replace(/\[أرشيف مضغوط مفكوك ومستوعب[\s\S]*?\[نهاية أرشيف[^\]]*\]/gi, '')
+      .replace(/```[\s\S]*?```/g, '');
+  };
+
   const urlRegex = /(?:https?:\/\/[^\s<>"'{}|\\^`]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+[^\s<>"'{}|\\^`]*|[a-zA-Z0-9-]+\.(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/gi;
 
-  // 1. Scan latest user message first
+  // 1. Scan latest user message first (ignoring file attachments and code blocks)
   const userMessages = Array.isArray(messages) ? messages.filter((m: any) => m.role === 'user') : [];
   const latestUser = userMessages[userMessages.length - 1];
   if (latestUser) {
-    const text = typeof latestUser.content === 'string' ? latestUser.content : (Array.isArray(latestUser.content) ? latestUser.content.map((c: any) => c.text || '').join(' ') : '');
-    const matches = text.match(urlRegex) || [];
+    const rawText = typeof latestUser.content === 'string' ? latestUser.content : (Array.isArray(latestUser.content) ? latestUser.content.map((c: any) => c.text || '').join(' ') : '');
+    const cleanUserText = stripAttachmentBlocks(rawText);
+    const matches = cleanUserText.match(urlRegex) || [];
     matches.forEach(addUrl);
   }
 
@@ -1633,8 +1642,9 @@ function extractAllConversationUrls(
   if (urls.length === 0 && userMessages.length > 1) {
     for (let i = userMessages.length - 2; i >= 0; i--) {
       const msg = userMessages[i];
-      const text = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.map((c: any) => c.text || '').join(' ') : '');
-      const matches = text.match(urlRegex) || [];
+      const rawText = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.map((c: any) => c.text || '').join(' ') : '');
+      const cleanUserText = stripAttachmentBlocks(rawText);
+      const matches = cleanUserText.match(urlRegex) || [];
       matches.forEach(addUrl);
       if (urls.length > 0) break;
     }
@@ -2288,17 +2298,29 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
   // Stage 1: Vision Perception & Forensics
   if (isMediaSpark) {
-    console.log('[X1-PIPELINE] Media Spark (Video/Audio) detected. Fast native multimodal routing activated...');
-    const videoGuidance = `
-[توجيه استيعاب وفحص الفيديو الذكي والوسائط — FATHOM VIDEO & MEDIA INTELLIGENCE DIRECTIVE]:
+    console.log('[X1-PIPELINE] Media & Code Spark (Video/Audio/Docs/Zip) detected. Fast native multimodal routing activated...');
+    const mediaAndCodeGuidance = `
+[توجيه استيعاب وفحص الأكواد والمستندات والوسائط — FATHOM SPARK INTELLIGENCE DIRECTIVE]:
 1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى:
-   - حلل مشاهد وإطارات الفيديو المتتابعة واقرأ أي نصوص أو ملصقات أو أسئلة ظاهرة على الشاشة (مثل نصوص الاستفسار أو العناوين المكتوبة).
-   - استوعب سياق حديث المتحدث ومضمون كلامه وفكرته الأساسية.
-   - إذا كان المستخدم يسأل "كلامه صحيح ولا فيه خطأ":
-     * استعرض الفكرة المطروحة (مثل خسارة الوزن، التغذية، الأنظمة الصحية، أكل البيت، أو غيرها).
-     * حلل كلام المتحدث من منظور علمي، طبي، وتغذوي دقيق وموثوق.
-     * بيّن ما هو صحيح علمياً، وما قد ينطوي على مبالغة أو مفاهيم مغلوطة أو أضرار محتملة.
-2. بعد إغلاق وسم </think>، قدّم إجابة مباشرة، فخمة، بليغة وذكية تجيب المستخدم عما إذا كان كلام المتحدث صحيحاً أم فيه خطأ علمي بوضوح وشمولية تامة دون أي تكرار أو تقارير فحص صور مصطنعة.`;
+   - أنت تعمل عبر محرك Fathom Spark المتخصص في استيعاب وتفكيك الأكواد البرمجية، الأرشيفات المضغوطة (ZIP)، المستندات، ملفات الصوت، وإطارات الفيديو.
+   - افحص واستوعب بدقة كافة محتويات الملفات والأكواد المفكوكة وشجرة المجلدات المرفقة، وتتبّع بنية الدوال والملفات والإعدادات.
+   - إذا طلب المستخدم مقارنة بين نسختين (مثل قبل/بعد أو أرشيفين مضغوطين):
+     * قارن بدقة بين ملفات النسختين سطراً بسطر، واستخرج الاختلافات الفعلية في الأكواد، البنية المعمارية، الدوال المضافة أو المعدلة، التبعيات، وأسلوب التنفيذ.
+     * حدد بدقة أين وقع التغيير، ولماذا، وما هي الفروقات التقنية الملموسة.
+   - إذا تضمن السياق فيديو أو صوتاً: استوعب سياق حديث المتحدث ومضمون كلامه وفكرته الأساسية، وحلل الطرح من منظور علمي وتطبيقي دقيق.
+2. بعد إغلاق وسم </think>، قدّم إجابتك باللغة العربية الفصحى بشكل هندسي محكم، منظم، قاطع، مباشر، وعميق:
+   - عند المقارنة، اعرض جدول مقارنة احترافي ومفصل يوضح كل ملف، ما تغير فيه بدقة، وتفاصيل الإضافات والتحسينات الفعلية، مع شرح وافٍ ومبني 100% على الأكواد المستخرجة دون اختلاق أو تعميم غامض.
+   - أجب بدقة وحسم واستند إلى المعطيات المستخرجة عبر محرك Fathom Spark.
+   - ضوابط التنسيق والإخراج الصارمة:
+     * يُحظر تماماً إعادة طباعة أو سرد الأكواد الخام ونصوص الملفات المرفقة كاملة كما هي في الرد.
+     * نسّق جدول المقارنة بتنسيق Markdown القياسي الصريح وبترتيب أعمدة منطقي وعصري:
+       | المكون / الملف | النسخة "قبل" (v1.0.0) | النسخة "بعد" (v2.0.0) | الفروقات والتحسينات التقنية |
+       | :--- | :--- | :--- | :--- |
+       | \`package.json\` | 95 بايت، تبعية \`express@4.18.2\` | 140 بايت، إصدار 2.0.0 مع \`jszip\` و \`ai\` | ترقية Express وإضافة محرك فك الأرشيفات وSDK الذكاء الاصطناعي |
+      * لا تفرط في استخدام علامات الكود (backticks) داخل نصوص الشرح والفقرات؛ اكتب الشرح بلغة عربية فصحى انسيابية ونقية بدون تمييز زائد، واقتصر على استخدام الكود فقط داخل جدول المقارنة أو عند ذكر دالة برمجية أساسية.
+     * اجعل محتوى كل خلية في الجدول مركزاً ومختصراً ومصاغاً بعبارات مباشرة وواضحة لتفادي ازدحام الخلايا.
+     * ركّز مباشرة على صلب التحليل المقارن المطلوب وتجنب أي استطلاع غير مطلوب.
+ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية أو استخدام كود بلوك thought للإجابة.`;
 
     const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
     if (lastUserIdx !== -1) {
@@ -2306,15 +2328,15 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       if (Array.isArray(targetMsg.content)) {
         const textItem = targetMsg.content.find((c: any) => c.type === 'text');
         if (textItem) {
-          textItem.text = `${textItem.text}\n\n${videoGuidance}`;
+          textItem.text = `${textItem.text}\n\n${mediaAndCodeGuidance}`;
         } else {
-          targetMsg.content.unshift({ type: 'text', text: videoGuidance });
+          targetMsg.content.unshift({ type: 'text', text: mediaAndCodeGuidance });
         }
       } else {
         const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
         processedMessages[lastUserIdx] = {
           ...targetMsg,
-          content: `${orig}\n\n${videoGuidance}`
+          content: `${orig}\n\n${mediaAndCodeGuidance}`
         };
       }
     }
@@ -2529,6 +2551,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           ...basePayload,
           model: 'google/gemini-2.5-flash',
           max_tokens: 16384,
+          temperature: 0.2,
         }
       });
 
@@ -3020,8 +3043,15 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   }
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`[X1-SERVER] Running on http://localhost:${PORT}`);
   console.log(`[X1-SERVER] Synthesis Engine: anthracite-org/magnum-v4-72b (NSFW NANO +21 MAX)`);
   console.log(`[X1-SERVER] Perception Engine: deepseek-v4-flash-vision-exp (Native DeepSeek Multi-Vision)`);
+});
+
+process.on('SIGTERM', () => {
+  server.close(() => process.exit(0));
+});
+process.on('SIGINT', () => {
+  server.close(() => process.exit(0));
 });
