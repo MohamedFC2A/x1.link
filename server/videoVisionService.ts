@@ -95,7 +95,7 @@ export function extractYouTubeKeyframes(videoId: string, durationSeconds?: numbe
 
 export function extractTikTokKeyframes(
   thumbnailUrl: string,
-  extraFrames?: { dynamicCover?: string; originCover?: string; avatarUrl?: string },
+  extraFrames?: { dynamicCover?: string; originCover?: string; avatarUrl?: string; images?: string[] },
   durationSeconds?: number
 ): VideoKeyframe[] {
   const frames: VideoKeyframe[] = [];
@@ -125,12 +125,27 @@ export function extractTikTokKeyframes(
       timestampFormatted: formatSecs(Math.round(duration * 0.8)),
     });
   }
+
+  // If photo carousel / images present
+  if (extraFrames?.images && Array.isArray(extraFrames.images)) {
+    extraFrames.images.slice(0, 3).forEach((imgUrl, idx) => {
+      if (imgUrl && !frames.some(f => f.url === imgUrl)) {
+        frames.push({
+          label: `صورة رقم (${idx + 1}) من ألبوم التحدي`,
+          url: imgUrl,
+          timestampSec: (idx + 1) * 2,
+          timestampFormatted: formatSecs((idx + 1) * 2),
+        });
+      }
+    });
+  }
+
   return frames;
 }
 
 // ─── Helper: Convert Image URL to Base64 Data URI for Native DeepSeek Vision ───
 
-async function urlToBase64DataUri(url: string, timeoutMs = 8000): Promise<string> {
+async function urlToBase64DataUri(url: string, timeoutMs = 10000): Promise<string> {
   if (!url) return '';
   if (url.startsWith('data:image/')) return url;
   try {
@@ -143,9 +158,9 @@ async function urlToBase64DataUri(url: string, timeoutMs = 8000): Promise<string
     };
     if (url.includes('facebook') || url.includes('fbcdn')) {
       headers['Referer'] = 'https://www.facebook.com/';
-    } else if (url.includes('tiktok')) {
+    } else if (url.includes('tiktok') || url.includes('byteoversea') || url.includes('ibytedtos') || url.includes('musical.ly') || url.includes('tiktokcdn')) {
       headers['Referer'] = 'https://www.tiktok.com/';
-    } else if (url.includes('instagram')) {
+    } else if (url.includes('instagram') || url.includes('cdninstagram')) {
       headers['Referer'] = 'https://www.instagram.com/';
     } else if (url.includes('twimg') || url.includes('x.com') || url.includes('twitter')) {
       headers['Referer'] = 'https://x.com/';
@@ -296,7 +311,7 @@ export async function performVideoVisionPerception(
   for (const gw of videoGateways) {
     try {
       const visionController = new AbortController();
-      const visionTimeout = setTimeout(() => visionController.abort(), 3500);
+      const visionTimeout = setTimeout(() => visionController.abort(), 7000);
       if (signal) {
         signal.addEventListener('abort', () => visionController.abort(), { once: true });
       }

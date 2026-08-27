@@ -13,6 +13,42 @@ export interface DetectedUrlInfo {
 }
 
 /**
+ * Normalizes, repairs, and sanitizes raw text containing URLs.
+ * Corrects broken spaces in protocols, domain extensions, paths, and handles unicode whitespace/punctuation.
+ */
+export function sanitizeAndRepairUrlString(rawText: string): string {
+  if (!rawText || typeof rawText !== 'string') return '';
+
+  // 1. Normalize all exotic unicode spaces, zero-width spaces, and newlines
+  let text = rawText.replace(/[\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000\uFEFF\u200C\u200D\r\n\t]/g, ' ');
+
+  // 2. Repair broken spaces in protocols (e.g. "https ://", "https: //", "https: / /", "http : //")
+  text = text.replace(/https?\s*:\s*\/\s*\/\s*/gi, (m) => m.toLowerCase().startsWith('http:') ? 'http://' : 'https://');
+  text = text.replace(/(?:^|\s)https?\s*:\/\/\s*/gi, ' https://');
+
+  // 3. Repair spaces around protocol and known domain shorteners/social media domains
+  text = text.replace(/https?:\/\/\s+([a-zA-Z0-9.-]+)/gi, 'https://$1');
+  text = text.replace(/(?:https?:\/\/)?(www\.)?\s*(tiktok|douyin|youtube|youtu|instagram|instagr|facebook|fb|twitter|threads|reddit|pinterest|vimeo|dailymotion|soundcloud|spotify|github|linkedin|telegram)\s*\.\s*(com|be|net|org|watch|me|gg|it|to|co|app|link|ai|so|io)\b/gi, (match, www, domain, tld) => {
+    const prefix = www ? 'www.' : '';
+    return `${prefix}${domain}.${tld}`;
+  });
+
+  // 4. Repair broken spaces inside social media URL paths & query parameters
+  // e.g. "tiktok.com/ @user", "vt.tiktok.com/ ZM...", "tiktok.com / video / 123", "watch ? v = dQw..."
+  text = text.replace(/(tiktok\.com|douyin\.com|instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|x\.com|twitter\.com|threads\.net)\s*\/\s*(@[a-zA-Z0-9._-]+|[a-zA-Z0-9_\-\/]+)/gi, '$1/$2');
+  text = text.replace(/\/\s*@\s*([a-zA-Z0-9._-]+)/gi, '/@$1');
+  text = text.replace(/\/\s*(video|shorts|reel|reels|p|watch|v|embed|post|posts)\s*\/\s*([a-zA-Z0-9_-]+)/gi, '/$1/$2');
+  text = text.replace(/([a-zA-Z0-9_\-\/]+)\s*\?\s*([a-zA-Z0-9_=&-]+)/gi, '$1?$2');
+  text = text.replace(/\?\s*([a-zA-Z0-9_-]+)\s*=\s*([a-zA-Z0-9_=&-]+)/gi, '?$1=$2');
+  text = text.replace(/&\s*([a-zA-Z0-9_-]+)\s*=\s*([a-zA-Z0-9_=&-]+)/gi, '&$1=$2');
+
+  // 5. Repair common domain.tld space splits (e.g. "example .com" -> "example.com")
+  text = text.replace(/([a-zA-Z0-9-]+)\s*\.\s*(com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|watch|it|fi|be|page|live|agency|services)\b/gi, '$1.$2');
+
+  return text.trim();
+}
+
+/**
  * Robustly detects, extracts, and normalizes URLs of any length from raw text.
  * Handles ultra-long URLs, query parameters, fragments, IP addresses, ports,
  * protocols (https://, http://, www.), and clean trailing punctuation removal.
@@ -22,17 +58,19 @@ export function detectAndExtractUrl(rawText: string): DetectedUrlInfo {
     return { hasUrl: false, cleanUrl: null, domain: null, remainingText: rawText || '' };
   }
 
+  const repairedText = sanitizeAndRepairUrlString(rawText);
+
   // 1. Matches explicit http/https/ws/wss URLs of any length, including complex query params and fragments
-  const explicitMatch = rawText.match(/(?:\/|\s|^)(https?:\/\/[^\s<>"'{}|\\^`]+)/i);
+  const explicitMatch = repairedText.match(/(?:\/|\s|^)(https?:\/\/[^\s<>"'{}|\\^`]+)/i);
 
   // 2. Matches www. domains with any paths/params
-  const wwwMatch = rawText.match(/(?:\/|\s|^)(www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+[^\s<>"'{}|\\^`]*)/i);
+  const wwwMatch = repairedText.match(/(?:\/|\s|^)(www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+[^\s<>"'{}|\\^`]*)/i);
 
   // 3. Matches IP addresses with optional ports (e.g. 192.168.1.1:8080, 10.0.0.1)
-  const ipMatch = rawText.match(/(?:\/|\s|^)(https?:\/\/)?((?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/i);
+  const ipMatch = repairedText.match(/(?:\/|\s|^)(https?:\/\/)?((?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/i);
 
   // 4. Matches domain.tld formats (e.g. upstore.one, fb.watch, fb.me, github.com, sub.target.co.uk)
-  const domainMatch = rawText.match(/(?:\/|\s|^)([a-zA-Z0-9-]+\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|watch|it|fi|be|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/i);
+  const domainMatch = repairedText.match(/(?:\/|\s|^)([a-zA-Z0-9-]+\.(?:[a-zA-Z0-9-]+\.)*(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|watch|it|fi|be|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/i);
 
   let rawUrlFound = '';
 
@@ -54,7 +92,7 @@ export function detectAndExtractUrl(rawText: string): DetectedUrlInfo {
   let sanitized = rawUrlFound.trim();
   sanitized = sanitized.replace(/^[^a-zA-Z0-9]+(?=https?:\/\/)/i, '');
   sanitized = sanitized.replace(/^\/+/, '');
-  sanitized = sanitized.replace(/[.,;:)>\]"']+$/, ''); // Strip trailing punctuation attached to end of URL
+  sanitized = sanitized.replace(/[.,;:)>\]"'\u060C\u061B]+$/, ''); // Strip trailing punctuation (including Arabic comma/semicolon)
 
   if (!/^https?:\/\//i.test(sanitized)) {
     sanitized = 'https://' + sanitized;
@@ -79,8 +117,9 @@ export function detectAndExtractUrl(rawText: string): DetectedUrlInfo {
   }
 
   // Calculate remaining text cleanly
-  let remainingText = rawText.replace(rawUrlFound, '').trim();
+  let remainingText = repairedText.replace(rawUrlFound, '').trim();
   remainingText = remainingText.replace(/\[?(?:رابط|الرابط|link)(?:\s*رقم)?\s*#?\d+\]?:?/gi, ' ');
+  remainingText = remainingText.replace(/(?:TikTok|Instagram|Facebook|Twitter|YouTube)\s*·\s*[^\n]+(?:\n|$)/gi, ' ');
   remainingText = remainingText.replace(/^\/+\s*/, '').replace(/\s{2,}/g, ' ').trim();
 
   return {
@@ -225,10 +264,12 @@ export function extractAllCleanUrls(
     return { urls: [], remainingText: rawText || '', totalFound: 0, isLimitExceeded: false };
   }
 
+  const repairedText = sanitizeAndRepairUrlString(rawText);
+
   // Regex matching http/https/www URLs and standard domain patterns
   const urlRegex = /(?:https?:\/\/[^\s<>"'{}|\\^`]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+[^\s<>"'{}|\\^`]*|[a-zA-Z0-9-]+\.(?:com|org|net|io|app|link|dev|ai|co|uk|de|me|info|tv|cc|xyz|site|online|tech|store|top|cloud|ca|fr|jp|ru|in|edu|gov|one|space|fun|club|pro|vip|world|life|zone|art|eg|sa|ae|qa|kw|bh|om|ye|ly|sy|iq|jo|sd|ma|dz|tn|is|to|so|sh|gg|watch|it|fi|be|page|live|agency|services)(?::\d{1,5})?(?:\/[^\s<>"'{}|\\^`]*)?)/gi;
 
-  const rawMatches = rawText.match(urlRegex) || [];
+  const rawMatches = repairedText.match(urlRegex) || [];
   const cleanList: string[] = [];
   const seen = new Set<string>();
 
@@ -236,7 +277,7 @@ export function extractAllCleanUrls(
     let sanitized = match.trim();
     sanitized = sanitized.replace(/^[^a-zA-Z0-9]+(?=https?:\/\/)/i, '');
     sanitized = sanitized.replace(/^\/+/, '');
-    sanitized = sanitized.replace(/[.,;:)>\]"']+$/, '');
+    sanitized = sanitized.replace(/[.,;:)>\]"'\u060C\u061B]+$/, ''); // Strip trailing punctuation (including Arabic comma/semicolon)
 
     if (!/^https?:\/\//i.test(sanitized)) {
       sanitized = 'https://' + sanitized;
@@ -261,12 +302,14 @@ export function extractAllCleanUrls(
   const isLimitExceeded = totalFound > maxLimit;
   const effectiveUrls = cleanList.slice(0, maxLimit);
 
-  // Compute remaining text with matched URLs removed and strip any [رابط رقم X] markers
-  let remainingText = rawText;
+  // Compute remaining text with matched URLs removed and strip any [رابط رقم X] markers or social share noise
+  let remainingText = repairedText;
   for (const match of rawMatches) {
     remainingText = remainingText.replace(match, ' ');
   }
   remainingText = remainingText.replace(/\[?(?:رابط|الرابط|link)(?:\s*رقم)?\s*#?\d+\]?:?/gi, ' ');
+  remainingText = remainingText.replace(/(?:Watch on |Watch this video on |Shared (?:via|from) )?(?:TikTok|Instagram|Facebook|Twitter|YouTube|X)\s*(?:·|:|-)?\s*[^\n]*(?:\n|$)/gi, ' ');
+  remainingText = remainingText.replace(/\b(?:\d+(?:\.\d+)?(?:K|M|B)?\+?\s*(?:views|likes|shares|مشاهدة|إعجاب|لايك))\b/gi, ' ');
   remainingText = remainingText.replace(/\s{2,}/g, ' ').trim();
 
   return {

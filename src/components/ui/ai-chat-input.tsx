@@ -303,9 +303,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           const combined = [...prev, ...newOnes].slice(0, 5);
           return combined;
         });
+        setInternalModel('deepseek-v4-flash-cyber');
+        onSelectModel?.('deepseek-v4-flash-cyber');
         setCyberInputUrl('');
       }
-    }, [showUrlLimitToast]);
+    }, [showUrlLimitToast, onSelectModel]);
 
     const triggerFileInput = useCallback((acceptType?: 'all' | 'video' | 'audio' | 'image' | 'doc') => {
       if (!fileInputRef.current) return;
@@ -325,11 +327,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
     const handleValueChange = useCallback(
       (val: string) => {
-        // Auto-detect standalone URL(s) entered into textarea and move directly to attachedUrls
+        // Auto-detect URL(s) entered into textarea and lift directly to attachedUrls bar
         const trimmed = val.trim();
-        if (trimmed && (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.includes('.'))) {
-          const extracted = extractAllCleanUrls(trimmed, 5);
-          if (extracted.urls.length > 0 && !extracted.remainingText.trim()) {
+        if (trimmed && (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.includes('.') || trimmed.includes('/'))) {
+          const extracted = extractAllCleanUrls(val, 5);
+          if (extracted.urls.length > 0) {
             setAttachedUrls((prev) => {
               const newOnes = extracted.urls.filter(u => !prev.includes(u));
               if (prev.length + newOnes.length > 5 || extracted.isLimitExceeded) {
@@ -339,8 +341,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             });
             setInternalModel('deepseek-v4-flash-cyber');
             onSelectModel?.('deepseek-v4-flash-cyber');
-            if (!isControlled) setLocalValue('');
-            onChange?.('');
+
+            const remainingClean = extracted.remainingText.trim();
+            if (!isControlled) setLocalValue(remainingClean);
+            onChange?.(remainingClean);
             return;
           }
         }
@@ -564,11 +568,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         setInternalModel('deepseek-v4-flash-cyber');
         onSelectModel?.('deepseek-v4-flash-cyber');
 
-        if (extracted.remainingText) {
+        if (extracted.remainingText && extracted.remainingText.trim()) {
           const existingValue = value.trim();
-          const nextVal = existingValue ? `${existingValue} ${extracted.remainingText}` : extracted.remainingText;
+          const nextVal = existingValue ? `${existingValue} ${extracted.remainingText.trim()}` : extracted.remainingText.trim();
           if (!isControlled) setLocalValue(nextVal);
           onChange?.(nextVal);
+        } else {
+          if (!isControlled) setLocalValue('');
+          onChange?.('');
         }
         return;
       }

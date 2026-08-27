@@ -10,6 +10,8 @@
  *   - In-memory cache with 30-minute TTL
  */
 
+import { spawn } from 'child_process';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface TikTokStats {
@@ -65,10 +67,18 @@ export interface TikTokResult {
   dynamicCover?: string;
   originCover?: string;
   playUrl?: string;
+  images?: string[];
+  extraFrames?: {
+    dynamicCover?: string;
+    originCover?: string;
+    avatarUrl?: string;
+    images?: string[];
+  };
   subtitles: TikTokSubtitleTrack[];
   transcriptText?: string;
   transcriptSegments?: TikTokTranscriptSegment[];
   transcriptSource: 'closed_captions' | 'audio_whisper' | 'video_description';
+  hasRealTranscript: boolean;
   durationSeconds?: number;
   createTime?: number;
   fetchedAt: number;
@@ -139,7 +149,7 @@ export function extractTikTokVideoId(url: string): string | null {
 
 /** Follows HTTP redirects to unshorten vm.tiktok.com or vt.tiktok.com links using mobile client emulation */
 export async function unshortenTikTokUrl(inputUrl: string): Promise<string> {
-  let currentUrl = inputUrl.startsWith('http') ? inputUrl : `https://${inputUrl}`;
+  let currentUrl = inputUrl.trim().startsWith('http') ? inputUrl.trim() : `https://${inputUrl.trim()}`;
   let hops = 0;
   const maxHops = 6;
 
@@ -154,9 +164,9 @@ export async function unshortenTikTokUrl(inputUrl: string): Promise<string> {
         redirect: 'manual',
         signal: controller.signal,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'ar,en;q=0.9',
+          'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
         }
       });
       clearTimeout(timer);
@@ -166,6 +176,13 @@ export async function unshortenTikTokUrl(inputUrl: string): Promise<string> {
         currentUrl = loc.startsWith('http') ? loc : new URL(loc, currentUrl).href;
         if (extractTikTokVideoId(currentUrl)) break;
       } else {
+        if (res.ok) {
+          const body = await res.text().catch(() => '');
+          const canMatch = body.match(/<link\s+rel="canonical"\s+href="([^"]+)"/i) || body.match(/<meta\s+property="og:url"\s+content="([^"]+)"/i);
+          if (canMatch && canMatch[1] && canMatch[1].includes('tiktok.com/')) {
+            currentUrl = canMatch[1];
+          }
+        }
         break;
       }
     } catch {
@@ -185,7 +202,7 @@ async function fetchAndParseSubtitles(trackUrl: string): Promise<{ text: string;
     const res = await fetch(trackUrl, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
         'Accept': '*/*',
       }
     });
@@ -252,7 +269,72 @@ async function fetchAndParseSubtitles(trackUrl: string): Promise<{ text: string;
   }
 }
 
-// ─── oEmbed Fallback ──────────────────────────────────────────────────────────
+// ─── Native Python yt-dlp JSON Dump (Tier 4 Fallback) ─────────────────────────
+
+async function runYtDlpTikTokDump(targetUrl: string, timeoutMs = 12000): Promise<any | null> {
+  return new Promise((resolve) => {
+    let resolved = false;
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        try {
+          proc.kill();
+        } catch {}
+        resolve(null);
+      }
+    }, timeoutMs);
+
+    const args = [
+      '-m',
+      'yt_dlp',
+      '--dump-single-json',
+      '--no-warnings',
+      '--no-check-certificates',
+      '--skip-download',
+      targetUrl
+    ];
+
+    let stdout = '';
+    let stderr = '';
+
+    const proc = spawn('python', args, {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    proc.stdout.on('data', (d) => {
+      stdout += d.toString();
+    });
+
+    proc.stderr.on('data', (d) => {
+      stderr += d.toString();
+    });
+
+    proc.on('close', (code) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
+
+      if (code === 0 && stdout.trim()) {
+        try {
+          const parsed = JSON.parse(stdout.trim());
+          resolve(parsed);
+          return;
+        } catch {}
+      }
+      resolve(null);
+    });
+
+    proc.on('error', () => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
+      resolve(null);
+    });
+  });
+}
+
+// ─── Secondary Fallback APIs ──────────────────────────────────────────────────
 
 async function fetchTikTokOEmbed(canonicalUrl: string): Promise<{ title?: string; author_name?: string; thumbnail_url?: string } | null> {
   try {
@@ -295,6 +377,32 @@ async function fetchTikWMData(url: string): Promise<any | null> {
   }
 }
 
+async function fetchTikMateData(url: string): Promise<any | null> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch('https://api.tikmate.app/api/lookup', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+      },
+      body: `url=${encodeURIComponent(url)}`
+    });
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && data.token) {
+        return data;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Master Pipeline: fetchTikTokData ─────────────────────────────────────────
 
 export async function fetchTikTokData(input: string): Promise<TikTokResult | TikTokFailure> {
@@ -307,7 +415,7 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
     unshortenTikTokUrl(input.trim())
   ]);
 
-  const effectiveUrl = (canonicalUrl && canonicalUrl.includes('/video/')) ? canonicalUrl : input.trim();
+  const effectiveUrl = (canonicalUrl && canonicalUrl.includes('/video/')) ? canonicalUrl : (canonicalUrl || input.trim());
   const videoId = (tikwmFastData && tikwmFastData.id) ? String(tikwmFastData.id) : (extractTikTokVideoId(effectiveUrl) || extractTikTokVideoId(input) || 'unknown');
 
   const cached = getCached(effectiveUrl) || getCached(videoId);
@@ -319,15 +427,15 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
   console.log(`[TikTokService] Fetching metadata for: ${effectiveUrl} (ID: ${videoId})`);
 
   try {
-    const [pageRes, oembedData, tikwmRetryData] = await Promise.all([
+    const [pageRes, oembedData, tikwmRetryData, tikmateData] = await Promise.all([
       (async () => {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 6000);
         try {
-          const res = await fetch(input.trim().startsWith('http') ? input.trim() : `https://${input.trim()}`, {
+          const res = await fetch(effectiveUrl.startsWith('http') ? effectiveUrl : `https://${effectiveUrl}`, {
             signal: controller.signal,
             headers: {
-              'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+              'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
               'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
             }
@@ -340,7 +448,8 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
         }
       })(),
       fetchTikTokOEmbed(effectiveUrl),
-      tikwmFastData ? Promise.resolve(tikwmFastData) : fetchTikWMData(effectiveUrl)
+      tikwmFastData ? Promise.resolve(tikwmFastData) : fetchTikWMData(effectiveUrl),
+      fetchTikMateData(effectiveUrl)
     ]);
 
     const tikwm = tikwmFastData || tikwmRetryData;
@@ -372,30 +481,37 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
       }
     }
 
-    const desc = (itemStruct?.desc || tikwm?.title || oembedData?.title || '').trim();
+    // Tier 4 Fallback: yt-dlp native extraction if TikWM or HTML lacked full captions/description
+    let ytDlpData: any = null;
+    if (!tikwm && !itemStruct) {
+      console.log(`[TikTokService] Falling back to yt_dlp native dump for: ${effectiveUrl}`);
+      ytDlpData = await runYtDlpTikTokDump(effectiveUrl);
+    }
+
+    const desc = (itemStruct?.desc || tikwm?.title || ytDlpData?.description || ytDlpData?.title || tikmateData?.title || oembedData?.title || '').trim();
     const hashtagMatches = desc.match(/#[\w\u0600-\u06FF]+/g) || [];
     const hashtags: string[] = Array.from(new Set(hashtagMatches));
 
     const author: TikTokAuthor = {
-      username: itemStruct?.author?.uniqueId || tikwm?.author?.unique_id || oembedData?.author_name || 'TikTok User',
-      nickname: itemStruct?.author?.nickname || tikwm?.author?.nickname || oembedData?.author_name || 'TikTok User',
-      avatarUrl: itemStruct?.author?.avatarLarger || itemStruct?.author?.avatarThumb || tikwm?.author?.avatar,
+      username: itemStruct?.author?.uniqueId || tikwm?.author?.unique_id || ytDlpData?.uploader_id || tikmateData?.author_name || oembedData?.author_name || 'TikTok User',
+      nickname: itemStruct?.author?.nickname || tikwm?.author?.nickname || ytDlpData?.uploader || tikmateData?.author_name || oembedData?.author_name || 'TikTok User',
+      avatarUrl: itemStruct?.author?.avatarLarger || itemStruct?.author?.avatarThumb || tikwm?.author?.avatar || tikmateData?.author_avatar,
       signature: itemStruct?.author?.signature || tikwm?.author?.signature,
       verified: Boolean(itemStruct?.author?.verified ?? tikwm?.author?.verified),
     };
 
     const stats: TikTokStats = {
-      likes: Number(itemStruct?.stats?.diggCount || itemStruct?.statsV2?.diggCount || tikwm?.digg_count || 0),
-      comments: Number(itemStruct?.stats?.commentCount || itemStruct?.statsV2?.commentCount || tikwm?.comment_count || 0),
+      likes: Number(itemStruct?.stats?.diggCount || itemStruct?.statsV2?.diggCount || tikwm?.digg_count || ytDlpData?.like_count || 0),
+      comments: Number(itemStruct?.stats?.commentCount || itemStruct?.statsV2?.commentCount || tikwm?.comment_count || ytDlpData?.comment_count || 0),
       shares: Number(itemStruct?.stats?.shareCount || itemStruct?.statsV2?.shareCount || tikwm?.share_count || 0),
-      views: Number(itemStruct?.stats?.playCount || itemStruct?.statsV2?.playCount || tikwm?.play_count || 0),
+      views: Number(itemStruct?.stats?.playCount || itemStruct?.statsV2?.playCount || tikwm?.play_count || ytDlpData?.view_count || 0),
       saves: Number(itemStruct?.stats?.collectCount || itemStruct?.statsV2?.collectCount || tikwm?.collect_count || 0),
     };
 
     const music: TikTokMusic = {
-      id: itemStruct?.music?.id || tikwm?.music_info?.id,
-      title: itemStruct?.music?.title || tikwm?.music_info?.title || tikwm?.music || 'Original Sound',
-      authorName: itemStruct?.music?.authorName || tikwm?.music_info?.author || author.nickname,
+      id: itemStruct?.music?.id || tikwm?.music_info?.id || ytDlpData?.track_id,
+      title: itemStruct?.music?.title || tikwm?.music_info?.title || ytDlpData?.track || tikwm?.music || 'Original Sound',
+      authorName: itemStruct?.music?.authorName || tikwm?.music_info?.author || ytDlpData?.artist || author.nickname,
       playUrl: itemStruct?.music?.playUrl || tikwm?.music,
       coverUrl: itemStruct?.music?.coverLarge || itemStruct?.music?.coverThumb || tikwm?.music_info?.cover,
       duration: itemStruct?.music?.duration || tikwm?.music_info?.duration,
@@ -407,12 +523,14 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
       itemStruct?.video?.dynamicCover ||
       tikwm?.cover ||
       tikwm?.origin_cover ||
+      ytDlpData?.thumbnail ||
       oembedData?.thumbnail_url ||
       'https://www.tiktok.com/favicon.ico';
 
     const dynamicCover = itemStruct?.video?.dynamicCover || tikwm?.dynamic_cover;
     const originCover = itemStruct?.video?.originCover || tikwm?.origin_cover;
-    const playUrl = itemStruct?.video?.playAddr || tikwm?.play;
+    const playUrl = itemStruct?.video?.playAddr || tikwm?.play || ytDlpData?.url;
+    const images: string[] = Array.isArray(tikwm?.images) ? tikwm.images : (Array.isArray(itemStruct?.imagePost?.images) ? itemStruct.imagePost.images.map((img: any) => img.imageURL?.urlList?.[0]).filter(Boolean) : []);
 
     const subtitleInfos: any[] = itemStruct?.video?.subtitleInfos || itemStruct?.contents || [];
     const subtitles: TikTokSubtitleTrack[] = [];
@@ -451,17 +569,19 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
       }
     }
 
+    const hasRealTranscript = Boolean(transcriptText && transcriptText.trim().length > 0 && transcriptSource !== 'video_description');
+
     if (!transcriptText) {
       transcriptText = desc;
       transcriptSource = 'video_description';
     }
 
-    const durationSeconds = itemStruct?.video?.duration || itemStruct?.music?.duration || tikwm?.duration;
-    const createTime = itemStruct?.createTime ? Number(itemStruct.createTime) : (tikwm?.create_time ? Number(tikwm.create_time) : undefined);
+    const durationSeconds = itemStruct?.video?.duration || itemStruct?.music?.duration || tikwm?.duration || ytDlpData?.duration;
+    const createTime = itemStruct?.createTime ? Number(itemStruct.createTime) : (tikwm?.create_time ? Number(tikwm.create_time) : ytDlpData?.timestamp);
 
     const result: TikTokResult = {
       videoId,
-      canonicalUrl,
+      canonicalUrl: effectiveUrl,
       inputUrl: input,
       title: desc ? (desc.length > 80 ? desc.slice(0, 80) + '...' : desc) : `TikTok Video by @${author.username}`,
       description: desc,
@@ -473,10 +593,18 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
       dynamicCover,
       originCover,
       playUrl,
+      images: images.length > 0 ? images : undefined,
+      extraFrames: {
+        dynamicCover,
+        originCover,
+        avatarUrl: author.avatarUrl,
+        images: images.length > 0 ? images : undefined,
+      },
       subtitles,
       transcriptText,
       transcriptSegments,
       transcriptSource,
+      hasRealTranscript,
       durationSeconds,
       createTime,
       fetchedAt: Date.now(),
@@ -484,8 +612,9 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
     };
 
     setCached(canonicalUrl, result);
+    setCached(effectiveUrl, result);
     setCached(videoId, result);
-    console.log(`[TikTokService] ✓ Parsed @${author.username} (likes: ${stats.likes}, source: ${transcriptSource})`);
+    console.log(`[TikTokService] ✓ Parsed @${author.username} (likes: ${stats.likes}, source: ${transcriptSource}, hasRealTranscript: ${hasRealTranscript})`);
 
     return result;
   } catch (err: any) {
@@ -518,24 +647,39 @@ export function buildTikTokContextBlock(result: TikTokResult, maxChars = 10000):
     ? (result.transcriptText || result.description).slice(0, maxChars) + '\n[... تم اختصار النص لتناسب السياق ...]'
     : (result.transcriptText || result.description);
 
-  return [
-    '🎵 [بيانات واستخبارات فيديو تيك توك — مستخرج تلقائياً بدون تحميل ملفات]',
+  const lines = [
+    '🎵 [بيانات واستخبارات فيديو تيك توك — TikTok Intelligence & Video Context]',
     bar,
     `• صانع المحتوى: ${result.author.nickname} (@${result.author.username})` + (result.author.verified ? ' [موثق ✅]' : ''),
-    `• وصف الفيديو والوسوم: ${result.description || 'بدون وصف'}`,
+    `• عنوان / وصف الفيديو: ${result.description || result.title || 'بدون وصف'}`,
     result.hashtags.length > 0 ? `• الهاشتاجات: ${result.hashtags.join(' ')}` : '',
     `• الصوت / الموسيقى: ${result.music.title} (بواسطة ${result.music.authorName})`,
     `• التفاعل والإحصائيات: ${statsStr}`,
     `• تاريخ النشر: ${uploadDate}`,
     `• الرابط المباشر: ${result.canonicalUrl}`,
-    `• مصدر المحتوى والنص: ${result.transcriptSource === 'closed_captions' ? 'تفريغ الترجمة والتعرف الصوتي (Captions/ASR)' : 'الوصف والبيانات الوصفية للفيديو'}`,
+    `• حالة تفريغ الكلام المنطوق: ${result.hasRealTranscript ? '✓ متوفر تفريغ صوتي دقيق للكلام المنطوق' : '⚠️ لا يوجد تفريغ لكلام منطوق (يعتمد على المؤثرات/الموسيقى أو مجرد عنوان ووصف)'}`,
     bar,
-    '[محتوى الفيديو / الكلام المنطوق المستخرج]:',
-    '',
-    truncatedText,
-    '',
-    bar,
-  ].filter(Boolean).join('\n');
+  ];
+
+  if (result.hasRealTranscript && truncatedText) {
+    lines.push(
+      '[تفريغ الكلام المنطوق داخل الفيديو — Spoken Audio Monologue]:',
+      '',
+      truncatedText,
+      '',
+      bar
+    );
+  } else if (truncatedText) {
+    lines.push(
+      '[المعلومات والوصف المتاح للفيديو]:',
+      '',
+      truncatedText,
+      '',
+      bar
+    );
+  }
+
+  return lines.filter(Boolean).join('\n');
 }
 
 // ─── TikTok User Profile & Recent Videos OSINT Engine ───────────────────────────

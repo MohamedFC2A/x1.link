@@ -1388,12 +1388,17 @@ async function processSingleLinkIntelligence(
       const ttResult = await fetchTikTokData(url);
       let visionResult: VideoVisionResult | null = null;
       if ('canonicalUrl' in ttResult && ttResult.thumbnailUrl && DEEPSEEK_API_KEY) {
+        const extraFrames = ('extraFrames' in ttResult && ttResult.extraFrames)
+          ? ttResult.extraFrames
+          : {
+              dynamicCover: ttResult.dynamicCover,
+              originCover: ttResult.originCover,
+              avatarUrl: ttResult.author?.avatarUrl,
+              images: ttResult.images,
+            };
         const keyframes = extractTikTokKeyframes(
           ttResult.thumbnailUrl,
-          {
-            dynamicCover: ttResult.dynamicCover,
-            originCover: ttResult.originCover
-          },
+          extraFrames,
           ttResult.durationSeconds
         );
         visionResult = await performVideoVisionPerception(
@@ -1401,7 +1406,7 @@ async function processSingleLinkIntelligence(
           'tiktok',
           keyframes,
           {
-            title: ttResult.title,
+            title: ttResult.description || ttResult.title,
             creator: `@${ttResult.author.username}`,
             userPrompt,
           },
@@ -1420,6 +1425,13 @@ async function processSingleLinkIntelligence(
               profileContext = buildTikTokProfileContextBlock(profile);
             }
           } catch {}
+        }
+      }
+
+      let tiktokDirective = '';
+      if ('canonicalUrl' in ttResult) {
+        if (!ttResult.hasRealTranscript && !visionResult) {
+          tiktokDirective = `\n\n⚠️ [تنبيه استخباراتي وملاحظة للأمانة العلمية]: هذا الفيديو لا يحتوي على تفريغ لكلام منطوق (ASR/Captions) متاح (الفيديو قد يكون مصحوباً بموسيقى فقط أو يعتمد على المؤثرات البصرية دون حوار مفرغ). المطلوب منك: الإجابة على سؤال المستخدم استناداً إلى موضوع الفيديو الظاهر في العنوان والوصف والمعلومات العامة ذات الصلة، مع توضيح أنه لم يتوفر تفريغ صوتي لكلام المتحدث إن لزم الأمر، دون اختلاق تقييم وهمي لكلام لم يُسجل!`;
         }
       }
 
@@ -1445,7 +1457,8 @@ async function processSingleLinkIntelligence(
           } as any : null,
           visionResult,
           'tiktok'
-        ) : ''
+        ) : '',
+        tiktokDirective
       ].filter(Boolean).join('\n\n');
 
       return {
@@ -1658,9 +1671,9 @@ function buildMultiLinkMatrixBlock(processedLinks: ProcessedLinkData[]): string 
       bar,
       item.summaryBlock,
       bar,
-      `[توجيه استخباراتي صارم ومباشر للإجابة — DIRECT ACTIONABLE MANDATE]:`,
-      `1. أنت تمتلك النص الكامل للمنشور/الموقع وكافة البيانات والتحليل البصري الفائق للصور والجداول المرفقة (Fathom Cam).`,
-      `2. أجب عن سؤال واستفسار واستشارة المستخدم فوراً وبشكل مباشر وواضح وقاطع، وافصل في المسألة أو القرار المطروح (مثل مواعيد التنسيق والتسجيل أو النصيحة المطلوبة) دون أي اعتذارات أو ادعاء بأن الرابط لا يحمل المحتوى!`
+      `[توجيه استخباراتي دقيق وأمين للإجابة — DIRECT FACTUAL MANDATE]:`,
+      `1. استند بدقة إلى كافة المعطيات المستخرجة أعلاه (سواء كانت نصوص المنشور، التفريغ الصوتي الفعلي، التحليل البصري للإطارات Fathom Cam، أو البيانات الوصفية).`,
+      `2. أجب عن سؤال واستفسار واستشارة المستخدم بوضوح وقاطع بالاعتماد على المحتوى الفعلي المفحوص؛ وإذا كان الرابط يحمل بيانات وصفية فقط دون كلام منطوق، وضّح ما ورد فيه بأمانة علمية دون اختلاق كلام أو تقييم وهمي لم يرد في المقطع!`
     ].join('\n');
   }
 
