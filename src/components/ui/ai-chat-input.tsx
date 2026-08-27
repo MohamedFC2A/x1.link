@@ -973,9 +973,6 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       </div>
                     </div>
                   </div>
-                  {internalModel === 'deepseek-v4-flash' && !hasAttachments && (
-                    <span className="size-1.5 rounded-full bg-white shrink-0 mr-2" />
-                  )}
                 </button>
 
                 {/* Model 2: Fathom Cyber 2.0 */}
@@ -1000,16 +997,15 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     <div className="min-w-0 text-right">
                       <div className="font-bold text-xs text-white flex items-center gap-1.5">
                         <span>Fathom Cyber 2.0</span>
-                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-normal">3-Tier Memory</span>
+                        <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm">
+                          New
+                        </span>
                       </div>
                       <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
                         استخبارات أمنية وهندسة سيبرانية سيادية مع الذاكرة العرضية والدلالية الديناميكية
                       </div>
                     </div>
                   </div>
-                  {internalModel === 'deepseek-v4-flash-cyber' && (
-                    <span className="size-1.5 rounded-full bg-cyan-400 shrink-0 mr-2" />
-                  )}
                 </button>
 
                 {/* Model 2.1: Fathom Cyber 2.1 (DeepSeek v4 Pro Architecture & O-H-E-U Discovery) */}
@@ -1032,13 +1028,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       <Atom className="w-4 h-4 text-cyan-300 animate-pulse" />
                     </div>
                     <div className="min-w-0 text-right">
-                      <div className="font-bold text-xs text-white flex items-center gap-1.5 flex-wrap">
+                      <div className="font-bold text-xs text-white flex items-center gap-1.5">
                         <span>Fathom Cyber 2.1</span>
-                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-gradient-to-r from-cyan-500/30 to-purple-500/30 text-cyan-200 font-bold border border-cyan-400/30">
-                          v4-Pro Engine
-                        </span>
-                        <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-purple-500/20 text-purple-200 font-normal">
-                          O-H-E-U Loop
+                        <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm">
+                          New
                         </span>
                       </div>
                       <div className="text-[11px] text-zinc-300 font-normal leading-relaxed mt-0.5">
@@ -1046,9 +1039,6 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       </div>
                     </div>
                   </div>
-                  {(internalModel === 'deepseek-v4-pro-cyber-2.1' || internalModel === 'deepseek-v4-flash-cyber-2.1') && (
-                    <span className="size-1.5 rounded-full bg-cyan-300 shrink-0 mr-2 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-                  )}
                 </button>
 
                 {/* Model 3: Fathom Cam */}
@@ -1080,9 +1070,6 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       </div>
                     </div>
                   </div>
-                  {internalModel === 'deepseek-v4-flash-vision-exp' && !hasNonImageMedia && (
-                    <span className="size-1.5 rounded-full bg-emerald-400 shrink-0 mr-2" />
-                  )}
                 </button>
 
                 {/* Model 4: Fathom Spark (Meta Muse Spark 1.2) */}
@@ -1114,9 +1101,6 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       </div>
                     </div>
                   </div>
-                  {(internalModel === 'meta/muse-spark-1.2-contributor' || hasNonImageMedia) && (
-                    <span className="size-1.5 rounded-full bg-violet-400 shrink-0 mr-2" />
-                  )}
                 </button>
               </div>
             </div>
