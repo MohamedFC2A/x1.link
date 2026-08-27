@@ -10,8 +10,6 @@
  *   - In-memory cache with 30-minute TTL
  */
 
-import { spawn } from 'child_process';
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface TikTokStats {
@@ -269,69 +267,39 @@ async function fetchAndParseSubtitles(trackUrl: string): Promise<{ text: string;
   }
 }
 
-// ─── Native Python yt-dlp JSON Dump (Tier 4 Fallback) ─────────────────────────
+// ─── SSSTik Scraper (Tier 3 Fallback — 100% Edge Native) ──────────────────────
 
-async function runYtDlpTikTokDump(targetUrl: string, timeoutMs = 12000): Promise<any | null> {
-  return new Promise((resolve) => {
-    let resolved = false;
-    const timer = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        try {
-          proc.kill();
-        } catch {}
-        resolve(null);
+async function fetchSSSTikData(url: string): Promise<any | null> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch('https://ssstik.io/abc?url=dl', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+      },
+      body: `id=${encodeURIComponent(url)}&locale=en&tt=0`
+    });
+    clearTimeout(timer);
+    if (res.ok) {
+      const html = await res.text();
+      const titleMatch = html.match(/<p\s+class="maintext">([\s\S]*?)<\/p>/i);
+      const imgMatch = html.match(/<img[^>]+src="([^">]+)"[^>]*class="result_author"/i);
+      const videoMatch = html.match(/href="([^"]+)"[^>]*class="[^"]*download_link[^"]*"/i);
+      if (titleMatch || imgMatch) {
+        return {
+          title: titleMatch ? titleMatch[1].trim() : undefined,
+          cover: imgMatch ? imgMatch[1] : undefined,
+          playUrl: videoMatch ? videoMatch[1] : undefined,
+        };
       }
-    }, timeoutMs);
-
-    const args = [
-      '-m',
-      'yt_dlp',
-      '--dump-single-json',
-      '--no-warnings',
-      '--no-check-certificates',
-      '--skip-download',
-      targetUrl
-    ];
-
-    let stdout = '';
-    let stderr = '';
-
-    const proc = spawn('python', args, {
-      windowsHide: true,
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
-
-    proc.stdout.on('data', (d) => {
-      stdout += d.toString();
-    });
-
-    proc.stderr.on('data', (d) => {
-      stderr += d.toString();
-    });
-
-    proc.on('close', (code) => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(timer);
-
-      if (code === 0 && stdout.trim()) {
-        try {
-          const parsed = JSON.parse(stdout.trim());
-          resolve(parsed);
-          return;
-        } catch {}
-      }
-      resolve(null);
-    });
-
-    proc.on('error', () => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(timer);
-      resolve(null);
-    });
-  });
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Secondary Fallback APIs ──────────────────────────────────────────────────
@@ -427,7 +395,7 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
   console.log(`[TikTokService] Fetching metadata for: ${effectiveUrl} (ID: ${videoId})`);
 
   try {
-    const [pageRes, oembedData, tikwmRetryData, tikmateData] = await Promise.all([
+    const [pageRes, oembedData, tikwmRetryData, tikmateData, ssstikData] = await Promise.all([
       (async () => {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 6000);
@@ -449,7 +417,8 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
       })(),
       fetchTikTokOEmbed(effectiveUrl),
       tikwmFastData ? Promise.resolve(tikwmFastData) : fetchTikWMData(effectiveUrl),
-      fetchTikMateData(effectiveUrl)
+      fetchTikMateData(effectiveUrl),
+      fetchSSSTikData(effectiveUrl)
     ]);
 
     const tikwm = tikwmFastData || tikwmRetryData;
@@ -481,37 +450,30 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
       }
     }
 
-    // Tier 4 Fallback: yt-dlp native extraction if TikWM or HTML lacked full captions/description
-    let ytDlpData: any = null;
-    if (!tikwm && !itemStruct) {
-      console.log(`[TikTokService] Falling back to yt_dlp native dump for: ${effectiveUrl}`);
-      ytDlpData = await runYtDlpTikTokDump(effectiveUrl);
-    }
-
-    const desc = (itemStruct?.desc || tikwm?.title || ytDlpData?.description || ytDlpData?.title || tikmateData?.title || oembedData?.title || '').trim();
+    const desc = (itemStruct?.desc || tikwm?.title || ssstikData?.title || tikmateData?.title || oembedData?.title || '').trim();
     const hashtagMatches = desc.match(/#[\w\u0600-\u06FF]+/g) || [];
     const hashtags: string[] = Array.from(new Set(hashtagMatches));
 
     const author: TikTokAuthor = {
-      username: itemStruct?.author?.uniqueId || tikwm?.author?.unique_id || ytDlpData?.uploader_id || tikmateData?.author_name || oembedData?.author_name || 'TikTok User',
-      nickname: itemStruct?.author?.nickname || tikwm?.author?.nickname || ytDlpData?.uploader || tikmateData?.author_name || oembedData?.author_name || 'TikTok User',
+      username: itemStruct?.author?.uniqueId || tikwm?.author?.unique_id || tikmateData?.author_name || oembedData?.author_name || 'TikTok User',
+      nickname: itemStruct?.author?.nickname || tikwm?.author?.nickname || tikmateData?.author_name || oembedData?.author_name || 'TikTok User',
       avatarUrl: itemStruct?.author?.avatarLarger || itemStruct?.author?.avatarThumb || tikwm?.author?.avatar || tikmateData?.author_avatar,
       signature: itemStruct?.author?.signature || tikwm?.author?.signature,
       verified: Boolean(itemStruct?.author?.verified ?? tikwm?.author?.verified),
     };
 
     const stats: TikTokStats = {
-      likes: Number(itemStruct?.stats?.diggCount || itemStruct?.statsV2?.diggCount || tikwm?.digg_count || ytDlpData?.like_count || 0),
-      comments: Number(itemStruct?.stats?.commentCount || itemStruct?.statsV2?.commentCount || tikwm?.comment_count || ytDlpData?.comment_count || 0),
+      likes: Number(itemStruct?.stats?.diggCount || itemStruct?.statsV2?.diggCount || tikwm?.digg_count || 0),
+      comments: Number(itemStruct?.stats?.commentCount || itemStruct?.statsV2?.commentCount || tikwm?.comment_count || 0),
       shares: Number(itemStruct?.stats?.shareCount || itemStruct?.statsV2?.shareCount || tikwm?.share_count || 0),
-      views: Number(itemStruct?.stats?.playCount || itemStruct?.statsV2?.playCount || tikwm?.play_count || ytDlpData?.view_count || 0),
+      views: Number(itemStruct?.stats?.playCount || itemStruct?.statsV2?.playCount || tikwm?.play_count || 0),
       saves: Number(itemStruct?.stats?.collectCount || itemStruct?.statsV2?.collectCount || tikwm?.collect_count || 0),
     };
 
     const music: TikTokMusic = {
-      id: itemStruct?.music?.id || tikwm?.music_info?.id || ytDlpData?.track_id,
-      title: itemStruct?.music?.title || tikwm?.music_info?.title || ytDlpData?.track || tikwm?.music || 'Original Sound',
-      authorName: itemStruct?.music?.authorName || tikwm?.music_info?.author || ytDlpData?.artist || author.nickname,
+      id: itemStruct?.music?.id || tikwm?.music_info?.id,
+      title: itemStruct?.music?.title || tikwm?.music_info?.title || tikwm?.music || 'Original Sound',
+      authorName: itemStruct?.music?.authorName || tikwm?.music_info?.author || author.nickname,
       playUrl: itemStruct?.music?.playUrl || tikwm?.music,
       coverUrl: itemStruct?.music?.coverLarge || itemStruct?.music?.coverThumb || tikwm?.music_info?.cover,
       duration: itemStruct?.music?.duration || tikwm?.music_info?.duration,
@@ -523,13 +485,13 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
       itemStruct?.video?.dynamicCover ||
       tikwm?.cover ||
       tikwm?.origin_cover ||
-      ytDlpData?.thumbnail ||
+      ssstikData?.cover ||
       oembedData?.thumbnail_url ||
       'https://www.tiktok.com/favicon.ico';
 
     const dynamicCover = itemStruct?.video?.dynamicCover || tikwm?.dynamic_cover;
     const originCover = itemStruct?.video?.originCover || tikwm?.origin_cover;
-    const playUrl = itemStruct?.video?.playAddr || tikwm?.play || ytDlpData?.url;
+    const playUrl = itemStruct?.video?.playAddr || tikwm?.play || ssstikData?.playUrl;
     const images: string[] = Array.isArray(tikwm?.images) ? tikwm.images : (Array.isArray(itemStruct?.imagePost?.images) ? itemStruct.imagePost.images.map((img: any) => img.imageURL?.urlList?.[0]).filter(Boolean) : []);
 
     const subtitleInfos: any[] = itemStruct?.video?.subtitleInfos || itemStruct?.contents || [];
@@ -576,8 +538,8 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
       transcriptSource = 'video_description';
     }
 
-    const durationSeconds = itemStruct?.video?.duration || itemStruct?.music?.duration || tikwm?.duration || ytDlpData?.duration;
-    const createTime = itemStruct?.createTime ? Number(itemStruct.createTime) : (tikwm?.create_time ? Number(tikwm.create_time) : ytDlpData?.timestamp);
+    const durationSeconds = itemStruct?.video?.duration || itemStruct?.music?.duration || tikwm?.duration;
+    const createTime = itemStruct?.createTime ? Number(itemStruct.createTime) : (tikwm?.create_time ? Number(tikwm.create_time) : undefined);
 
     const result: TikTokResult = {
       videoId,
