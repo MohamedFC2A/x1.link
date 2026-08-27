@@ -248,6 +248,7 @@ export async function fetchFacebookVideoData(url: string): Promise<SocialVideoRe
     const res = await fetch(currentUrl, {
       headers: BOT_HEADERS,
       redirect: 'follow',
+      signal: AbortSignal.timeout(4000),
     });
 
     if (res.ok) {
@@ -265,6 +266,7 @@ export async function fetchFacebookVideoData(url: string): Promise<SocialVideoRe
         const mRes = await fetch(mobileUrl, {
           headers: STEALTH_HEADERS,
           redirect: 'follow',
+          signal: AbortSignal.timeout(3000),
         });
         if (mRes.ok) {
           mobileHtml = await mRes.text();
@@ -424,12 +426,12 @@ export async function fetchFacebookVideoData(url: string): Promise<SocialVideoRe
 
     // Determine full text content
     const bestFullContent = jsonLdBody || rawPostText || ogDesc || metaDesc || ogTitle || 'محتوى منشور فيسبوك';
-    const isVideo = Boolean(directVideoUrl || ogType.includes('video') || /(?:videos|reel|watch|share\/v|share\/r)\//i.test(currentUrl));
+    const isVideo = Boolean(directVideoUrl || ogType.includes('video') || /(?:videos|reel|watch|share)\//i.test(currentUrl));
     const isPhoto = Boolean(!isVideo && (allMediaUrls.length > 0 || ogType.includes('photo')));
     const postType: SocialVideoMetadata['postType'] = isVideo ? 'video' : isPhoto ? 'photo' : 'post';
 
     // Extract ID
-    const idMatch = currentUrl.match(/(?:videos|reel|watch\/\?v=|watch\?v=|share\/v\/|share\/r\/|share\/p\/|posts\/|photos\/|permalink\/|fbid=)([0-9a-zA-Z_-]+)/i);
+    const idMatch = currentUrl.match(/(?:videos|reel|watch\/\?v=|watch\?v=|share\/v\/|share\/r\/|share\/p\/|share\/|posts\/|photos\/|permalink\/|fbid=)([0-9a-zA-Z_-]+)/i);
     const videoId = idMatch ? idMatch[1] : undefined;
 
     const result: SocialVideoMetadata = {

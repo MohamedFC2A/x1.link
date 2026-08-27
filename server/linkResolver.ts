@@ -921,7 +921,7 @@ export async function resolveAndProfileUrl(rawInputUrl: string): Promise<Resolve
       infrastructure: [],
     };
   } else if (isFacebook) {
-    const idMatch = finalUrl.match(/(?:videos|reel|watch\/\?v=|watch\?v=|share\/v\/|share\/r\/|share\/p\/|posts\/|fbid=)\/?([0-9a-zA-Z_-]+)/i);
+    const idMatch = finalUrl.match(/(?:videos|reel|watch\/\?v=|watch\?v=|share\/v\/|share\/r\/|share\/p\/|share\/|posts\/|fbid=)\/?([0-9a-zA-Z_-]+)/i);
     const videoId = idMatch ? idMatch[1] : undefined;
 
     let authorName = 'Facebook Creator';

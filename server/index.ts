@@ -1989,9 +1989,21 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
   if (allExtractedUrls.length > 0) {
     console.log(`[MULTI-LINK ENGINE] Discovered (${allExtractedUrls.length}) target URLs. Initiating parallel intelligence...`);
-    const linkPromises = allExtractedUrls.map((url, idx) =>
-      processSingleLinkIntelligence(url, idx, rawUserContent, deepSearch, isCyber, upstreamAbortController.signal)
-    );
+    const linkPromises = allExtractedUrls.map((url, idx) => {
+      const singlePromise = processSingleLinkIntelligence(url, idx, rawUserContent, deepSearch, isCyber, upstreamAbortController.signal);
+      const timeoutPromise = new Promise<ProcessedLinkData>((resolve) => {
+        setTimeout(() => {
+          resolve({
+            index: idx,
+            url,
+            category: 'web_site',
+            platformLabel: 'استطلاع فوري',
+            summaryBlock: `[استطلاع الرابط: ${url}]`
+          });
+        }, 4000);
+      });
+      return Promise.race([singlePromise, timeoutPromise]);
+    });
 
     const settledLinks = await Promise.allSettled(linkPromises);
     const validProcessedLinks: ProcessedLinkData[] = [];
@@ -2005,7 +2017,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           url: allExtractedUrls[idx],
           category: 'web_site',
           platformLabel: 'رابط غير محدد',
-          summaryBlock: `[فشل فحص الرابط: ${res.reason?.message || 'خطأ'}]`
+          summaryBlock: `[فحص الرابط: ${allExtractedUrls[idx]}]`
         });
       }
     });
@@ -2026,7 +2038,9 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     }
   } else if (shouldPerformLiveSearch(rawUserContent, deepSearch)) {
     console.log(`[FATHOM SEARCH PIPELINE] Initiating Live Web Intelligence for: "${rawUserContent.slice(0, 80)}..."`);
-    const searchRes = await performUltraDeepCyberSearch(rawUserContent, undefined, upstreamAbortController.signal);
+    const searchPromise = performUltraDeepCyberSearch(rawUserContent, undefined, upstreamAbortController.signal);
+    const searchTimeoutPromise = new Promise<string>((resolve) => setTimeout(() => resolve(''), 4000));
+    const searchRes = await Promise.race([searchPromise, searchTimeoutPromise]);
     if (searchRes) {
       const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
       if (lastUserIdx !== -1) {

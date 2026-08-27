@@ -182,7 +182,13 @@ export async function streamChatCompletion({
           const parsed = JSON.parse(rawText);
           errBody = parsed.error || parsed.message || rawText;
         } catch {
-          errBody = rawText;
+          if (rawText.includes('504') || rawText.includes('Gateway time-out') || response.status === 504) {
+            errBody = 'استغرق الخادم وقتاً أطول من المتوقع في استطلاع وتحليل الرابط (504 Gateway Timeout). يرجى إعادة المحاولة.';
+          } else if (rawText.startsWith('<!DOCTYPE') || rawText.startsWith('<html') || rawText.includes('<head>')) {
+            errBody = `تعذر الاتصال بالخادم مؤقتاً (${response.status}). يرجى المحاولة مرة أخرى بعد لحظات.`;
+          } else {
+            errBody = rawText;
+          }
         }
       } catch {}
       onError(errBody || `خطأ في الاتصال بالخادم (${response.status})`);

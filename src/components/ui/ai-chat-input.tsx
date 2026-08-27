@@ -340,10 +340,30 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
     const handleValueChange = useCallback(
       (val: string) => {
+        // Auto-detect standalone URL(s) entered into textarea and move directly to attachedUrls
+        const trimmed = val.trim();
+        if (trimmed && (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.includes('.'))) {
+          const extracted = extractAllCleanUrls(trimmed, 5);
+          if (extracted.urls.length > 0 && !extracted.remainingText.trim()) {
+            setAttachedUrls((prev) => {
+              const newOnes = extracted.urls.filter(u => !prev.includes(u));
+              if (prev.length + newOnes.length > 5 || extracted.isLimitExceeded) {
+                showUrlLimitToast();
+              }
+              return [...prev, ...newOnes].slice(0, 5);
+            });
+            setInternalModel('deepseek-v4-flash-cyber');
+            onSelectModel?.('deepseek-v4-flash-cyber');
+            if (!isControlled) setLocalValue('');
+            onChange?.('');
+            return;
+          }
+        }
+
         if (!isControlled) setLocalValue(val);
         onChange?.(val);
       },
-      [isControlled, onChange]
+      [isControlled, onChange, onSelectModel, showUrlLimitToast]
     );
 
     // Helper to convert any File to a persistent Attachment with real natural dimensions & metadata
@@ -1500,6 +1520,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       type="url"
                       value={cyberInputUrl}
                       onChange={(e) => setCyberInputUrl(e.target.value)}
+                      onBlur={() => {
+                        if (cyberInputUrl.trim()) {
+                          handleAddCyberUrl(cyberInputUrl);
+                        }
+                      }}
                       placeholder="أدخل أو الصق رابطاً للفحص والاستخبارات ثم اضغط Enter..."
                       className="w-full bg-transparent text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 outline-none font-mono dir-ltr text-left selection:bg-cyan-500/30"
                       dir="ltr"
@@ -1518,6 +1543,15 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         }
                       }}
                     />
+                    {cyberInputUrl.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => handleAddCyberUrl(cyberInputUrl)}
+                        className="px-2.5 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-zinc-950 text-xs font-bold font-sans flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-md active:scale-95"
+                      >
+                        <span>إضافة</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => {
@@ -1593,9 +1627,22 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 onChange={(e) => handleValueChange(e.target.value)}
                 onPaste={handlePaste}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmit();
+                  const isTouchOrMobile = typeof window !== 'undefined' && (
+                    'ontouchstart' in window ||
+                    navigator.maxTouchPoints > 0 ||
+                    window.innerWidth < 768 ||
+                    window.matchMedia('(pointer: coarse)').matches
+                  );
+
+                  if (e.key === "Enter") {
+                    if (isTouchOrMobile || e.nativeEvent.isComposing) {
+                      // On mobile / touch keyboards, allow newline / space insertion without sending
+                      return;
+                    }
+                    if (!e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit();
+                    }
                   }
                 }}
                 placeholder={

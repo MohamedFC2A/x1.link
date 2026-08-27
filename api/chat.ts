@@ -1647,9 +1647,21 @@ export default async function handler(req: Request): Promise<Response> {
 
   if (allExtractedUrls.length > 0) {
     console.log(`[MULTI-LINK ENGINE Edge] Discovered (${allExtractedUrls.length}) target URLs. Initiating parallel forensic intelligence...`);
-    const linkPromises = allExtractedUrls.map((url, idx) =>
-      processSingleLinkIntelligence(url, idx, rawUserContent, deepSearch, isCyber)
-    );
+    const linkPromises = allExtractedUrls.map((url, idx) => {
+      const singlePromise = processSingleLinkIntelligence(url, idx, rawUserContent, deepSearch, isCyber);
+      const timeoutPromise = new Promise<ProcessedLinkData>((resolve) => {
+        setTimeout(() => {
+          resolve({
+            index: idx,
+            url,
+            category: 'web_site',
+            platformLabel: 'استطلاع فوري',
+            summaryBlock: `[استطلاع الرابط: ${url}]`
+          });
+        }, 4000);
+      });
+      return Promise.race([singlePromise, timeoutPromise]);
+    });
 
     const settledLinks = await Promise.allSettled(linkPromises);
     const validProcessedLinks: ProcessedLinkData[] = [];
@@ -1663,7 +1675,7 @@ export default async function handler(req: Request): Promise<Response> {
           url: allExtractedUrls[idx],
           category: 'web_site',
           platformLabel: 'رابط غير محدد',
-          summaryBlock: `[فشل فحص الرابط: ${res.reason?.message || 'خطأ'}]`
+          summaryBlock: `[فحص الرابط: ${allExtractedUrls[idx]}]`
         });
       }
     });
@@ -1684,7 +1696,9 @@ export default async function handler(req: Request): Promise<Response> {
     }
   } else if (shouldPerformLiveSearch(rawUserContent, deepSearch)) {
     console.log(`[FATHOM SEARCH PIPELINE Edge] Initiating Live Web Intelligence for: "${rawUserContent.slice(0, 80)}..."`);
-    const searchRes = await performUltraDeepCyberSearch(rawUserContent, undefined);
+    const searchPromise = performUltraDeepCyberSearch(rawUserContent, undefined);
+    const searchTimeoutPromise = new Promise<string>((resolve) => setTimeout(() => resolve(''), 4000));
+    const searchRes = await Promise.race([searchPromise, searchTimeoutPromise]);
     if (searchRes) {
       const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
       if (lastUserIdx !== -1) {
