@@ -3,6 +3,7 @@ import { fetchYouTubeTranscript, buildTranscriptContextBlock, containsYouTubeUrl
 import { fetchTikTokData, buildTikTokContextBlock, isTikTokUrl, extractTikTokUrlFromText, type TikTokResult, type TikTokFailure } from '../server/tiktokService';
 import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerception, buildMasterVideoIntelligenceBlock, type VideoVisionResult } from '../server/videoVisionService';
 import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatform, extractSocialUrlFromText, type SocialVideoMetadata, type SocialVideoFailure } from '../server/socialVideoService';
+import { extractImageForensics, buildForensicReportMarkdown, isForensicAnalysisRequested, type ForensicReport } from '../server/imageForensicsService';
 
 export const config = {
   runtime: 'edge',
@@ -1585,33 +1586,73 @@ export default async function handler(req: Request): Promise<Response> {
       return m;
     });
   } else if (hasMultimodal || isVision) {
+    const latestUserContent = cleanedMessages.filter((m: any) => m.role === 'user').pop();
+    const userPromptForForensics = typeof latestUserContent?.content === 'string'
+      ? latestUserContent.content
+      : Array.isArray(latestUserContent?.content)
+        ? (latestUserContent.content.find((c: any) => c.type === 'text')?.text || '')
+        : '';
+
+    const isForensicsExplicitlyRequested = isForensicAnalysisRequested(userPromptForForensics);
+
+    console.log(`[X1-PIPELINE Edge] Multimodal image detected. Fast native multimodal routing activated (forensics: ${isForensicsExplicitlyRequested})...`);
     const visionMessages = cleanedMessages.filter((m: any) => Array.isArray(m.content) || m.role === 'user');
-    const visualExtraction = await extractVisualContext(visionMessages);
 
-    const guidance = `
-[توجيه التحليل والتفكير الذكي الفائق — FATHOM REASONING DIRECTIVE]:
-1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى حول المعطيات البصرية للصورة، الأبعاد، الإضاءة، النصوص، ونوع المشهد.
-2. بعد إغلاق وسم </think>، قدّم تحليلاً شاملاً، فخماً، بليغاً ومباشراً يلبي رغبة المستخدم بأعلى درجات الاحترافية.`;
+    let forensicBlock = '';
+    if (isForensicsExplicitlyRequested) {
+      try {
+        const forensicPromises: Promise<ForensicReport>[] = [];
+        const lastMsg = visionMessages[visionMessages.length - 1];
+        if (lastMsg && Array.isArray(lastMsg.content)) {
+          for (const item of lastMsg.content) {
+            const url = item?.image_url?.url || item?.image_url || '';
+            if (url && typeof url === 'string' && url.startsWith('data:image')) {
+              forensicPromises.push(extractImageForensics(url));
+            }
+          }
+        }
 
-    if (visualExtraction) {
-      processedMessages = cleanedMessages.map((m: any) => {
-        if (Array.isArray(m.content)) {
-          const textPart = m.content.find((c: any) => c.type === 'text')?.text || 'حلل هذه الصورة واستخرج تفاصيلها.';
-          return {
-            role: m.role,
-            content: `${textPart}\n\n[الإدراك البصري الفائق المستخرج عبر Fathom Cam Vision]:\n${visualExtraction}\n\n${guidance}`
-          };
+        if (forensicPromises.length > 0) {
+          const reports = await Promise.all(forensicPromises);
+          const validReports = reports.filter(Boolean);
+          if (validReports.length > 0) {
+            forensicBlock = validReports.map((r, i) => buildForensicReportMarkdown(r)).join('\n\n');
+          }
         }
-        return m;
-      });
-    } else {
-      processedMessages = cleanedMessages.map((m: any) => {
-        if (Array.isArray(m.content)) {
-          const textPart = m.content.find((c: any) => c.type === 'text')?.text || 'حلل هذه الصورة بالتفصيل.';
-          return { role: m.role, content: `${textPart}\n\n${guidance}` };
+      } catch (fErr: any) {
+        console.warn('[Forensics Pipeline Exception]:', fErr.message);
+      }
+    }
+
+    const visionGuidance = `
+[توجيه التحليل البصري والوسائط الشامل — FATHOM MULTIMODAL DIRECTIVE]:
+1. فكّر وتأمّل أولاً حصراً داخل وسم <think> باللغة العربية الفصحى:
+   - استوعب كافة الصور أو مقاطع الفيديو المرفقة أو المشار إليها في هذه المحادثة.
+   - إذا سأل المستخدم عن فيديو أو وسائط سابقة (مثل "الفيديو الأول صحيح؟" أو غيرها): استرجع موضوع الفيديو وافحص صحة كلام المتحدث علمياً ومنطقياً.
+   - إذا سأل عما إذا كانت الصورة حقيقية أم ذكاء اصطناعي (مثل "ذكاء اصطناعي ولا ايه" أو "ذكاء اصطباحي" أو "حقيقية ولا ذكاء" أو أي صيغة تحقق):
+     * افحص ملامح الوجه، ملمس البشرة والمسام، انعكاس الضوء في العيون، تفاصيل الأطراف، والخلفية.
+     * أصدر حكماً قاطعاً وواضحاً: هل الصورة فوتوغرافية حقيقية أم مولدة بالذكاء الاصطناعي مع سرد الأدلة البصرية.
+2. بعد إغلاق وسم </think>، أجب باللغة العربية الفصحى بوضوح ودقة عالية مجيباً عن كل استفسار طرحه المستخدم بشكل منظم ومرتب.
+ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية، وممنوع استخدام كود بلوك thought أو think للإجابة.`;
+
+    const combinedBlocks = [forensicBlock, visionGuidance].filter(Boolean).join('\n\n');
+    const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
+    if (lastUserIdx !== -1) {
+      const targetMsg = processedMessages[lastUserIdx];
+      if (Array.isArray(targetMsg.content)) {
+        const textItem = targetMsg.content.find((c: any) => c.type === 'text');
+        if (textItem) {
+          textItem.text = `${textItem.text}\n\n${combinedBlocks}`;
+        } else {
+          targetMsg.content.unshift({ type: 'text', text: combinedBlocks });
         }
-        return m;
-      });
+      } else {
+        const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
+        processedMessages[lastUserIdx] = {
+          ...targetMsg,
+          content: `${orig}\n\n${combinedBlocks}`
+        };
+      }
     }
   }
 
@@ -1709,7 +1750,11 @@ export default async function handler(req: Request): Promise<Response> {
 
       // Clean out any thinking tags from past assistant history to avoid model prompt corruption
       if (m.role === 'assistant') {
-        contentStr = contentStr.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+        contentStr = contentStr
+          .replace(/<think>[\s\S]*?<\/think>/gi, '')
+          .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
+          .replace(/```(?:thought|think|thinking|reasoning)[\s\S]*?```/gi, '')
+          .trim();
       }
 
       return {

@@ -332,10 +332,14 @@ export function cleanMarkdownForClipboard(rawText: string | null | undefined): s
   text = text.replace(/\[[^\]]*?(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s_]?(?:DETECT[-\s_]?)?(?:BADGE|CARD|TIMER|REMINDER|AUTODELETE|BUTTON):[^\]]*\]/gi, '');
   text = text.replace(/(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s_]?(?:DETECT[-\s_]?)?(?:BADGE|CARD|TIMER|REMINDER|AUTODELETE|BUTTON):[^\n]*/gi, '');
 
-  // 2. Remove thinking tags <think>...</think> if present in raw content
+  // 2. Remove thinking tags <think>...</think>, <thought>...</thought>, or ```thought...``` if present in raw content
   text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  text = text.replace(/<thought>[\s\S]*?<\/thought>/gi, '');
+  text = text.replace(/```(?:thought|think|thinking|reasoning)[\s\S]*?```/gi, '');
   text = text.replace(/<think>[\s\S]*/gi, '');
   text = text.replace(/<\/think>/gi, '');
+  text = text.replace(/<thought>[\s\S]*/gi, '');
+  text = text.replace(/<\/thought>/gi, '');
 
   // 3. Remove Markdown image links ![Alt](URL) -> Alt
   text = text.replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1');

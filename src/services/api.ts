@@ -215,26 +215,50 @@ export async function streamChatCompletion({
       accumulatedRaw += deltaContent;
 
       const lowerRaw = accumulatedRaw.toLowerCase();
-      const thinkStartIdx = lowerRaw.indexOf('<think>');
-      const thoughtStartIdx = thinkStartIdx !== -1 ? thinkStartIdx : lowerRaw.indexOf('<thought>');
+      let tagStartIdx = lowerRaw.indexOf('<think>');
+      let startTagLength = 7;
+      let closeTag = '</think>';
 
-      if (thoughtStartIdx !== -1) {
-        const tagLength = lowerRaw.startsWith('<thought>', thoughtStartIdx) ? 9 : 7;
-        const thinkEndIdx = lowerRaw.indexOf('</think>', thoughtStartIdx);
-        const thoughtEndIdx = thinkEndIdx !== -1 ? thinkEndIdx : lowerRaw.indexOf('</thought>', thoughtStartIdx);
+      if (tagStartIdx === -1) {
+        tagStartIdx = lowerRaw.indexOf('<thought>');
+        if (tagStartIdx !== -1) {
+          startTagLength = 9;
+          closeTag = '</thought>';
+        }
+      }
 
-        if (thoughtEndIdx === -1) {
+      if (tagStartIdx === -1) {
+        const fenceMatches = [
+          { tag: '```thought', len: 10 },
+          { tag: '```think', len: 8 },
+          { tag: '```thinking', len: 11 },
+          { tag: '```reasoning', len: 12 },
+        ];
+        for (const fm of fenceMatches) {
+          const idx = lowerRaw.indexOf(fm.tag);
+          if (idx !== -1 && (tagStartIdx === -1 || idx < tagStartIdx)) {
+            tagStartIdx = idx;
+            startTagLength = fm.len;
+            closeTag = '```';
+          }
+        }
+      }
+
+      if (tagStartIdx !== -1) {
+        const endIdx = lowerRaw.indexOf(closeTag, tagStartIdx + startTagLength);
+
+        if (endIdx === -1) {
           // Currently inside thinking block
           isThinking = true;
-          accumulatedReasoning = accumulatedRaw.substring(thoughtStartIdx + tagLength).trimStart();
-          accumulatedContent = accumulatedRaw.substring(0, thoughtStartIdx).trim();
+          accumulatedReasoning = accumulatedRaw.substring(tagStartIdx + startTagLength).trimStart();
+          accumulatedContent = accumulatedRaw.substring(0, tagStartIdx).trim();
         } else {
           // Finished thinking block
           isThinking = false;
-          const closeTagLength = lowerRaw.startsWith('</thought>', thoughtEndIdx) ? 10 : 8;
-          accumulatedReasoning = accumulatedRaw.substring(thoughtStartIdx + tagLength, thoughtEndIdx).trim();
-          const preThink = accumulatedRaw.substring(0, thoughtStartIdx).trim();
-          const postThink = accumulatedRaw.substring(thoughtEndIdx + closeTagLength).trimStart();
+          const closeTagLength = closeTag.length;
+          accumulatedReasoning = accumulatedRaw.substring(tagStartIdx + startTagLength, endIdx).trim();
+          const preThink = accumulatedRaw.substring(0, tagStartIdx).trim();
+          const postThink = accumulatedRaw.substring(endIdx + closeTagLength).trimStart();
           accumulatedContent = preThink ? `${preThink}\n\n${postThink}` : postThink;
         }
       } else {

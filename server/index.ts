@@ -1937,9 +1937,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
     const isForensicsExplicitlyRequested = isForensicAnalysisRequested(userPromptForForensics);
 
-    console.log(`[X1-PIPELINE] Multimodal image detected. Extracting visual transcript (forensics requested: ${isForensicsExplicitlyRequested})...`);
+    console.log(`[X1-PIPELINE] Multimodal image detected. Fast native multimodal routing activated (forensics: ${isForensicsExplicitlyRequested})...`);
     const visionMessages = cleanedMessages.filter((m: any) => Array.isArray(m.content) || m.role === 'user');
-    const visualExtraction = await extractVisualContext(visionMessages, upstreamAbortController.signal, isForensicsExplicitlyRequested);
 
     let forensicBlock = '';
     if (isForensicsExplicitlyRequested) {
@@ -1969,23 +1968,29 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       }
     }
 
-    if (visualExtraction || forensicBlock) {
-      const guidance = isForensicsExplicitlyRequested
-        ? `
-[توجيه التحليل والتفكير الذكي الفائق — FATHOM REASONING DIRECTIVE]:
-1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى:
-   - حلل المعطيات البصرية والفنية للصورة بدقة هندسية وفيزيائية.
-   - إذا سأل المستخدم عن أصالة الصورة أو الذكاء الاصطناعي، اذكر الشارة الفورية: "### [AI-DETECT-BADGE: AI-Generated | 99.9%]" أو "### [AI-DETECT-BADGE: Authentic Camera Photograph | 99.4%]" مع سرد الأدلة المقنعة.
-2. بعد إغلاق وسم </think>، قدّم تحليلاً شاملاً يلبي رغبة المستخدم بأعلى درجات الاحترافية.`
-        : `
-[توجيه التحليل البصري — FATHOM VISION DIRECTIVE]:
-1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى حول ما تحتويه الصورة من عناصر وتفاصيل ونصوص مكتوبة.
-2. بعد إغلاق وسم </think>، أجب مباشرة عن سؤال واستفسار المستخدم بدقة واحترافية دون أي تقارير فحص أصالة مزيفة.`;
+    const visionGuidance = `
+[توجيه التحليل البصري والوسائط الشامل — FATHOM MULTIMODAL DIRECTIVE]:
+1. فكّر وتأمّل أولاً حصراً داخل وسم <think> باللغة العربية الفصحى:
+   - استوعب كافة الصور أو مقاطع الفيديو المرفقة أو المشار إليها في هذه المحادثة.
+   - إذا سأل المستخدم عن فيديو أو وسائط سابقة (مثل "الفيديو الأول صحيح؟" أو غيرها): استرجع موضوع الفيديو وافحص صحة كلام المتحدث علمياً ومنطقياً.
+   - إذا سأل عما إذا كانت الصورة حقيقية أم ذكاء اصطناعي (مثل "ذكاء اصطناعي ولا ايه" أو "ذكاء اصطباحي" أو "حقيقية ولا ذكاء" أو أي صيغة تحقق):
+     * افحص ملامح الوجه، ملمس البشرة والمسام، انعكاس الضوء في العيون، تفاصيل الأطراف، والخلفية.
+     * أصدر حكماً قاطعاً وواضحاً: هل الصورة فوتوغرافية حقيقية أم مولدة بالذكاء الاصطناعي مع سرد الأدلة البصرية.
+2. بعد إغلاق وسم </think>، أجب باللغة العربية الفصحى بوضوح ودقة عالية مجيباً عن كل استفسار طرحه المستخدم بشكل منظم ومرتب.
+ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية، وممنوع استخدام كود بلوك thought أو think للإجابة.`;
 
-      const combinedBlocks = [visualExtraction, forensicBlock, guidance].filter(Boolean).join('\n\n');
-      const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
-      if (lastUserIdx !== -1) {
-        const targetMsg = processedMessages[lastUserIdx];
+    const combinedBlocks = [forensicBlock, visionGuidance].filter(Boolean).join('\n\n');
+    const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
+    if (lastUserIdx !== -1) {
+      const targetMsg = processedMessages[lastUserIdx];
+      if (Array.isArray(targetMsg.content)) {
+        const textItem = targetMsg.content.find((c: any) => c.type === 'text');
+        if (textItem) {
+          textItem.text = `${textItem.text}\n\n${combinedBlocks}`;
+        } else {
+          targetMsg.content.unshift({ type: 'text', text: combinedBlocks });
+        }
+      } else {
         const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
         processedMessages[lastUserIdx] = {
           ...targetMsg,
@@ -2085,7 +2090,11 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
       // Clean out any thinking tags from past assistant history to avoid model prompt corruption
       if (m.role === 'assistant') {
-        contentStr = contentStr.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+        contentStr = contentStr
+          .replace(/<think>[\s\S]*?<\/think>/gi, '')
+          .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
+          .replace(/```(?:thought|think|thinking|reasoning)[\s\S]*?```/gi, '')
+          .trim();
       }
 
       if (!isLatestTurn && contentStr.length > 12000) {

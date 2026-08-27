@@ -947,13 +947,33 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
 
   const handleCopy = () => {
-    const cleanText = cleanMarkdownForClipboard(message.content);
-    navigator.clipboard.writeText(cleanText || message.content);
+    const cleanText = cleanMarkdownForClipboard(displayContent);
+    navigator.clipboard.writeText(cleanText || displayContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const hasReasoning = Boolean(message.reasoning && message.reasoning.trim().length > 0);
+  // Sanitize and extract any raw ```thought or ```think blocks that leaked into content
+  const { displayContent, effectiveReasoning } = useMemo(() => {
+    let raw = message.content || '';
+    let foundReasoning = message.reasoning || '';
+
+    const thoughtRegex = /```(?:thought|think|thinking|reasoning)\s*\n?([\s\S]*?)```/gi;
+    let match;
+    while ((match = thoughtRegex.exec(raw)) !== null) {
+      if (!foundReasoning) {
+        foundReasoning = match[1].trim();
+      }
+    }
+    raw = raw.replace(thoughtRegex, '').trim();
+
+    return {
+      displayContent: raw,
+      effectiveReasoning: foundReasoning
+    };
+  }, [message.content, message.reasoning]);
+
+  const hasReasoning = Boolean(effectiveReasoning && effectiveReasoning.trim().length > 0);
   const isThinking = Boolean(message.isThinking);
 
   // Universal Modular Features (نظام الخواص الشامل)
@@ -1212,7 +1232,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       <div className="w-full rounded-2xl p-3.5 sm:p-5 text-right border transition-all glass-panel text-zinc-100 overflow-hidden break-words">
         {(hasReasoning || isThinking) && (
           <ChatReasoning
-            reasoningText={message.reasoning}
+            reasoningText={effectiveReasoning}
             isThinking={isThinking}
             isStreaming={isStreaming}
             isX1={message.isX1}
@@ -1546,6 +1566,11 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   const isAdLang = ['ad', 'ads', 'advertisement', 'copy', 'marketing'].includes(lang);
                   const isCoderLang = ['coder', 'ai-coder', 'system', 'system-prompt', 'instructions'].includes(lang);
                   const isScriptLang = ['script', 'scenario', 'hook'].includes(lang);
+                  const isThoughtLang = ['thought', 'think', 'thinking', 'reasoning'].includes(lang);
+
+                  if (!inline && isThoughtLang) {
+                    return null;
+                  }
 
                   if (!inline && (isPromptLang || isAdLang || isCoderLang || isScriptLang)) {
                     const type = isAdLang ? 'ad' : isCoderLang ? 'coder' : isScriptLang ? 'script' : 'prompt';
@@ -1562,7 +1587,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 }
               }}
             >
-              {(message.content || '')
+              {(displayContent || '')
                 .replace(/\[\s*(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?BADGE:[^\]]*\]/gi, '')
                 .replace(/(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?BADGE:[^\n]*/gi, '')
                 .trim()}

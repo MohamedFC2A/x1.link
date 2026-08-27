@@ -1455,9 +1455,11 @@ const FORENSIC_KEYWORDS = [
   'شاتر', 'shutter', 'aperture', 'iso', 'lens', 'عدسة',
   'location', 'geolocation', 'خصوصية', 'privacy', 'opsec',
   'threat', 'risk', 'تهديد', 'أمان الصورة', 'image security',
-  'ai', 'ذكاء اصطناعي', 'توليد', 'مولدة', 'مفبركة', 'تزييف', 'fake',
-  'deepfake', 'c2pa', 'synthid', 'midjourney', 'dalle', 'flux',
-  'stable diffusion', 'comfyui', 'authenticity', 'أصالة', 'حقيقية أم ذكاء'
+  'ai', 'ذكاء اصطناعي', 'ذكاء اصطباحي', 'ذكاء', 'اصطناعي', 'اصطباحي',
+  'توليد', 'مولدة', 'مفبركة', 'تزييف', 'fake', 'deepfake', 'c2pa', 'synthid',
+  'midjourney', 'dalle', 'flux', 'stable diffusion', 'comfyui', 'authenticity',
+  'أصالة', 'حقيقية أم ذكاء', 'حقيقية ولا', 'حقيقي ولا', 'حقيقيه ولا',
+  'طبيعية ولا', 'طبيعي ولا', 'فوتوشوب', 'واقعية ولا', 'رسم ولا'
 ];
 
 export function isForensicAnalysisRequested(userPrompt: string): boolean {
