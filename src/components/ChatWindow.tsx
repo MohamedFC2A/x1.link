@@ -173,8 +173,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       >
         {messages.length === 0 ? (
           <div className="min-h-[55vh] flex flex-col items-center justify-center max-w-lg mx-auto py-8 text-center animate-in fade-in duration-300 px-4 relative select-none">
-            {/* Minimal Subtle Grid Aura */}
-            <div className="absolute inset-0 -z-10 bg-grid-white opacity-20 grid-radial-fade pointer-events-none rounded-3xl" />
+            {/* High-Clarity Blueprint Laser Grid Aura */}
+            <div className="absolute inset-0 -z-10 bg-grid-laser opacity-40 grid-radial-fade pointer-events-none rounded-3xl" />
             
             {/* Master Brand M Emblem with Glassmorphic Squircle */}
             <div className="mb-4 relative group cursor-default">

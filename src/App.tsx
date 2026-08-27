@@ -9,6 +9,7 @@ import { LandingPage } from './components/LandingPage';
 import { TopBar } from './components/TopBar';
 import { ChatWindow } from './components/ChatWindow';
 import { PromptInput } from './components/ui/ai-chat-input';
+import { InteractiveGridBackground } from './components/ui/InteractiveGridBackground';
 import { SidebarDrawer } from './components/SidebarDrawer';
 import { PricingPage } from './components/PricingPage';
 import { LimitsPage } from './components/LimitsPage';
@@ -679,8 +680,8 @@ export const App: React.FC = () => {
   return (
     <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-[#030306] text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-white selection:text-black relative" dir="rtl">
       
-      {/* Ambient High-Tech White Tech Grid Layer (Crisp & Futuristic) */}
-      <div className="pointer-events-none fixed inset-0 z-0 select-none bg-grid-white grid-radial-fade opacity-35" />
+      {/* Intelligent Interactive High-Tech Laser Blueprint Grid (Dynamic Cursor Tracking & Laser Crispness) */}
+      <InteractiveGridBackground />
 
       {/* Ambient Dark Luminescence for Enhanced Glassmorphism Depth */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0 select-none opacity-40">
@@ -869,8 +870,8 @@ export const App: React.FC = () => {
 
                 {/* Floating AI Chat Input with Luminous White Grid Aura */}
                 <div className="sticky bottom-0 z-30 w-full px-3 sm:px-6 pb-3 sm:pb-4 pt-1 bg-gradient-to-t from-black via-black/85 to-transparent pb-safe max-w-4xl mx-auto relative">
-                  {/* Crisp White Tech Grid Aura Under Input */}
-                  <div className="absolute inset-x-3 sm:inset-x-6 bottom-3 sm:bottom-4 top-1 -z-10 bg-grid-white opacity-40 grid-radial-fade pointer-events-none rounded-3xl" />
+                  {/* Crisp Laser Blueprint Grid Aura Under Input */}
+                  <div className="absolute inset-x-3 sm:inset-x-6 bottom-3 sm:bottom-4 top-1 -z-10 bg-grid-laser opacity-55 grid-radial-fade pointer-events-none rounded-3xl" />
                   <PromptInput
                     onSubmit={(val, meta) => handleSendMessage(val, meta)}
                     isStreaming={isStreaming}

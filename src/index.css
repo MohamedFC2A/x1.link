@@ -637,33 +637,80 @@
     border-color: transparent !important;
   }
 
-  /* High-End White Tech Blueprint Grid (Subtle & Crisp) */
-  .bg-grid-white {
-    background-size: 32px 32px;
+  /* ==========================================================================
+     Intelligent High-Tech Laser Blueprint Grid System (Razor-Sharp & Dynamic)
+     ========================================================================== */
+  .bg-grid-white,
+  .bg-grid-laser {
+    background-size: 36px 36px;
     background-image: 
-      linear-gradient(to right, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+      linear-gradient(to right, rgba(255, 255, 255, 0.085) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.085) 1px, transparent 1px);
+  }
+
+  .bg-grid-laser-bright {
+    background-size: 36px 36px;
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.24) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.24) 1px, transparent 1px);
+  }
+
+  .bg-grid-macro {
+    background-size: 144px 144px;
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+  }
+
+  /* Micro-Crosshair Plus (+) Nodes at Macro Intersections */
+  .bg-grid-crosshairs {
+    background-size: 144px 144px;
+    background-image: 
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.75) 1.5px, transparent 1.5px);
   }
 
   .bg-grid-white-subtle {
     background-size: 28px 28px;
     background-image: 
-      linear-gradient(to right, rgba(255, 255, 255, 0.038) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.038) 1px, transparent 1px);
+      linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   }
 
   .bg-grid-white-dots {
-    background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+    background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px);
     background-size: 24px 24px;
   }
 
+  .bg-radial-vignette {
+    background: radial-gradient(ellipse 90% 80% at 50% 50%, transparent 20%, rgba(3, 3, 6, 0.75) 100%);
+  }
+
+  @keyframes grid-pulse-wave {
+    0%, 100% {
+      opacity: 0.12;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.26;
+      transform: scale(1.008);
+    }
+  }
+
+  .bg-grid-wave {
+    background-size: 72px 72px;
+    background-image: 
+      linear-gradient(to right, rgba(125, 211, 252, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(167, 139, 250, 0.04) 1px, transparent 1px);
+    animation: grid-pulse-wave 8s ease-in-out infinite;
+  }
+
   .grid-radial-fade {
-    mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, #000 40%, transparent 100%);
-    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, #000 40%, transparent 100%);
+    mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, #000 45%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, #000 45%, transparent 100%);
   }
 
   .grid-bottom-fade {
-    mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
   }
 }
