@@ -21,11 +21,11 @@ export const InteractiveGridBackground: React.FC<InteractiveGridBackgroundProps>
 
   const theme: GridTheme = isX1Active
     ? 'x1'
-    : activeModel === 'deepseek-v4-flash-cyber'
+    : (activeModel === 'deepseek-v4-flash-cyber' || activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1')
     ? 'cyber'
     : activeModel === 'deepseek-v4-flash-vision-exp'
     ? 'vision'
-    : activeModel === 'deepseek-v4-flash-media'
+    : (activeModel === 'meta/muse-spark-1.2-contributor' || activeModel === 'deepseek-v4-flash-media')
     ? 'media'
     : 'fathom';
 

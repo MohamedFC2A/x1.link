@@ -938,7 +938,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             />
             <div
               dir="rtl"
-              className="absolute bottom-full right-2 mb-3 w-[315px] sm:w-[345px] glass-popover rounded-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none"
+              className="absolute bottom-full right-2 mb-3 w-[325px] sm:w-[355px] glass-popover rounded-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="px-2.5 py-1.5 border-b border-white/[0.08] mb-2">
@@ -961,11 +961,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       : "hover:bg-white/[0.04] text-zinc-300 border-transparent"
                   )}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 w-full">
                     <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
                       <Zap className="w-4 h-4 text-zinc-100 fill-zinc-100/40 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" />
                     </div>
-                    <div className="min-w-0 text-right">
+                    <div className="min-w-0 flex-1 text-right">
                       <div className="font-bold text-xs text-white">Fathom 1.1</div>
                       <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5">
                         توليد لغوي حر وتحليل فكري متقدم
@@ -989,14 +989,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       : "hover:bg-white/[0.04] text-zinc-300 border-transparent"
                   )}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 w-full">
                     <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
                       <ShieldCheck className="w-4 h-4 text-cyan-400" />
                     </div>
-                    <div className="min-w-0 text-right">
-                      <div className="font-bold text-xs text-white flex items-center gap-1.5 flex-nowrap">
-                        <span className="shrink-0">Fathom Cyber 2.0</span>
-                        <span className="text-[9.5px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm shrink-0">
+                    <div className="min-w-0 flex-1 text-right">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="font-bold text-xs text-white shrink-0">Fathom Cyber 2.0</span>
+                        <span className="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm shrink-0">
                           New
                         </span>
                       </div>
@@ -1022,19 +1022,21 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       : "hover:bg-white/[0.04] text-zinc-300 border-transparent"
                   )}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 w-full">
                     <div className="size-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
                       <ShieldCheck className="w-4 h-4 text-cyan-400" />
                     </div>
-                    <div className="min-w-0 text-right">
-                      <div className="font-bold text-xs text-white flex items-center gap-1.5 flex-nowrap">
-                        <span className="shrink-0">Fathom Cyber 2.1</span>
-                        <span className="text-[9.5px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm shrink-0">
-                          New
-                        </span>
-                        <span className="text-[9.5px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm shrink-0">
-                          Super Thinking
-                        </span>
+                    <div className="min-w-0 flex-1 text-right">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="font-bold text-xs text-white shrink-0">Fathom Cyber 2.1</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.14] text-zinc-200 shadow-sm">
+                            New
+                          </span>
+                          <span className="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-cyan-500/15 backdrop-blur-md border border-cyan-400/25 text-cyan-200 shadow-sm">
+                            Super Thinking
+                          </span>
+                        </div>
                       </div>
                       <div className="text-[11px] text-zinc-300 font-normal leading-relaxed mt-0.5">
                         استدلال اختطافي فائق واكتشاف علمي مؤتمت مع هندسة سيبرانية سيادية متقدمة
@@ -1684,11 +1686,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     : isDeepSearchEffective
                     ? "ابحث في الويب مباشرة مع Fathom Search..."
                     : isCyber21Mode
-                    ? "اطرح فرضية أو مسألة علمية أو افحص أمنياً مع Fathom Cyber 2.1..."
+                    ? "اطرح فرضية علمية أو افحص أمنياً..."
                     : isCyber20Mode || isCyberMode
-                    ? "أدخل رابط الهدف أو اسأل Fathom Cyber 2.0..."
+                    ? "أدخل رابط الهدف أو اسأل أمنياً..."
                     : isVisionMode || hasAttachments
-                    ? "اسأل Fathom Cam عن الصورة المرفقة..."
+                    ? "اسأل Fathom Cam أو أرفق صورة..."
                     : isX1Active
                     ? "اسأل matany.one في أي شيء..."
                     : (placeholder || "اسأل Fathom 1.1 في أي شيء...")

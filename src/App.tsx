@@ -1100,9 +1100,9 @@ export const App: React.FC = () => {
                       onSelectModel={handleSelectModel}
                       placeholder={
                         activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1'
-                          ? "اطرح فرضية، معضلة علمية، أو افحص أمنياً مع Fathom Cyber 2.1 Pro..."
+                          ? "اطرح فرضية علمية أو افحص أمنياً..."
                           : activeModel === 'deepseek-v4-flash-cyber'
-                          ? "اسأل Fathom Cyber 2.0 في أي شيء..."
+                          ? "أدخل رابط الهدف أو اسأل أمنياً..."
                           : activeModel === 'deepseek-v4-flash-vision-exp'
                           ? "اسأل Fathom Cam أو أرفق صور..."
                           : isX1Active
