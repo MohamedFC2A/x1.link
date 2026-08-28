@@ -499,12 +499,6 @@ export default function ChatReasoning({
                   </span>
                 </span>
               )}
-
-              {/* Sovereign Aura State Indicator */}
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full select-none text-[10px] font-sans font-bold tracking-wide border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]">
-                <Sparkles size={11} className="text-cyan-400 animate-pulse" />
-                <span>حالة الهالة السيادية</span>
-              </span>
             </div>
           </div>
         </AccordionTrigger>

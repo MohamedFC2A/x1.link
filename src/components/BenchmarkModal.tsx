@@ -109,23 +109,13 @@ export const BenchmarkModal: React.FC<BenchmarkModalProps> = ({
         
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/40">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-emerald-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
-              <Award className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-bold text-zinc-100">
-                  لوحة المقارنة الشاملة للذكاء الاصطناعي (Artificial Analysis Matrix)
-                </h2>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  معتمد 2026
-                </span>
-              </div>
-              <p className="text-xs text-zinc-400 mt-0.5">
-                مقارنة حقيقية وموثقة وفق أعلى المعايير القياسية العالمية لكبرى النماذج المتقدمة
-              </p>
-            </div>
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-zinc-100">
+              لوحة المقارنة الشاملة للذكاء الاصطناعي (Artificial Analysis Matrix)
+            </h2>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              مقارنة حقيقية وموثقة وفق أعلى المعايير القياسية العالمية لكبرى النماذج المتقدمة
+            </p>
           </div>
 
           <button
@@ -180,10 +170,7 @@ export const BenchmarkModal: React.FC<BenchmarkModalProps> = ({
                       }`}
                     >
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="flex items-center gap-1">
-                          {m.name}
-                          {m.isCyber && <span className="text-cyan-400 text-[9px] px-1 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 font-mono">PRO</span>}
-                        </span>
+                        <span>{m.name}</span>
                         <span className="text-[10px] font-normal text-zinc-500">{m.provider}</span>
                       </div>
                     </th>

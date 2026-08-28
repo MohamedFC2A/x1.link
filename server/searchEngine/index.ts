@@ -107,12 +107,12 @@ export async function executeAutonomousSearch(
 
   // 4. Enrich Top Results with Deep Page Content (Articles, Scores, Statistics)
   let finalResults = multiSourceResult.results;
-  if (finalResults.length > 0) {
+  if (finalResults.length > 0 && options?.explicitDeepSearch) {
     try {
       finalResults = await enrichSearchResultsWithDeepContent(
         finalResults,
-        3,
-        2800
+        2,
+        1500
       );
     } catch {
       // Keep multiSourceResult.results on deep fetch error

@@ -42,7 +42,7 @@ export async function runPromptAugmentationTests(harness: TestHarness) {
       expect(block).toContain('LIVE WEB INTELLIGENCE');
       expect(block).toContain('المصدر رقم (1): تقرير أسعار العملات في البنك المركزي المصري');
       expect(block).toContain('https://cbe.org.eg/rates');
-      expect(block).toContain('⭐⭐⭐⭐⭐');
+      expect(block).toContain('[5/5]');
       expect(block).toContain('توجيه البيانات الحية والأسعار');
     });
 

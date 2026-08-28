@@ -1208,39 +1208,6 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       }
     }
 
-    // 4. Advanced Paragraph-level Decomposition for Reasoning vs Clean Content
-    const paragraphs = raw.split(/\n{2,}/);
-    const reasoningChunks: string[] = [];
-    const contentChunks: string[] = [];
-    let foundDefinitiveStart = false;
-
-    for (const p of paragraphs) {
-      const trimmed = p.trim();
-      if (!trimmed) continue;
-
-      const isSourceParagraph = /^(?:[•*–—\-]\s*)?(?:المصدر\s*\[\d+\]|المصدر\s*[:\d]|المقتطف\s*[:]|المصدر\s*المعتمد|Source\s*\[\d+\]|Source\s*:)/i.test(trimmed) || /•\s*المصدر\s*\[\d+\]/i.test(trimmed);
-      const hasReasoningMarkers = isSourceParagraph || /(?:نفكر|نبحث\s*الذاكرة|نفحص\s*المعطيات|نحتاج\s*حل|نتأكد\s*من|لنفكر\s*:|\bلا،\s*في|\bلا\.\s*|\bليس\s*نفس|\bغير\s*آسيا|\bخارج\s*آسيا|\؟\s*لا[،.]|\؟\s*غير|\؟\s*ليس|\؟\s*كروي|لكن\s*السؤال|هل\s*هناك|ربما|الدولة\s*على\s*الأرجح|السؤال\s*يقول|لعل\s*تتويج|قد\s*يكون|non-spherical|search\s*memory|not\s*crowned|vars:|possibilities:|\[S\d|That's\s*comprehensive|table\s*cells\s*must|Let's\s*final|Need\s*maybe)/i.test(trimmed);
-      const hasMultipleQuestions = (trimmed.match(/\؟/g) || []).length >= 2;
-      const isEnglishMonologue = (trimmed.match(/[a-zA-Z]/g)?.length || 0) > (trimmed.match(/[\u0621-\u064A]/g)?.length || 0) * 1.5 && (trimmed.match(/[a-zA-Z]/g)?.length || 0) > 25;
-
-      if (hasReasoningMarkers || hasMultipleQuestions || isEnglishMonologue) {
-        reasoningChunks.push(trimmed);
-      } else {
-        contentChunks.push(trimmed);
-      }
-    }
-
-    if (reasoningChunks.length > 0) {
-      const extractedReasoning = reasoningChunks.join('\n\n');
-      foundReasoning = foundReasoning ? `${foundReasoning}\n\n${extractedReasoning}` : extractedReasoning;
-    }
-
-    if (contentChunks.length > 0) {
-      raw = contentChunks.join('\n\n');
-    } else if (reasoningChunks.length > 0) {
-      raw = 'تم استكمال الاستدلال المنطقي وتدقيق كافة المعطيات والتقاطعات التاريخية والفيزيائية للسيناريو بنجاح.';
-    }
-
     return {
       displayContent: raw,
       effectiveReasoning: foundReasoning

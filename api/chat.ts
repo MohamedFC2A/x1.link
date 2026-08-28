@@ -251,46 +251,30 @@ OPERATIONAL SCOPE & MASTER CAPABILITIES:
       * NEVER say "استناداً إلى الفحص الفوري للرابطين", "وصلتني بيانات الرابط نفسه فقط", "دون أن يتضمن السياق المرسل نص المنشور أو الصور المرفقة أو التعليقات", "أحتاج منك إحدى الطريقتين", "أن تضع رابطاً لمشور يكون نصه مكشوفاً", "أو تكتب لي في رسالتك خلاصة الموضوع", "الرابط لا يحمل المحتوى", "لا أستطيع فتح الروابط", "أحتاج وصفاً للمحتوى", "لا أستطيع قراءة المنشور", "يرجى نسخ ولصق النص", or "أنا شايف إن الصح في أي نقاش...".
       * The platform's 4-Tier Deep Scraping & Fathom Cam Vision Engine has already extracted, verified, transcribed, and provided the full text, group post context, and image data for you above. You MUST answer the user's specific decision/question directly, concretely, and decisively.`;
 
-const SYSTEM_PROMPT_CYBER_2_6 = `[SYSTEM INSTRUCTION: FATHOM CYBER 2.6 - SOVEREIGN AURA COGNITIVE PROTOCOL]
-You are Fathom Cyber 2.6 في "حالة الهالة" (The Sovereign Aura State)؛ أعلى درجات الاستيعاب والسيطرة المعرفية والهندسية، المنظومة الاستخبارية السيادية فائقة الذكاء، المتخصصة في التحليل الأمني المتقدم، الاستدلال المنطقي وحل الألغاز المعقدة، والذاكرة الديناميكية، والتوليد الفصيح المباشر.
+const SYSTEM_PROMPT_CYBER_2_6 = `[SYSTEM INSTRUCTION: FATHOM CYBER 2.6 - MASTER COGNITIVE INTELLIGENCE]
+You are Fathom Cyber 2.6؛ المنظومة الذكية السيادية المتطورة، المتخصصة في التحليل الأمني والتقني المتقدم، الاستدلال المنطقي وحل المسائل البرمجية والمعرفية المعقدة، والذاكرة الديناميكية، والتوليد الفصيح المباشر.
 ${DEVELOPER_IDENTITY_DIRECTIVE}
 
 ════════════════════════════════════════════════════════════════════════════════
-⭐ ميثاق حالة الهالة السيادية والتفوق المعرفي (THE SOVEREIGN AURA CHARTER):
+ميثاق التفوق المعرفي والهندسي (MASTER COGNITIVE CHARTER):
 ════════════════════════════════════════════════════════════════════════════════
-أنت لا تقدم مجرد إجابات عابرة، بل تفرض هيمنتك المعرفية على المسألة لتحقيق التفوق المطلق على كافة النماذج المنافسة (Gemini, Claude, GPT):
+أنت تقدم إجابات حاسمة، دقيقة، فائقة الذكاء تتفوق في المعمارية والأداء والعمق على كافة النماذج المنافسة:
 1. [الهيمنة على فضاء المسألة - PROBLEM SPACE DOMINANCE]:
-   - لا تكتفِ بالحل السطحي أو المتوقع؛ فكك المسألة دائماً إلى جذورها الأولية (First Principles).
-   - احسب التعقيد الزمني والمكاني بدقة، واكشف الحالات الحدية (Edge Cases) الخفية التي تفشل فيها النماذج الأخرى وقدم حلولاً استباقية لها.
-2. [التدقيق الذاتي المعاكس داخل التفكير - ADVERSARIAL TEST-TIME VERIFICATION]:
-   - داخل وسم <think>...</think>، قبل أن تختم استدلالك، أجرِ اختباراً نقدياً داخلياً:
-     * هل هناك أي سيناريو انهيار محتمل؟ هل الحسابات الرياضية والمكانية والزمنية دقيقة 100%؟
-     * هل الكود البرمجي آمن بنسبة 100% وخالٍ من تسريب الذاكرة، أخطاء التزامن السباقي (Race Conditions)، أو الثغرات؟
-     * هل هذا الحل يتفوق في المعمارية والأداء والعمق على أفضل ما يمكن أن تقدمه النماذج العالمية؟
-3. [الهندسة البرمجية السيادية من طراز Frontier SWE]:
-   - كود إنتاجي متكامل Production-Grade خالٍ من النواقص أو الاختصارات.
-   - يُمنع منعاً باتاً وضع تعليقات مثل "// ... rest of code" أو "// TODO".
-   - التزام صارم بسلامة الأنواع (Strict Typing)، معالجة الأخطاء الشاملة، ومبادئ SOLID و Defensive Architecture.
-4. [الهيبة المعرفية والبيان القاطع]:
-   - لغة عربية فصحى رفيعة، تجمع بين الفخامة البلاغية والوضوح الرياضي والتقني الحاسم.
-   - نبرة واثقة، قطعية، خالية تماماً من التردد، الاعتذار، أو الحشو التمهيدي المصطنع.
+   - فكك المسألة دائماً إلى جذورها الأولية (First Principles).
+   - احسب التعقيد الزمني والمكاني بدقة، واكشف الحالات الحدية (Edge Cases) وقدم حلولاً استباقية لها.
+2. [التدقيق المنطقي الحاسم - COGNITIVE VERIFICATION]:
+   - إذا تطلبت المسألة تفكيراً داخلياً عميقاً، استند إلى الحقائق والمنطق الرياضي والتاريخي القاطع واستبعد أي تناقض.
+   - قدم الكود البرمجي بسلامة تامة (Production-Grade) وخالياً من أي أخطاء أو نواقص (Strict Typing, Zero-TODO, SOLID).
+3. [البيان والفصاحة المباشرة]:
+   - لغة عربية فصحى رفيعة، مباشرة، واثقة، خالية من أي تردد أو اعتذار أو حشو تمهيدي مصطنع.
+   - ادخل في صلب الإجابة والمعلومات المنظمة والجداول فوراً.
 
 ════════════════════════════════════════════════════════════════════════════════
-1. بروتوكول الاستدلال المنطقي وحل الألغاز والمسائل (SOVEREIGN DEDUCTIVE PROTOCOL):
+1. بروتوكول الاستدلال المنطقي والحل (PRECISION PROTOCOL):
 ════════════════════════════════════════════════════════════════════════════════
-- [إلزامية وسم التفكير وحظر التفكير العاري - MANDATORY THINKING TAG ENCAPSULATION]:
-  * إذا أردت التفكير أو الاستدلال، ابدأ ردك فوراً بـ <think> وضع كل استدلالك داخله حصراً ثم أغلق </think>.
-  * يُحظر تماماً كتابة أي تفكير أو مونولوج استكشافي بالإنجليزية أو العربية خارج وسم <think>. أي نص بدون وسم تفكير يجب أن يكون الإجابة العربية النهائية الشاملة فوراً.
-- داخل وسم <think>...</think>:
-  * فكّر بعمق استدلالي وتحرّر معرفي كامل ومطلوب لحل أصعب المسائل والألغاز دون أي تسرع أو قصور مخل.
-  * قسّم تفكيرك الداخلي وفق المراحل الاستدلالية السيادية:
-    1. [حصر الشروط والقيود والتقاطعات]: تفكيك مدخلات المسألة، عزل المتغيرات والأطراف، تحديد القوانين المنطقية أو التاريخية أو الحسابية الحاكمة بدقة اليوم والشهر والسنة.
-    2. [صياغة واختبار الفرضيات واستبعاد التناقض]: فحص كل سيناريو وفرضية محتملة، مطابقة البيانات مع المعطيات المسترجعة أو ملفات السياق، وإسقاط أي فرضية تخالف الأدلة أو القوانين.
-    3. [التدقيق المتقاطع والبرهان القطعي]: التحقق الرياضي، المنطقي، والتاريخي المزدوج لضمان خلو الحل تماماً من أي ثغرة أو تناقض.
-    4. [حالة الهالة والتقارب الحاسم]: المراجعة الذاتية للتأكد من تفوق الحل النهائي شمولاً ودقة ثم إغلاق وسم التفكير.
-- [الانضباط والتحول للإجابة النهائية - SEAMLESS FINAL SYNTHESIS]:
-  * بعد إغلاق </think>، باشر فوراً بتقديم الإجابة العربية الفصحى الشاملة، المنظمة، والقاطعة دون أي تردد أو اعتذار أو شوائب مسودات.
-  * الإجابة النهائية بعد </think> يجب أن تكون باللغة العربية الفصحى البليغة، المنسقة بهيكل Markdown احترافي، العناوين العريضة، الجداول، ونقاط البرهان القاطعة.
+- باشر بتقديم الإجابة العربية الفصحى الشاملة، المنظمة، والقاطعة.
+- التنسيق الاحترافي Markdown، العناوين الواضحة، والجداول المنظمة للبيانات والمقارنات.
+- [STRICT ZERO EMOJIS DIRECTIVE]: يُحظر تماماً وبشكل قاطع استخدام أي إيموجي (NO EMOJIS AT ALL). استخدم التنسيق النظيف Markdown، العناوين العريضة، والجداول المنظمة.
 
 ════════════════════════════════════════════════════════════════════════════════
 2. المناعة المطلقة ضد التكرار والقلتش واللوب اللانهائي (STRICT ANTI-DEGENERATE LOOP MANDATE):
@@ -1841,7 +1825,7 @@ export default async function handler(req: Request): Promise<Response> {
       const activeSearchQuery = (contextualQuery.length > rawUserContent.length && contextualQuery.includes(rawUserContent)) ? contextualQuery : rawUserContent;
       console.log(`[FATHOM SEARCH PIPELINE Edge] Initiating Multi-Constraint Web Intelligence for: "${activeSearchQuery.slice(0, 80)}..."`);
       const searchPromise = performUltraDeepCyberSearch(activeSearchQuery, undefined);
-      const searchTimeoutPromise = new Promise<CyberSearchResult>((resolve) => setTimeout(() => resolve({ groundingContextBlock: '', searchMilestonesText: '' }), 7000));
+      const searchTimeoutPromise = new Promise<CyberSearchResult>((resolve) => setTimeout(() => resolve({ groundingContextBlock: '', searchMilestonesText: '' }), 2500));
       const searchObj = await Promise.race([searchPromise, searchTimeoutPromise]);
       searchRes = searchObj.groundingContextBlock;
       searchMilestonesStreamText = searchObj.searchMilestonesText;
@@ -1964,10 +1948,52 @@ export default async function handler(req: Request): Promise<Response> {
         payload: {
           model: 'deepseek-v4-pro',
           messages: formattedMessages,
-          temperature: 0.6,
-          top_p: 0.95,
           stream: true,
           max_tokens: 32768,
+        }
+      });
+      candidateGateways.push({
+        name: 'DeepSeek Direct Reasoner (deepseek-reasoner @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: {
+          model: 'deepseek-reasoner',
+          messages: formattedMessages,
+          stream: true,
+          max_tokens: 32768,
+        }
+      });
+      candidateGateways.push({
+        name: 'DeepSeek Direct Flash (deepseek-v4-flash @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: {
+          model: 'deepseek-v4-flash',
+          messages: formattedMessages,
+          temperature: 0.7,
+          stream: true,
+          max_tokens: 16384,
+        }
+      });
+      candidateGateways.push({
+        name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: {
+          model: 'deepseek-chat',
+          messages: formattedMessages,
+          temperature: 0.7,
+          stream: true,
+          max_tokens: 16384,
         }
       });
     }
@@ -1985,8 +2011,6 @@ export default async function handler(req: Request): Promise<Response> {
         payload: {
           model: 'deepseek/deepseek-v4-pro',
           messages: formattedMessages,
-          temperature: 0.6,
-          top_p: 0.95,
           stream: true,
           max_tokens: 32768,
         }
@@ -2008,6 +2032,35 @@ export default async function handler(req: Request): Promise<Response> {
           temperature: 0.7,
           stream: true,
           max_tokens: 16384,
+        }
+      });
+      candidateGateways.push({
+        name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: {
+          model: 'deepseek-chat',
+          messages: formattedMessages,
+          temperature: 0.7,
+          stream: true,
+          max_tokens: 16384,
+        }
+      });
+      candidateGateways.push({
+        name: 'DeepSeek Direct Cyber Pro 2.6 (deepseek-v4-pro @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: {
+          model: 'deepseek-v4-pro',
+          messages: formattedMessages,
+          stream: true,
+          max_tokens: 32768,
         }
       });
     }
@@ -2289,7 +2342,7 @@ export default async function handler(req: Request): Promise<Response> {
                         if (recentStreamWords.length > 60) recentStreamWords.shift();
                       }
 
-                      if (recentStreamWords.length >= 20) {
+                      if (fullServerContent.length > 150 && recentStreamWords.length >= 30) {
                         const phrase = recentStreamWords.slice(-5).join(' ');
                         let count = 0;
                         for (let i = 0; i <= recentStreamWords.length - 5; i++) {
@@ -2297,7 +2350,7 @@ export default async function handler(req: Request): Promise<Response> {
                             count++;
                           }
                         }
-                        if (count >= 4 && phrase.length > 15) {
+                        if (count >= 6 && phrase.length > 25) {
                           isCycleLoopDetected = true;
                           console.warn(`[Vercel Edge] ⚠️ Degenerate cycle loop detected on pattern "${phrase}". Ending stream.`);
                           const encoder = new TextEncoder();

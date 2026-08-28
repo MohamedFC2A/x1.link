@@ -294,60 +294,9 @@ export async function streamChatCompletion({
           accumulatedContent = preThink ? `${preThink}\n\n${postThink}` : postThink;
         }
       } else {
-        // Check for orphan closing think tag (e.g. model emitted reasoning and closed with </think>)
-        const orphanCloseIdx = lowerRaw.indexOf('</think>');
-        const orphanThoughtCloseIdx = orphanCloseIdx !== -1 ? orphanCloseIdx : lowerRaw.indexOf('</thought>');
-        if (orphanThoughtCloseIdx !== -1) {
-          const closeTagLength = lowerRaw.startsWith('</thought>', orphanThoughtCloseIdx) ? 10 : 8;
-          accumulatedReasoning = accumulatedRaw.substring(0, orphanThoughtCloseIdx).trim();
-          accumulatedContent = accumulatedRaw.substring(orphanThoughtCloseIdx + closeTagLength).trimStart();
-          isThinking = false;
-        } else {
-          // Check for implicit reasoning preamble (e.g., [S0: DISSECT], [DISSECT], vars:, possibilities:, Thinking Process:, Let's investigate, Could be, etc.)
-          const implicitReasoningRegex = /^\s*(?:\[(?:S\d|DISSECT|PRUNE|VERIFY|LOCK|CONVERGE|STEP\s*\d|PHASE\s*\d)[^\]]*\]|vars:|possibilities:|thinking\s*process:|let's\s*(?:think|analyze|parse|break\s*down|re-parse|investigate|check|rethink|search)|could\s*be|maybe\s*(?:coronation|country|the|it|a)|what\s*major|in\s*1896|the\s*user\s*is\s*asking|scenario\s*constraints:)/i;
-          const arabicImplicitReasoningRegex = /^\s*(?:نفكر\s*(?:في\s*حل)?|نبحث\s*(?:في\s*)?الذاكرة|دعنا\s*(?:نفكر|نبحث|نتحقق|نسترجع|نراجع)|لنحلل\s*المعطيات|خطوة\s*بخطوة\s*:|هل\s*هناك\s*حدث|السؤال\s*(?:يقول|يذكر|يتطلب)|فلنراجع|فلنتحقق|نستعرض\s*الفرضيات|السيناريو\s*يذكر)/i;
-          const hasArabicGuessingLoop = /(?:نبحث\s*الذاكرة|هل\s*هناك\s*حدث|الدولة\s*على\s*الأرجح|السيناريو\s*يذكر|ربما\s*الدولة|أيضاً:\s*انهيار|السؤال\s*يقول|لا\s*تطابق|غير\s*ذلك\.)/i.test(accumulatedRaw);
-          
-          const englishCharCount = (accumulatedRaw.match(/[a-zA-Z]/g)?.length || 0);
-          const arabicCharCount = (accumulatedRaw.match(/[\u0621-\u064A]/g)?.length || 0);
-          const hasReasoningMonologueMarkers = /(?:let's|could\s*be|maybe|search\s*memory|not\s*crowned|tsunami|earthquake|eruption|volcano|typhoon|krakatoa|\?\s*no\b|\?\s*maybe\b|vars:|possibilities:)/i.test(accumulatedRaw);
-          const isEnglishReasoningMonologue = englishCharCount > (arabicCharCount * 1.5) && (hasReasoningMonologueMarkers || englishCharCount > 60);
-
-          if (implicitReasoningRegex.test(accumulatedRaw) || isEnglishReasoningMonologue || arabicImplicitReasoningRegex.test(accumulatedRaw) || hasArabicGuessingLoop) {
-            // Find transition to definitive response or after [S3: CONVERGE]
-            const arabicFinalMatch = accumulatedRaw.search(/(?:\n\n|\n)(?:###?\s+|[*_]{2}(?:التقرير|الحل|النتيجة|الإجابة|الاستنتاج|الخلاصة|الرد)[*_]{2}|1\.\s+[*_]{2}|1\.\s+تتويج|1\.\s+آخر|النتيجة\s*النهائية:)/i);
-            const arabicStandardMatch = isEnglishReasoningMonologue ? accumulatedRaw.search(/\n\n(?=[\u0621-\u064A])|\n(?=[#*•-]*\s*[\u0621-\u064A])|(?<=[\n\r])(?=[\u0621-\u064A])/) : -1;
-            const convergeMatch = accumulatedRaw.search(/\[(?:S3:\s*CONVERGE|CONVERGE)\][^\n]*\n/i);
-            
-            let transitionIdx = -1;
-            if (arabicFinalMatch !== -1) {
-              transitionIdx = arabicFinalMatch;
-            } else if (arabicStandardMatch !== -1) {
-              transitionIdx = arabicStandardMatch;
-            } else if (convergeMatch !== -1) {
-              const afterConverge = accumulatedRaw.indexOf('\n', convergeMatch);
-              if (afterConverge !== -1 && afterConverge < accumulatedRaw.length - 1) {
-                transitionIdx = afterConverge + 1;
-              }
-            }
-
-            if (transitionIdx === -1) {
-              // Still inside implicit reasoning block
-              accumulatedReasoning = accumulatedRaw.trim();
-              accumulatedContent = '';
-              isThinking = true;
-            } else {
-              // Completed reasoning, started actual response
-              accumulatedReasoning = accumulatedRaw.substring(0, transitionIdx).trim();
-              accumulatedContent = accumulatedRaw.substring(transitionIdx).trimStart();
-              isThinking = false;
-            }
-          } else {
-            // Standard direct content stream
-            accumulatedContent = accumulatedRaw;
-            isThinking = false;
-          }
-        }
+        // Direct content stream (no think tags in raw content)
+        accumulatedContent = accumulatedRaw;
+        isThinking = false;
       }
 
       onChunk({
