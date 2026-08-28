@@ -9,9 +9,6 @@
  *   5. Seamless Multimodal AI Injection & Direct Vision Model Routing
  */
 
-import { execSync } from 'child_process';
-import fs from 'fs';
-import path from 'path';
 import type { TimestampedBlock, YouTubeTranscriptResult } from './youtubeTranscript';
 
 export interface VideoKeyframe {
@@ -97,64 +94,17 @@ export function extractYouTubeKeyframes(videoId: string, durationSeconds?: numbe
 }
 
 /**
- * Extracts high-resolution keyframe snapshots across the video duration using ffmpeg
+ * Extracts high-resolution keyframe snapshots across the video duration
+ * (Edge & Cloud compatible: relies on direct web stream covers and dynamic transition frames)
  */
 export async function extractVideoKeyframesWithFfmpeg(
-  playUrl: string,
-  durationSeconds?: number,
-  maxFrames = 4
+  _playUrl: string,
+  _durationSeconds?: number,
+  _maxFrames = 4
 ): Promise<VideoKeyframe[]> {
-  if (!playUrl || !playUrl.startsWith('http')) return [];
-  const duration = durationSeconds && durationSeconds > 0 ? durationSeconds : 30;
-
-  const tmpDir = path.join(process.cwd(), 'scratch', 'extracted_frames');
-  if (!fs.existsSync(tmpDir)) {
-    try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {}
-  }
-
-  const timestamps: number[] = [];
-  if (duration <= 8) {
-    timestamps.push(1, Math.round(duration * 0.5));
-  } else {
-    const percentages = [0.10, 0.35, 0.65, 0.88];
-    percentages.slice(0, maxFrames).forEach(p => {
-      const ts = Math.max(1, Math.min(Math.round(duration * p), Math.round(duration - 1)));
-      if (!timestamps.includes(ts)) timestamps.push(ts);
-    });
-  }
-
-  const frames: VideoKeyframe[] = [];
-  const sessionId = Math.random().toString(36).slice(2, 8);
-
-  for (let i = 0; i < timestamps.length; i++) {
-    const ts = timestamps[i];
-    const outPath = path.join(tmpDir, `frame_${sessionId}_${i}.jpg`);
-    try {
-      execSync(`ffmpeg -ss ${ts} -i "${playUrl}" -vframes 1 -q:v 2 -y "${outPath}"`, {
-        stdio: 'ignore',
-        timeout: 9000
-      });
-
-      if (fs.existsSync(outPath)) {
-        const buf = fs.readFileSync(outPath);
-        try { fs.unlinkSync(outPath); } catch {}
-
-        if (buf.length > 500) {
-          const b64 = `data:image/jpeg;base64,${buf.toString('base64')}`;
-          frames.push({
-            label: `إطار زمني عند التوقيت [${formatSecs(ts)}] (~${Math.round((ts / duration) * 100)}% من المقطع)`,
-            url: b64,
-            timestampSec: ts,
-            timestampFormatted: formatSecs(ts),
-          });
-        }
-      }
-    } catch (e: any) {
-      console.warn(`[VideoVisionEngine] ffmpeg frame extraction at ${ts}s warning:`, e?.message);
-    }
-  }
-
-  return frames;
+  // Edge runtime does not have native ffmpeg binaries or local disk scratch storage.
+  // The system relies on native provider covers, dynamic webp frames, and multi-resolution snapshots.
+  return [];
 }
 
 export async function extractTikTokKeyframes(
