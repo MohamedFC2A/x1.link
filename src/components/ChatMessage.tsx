@@ -1249,6 +1249,33 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       }
     }
 
+    // 4. Extract and strip leaked search citations / snippet dumps
+    const searchSnippetRegex = /(?:-?\s*الاستعلام\s*الشبكي|•\s*المصدر\s*\[\d+\])[\s\S]*?(?=\n\n(?!(?:•\s*المصدر|\s*المقتطف))|\n[#*•-]*\s*[\u0621-\u064A]|$)/gi;
+    let searchSnippetMatch;
+    while ((searchSnippetMatch = searchSnippetRegex.exec(raw)) !== null) {
+      const extracted = searchSnippetMatch[0].trim();
+      if (extracted) {
+        foundReasoning = foundReasoning ? `${foundReasoning}\n\n${extracted}` : extracted;
+      }
+    }
+    raw = raw.replace(searchSnippetRegex, '').trim();
+
+    // 5. Extract and strip leaked English thinking / chain-of-thought monologues
+    const englishCoTRegex = /(?:We need answer|Need obey strict|Need analyze|Need understand|User asks:|Let's restate|Need solve puzzle|Let's think|Case 1:|Case 2:)[\s\S]*?(?=\n\n(?:[-#*•]|\u0627\u0644\u0633\u0624\u0627\u0644|\||[\u0621-\u064A])|$)/gi;
+    let englishCoTMatch;
+    while ((englishCoTMatch = englishCoTRegex.exec(raw)) !== null) {
+      const extracted = englishCoTMatch[0].trim();
+      if (extracted) {
+        foundReasoning = foundReasoning ? `${foundReasoning}\n\n${extracted}` : extracted;
+      }
+    }
+    raw = raw.replace(englishCoTRegex, '').trim();
+
+    // 6. If raw content is identical or a subset of reasoning (e.g. from prior fallback leaks in storage), clear it
+    if (raw.trim() && foundReasoning.trim() && (raw.trim() === foundReasoning.trim() || foundReasoning.includes(raw.trim()))) {
+      raw = '';
+    }
+
     return {
       displayContent: raw,
       effectiveReasoning: foundReasoning
@@ -1662,6 +1689,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           <div className="py-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-sans select-none animate-in fade-in duration-200">
             <span className="size-1.5 rounded-full bg-amber-400" />
             <span>تم إيقاف النموذج بواسطتك</span>
+          </div>
+        ) : !displayContent.trim() && hasReasoning && !isStreaming ? (
+          <div className="py-2.5 px-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-sans select-none">
+            <span>تم استكمال مرحلة التفكير أعلاه، ولكن لم يصدر نص إجابة نهائي من النموذج. يرجى إعادة المحاولة.</span>
           </div>
         ) : !displayContent.trim() && !hasReasoning && !isStreaming ? (
           <div className="py-2.5 px-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs font-sans select-none">

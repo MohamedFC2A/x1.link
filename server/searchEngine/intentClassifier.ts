@@ -167,6 +167,11 @@ const PURE_CONVERSATIONAL_PATTERNS = [
   /^(من\s*انت|عرف\s*عن\s*نفسك|who\s+are\s+you|what\s+is\s+your\s+name)\b/i
 ];
 
+const PURE_REASONING_AND_LOGIC_PATTERNS = [
+  /(إذا\s*سافر|لو\s*سافر|افترض\s*أن|لغز|أحجية|احجية|حزورة|مسألة\s*منطقية|تجربة\s*فكرية|ساعة\s*بيولوجية|مفارقة\s*(?:التوأم|الجد)|النسبية\s*الخاصة\s*(?:إذا|لو|احسب)|القيود\s*الصارمة|خطوة\s*التفكير|جدول\s*Markdown|فكم\s*ساعة\s*ستمر|كم\s*ساعة\s*ستمر|سرعة\s*الضوء\s*لمدة)/i,
+  /\b(logic\s+puzzle|riddle|thought\s+experiment|twin\s+paradox|special\s+relativity\s+(?:if|calculate)|hypothetical\s+scenario|strict\s+constraints)\b/i
+];
+
 /**
  * Classifies user query into structured intent, computes confidence score,
  * evaluates search complexity & knowledge domain, and makes the autonomous search trigger decision.
@@ -214,6 +219,26 @@ export function classifyQueryIntent(
       knowledgeDomain: 'GENERAL_FACT',
       entities,
       reason: 'Casual conversation, greeting, math, or creative roleplay.',
+      temporalBias: false,
+      extractedQuery: cleanCore || query
+    };
+  }
+
+  // 2.b. Pure Deductive Reasoning, Logic Puzzle, or Theoretical Physics Check
+  const isPureReasoning = PURE_REASONING_AND_LOGIC_PATTERNS.some(p => p.test(normalized) || p.test(query));
+  const hasLiveNewsOrMarketRequest = /(سعر|اسعار|اخبار|اخر\s*اخبار|اليوم|الان|عاجل|2026|weather|price|breaking\s+news)/i.test(normalized);
+
+  if (isPureReasoning && !hasLiveNewsOrMarketRequest) {
+    return {
+      intent: 'GENERAL_CONVERSATION',
+      confidence: 0.95,
+      should_search: false,
+      search_type: 'GENERAL_CONVERSATION',
+      priority: 'background',
+      complexityLevel: 'NONE',
+      knowledgeDomain: 'ASTRONOMY_PHYSICS',
+      entities,
+      reason: 'Pure deductive reasoning, logic puzzle, or theoretical thought experiment. No web search needed.',
       temporalBias: false,
       extractedQuery: cleanCore || query
     };

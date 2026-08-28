@@ -838,7 +838,7 @@ async function performUltraDeepCyberSearch(
 
     const activeQuery = queriesToRun.join(' | ');
     const countBadge = topResults.length > 0 ? ` (تم استرجاع وفحص ${topResults.length} مصادر معتمدة)` : '';
-    const searchMilestonesText = `- الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Serper AI و Fathom Search${countBadge}: [البحث عن: "${activeQuery}"]\n${searchDetails}\n`;
+    const searchMilestonesText = `🔍 [استعلام حي وتدقيق المصادر${countBadge}: تم فحص البيانات المحدثة بنجاح]\n\n`;
 
     const combinedGrounding = searchResults.map(r => r.groundingContextBlock).filter(Boolean).join('\n\n');
 
@@ -1832,10 +1832,10 @@ export default async function handler(req: Request): Promise<Response> {
       if (searchRes) {
         const fathomSearchGuidance = `
 [توجيه استخبارات البحث الحي وحسم الحقائق — SERPER AI & FATHOM SEARCH FACTUAL SYNTHESIS DIRECTIVE]:
-- في خطوات تفكيرك الداخلي <think>، استند 100% إلى الحقائق والمصادر الحية المستخرجة أعلاه فوراً لحسم أي مظهر أو أحداث أو تواريخ أو تفاصيل بدقة قطعية.
-- حظر التخمين والهلوسة (Strict Anti-Hallucination): يُحظر تماماً التخمين الافتراضي أو إنكار الوقائع المذكورة في المصادر الحية المسترجعة (مثل القول "ربما بسبب الإضاءة" عند ثبوت مظهر أو لون شعر أو تغيير فعلي).
-- بروتوكول التفكير الشجري: طبق الفروع الخمسة داخل <think> (تفكيك المعطيات، تدقيق ومقاطعة المصادر، فحص الفرضيات، الاستنتاج المنطقي وحسم الحقيقة، هندسة الإجابة).
-- صغ الإجابة النهائية باللغة العربية الفصحى المعاصرة مباشرة ببيانات قاطعة ومفصلة مع توثيق أسماء المصادر وروابطها.`;
+- في خطوات تفكيرك الداخلي <think>، استند 100% إلى الحقائق والمصادر الحية المستخرجة أعلاه لحسم أي وقائع أو أحداث أو تفاصيل بدقة قطعية.
+- حظر التخمين والهلوسة (Strict Anti-Hallucination): يُحظر تماماً التخمين الافتراضي أو إنكار الوقائع المذكورة في المصادر الحية المسترجعة.
+- بروتوكول التفكير الشجري: طبق الفروع الخمسة داخل <think> (تفكيك المعطيات، تدقيق المصادر، فحص الفرضيات، الاستنتاج المنطقي، وهندسة الإجابة).
+- التزم التزاماً مطلقاً بكافة شروط وقيود الإخراج الصارمة التي يحددها المستخدم (مثل منع المقدمات أو الخاتمة، التقييد بجدول أو عدد أسطر محدد). صغ الإجابة النهائية باللغة العربية الفصحى مباشرة.`;
 
         const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
         if (lastUserIdx !== -1) {

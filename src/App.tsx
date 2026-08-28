@@ -725,18 +725,12 @@ export const App: React.FC = () => {
         abortControllerRef.current = null;
         activeStreamingMsgRef.current = null;
 
-        const effectiveFinalContent = fullAssistantResponse && fullAssistantResponse.trim()
-          ? fullAssistantResponse.trim()
-          : (fullAssistantReasoning && fullAssistantReasoning.trim()
-              ? fullAssistantReasoning.trim()
-              : '');
-
-        const finalContentResolved = fullAssistantResponse?.trim() || effectiveFinalContent;
+        const finalContentResolved = (fullAssistantResponse || '').trim();
 
         const finalAssistantMsg: ChatMessageItem = {
           id: assistantPlaceholderId,
           role: 'assistant',
-          content: finalContentResolved || (fullAssistantReasoning ? '' : 'لم يتم استلام رد من النموذج، يرجى إعادة المحاولة.'),
+          content: finalContentResolved,
           reasoning: fullAssistantReasoning,
           isThinking: false,
           isX1: isX1Active,
@@ -763,7 +757,7 @@ export const App: React.FC = () => {
         const updatedUsage = await recordRealUsage({
           model: chosenModel,
           promptText: effectivePrompt,
-          responseText: fullAssistantResponse || effectiveFinalContent,
+          responseText: finalContentResolved,
           reasoningText: fullAssistantReasoning,
           hasImages: uniqueImagesDataUrls.length > 0,
           imagesCount: uniqueImagesDataUrls.length,
