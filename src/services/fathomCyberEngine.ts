@@ -32,6 +32,8 @@ export interface CycleDetectionResult {
   recurrentPattern?: string;
   loopCount: number;
   suggestedAction: 'CONTINUE' | 'WARN' | 'FORCE_BREAK';
+  pendingDelimiters?: string;
+  safeTerminatedChunk?: string;
 }
 
 export interface EarlyStoppingEvaluation {
@@ -197,6 +199,8 @@ export class DeterministicCycleDetector {
   private tokenFingerprints: Map<string, number> = new Map();
   private ngramHistory: Set<string> = new Set();
   private loopCount: number = 0;
+  private accumulatedStream: string = '';
+  private lastDetectedPattern?: string;
   private readonly WINDOW_SIZE = 5;
   private readonly SIMILARITY_THRESHOLD = 0.82;
 
@@ -205,6 +209,8 @@ export class DeterministicCycleDetector {
     this.tokenFingerprints.clear();
     this.ngramHistory.clear();
     this.loopCount = 0;
+    this.accumulatedStream = '';
+    this.lastDetectedPattern = undefined;
   }
 
   /**
@@ -214,6 +220,8 @@ export class DeterministicCycleDetector {
     if (!chunkText || !chunkText.trim()) {
       return { hasCycle: false, cycleConfidence: 0, loopCount: this.loopCount, suggestedAction: 'CONTINUE' };
     }
+
+    this.accumulatedStream += chunkText;
 
     const normalized = chunkText.toLowerCase().replace(/[^\w\u0600-\u06FF\s]/g, ' ').replace(/\s+/g, ' ').trim();
     if (normalized.length < 10) {
@@ -240,6 +248,11 @@ export class DeterministicCycleDetector {
       }
     }
 
+    // Bound memory with O(1) eviction to prevent leaks on massive streams
+    if (this.ngramHistory.size > 2500) {
+      this.ngramHistory.clear();
+    }
+
     // 2. Cross-window Semantic Levenshtein/Jaccard Similarity
     let maxSimilarity = 0;
     let matchedPattern = '';
@@ -262,6 +275,9 @@ export class DeterministicCycleDetector {
 
     if (combinedScore >= this.SIMILARITY_THRESHOLD) {
       this.loopCount++;
+      if (matchedPattern) {
+        this.lastDetectedPattern = matchedPattern;
+      }
     } else {
       if (this.loopCount > 0) this.loopCount = Math.max(0, this.loopCount - 0.5);
     }
@@ -271,12 +287,18 @@ export class DeterministicCycleDetector {
       ? (this.loopCount >= 3 ? 'FORCE_BREAK' : 'WARN')
       : 'CONTINUE';
 
+    // Lazy evaluation: only scan delimiters when cycle is triggered or requested
+    const pendingDelimiters = hasCycle
+      ? DeterministicCycleDetector.getPendingDelimiters(this.accumulatedStream)
+      : undefined;
+
     return {
       hasCycle,
       cycleConfidence: Math.min(1.0, combinedScore),
       recurrentPattern: matchedPattern || undefined,
       loopCount: Math.round(this.loopCount),
-      suggestedAction
+      suggestedAction,
+      pendingDelimiters: pendingDelimiters || undefined
     };
   }
 
@@ -290,6 +312,137 @@ export class DeterministicCycleDetector {
     const union = setA.size + setB.size - intersection;
     return union > 0 ? intersection / union : 0;
   }
+
+  /**
+   * Scans text to determine if a Markdown code block (```) or LaTeX display math block ($$) is currently open.
+   */
+  public static analyzeOpenDelimiters(text: string): {
+    hasOpenCodeFence: boolean;
+    hasOpenLatexBlock: boolean;
+    pendingClosingSequence: string;
+  } {
+    if (!text) {
+      return { hasOpenCodeFence: false, hasOpenLatexBlock: false, pendingClosingSequence: '' };
+    }
+
+    let inCodeFence = false;
+    let inLatexBlock = false;
+    let i = 0;
+    const len = text.length;
+
+    while (i < len) {
+      // Check for code fence (```)
+      if (text.startsWith('```', i)) {
+        let backtickCount = 0;
+        while (i + backtickCount < len && text[i + backtickCount] === '`') {
+          backtickCount++;
+        }
+        if (backtickCount >= 3) {
+          inCodeFence = !inCodeFence;
+          i += backtickCount;
+          continue;
+        }
+      }
+
+      // If we are NOT inside a code fence, check for LaTeX display math ($$)
+      if (!inCodeFence) {
+        if (text[i] === '\\' && i + 1 < len) {
+          // Escaped character (e.g. \$ or \\)
+          i += 2;
+          continue;
+        }
+
+        if (text.startsWith('$$', i)) {
+          inLatexBlock = !inLatexBlock;
+          i += 2;
+          continue;
+        }
+      }
+
+      i++;
+    }
+
+    let pendingClosingSequence = '';
+    if (inLatexBlock) {
+      pendingClosingSequence += '\n$$';
+    }
+    if (inCodeFence) {
+      pendingClosingSequence += (pendingClosingSequence ? '\n' : '') + '\n```';
+    }
+
+    return {
+      hasOpenCodeFence: inCodeFence,
+      hasOpenLatexBlock: inLatexBlock,
+      pendingClosingSequence
+    };
+  }
+
+  /**
+   * Returns any missing closing delimiters (LaTeX $$ or Markdown ```) needed to close open blocks.
+   */
+  public static getPendingDelimiters(text: string): string {
+    return DeterministicCycleDetector.analyzeOpenDelimiters(text).pendingClosingSequence;
+  }
+
+  /**
+   * Instance helper to get pending closing delimiters for the accumulated or provided stream.
+   */
+  public getPendingDelimiters(text?: string): string {
+    const target = text !== undefined ? text : this.accumulatedStream;
+    return DeterministicCycleDetector.getPendingDelimiters(target);
+  }
+
+  /**
+   * Safely terminates repeat sequences in content without dropping pending LaTeX delimiters ($$)
+   * or closing Markdown code fences (```).
+   * 
+   * If a recurrent pattern is detected or specified, it prunes repeat loops while ensuring that
+   * any pending $$ or ``` blocks are properly closed.
+   */
+  public static safeTerminate(content: string, recurrentPattern?: string): string {
+    if (!content) return '';
+
+    let result = content;
+
+    // Prune repetitive tail if recurrentPattern is provided and matches trailing loop
+    if (recurrentPattern && recurrentPattern.trim().length > 3) {
+      const pat = recurrentPattern.trim();
+      const escapedPat = pat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const trailingRepeatsRegex = new RegExp(`(?:\\s*${escapedPat}){2,}$`, 'i');
+      if (trailingRepeatsRegex.test(result)) {
+        result = result.replace(trailingRepeatsRegex, '');
+      }
+    }
+
+    // Ensure all open LaTeX delimiters ($$) and Markdown code fences (```) are safely closed
+    const { pendingClosingSequence } = DeterministicCycleDetector.analyzeOpenDelimiters(result);
+    if (pendingClosingSequence) {
+      result += pendingClosingSequence;
+    }
+
+    return result;
+  }
+
+  /**
+   * Instance method to safely terminate repeat sequences on accumulated stream or given text.
+   */
+  public safeTerminate(content?: string, recurrentPattern?: string): string {
+    const target = content !== undefined ? content : this.accumulatedStream;
+    const pattern = recurrentPattern || this.lastDetectedPattern;
+    return DeterministicCycleDetector.safeTerminate(target, pattern);
+  }
+
+  /**
+   * Alias for safeTerminate to ensure compatibility with delimiter closing helpers.
+   */
+  public static closePendingDelimiters(content: string): string {
+    return DeterministicCycleDetector.safeTerminate(content);
+  }
+
+  public closePendingDelimiters(content?: string): string {
+    const target = content !== undefined ? content : this.accumulatedStream;
+    return DeterministicCycleDetector.safeTerminate(target);
+  }
 }
 
 /**
@@ -297,7 +450,7 @@ export class DeterministicCycleDetector {
  * Tracks confidence convergence and stops thinking immediately once all target constraints are locked.
  */
 export class EarlyStoppingGovernor {
-  private readonly MAX_REASONING_TOKENS = 250;
+  private maxReasoningTokens: number;
   private readonly CONVERGENCE_CONFIDENCE_THRESHOLD = 0.95;
 
   private accumulatedTokens: number = 0;
@@ -305,11 +458,26 @@ export class EarlyStoppingGovernor {
   private lockedConstraintCount: number = 0;
   private requiredConstraintCount: number = 1;
 
-  public reset(requiredConstraints: number = 1): void {
+  constructor(maxTokens: number = 16384) {
+    this.maxReasoningTokens = maxTokens;
+  }
+
+  public reset(requiredConstraints: number = 1, maxTokens?: number): void {
     this.accumulatedTokens = 0;
     this.confidenceAccumulator = 0;
     this.lockedConstraintCount = 0;
     this.requiredConstraintCount = Math.max(1, requiredConstraints);
+    if (maxTokens !== undefined) {
+      this.maxReasoningTokens = maxTokens;
+    }
+  }
+
+  public setMaxTokens(count: number): void {
+    this.maxReasoningTokens = count;
+  }
+
+  public getMaxTokens(): number {
+    return this.maxReasoningTokens;
   }
 
   public registerTokens(count: number): void {
@@ -339,7 +507,7 @@ export class EarlyStoppingGovernor {
       };
     }
 
-    if (this.accumulatedTokens >= this.MAX_REASONING_TOKENS) {
+    if (this.accumulatedTokens >= this.maxReasoningTokens) {
       return {
         shouldStop: true,
         convergenceScore: 0.90,
@@ -472,7 +640,6 @@ export class FathomCyberReasoningEngine {
       presence_penalty: 0.25, // Discourages revisiting settled topics
       max_tokens: 32768,
       stop: [
-        '<|end_of_thought|>',
         '</think>\n\n<think>',
         '</think><think>'
       ]
@@ -483,7 +650,7 @@ export class FathomCyberReasoningEngine {
    * Process an incoming streaming delta token/chunk from deepseek-v4-pro.
    * Returns whether the stream should truncate thinking and jump directly to synthesis.
    */
-  public processStreamingChunk(chunk: string): { shouldCutThinking: boolean; reason?: string } {
+  public processStreamingChunk(chunk: string): { shouldCutThinking: boolean; reason?: string; safeClosingSuffix?: string } {
     // 1. Register approximate token count (1 word ≈ 1.3 tokens)
     const tokenEst = Math.max(1, Math.round(chunk.trim().split(/\s+/).length * 1.3));
     this.governor.registerTokens(tokenEst);
@@ -520,7 +687,8 @@ export class FathomCyberReasoningEngine {
       this.dag.advanceStage('SYNTHESIZE');
       return {
         shouldCutThinking: true,
-        reason: stopEval.reason
+        reason: stopEval.reason,
+        safeClosingSuffix: cycleRes.pendingDelimiters
       };
     }
 

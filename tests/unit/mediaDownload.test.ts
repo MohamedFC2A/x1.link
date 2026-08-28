@@ -1,6 +1,6 @@
 /**
  * Unit Tests: Media Download Detection & Streaming
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { TestHarness, expect } from '../testUtils';

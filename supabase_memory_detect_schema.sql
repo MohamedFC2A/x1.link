@@ -1,5 +1,5 @@
 -- ============================================================================
--- MATANY.ONE / X1.LINK — MEMORY DETECT 2.0 MAX EDITION SCHEMA
+-- MATANY.ONE / MATANY — MEMORY DETECT 2.0 MAX EDITION SCHEMA
 -- Autonomous Multi-Hop Vector Search (pgvector) + FTS (pg_trgm/tsvector) + 
 -- Exact Symbol Indexing + Conflict Reconciliation & Temporal Graphs
 -- ============================================================================

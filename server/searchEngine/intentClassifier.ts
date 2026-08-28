@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Intent Classifier & Autonomous Trigger
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  * Zero-Keyword Semantic Architecture & Anti-Hallucination Decision Engine
  */
 
@@ -48,8 +48,8 @@ const INTENT_RULES: IntentRule[] = [
     priority: 'urgent',
     complexity: 'DEEP_CYBER',
     patterns: [
-      /(اخر\s*اخبار|احدث\s*اخبار|اخبار\s*اليوم|حدث\s*اليوم|الان|عاجل|ماذا\s*حدث|مستجدات|احدث\s*تطورات|بيان\s*رسمي|صفقه|زلزال|حرب|مؤتمر)/i,
-      /\b(latest\s+news|breaking\s+news|today's\s+news|happened\s+today|current\s+events|recent\s+updates|just\s+announced|press\s+release)\b/i
+      /(اخر\s*اخبار|احدث\s*اخبار|اخبار\s*اليوم|حدث\s*اليوم|الان|عاجل|ماذا\s*حدث|مستجدات|احدث\s*تطورات|بيان\s*رسمي|صفقه|زلزال|حرب|مؤتمر|الحالي|الحاليه|الحالية|دلوقتي|آخر\s*ظهور|اخر\s*ظهور|مظهره\s*الحالي|شكله\s*الحالي|لونه\s*الحالي|لون\s*شعره|قصة\s*شعر|نيولوك|فريقه\s*الحالي|وضعه\s*الحالي)/i,
+      /\b(latest\s+news|breaking\s+news|today's\s+news|happened\s+today|current\s+events|recent\s+updates|just\s+announced|press\s+release|current\s+look|current\s+hair|latest\s+appearance|current\s+team|current\s+status)\b/i
     ]
   },
   {

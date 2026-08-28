@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Search Results Display Component
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import React, { useState } from 'react';

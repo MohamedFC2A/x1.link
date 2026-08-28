@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Adaptive Cache Manager
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { QueryIntent, CacheEntry, SearchResult } from './searchTypes';

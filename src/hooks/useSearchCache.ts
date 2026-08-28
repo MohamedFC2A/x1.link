@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Client-Side Cache Hook
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { useState, useCallback } from 'react';

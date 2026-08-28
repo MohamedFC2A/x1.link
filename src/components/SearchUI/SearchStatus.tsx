@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Real-Time Search Status Indicator
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import React from 'react';

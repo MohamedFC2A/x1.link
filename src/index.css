@@ -1,3 +1,4 @@
+@import 'katex/dist/katex.min.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -952,3 +953,106 @@
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
   }
 }
+
+/* High-Contrast Modern Code Syntax Highlighting (Prism Dark Palette) */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #64748b;
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: #94a3b8;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #f43f5e;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #34d399;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #38bdf8;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #a855f7;
+  font-weight: 600;
+}
+
+.token.function,
+.token.class-name {
+  color: #60a5fa;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #fbbf24;
+}
+
+/* KaTeX Math Polish & RTL Isolation */
+.katex-display {
+  margin: 1rem 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 0.75rem 0.5rem !important;
+  direction: ltr !important;
+  text-align: center !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.katex-display::-webkit-scrollbar {
+  height: 4px;
+}
+
+.katex-display::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.katex-display::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.katex {
+  font-size: 1.05em !important;
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+  display: inline-block;
+  text-rendering: auto;
+}
+
+.katex-html {
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+}
+
+/* Ensure table cells with KaTeX formulas maintain alignment */
+table .katex-display {
+  margin: 0.25rem 0 !important;
+  padding: 0.25rem 0 !important;
+}
+

@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Prompt Augmentation & Grounding Engine
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { SearchResult, IntentClassificationResult } from './searchTypes';
@@ -71,7 +71,8 @@ export function buildSearchGroundingContextBlock(
       `[توجيه الصياغة والتوثيق الحي (GROUNDING DIRECTIVE)]:`,
       `1. تمتلك الآن وصولاً كاملاً ومحدثاً لمعلومات الإنترنت والويب لعام ${currentYear}.`,
       `2. أجب عن سؤال المستخدم بشكل مباشر وشامل ومفصل وموضوعي استناداً إلى نتائج البحث أعلاه دون أي اعتذار أو ادعاء بانقطاع الاتصال بالإنترنت.`,
-      `3. وثق كل معلومة جوهرية بوضع رابط مصدرها بصيغة Markdown المناسبة مثل [اسم المصدر أو عنوان الموقع](الرابط).`
+      `3. وثق كل معلومة جوهرية بوضع رابط مصدرها بصيغة Markdown المناسبة مثل [اسم المصدر أو عنوان الموقع](الرابط).`,
+      `4. حل التناقضات بين المصادر (Cross-Reference & Noise Rejection): إذا تعارضت معلومات المصادر، امنح الأولوية للمصادر الرسمية وذات الموثوقية الأعلى، واكشف التناقض صراحةً، وارفض أي ادعاءات غير مدعومة بأدلة دامغة.`
     );
   }
 

@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Core Types & Schemas
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 export type QueryIntent =

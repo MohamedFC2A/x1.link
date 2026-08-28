@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Google News RSS Real-Time Provider
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { SearchResult, SearchEngineOptions } from './searchTypes';

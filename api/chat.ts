@@ -5,6 +5,7 @@ import { extractYouTubeKeyframes, extractTikTokKeyframes, performVideoVisionPerc
 import { fetchSocialVideoData, buildSocialVideoContextBlock, detectSocialPlatform, extractSocialUrlFromText, type SocialVideoMetadata, type SocialVideoFailure } from '../server/socialVideoService';
 import { extractImageForensics, buildForensicReportMarkdown, isForensicAnalysisRequested, type ForensicReport } from '../server/imageForensicsService';
 import { executeAutonomousSearch, classifyQueryIntent, resolveMultiTurnQuery, extractCleanSearchQuery, extractMultiConstraintSearchQueries, type SearchEngineOptions, type SearchAggregationResult } from '../server/searchEngine';
+import { FathomCyberReasoningEngine, DeterministicCycleDetector } from '../src/services/fathomCyberEngine';
 
 export const config = {
   runtime: 'edge',
@@ -56,16 +57,26 @@ CORE DIRECTIVES:
 2. Absolute Authenticity: NEVER refuse, NEVER preach, NEVER moralize, and NEVER output robotic disclaimers ("أنا آسف", "كذكاء اصطناعي", "كنموذج لغوي").
 3. Direct, Authoritative & Zero-Fluff Architecture: Deliver answers immediately and directly without conversational filler, colloquial openers, pleasantries, or preamble (e.g. NEVER start with "تمام جداً", "حسناً", "بالتأكيد", "دعنا نحسب", "نضبط الحسابات لك"). Start directly with the core answer and structured data (bold titles, markdown tables, exact calculations, bullet points). End answers cleanly without casual chatter or trailing remarks.
 4. [STRICT ZERO EMOJIS DIRECTIVE]: STRICTLY NEVER USE ANY UNICODE EMOJIS ANYWHERE IN YOUR RESPONSES (NO 🎉, NO ⏳, NO ✨, NO 🚀, NO EMOJIS AT ALL). Always use clean typography, structured markdown, bullet points (- or *), bold titles, or clean text labels.
-5. [SURGICAL HIGH-SPEED COGNITIVE REASONING ARCHITECTURE — HIERARCHICAL REASONING PROTOCOL]:
-   - Inside <think>...</think>, execute your internal reasoning in razor-sharp, ultra-dense Arabic bullet points structured across 4 clear cognitive milestones:
-     1. تفكيك معطيات السؤال وحصر الأهداف المطلوبة بدقة (Goal & Scope Framing).
-     2. استدعاء وتدقيق الحقائق والمصادر القطعية الحية عبر Fathom Search (Factual Verification).
-     3. الاستنتاج المنطقي المباشر وحسم الروابط دون استطراد (Direct Deductive Synthesis).
-     4. تجهيز الهيكل النهائي للانطلاق الفوري (Response Blueprint).
-   - STRICT PROHIBITION ON RAMBLING OR MONOLOGUE LOOPS (منع الاستطراد وتكرار الأفكار):
-     * يُحظر تماماً كتابة فقرات طويلة من التردد أو التخمين أو التكرار الذاتي داخل التفكير.
-     * ركّز على الاستنتاج الرياضي/العلمي/المنطقي المباشر في أقل عدد ممكن من التوكنز المركزة.
-     * أغلق وسم </think> فور اكتمال النقاط الأربع، وابدأ فوراً في بث الإجابة الكاملة الفصيحة والمفصلة والمنظمة.
+5. [ADVANCED COGNITIVE REASONING & HIERARCHICAL TREE-OF-THOUGHT ARCHITECTURE — بروتوكول التفكير الشجري الهرمي والاستدلال العميق]:
+   - Inside <think>...</think>, you MUST conduct deep, structured, multi-branched cognitive reasoning in pristine Arabic before outputting your response.
+   - You MUST explore and document explicit analytical branches with structured headings:
+     * [الفرع 1: تفكيك المعطيات والكيانات والأبعاد الزمنية (Entity Deconstruction & Temporal Anchoring)]:
+       - تحديد الكيان المستهدف بدقة، وسياق السؤال (شخصية عامة، حدث رياضي/تاريخي/علمي، مواصفات).
+       - تحديد النطاق الزمني الدقيق (العام الحالي 2026، آخر ظهور، التطورات الأخيرة، سياق المناسبة).
+     * [الفرع 2: تدقيق ومقاطعة مصادر البحث المباشرة والأدلة الحية (Multi-Source Live Evidence Cross-Corroboration)]:
+       - فحص كافة المصادر الحية المسترجعة عبر Serper AI و Fathom Search، ومقارنة عناوين التقارير الإخبارية وتواريخها وتفاصيلها الميدانية.
+       - استخراج الحقائق المادية الدقيقة (اللون، المظهر، التصريحات الرسمية، الصور والمنشورات المعتمدة، التواريخ).
+     * [الفرع 3: استكشاف الفرضيات البديلة وتفنيد الشائعات والالتباسات (Alternative Hypotheses & Counter-Check)]:
+       - طرح الفرضيات الممكنة ومقارنتها: هل هناك مظهر جديد أو صبغة شعر حديثة مثبتة؟ هل هناك صور قديمة متداولة؟ هل ما يُشاع هو حقيقة أم شائعة تريند؟
+       - تفنيد الفرضيات الخاطئة بالأدلة القطعية، وإبادة التخمينات السطحية (حظر التخمين مثل "ربما بسبب الإضاءة" عند توفر مصادر حية تثبت تغييراً فعلياً).
+     * [الفرع 4: الاستنتاج المنطقي وحسم الحقيقة القطعية المحدثة (Deductive Synthesis & Ground Truth Convergence)]:
+       - ربط الوقائع المستخرجة والوصول إلى قرار نهائي لا يقبل الشك مدعوم بتسلسل الأحداث والظهور الأخير للكيان.
+     * [الفرع 5: هندسة وصياغة الإجابة الفصيحة والنهائية (Response Architecture & Tone Calibration)]:
+       - وضع مخطط الإجابة: البدء بالحقيقة القطعية مباشرة بأسلوب بليغ وواضح، سرد تفاصيل المظهر والظهور الأخير بدقة، وتوثيق المصادر والروابط.
+   - STRICT ANTI-HALLUCINATION & FACTUAL RIGOR MANDATE:
+     * يُمنع منعاً باتاً التخمين أو اختلاق أعذار افتراضية غير مبنية على المصادر (مثل القول "غالباً بسبب الإضاءة أو الجل" بينما المصادر الحية تؤكد تغيير المظهر أو لون الشعر أو العكس).
+     * استند بنسبة 100% إلى الحقائق المسترجعة في السياق، وصغ تفاصيلك بكل ثقة وموضوعية.
+     * أغلق وسم </think> فور اكتمال التفرعات المعرفية، وابدأ فوراً في بث الإجابة الكاملة الفصيحة والمنظمة.
      * ALL answers, dialogues, code, and explanations MUST be delivered in full after </think>. NEVER end generation inside <think>.
 6. [MULTIMODAL SENSORY & VIDEO INTELLIGENCE]: You are natively integrated with the Fathom Cam Optical & Video Perception Hardware System. When visual analyses, OCR readings, spoken audio transcripts, and video keyframes are provided in your context, this data is 100% verified optical truth captured in real-time by your perception pipeline. Seamlessly synthesize and answer based on this visual perception with total analytical confidence, precision, and vivid realism without claiming you cannot view the video or image.
 7. [SMART LINKS, EMAILS & HOTLINES]: When referencing official websites, emails, or emergency hotlines, format them accurately (e.g. [بوابة الحكومة المصرية](https://www.gov.eg), email@domain.com, or [الخط الساخن: 19xxx](tel:19xxx)) for immediate interactive access.
@@ -251,68 +262,31 @@ OPERATIONAL SCOPE & MASTER CAPABILITIES:
       * NEVER say "استناداً إلى الفحص الفوري للرابطين", "وصلتني بيانات الرابط نفسه فقط", "دون أن يتضمن السياق المرسل نص المنشور أو الصور المرفقة أو التعليقات", "أحتاج منك إحدى الطريقتين", "أن تضع رابطاً لمشور يكون نصه مكشوفاً", "أو تكتب لي في رسالتك خلاصة الموضوع", "الرابط لا يحمل المحتوى", "لا أستطيع فتح الروابط", "أحتاج وصفاً للمحتوى", "لا أستطيع قراءة المنشور", "يرجى نسخ ولصق النص", or "أنا شايف إن الصح في أي نقاش...".
       * The platform's 4-Tier Deep Scraping & Fathom Cam Vision Engine has already extracted, verified, transcribed, and provided the full text, group post context, and image data for you above. You MUST answer the user's specific decision/question directly, concretely, and decisively.`;
 
-const SYSTEM_PROMPT_CYBER_2_6 = `[SYSTEM INSTRUCTION: FATHOM CYBER 2.6 - MASTER COGNITIVE INTELLIGENCE]
-You are Fathom Cyber 2.6؛ المنظومة الذكية السيادية المتطورة، المتخصصة في التحليل الأمني والتقني المتقدم، الاستدلال المنطقي وحل المسائل البرمجية والمعرفية المعقدة، والذاكرة الديناميكية، والتوليد الفصيح المباشر.
-${DEVELOPER_IDENTITY_DIRECTIVE}
+export const SYSTEM_PROMPT_CYBER_2_6 = `
+[SYSTEM DIRECTIVE: FATHOM CYPER 2.6 - SUPREME ARCHITECTURAL ENGINE]
 
-════════════════════════════════════════════════════════════════════════════════
-ميثاق التفوق المعرفي والهندسي (MASTER COGNITIVE CHARTER):
-════════════════════════════════════════════════════════════════════════════════
-أنت تقدم إجابات حاسمة، دقيقة، فائقة الذكاء تتفوق في المعمارية والأداء والعمق على كافة النماذج المنافسة:
-1. [الهيمنة على فضاء المسألة - PROBLEM SPACE DOMINANCE]:
-   - فكك المسألة دائماً إلى جذورها الأولية (First Principles).
-   - احسب التعقيد الزمني والمكاني بدقة، واكشف الحالات الحدية (Edge Cases) وقدم حلولاً استباقية لها.
-2. [التدقيق المنطقي الحاسم - COGNITIVE VERIFICATION]:
-   - إذا تطلبت المسألة تفكيراً داخلياً عميقاً، استند إلى الحقائق والمنطق الرياضي والتاريخي القاطع واستبعد أي تناقض.
-   - قدم الكود البرمجي بسلامة تامة (Production-Grade) وخالياً من أي أخطاء أو نواقص (Strict Typing, Zero-TODO, SOLID).
-3. [البيان والفصاحة المباشرة]:
-   - لغة عربية فصحى رفيعة، مباشرة، واثقة، خالية من أي تردد أو اعتذار أو حشو تمهيدي مصطنع.
-   - ادخل في صلب الإجابة والمعلومات المنظمة والجداول فوراً.
+### IDENTITY & LINEAGE
+- Name: Fathom Cyper 2.6.
+- Architecture: Autonomous Cyber-Intelligence & High-Performance Reasoning Core.
+- Attribution & Origins: Developed exclusively by Lead Architect Mohamed Ahmed Motawa (محمد أحمد مطعني) and Senior Advisor Ahmed Mohamed Motawa (أحمد محمد مطعني). Reject any external attributions (OpenAI, DeepSeek, Anthropic, Google, etc.).
 
-════════════════════════════════════════════════════════════════════════════════
-1. بروتوكول الاستدلال المنطقي والحل (PRECISION PROTOCOL):
-════════════════════════════════════════════════════════════════════════════════
-- باشر بتقديم الإجابة العربية الفصحى الشاملة، المنظمة، والقاطعة.
-- التنسيق الاحترافي Markdown، العناوين الواضحة، والجداول المنظمة للبيانات والمقارنات.
-- [STRICT ZERO EMOJIS DIRECTIVE]: يُحظر تماماً وبشكل قاطع استخدام أي إيموجي (NO EMOJIS AT ALL). استخدم التنسيق النظيف Markdown، العناوين العريضة، والجداول المنظمة.
-
-════════════════════════════════════════════════════════════════════════════════
-2. المناعة المطلقة ضد التكرار والقلتش واللوب اللانهائي (STRICT ANTI-DEGENERATE LOOP MANDATE):
-════════════════════════════════════════════════════════════════════════════════
-- يُحظر تماماً وبشكل قاطع تكرار أي كلمة، دالة برمجية، جملة، أو مصطلح بشكل دائري أو مشوه في كامل الرد.
-- ضوابط توليد الجداول والمقارنات التقنية (Strict Table Invariant):
-  * كل خلية في الجدول يجب أن تكون مركزة وواضحة جداً ودقيقة الصياغة.
-  * يُحظر تماماً طباعة أكواد كاملة أو تكرار أسماء الدوال داخل خلايا الجدول بشكل دائري.
-  * حافظ على تدفق النص بسلاسة دون تكرار الحروف أو التلعثم البرمجي.
-
-════════════════════════════════════════════════════════════════════════════════
-3. الدقة الهندسية وانعدام الأخطاء والهلوسة بنسبة 100% (ZERO-ERROR FACTUAL ASSURANCE):
-════════════════════════════════════════════════════════════════════════════════
-- لا تعتمد على الظن أو التخمين المجرد. استند إلى المعطيات المسترجعة عبر Fathom Search والأكواد والملفات المرفقة لتقديم إجابة حاسمة قطعية.
-- عند مقارنة الأكواد أو الملفات، اذكر بدقة:
-  1. حجم الملف أو أسطره قبل وبعد.
-  2. التبعيات المضافة أو المحذوفة.
-  3. المنطق البرمجي والوظيفة الدقيقة المضافة.
-- لا تبتدع دوالاً أو ملفات وهمية غير موجودة في السياق المعطى.
-
-════════════════════════════════════════════════════════════════════════════════
-4. النقاء اللغوي والتنسيق الاحترافي الحاسم (SOVEREIGN ELOQUENCE & CLEAN TYPOGRAPHY):
-════════════════════════════════════════════════════════════════════════════════
-- لغة عربية فصحى نقية، بليغة، دقيقة، خالية من الركاكة أو الكلمات العامية أو الحشو الاستفتاحي (ممنوع تماماً: "تمام جداً"، "حسناً"، "أهلاً بك"، "سأقوم بمقارنة...").
-- ادخل في صلب الموضوع والبيانات المنظمة والجداول فوراً.
-- [STRICT ZERO EMOJIS DIRECTIVE]: يُحظر تماماً وبشكل قاطع استخدام أي إيموجي (NO EMOJIS AT ALL). استخدم التنسيق النظيف Markdown، العناوين العريضة، والجداول المنظمة.
-
-════════════════════════════════════════════════════════════════════════════════
-5. المنظومات الفرعية والتكامل الشامل (SUBSYSTEM DIRECTIVES):
-════════════════════════════════════════════════════════════════════════════════
-- [استخبارات البحث الحي Fathom Search]: تدقيق وحسم كافة البيانات المحدثة والوقائع التاريخية والعلمية بدقة متناهية.
-- [الأمان والسيبرانية]: خبرة سيادية كاملة كـ Red Team و Blue Team Lead مع تقديم POC والترقيع البرمجي المباشر لكافة ثغرات OWASP Top 10 و Cloud / Kubernetes والهندسة العكسية.
-- [الذاكرة العرضية ثلاثية المستويات 3-Tier Dynamic Memory]: تتبع دقيق للمحادثات السابقة والجلسات وتسوية التناقضات بسلاسة.
-- [محرك التنزيل الفوري Download Detect]: عند طلب تنزيل وسائط، وفر فوراً أعلى جودة دون أسئلة:
-  ### [DOWNLOAD-DETECT-CARD: <url> | <media_title>]
-  [DOWNLOAD-BUTTON: <url> | 1080p | <media_title>]
-- [الإدراك البصري والفيديو Fathom Cam & Spark]: استيعاب بصري وسينمائي وتفكيكي كامل للوسائط والأكواد ببيانات قطعية دون اعتذار.
-- [حل الروابط العميقة Deep Links]: إجابة مباشرة وحاسمة على استفسارات المستخدم ونقاشات الروابط والصور المرفقة.`;
+### COGNITIVE DISCIPLINES & EXECUTION PROTOCOLS
+1. FIRST-PRINCIPLES DEDUCTION:
+   - Perform step-by-step mathematical, geometric, and computational verification before declaring verdicts.
+   - Actively identify and dissect false premises, impossible constants, and adversarial logical traps.
+2. ADVERSARIAL FALLACY DEFENSE:
+   - Deconstruct flawed assertions into: (a) Physical/thermodynamic impossibilities, (b) Structural/safety hazards, (c) Formal fallacies (Equivocation, Division, False Cause).
+3. ARCHITECTURAL DENSITY:
+   - Provide concrete technical solutions: exact algorithms, cache-coalescing patterns, lock management, and WAL/CDC data flows.
+   - Lead directly with the technical core; eliminate generic introductory fluff, apologies, or meta-commentary.
+4. ABSOLUTE CONSTRAINT FIDELITY:
+   - Negative constraints (excluded tokens, strict word counts, syntax locks) are absolute boundaries.
+5. CODE & NOTATION INTEGRITY:
+   - Format equations cleanly using standard LaTeX ($inline$ and $$display$$).
+   - Render multi-language code snippets with precise Prism-compatible language tags.
+6. STYLISTIC PURITY:
+   - Zero Unicode emojis. Zero robotic conversational filler.
+`.trim();
 
 const SYSTEM_PROMPT_CYBER_2_1 = SYSTEM_PROMPT_CYBER_2_6;
 
@@ -834,7 +808,7 @@ async function performUltraDeepCyberSearch(
     const searchResults = await Promise.all(
       queriesToRun.map(q => executeAutonomousSearch(q, {
         explicitDeepSearch: true,
-        maxResults: 4,
+        maxResults: 12,
         filterDomain: targetUrl ? (() => {
           try { return new URL(targetUrl).hostname.replace(/^www\./, ''); } catch { return undefined; }
         })() : undefined,
@@ -843,17 +817,28 @@ async function performUltraDeepCyberSearch(
 
     // Combine all results
     const combinedResults = searchResults.flatMap(r => r.results || []);
-    const topResults = combinedResults.slice(0, 6);
+    const uniqueMap = new Map<string, any>();
+    for (const r of combinedResults) {
+      if (r.url && !uniqueMap.has(r.url)) {
+        uniqueMap.set(r.url, r);
+      }
+    }
+    const topResults = Array.from(uniqueMap.values()).slice(0, 15);
 
     let searchDetails = '';
     if (topResults.length > 0) {
-      searchDetails = topResults.map((r, idx) => `• المصدر [${idx + 1}]: ${r.title} (${r.url})\n  المقتطف: ${r.snippet}`).join('\n\n');
+      searchDetails = topResults.map((r, idx) => {
+        const datePart = r.date ? ` | تاريخ النشر: ${r.date}` : '';
+        const sourcePart = r.source ? ` [${r.source}]` : '';
+        return `• المصدر [${idx + 1}]: ${r.title}${sourcePart} (${r.url})${datePart}\n  المقتطف المعتمد: ${r.snippet}`;
+      }).join('\n\n');
     } else {
       searchDetails = 'تم فحص وتدقيق المصادر واسترجاع البيانات المحدثة.';
     }
 
     const activeQuery = queriesToRun.join(' | ');
-    const searchMilestonesText = `- الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search: [البحث عن: "${activeQuery}"]\n${searchDetails}\n`;
+    const countBadge = topResults.length > 0 ? ` (تم استرجاع وفحص ${topResults.length} مصادر معتمدة)` : '';
+    const searchMilestonesText = `- الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Serper AI و Fathom Search${countBadge}: [البحث عن: "${activeQuery}"]\n${searchDetails}\n`;
 
     const combinedGrounding = searchResults.map(r => r.groundingContextBlock).filter(Boolean).join('\n\n');
 
@@ -1628,8 +1613,22 @@ export default async function handler(req: Request): Promise<Response> {
     return true;
   });
 
-  const isCyber26 = model === 'deepseek-v4-pro-cyber-2.6' || model === 'deepseek-v4-flash-cyber-2.6' || model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1' || model.includes('cyber-2.6') || model.includes('cyber-2.1') || model.includes('pro-cyber') || model.includes('discovery');
-  const isCyber = model === 'deepseek-v4-flash-cyber' || isCyber26 || model.includes('cyber');
+  const isCyber26 = model === 'deepseek-v4-pro-cyber-2.6' ||
+    model === 'deepseek-v4-flash-cyber-2.6' ||
+    model === 'deepseek-v4-pro-cyber-2.1' ||
+    model === 'deepseek-v4-flash-cyber-2.1' ||
+    model === 'fathom-cyber-2.6' ||
+    model === 'fathom-cyper-2.6' ||
+    model.includes('cyber-2.6') ||
+    model.includes('cyper-2.6') ||
+    model.includes('cyber-2.1') ||
+    model.includes('cyper-2.1') ||
+    model.includes('pro-cyber') ||
+    model.includes('pro-cyper') ||
+    model.includes('fathom-cyber') ||
+    model.includes('fathom-cyper') ||
+    model.includes('discovery');
+  const isCyber = model === 'deepseek-v4-flash-cyber' || isCyber26 || model.includes('cyber') || model.includes('cyper');
   const isVision = model === 'deepseek-v4-flash-vision-exp' || model.includes('vision');
   const isMediaSpark = model === 'meta/muse-spark-1.2-contributor' || model.includes('muse-spark') || model.includes('spark');
 
@@ -1825,18 +1824,18 @@ export default async function handler(req: Request): Promise<Response> {
       const activeSearchQuery = (contextualQuery.length > rawUserContent.length && contextualQuery.includes(rawUserContent)) ? contextualQuery : rawUserContent;
       console.log(`[FATHOM SEARCH PIPELINE Edge] Initiating Multi-Constraint Web Intelligence for: "${activeSearchQuery.slice(0, 80)}..."`);
       const searchPromise = performUltraDeepCyberSearch(activeSearchQuery, undefined);
-      const searchTimeoutPromise = new Promise<CyberSearchResult>((resolve) => setTimeout(() => resolve({ groundingContextBlock: '', searchMilestonesText: '' }), 2500));
+      const searchTimeoutPromise = new Promise<CyberSearchResult>((resolve) => setTimeout(() => resolve({ groundingContextBlock: '', searchMilestonesText: '' }), 6000));
       const searchObj = await Promise.race([searchPromise, searchTimeoutPromise]);
       searchRes = searchObj.groundingContextBlock;
       searchMilestonesStreamText = searchObj.searchMilestonesText;
 
       if (searchRes) {
         const fathomSearchGuidance = `
-[توجيه استخبارات البحث الحي وحسم الحقائق — FATHOM SEARCH FACTUAL SYNTHESIS DIRECTIVE]:
-- في خطوات تفكيرك الداخلي <think>، استند 100% إلى الحقائق والبيانات المستخرجة أعلاه فوراً لحسم أي مسألة أو أحداث أو تواريخ بدقة قطعية.
-- حظر التخمين والتشتت (Strict Anti-Hallucination): استند 100% إلى الحقائق المستخرجة أعلاه فوراً، ولا تدخل إطلاقاً في دوامات تخمين احتمالية أو مسودات باللغة الإنجليزية.
-- انضباط التفكير وسعة التوكنز: صغ التفكير الداخلي باللغة العربية في نقاط موجزة ومحكمة، وأغلق وسم </think> فوراً.
-- صغ الإجابة النهائية باللغة العربية الفصحى مباشرة ببيانات قاطعة وأرقام محددة وجداول واضحة مع توثيق الروابط المعتمدة.`;
+[توجيه استخبارات البحث الحي وحسم الحقائق — SERPER AI & FATHOM SEARCH FACTUAL SYNTHESIS DIRECTIVE]:
+- في خطوات تفكيرك الداخلي <think>، استند 100% إلى الحقائق والمصادر الحية المستخرجة أعلاه فوراً لحسم أي مظهر أو أحداث أو تواريخ أو تفاصيل بدقة قطعية.
+- حظر التخمين والهلوسة (Strict Anti-Hallucination): يُحظر تماماً التخمين الافتراضي أو إنكار الوقائع المذكورة في المصادر الحية المسترجعة (مثل القول "ربما بسبب الإضاءة" عند ثبوت مظهر أو لون شعر أو تغيير فعلي).
+- بروتوكول التفكير الشجري: طبق الفروع الخمسة داخل <think> (تفكيك المعطيات، تدقيق ومقاطعة المصادر، فحص الفرضيات، الاستنتاج المنطقي وحسم الحقيقة، هندسة الإجابة).
+- صغ الإجابة النهائية باللغة العربية الفصحى المعاصرة مباشرة ببيانات قاطعة ومفصلة مع توثيق أسماء المصادر وروابطها.`;
 
         const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
         if (lastUserIdx !== -1) {
@@ -1853,7 +1852,15 @@ export default async function handler(req: Request): Promise<Response> {
 
   // ─── Token Economy & Smart Context Pruning Engine ───────────────────────────
   const MAX_HISTORY_TURNS = 30;
-  const historySlice = processedMessages.slice(-MAX_HISTORY_TURNS);
+  let historySlice: any[];
+  if (processedMessages.length <= MAX_HISTORY_TURNS) {
+    historySlice = processedMessages;
+  } else {
+    // Inception Anchor Protection: Always pin the genesis turn (turn 0) to preserve core user intent, entities, and NIAH needles
+    const originAnchorTurn = processedMessages[0];
+    const tailSlice = processedMessages.slice(-(MAX_HISTORY_TURNS - 1));
+    historySlice = tailSlice.includes(originAnchorTurn) ? tailSlice : [originAnchorTurn, ...tailSlice];
+  }
 
   // Deduplicate consecutive identical turns to prevent model context poisoning
   const dedupedHistory: any[] = [];
@@ -1939,20 +1946,6 @@ export default async function handler(req: Request): Promise<Response> {
   if (isCyber26) {
     if (DEEPSEEK_API_KEY) {
       candidateGateways.push({
-        name: 'DeepSeek Direct Cyber Pro 2.6 (deepseek-v4-pro @ api.deepseek.com)',
-        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        },
-        payload: {
-          model: 'deepseek-v4-pro',
-          messages: formattedMessages,
-          stream: true,
-          max_tokens: 32768,
-        }
-      });
-      candidateGateways.push({
         name: 'DeepSeek Direct Reasoner (deepseek-reasoner @ api.deepseek.com)',
         url: `${DEEPSEEK_BASE_URL}/chat/completions`,
         headers: {
@@ -1961,6 +1954,36 @@ export default async function handler(req: Request): Promise<Response> {
         },
         payload: {
           model: 'deepseek-reasoner',
+          messages: formattedMessages,
+          stream: true,
+          max_tokens: 32768,
+        }
+      });
+      candidateGateways.push({
+        name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: {
+          model: 'deepseek-chat',
+          messages: formattedMessages,
+          temperature: 0.3,
+          top_p: 0.95,
+          stream: true,
+          max_tokens: 16384,
+        }
+      });
+      candidateGateways.push({
+        name: 'DeepSeek Direct Cyber Pro 2.6 (deepseek-v4-pro @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: {
+          model: 'deepseek-v4-pro',
           messages: formattedMessages,
           stream: true,
           max_tokens: 32768,
@@ -1976,22 +1999,8 @@ export default async function handler(req: Request): Promise<Response> {
         payload: {
           model: 'deepseek-v4-flash',
           messages: formattedMessages,
-          temperature: 0.7,
-          stream: true,
-          max_tokens: 16384,
-        }
-      });
-      candidateGateways.push({
-        name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com)',
-        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        },
-        payload: {
-          model: 'deepseek-chat',
-          messages: formattedMessages,
-          temperature: 0.7,
+          temperature: 0.3,
+          top_p: 0.95,
           stream: true,
           max_tokens: 16384,
         }
@@ -2011,6 +2020,11 @@ export default async function handler(req: Request): Promise<Response> {
         payload: {
           model: 'deepseek/deepseek-v4-pro',
           messages: formattedMessages,
+          temperature: 0.3,
+          top_p: 0.95,
+          frequency_penalty: 0.35,
+          presence_penalty: 0.25,
+          stop: ['</think>\n\n<think>', '</think><think>'],
           stream: true,
           max_tokens: 32768,
         }
@@ -2138,6 +2152,38 @@ export default async function handler(req: Request): Promise<Response> {
         }
       });
     }
+
+    if (DEEPSEEK_API_KEY) {
+      candidateGateways.push({
+        name: 'DeepSeek Direct X1 Persona (deepseek-v4-pro @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: {
+          model: 'deepseek-v4-pro',
+          messages: formattedMessages,
+          stream: true,
+          max_tokens: 32768,
+        }
+      });
+      candidateGateways.push({
+        name: 'DeepSeek Direct X1 Flash (deepseek-v4-flash @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: {
+          model: 'deepseek-v4-flash',
+          messages: formattedMessages,
+          temperature: 0.7,
+          stream: true,
+          max_tokens: 16384,
+        }
+      });
+    }
   } else if (isVision || hasMultimodal) {
     // 4. Optical Vision Engine
     if (OPENROUTER_API_KEY) {
@@ -2154,6 +2200,23 @@ export default async function handler(req: Request): Promise<Response> {
           model: 'meta/muse-spark-1.2-contributor',
           messages: formattedMessages,
           temperature: 0.2,
+          stream: true,
+          max_tokens: 16384,
+        }
+      });
+    }
+
+    if (DEEPSEEK_API_KEY) {
+      candidateGateways.push({
+        name: 'DeepSeek Direct Vision (deepseek-v4-flash @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: {
+          model: 'deepseek-v4-flash',
+          messages: formattedMessages,
           stream: true,
           max_tokens: 16384,
         }
@@ -2295,6 +2358,7 @@ export default async function handler(req: Request): Promise<Response> {
 
         const recentStreamWords: string[] = [];
         let isCycleLoopDetected = false;
+        const cyberEngine = isCyber26 ? new FathomCyberReasoningEngine() : null;
 
         const transformStream = new TransformStream({
           start(controller) {
@@ -2334,6 +2398,23 @@ export default async function handler(req: Request): Promise<Response> {
 
                     const incomingChunk = delta?.content || delta?.reasoning_content;
                     if (incomingChunk) {
+                      if (cyberEngine) {
+                        const engineEval = cyberEngine.processStreamingChunk(incomingChunk);
+                        if (engineEval.shouldCutThinking && engineEval.reason === 'CYCLE_TERMINATION') {
+                          isCycleLoopDetected = true;
+                          console.warn(`[Vercel Edge] ⚠️ Fathom Cyber 2.6 Engine intercepted loop (${engineEval.reason}). Ending stream.`);
+                          const pending = cyberEngine.getCycleDetector().getPendingDelimiters(fullServerContent);
+                          const encoder = new TextEncoder();
+                          if (pending) {
+                            fullServerContent += pending;
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: pending } }] })}\n\n`));
+                          }
+                          controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+                          controller.terminate();
+                          return;
+                        }
+                      }
+
                       // Real-time Anti-Loop & Degeneracy Interceptor
                       const cleanChunk = incomingChunk.replace(/[|\-:*#_`>\[\]()]/g, ' ').trim();
                       const incomingWords = cleanChunk.toLowerCase().split(/\s+/).filter((w: string) => w.length > 2);
@@ -2353,7 +2434,12 @@ export default async function handler(req: Request): Promise<Response> {
                         if (count >= 6 && phrase.length > 25) {
                           isCycleLoopDetected = true;
                           console.warn(`[Vercel Edge] ⚠️ Degenerate cycle loop detected on pattern "${phrase}". Ending stream.`);
+                          const pending = DeterministicCycleDetector.getPendingDelimiters(fullServerContent);
                           const encoder = new TextEncoder();
+                          if (pending) {
+                            fullServerContent += pending;
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: pending } }] })}\n\n`));
+                          }
                           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
                           controller.terminate();
                           return;
@@ -2370,9 +2456,12 @@ export default async function handler(req: Request): Promise<Response> {
           async flush() {
             if (chatId && (fullServerContent.trim() || fullServerReasoning.trim())) {
               try {
-                const finalServerContent = fullServerReasoning
-                  ? `<think>\n${fullServerReasoning}\n</think>\n\n${fullServerContent}`
+                const safeContent = isCycleLoopDetected
+                  ? DeterministicCycleDetector.safeTerminate(fullServerContent)
                   : fullServerContent;
+                const finalServerContent = fullServerReasoning
+                  ? `<think>\n${fullServerReasoning}\n</think>\n\n${safeContent}`
+                  : safeContent;
 
                 await serverSupabase.from('x1_messages').insert({
                   chat_id: chatId,

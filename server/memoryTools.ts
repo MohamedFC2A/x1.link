@@ -3,7 +3,7 @@ import { isPersonalMemoryRecallIntent } from '../src/lib/memoryIntentUtils';
 
 /**
  * ============================================================================
- * MATANY.ONE / X1.LINK — AI STRUCTURED TOOL CALLING & CONTROLLER SPEC
+ * MATANY.ONE / MATANY — AI STRUCTURED TOOL CALLING & CONTROLLER SPEC
  * Standardized OpenAI / DeepSeek / Gemini Function Tool Schemas
  * ============================================================================
  */

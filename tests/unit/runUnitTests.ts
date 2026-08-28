@@ -1,6 +1,6 @@
 /**
  * Unit Test Suite Orchestrator
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { TestHarness } from '../testUtils';
@@ -20,7 +20,7 @@ export async function runAllUnitTests(): Promise<boolean> {
   const harness = new TestHarness();
 
   console.log('\n\x1b[1m\x1b[34m====================================================================\x1b[0m');
-  console.log('\x1b[1m\x1b[34m🧪 RUNNING UNIT TEST SUITE (x1.link)\x1b[0m');
+  console.log('\x1b[1m\x1b[34m🧪 RUNNING UNIT TEST SUITE (Matany)\x1b[0m');
   console.log('\x1b[1m\x1b[34m====================================================================\x1b[0m');
 
   await runIntentClassifierTests(harness);

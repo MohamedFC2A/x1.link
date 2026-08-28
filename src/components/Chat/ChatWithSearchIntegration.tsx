@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Chat Grounding & Verified Sources Panel
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import React, { useState } from 'react';

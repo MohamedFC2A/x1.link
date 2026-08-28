@@ -1,6 +1,6 @@
 /**
  * Unit Tests: Results Aggregator & 5-Factor Ranking Engine
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { TestHarness, expect } from '../testUtils';

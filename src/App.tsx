@@ -539,6 +539,8 @@ export const App: React.FC = () => {
       id: assistantPlaceholderId,
       role: 'assistant',
       content: '',
+      reasoning: '',
+      isThinking: true,
       timestamp: formatEnglishTimestamp(),
       isX1: isX1Active,
       model: chosenModel,
@@ -729,11 +731,14 @@ export const App: React.FC = () => {
               ? fullAssistantReasoning.trim()
               : '');
 
+        const finalContentResolved = fullAssistantResponse?.trim() || effectiveFinalContent;
+
         const finalAssistantMsg: ChatMessageItem = {
           id: assistantPlaceholderId,
           role: 'assistant',
-          content: fullAssistantResponse?.trim() || effectiveFinalContent,
+          content: finalContentResolved || (fullAssistantReasoning ? '' : 'لم يتم استلام رد من النموذج، يرجى إعادة المحاولة.'),
           reasoning: fullAssistantReasoning,
+          isThinking: false,
           isX1: isX1Active,
           timestamp: formatEnglishTimestamp(),
           isMemoryDetectTriggered,

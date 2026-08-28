@@ -1,6 +1,6 @@
 /**
  * Frontend Types for Search Intelligence System
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 export type QueryIntent =

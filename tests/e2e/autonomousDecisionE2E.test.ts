@@ -1,6 +1,6 @@
 /**
  * End-to-End (E2E) Tests: Autonomous Pipeline Full Cycle
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { TestHarness, expect } from '../testUtils';

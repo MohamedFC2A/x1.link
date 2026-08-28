@@ -1,6 +1,6 @@
 /**
  * Unit Tests: Deep Page Content Extractor
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { TestHarness, expect } from '../testUtils';

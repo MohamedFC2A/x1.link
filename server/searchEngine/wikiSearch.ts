@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Wikipedia Knowledge API Provider
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { SearchResult, SearchEngineOptions } from './searchTypes';

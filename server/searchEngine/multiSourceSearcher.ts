@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Multi-Source Parallel Search Orchestrator
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { SearchResult, SearchEngineOptions, QueryIntent } from './searchTypes';
@@ -53,10 +53,10 @@ export async function executeMultiSourceSearch(
   }
 
   // 2. Serper API (if configured)
-  const hasSerper = Boolean(process.env.SERPER_API_KEY);
+  const hasSerper = Boolean(process.env.SERPER_API_KEY || process.env.SERPER_KEY || process.env.SERPER_AI_KEY);
   if (hasSerper && (!options?.sources || options.sources.includes('serper'))) {
     searchTasks.push({
-      name: 'Serper API',
+      name: 'Serper API (Google Organic & News)',
       promise: searchSerper(query, options)
     });
   }
@@ -103,7 +103,7 @@ export async function executeMultiSourceSearch(
     rawHits,
     query,
     intent,
-    options?.maxResults || 8
+    options?.maxResults || 15
   );
 
   const executionTimeMs = Date.now() - startTime;

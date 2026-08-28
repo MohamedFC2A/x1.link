@@ -1,6 +1,6 @@
 /**
  * Integration Tests: /api/search API Route Handler
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { TestHarness, expect } from '../testUtils';

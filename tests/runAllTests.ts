@@ -1,6 +1,6 @@
 /**
  * Master Test Suite Orchestrator & Comprehensive Validation Runner
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { TestHarness } from './testUtils';
@@ -14,6 +14,7 @@ import { runMediaDownloadTests } from './unit/mediaDownload.test';
 import { runImageForensicsTests } from './unit/imageForensics.test';
 import { runMemoryIntentTests } from './unit/memoryIntent.test';
 import { runDeepContentExtractorTests } from './unit/deepContentExtractor.test';
+import { runFathomCyberEngineTests } from './unit/fathomCyberEngine.test';
 import { runMultiSourceSearchIntegrationTests } from './integration/multiSourceSearch.test';
 import { runSearchApiRouteIntegrationTests } from './integration/searchApiRoute.test';
 import { runChatSearchPipelineIntegrationTests } from './integration/chatSearchPipeline.test';
@@ -26,7 +27,7 @@ async function runMasterTestSuite() {
   const suiteStartTime = performance.now();
 
   console.log('\n\x1b[1m\x1b[35m╔════════════════════════════════════════════════════════════════════╗\x1b[0m');
-  console.log('\x1b[1m\x1b[35m║   🧪 x1.link MASTER COMPREHENSIVE AUTOMATED TESTING SUITE          ║\x1b[0m');
+  console.log('\x1b[1m\x1b[35m║   🧪 Matany MASTER COMPREHENSIVE AUTOMATED TESTING SUITE          ║\x1b[0m');
   console.log('\x1b[1m\x1b[35m╚════════════════════════════════════════════════════════════════════╝\x1b[0m');
 
   // 1. Unit Tests
@@ -41,6 +42,7 @@ async function runMasterTestSuite() {
   await runImageForensicsTests(harness);
   await runMemoryIntentTests(harness);
   await runDeepContentExtractorTests(harness);
+  await runFathomCyberEngineTests(harness);
 
   // 2. Integration Tests
   console.log('\n\x1b[1m\x1b[36m[STAGE 2/5]: Executing Live Integration Tests Battery...\x1b[0m');

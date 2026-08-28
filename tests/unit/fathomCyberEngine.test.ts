@@ -94,6 +94,38 @@ export async function runFathomCyberEngineTests(harness: TestHarness) {
       expect(res3.hasCycle).toBe(true);
       expect(res3.loopCount).toBeGreaterThanOrEqual(2);
     });
+
+    await harness.it('safely terminates repeat sequences inside an unclosed Markdown code fence (```)', () => {
+      const detector = new DeterministicCycleDetector();
+      const codeSnippet = '```typescript\nfunction optimize() {\n  return true;\n  return true;';
+      const safeOutput = detector.safeTerminate(codeSnippet);
+
+      expect(safeOutput).toContain('```typescript');
+      expect(safeOutput.endsWith('```')).toBe(true);
+      const audit = DeterministicCycleDetector.analyzeOpenDelimiters(safeOutput);
+      expect(audit.hasOpenCodeFence).toBe(false);
+    });
+
+    await harness.it('safely terminates repeat sequences inside an unclosed LaTeX math block ($$)', () => {
+      const detector = new DeterministicCycleDetector();
+      const latexSnippet = '$$\\oint_C \\mathbf{B} \\cdot d\\mathbf{l} = \\mu_0 I_{\\text{enc}} + \\Delta B';
+      const safeOutput = detector.safeTerminate(latexSnippet);
+
+      expect(safeOutput).toContain('$$\\oint_C');
+      expect(safeOutput.endsWith('$$')).toBe(true);
+      const audit = DeterministicCycleDetector.analyzeOpenDelimiters(safeOutput);
+      expect(audit.hasOpenLatexBlock).toBe(false);
+    });
+
+    await harness.it('preserves already balanced LaTeX ($$) and Markdown (```) fences without redundant duplication', () => {
+      const balanced = '$$\\hbar\\omega$$\n```python\nprint("ok")\n```';
+      const output = DeterministicCycleDetector.safeTerminate(balanced);
+
+      expect(output).toBe(balanced);
+      const audit = DeterministicCycleDetector.analyzeOpenDelimiters(output);
+      expect(audit.hasOpenCodeFence).toBe(false);
+      expect(audit.hasOpenLatexBlock).toBe(false);
+    });
   });
 
   await harness.describe('Fathom Cyber 2.6: Early Stopping Governor & Convergence', async () => {
@@ -113,8 +145,8 @@ export async function runFathomCyberEngineTests(harness: TestHarness) {
     });
 
     await harness.it('enforces hard reasoning token budget ceiling (250 tokens)', () => {
-      const governor = new EarlyStoppingGovernor();
-      governor.reset(10);
+      const governor = new EarlyStoppingGovernor(250);
+      governor.reset(10, 250);
       governor.registerTokens(255);
 
       const res = governor.evaluate();
@@ -153,7 +185,7 @@ export async function runFathomCyberEngineTests(harness: TestHarness) {
       expect(config.frequency_penalty).toBe(0.35);
       expect(config.presence_penalty).toBe(0.25);
       expect(config.max_tokens).toBe(32768);
-      expect(config.stop).toContain('<|end_of_thought|>');
+      expect(config.stop).toContain('</think>\n\n<think>');
     });
 
     await harness.it('processes streaming chunks and cuts runaway thinking loop upon convergence', () => {

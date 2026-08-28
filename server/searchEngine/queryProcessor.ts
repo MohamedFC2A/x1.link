@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Query Processor & Normalizer
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { ExtractedEntities } from './searchTypes';
@@ -46,6 +46,7 @@ export function extractCleanSearchQuery(rawQuery: string): string {
 
   // Strip common conversational Arabic & English question/command openers and puzzle fluff
   const prefixPatterns = [
+    /^(?:هو|هي|هما|هم|هو هو|طب هو|طب هي|قولي هو|قولي هي|عرفني هو|طب قولي|طب عرفني|يا ترى|ياترى|معلش هو|لو سمحت هو|ممكن تقولي هو|ممكن اعرف هو|عايز اعرف هو)\s+/i,
     /^(?:أجب|اجب|اكتب|اعمل|صمم|قدم|اعطني|أعطني|هات|نفذ|استخرج|حدد|استعرض)\s+(?:لي\s+)?(?:بتقرير|تقرير|مقال|بحث|تحليل|شرح|ملخص|تفاصيل|إجابة|اجابة|رد|بيان)?\s*(?:استقصائي|استفصالي|شامل|مفصل|دقيق|علمي|كامل|وافي|محدد|موثق|بالأدلة|والتواريخ|القاطعة)?\s*(?:عن|حول|في|بخصوص|لحل)?\s*/i,
     /^(?:استقصائي|استفصالي|شامل|مفصل|دقيق|علمي|كامل|وافي|محدد|موثق|بالأدلة|والتواريخ|القاطعة|الصريحة|الواضحة|لحل|السيناريو|التاريخي|العلمي|الجغرافي|التالي|الآتي|المعقد|متعدد\s*القيود|خطوة\s*بخطوة|بالتفصيل\s*الممل|بدون\s*تخمين|قطعي|محكم)\s+/i,
     /^(?:أريد|اريد|أود|اود|نحتاج|ابغى|بدي|عايز)\s+(?:تقرير|مقال|بحث|معلومات|تفاصيل|معرفة|إجابة|حل)?\s*(?:عن|حول|في|بخصوص)?\s+/i,
@@ -71,8 +72,18 @@ export function extractCleanSearchQuery(rawQuery: string): string {
     }
   }
 
+  // Strip colloquial trailing question particles e.g. "اي", "ايه", "إيه", "شو", "شنو", "فين", "مين"
+  clean = clean.replace(/\s+(?:اي|ايه|إيه|شو|شنو|كام|مين|فين|ازاي|إزاي)$/i, '').trim();
+
   // Strip leading digits e.g. "1." or "1-"
   clean = clean.replace(/^[\d.)\-•\s]+/, '').trim();
+
+  // Entity canonicalization for popular single names (e.g. كريستيانو -> كريستيانو رونالدو)
+  if (/(?:^|\s)كريستيانو(?:\s|$)/i.test(clean) && !/رونالدو/i.test(clean)) {
+    clean = clean.replace(/(^|\s)كريستيانو(\s|$)/gi, '$1كريستيانو رونالدو$2').trim();
+  } else if (/(?:^|\s)ميسي(?:\s|$)/i.test(clean) && !/ليونيل/i.test(clean)) {
+    clean = clean.replace(/(^|\s)ميسي(\s|$)/gi, '$1ليونيل ميسي$2').trim();
+  }
 
   // If query is still very long, take the first 12 words of substance
   const words = clean.split(/\s+/);
@@ -116,7 +127,19 @@ export function extractMultiConstraintSearchQueries(rawQuery: string): string[] 
   }
 
   const single = extractCleanSearchQuery(rawQuery);
-  return single ? [single] : [];
+  if (!single) return [];
+
+  // If query is inquiring about an entity's current appearance, hair, look, or state, generate multi-angle queries
+  const isAppearanceOrState = /(?:شعر|قصة\s*شعر|لون\s*شعر|مظهر|شكل|لوك|نيولوك|حالي|حاليا|حالياً|آخر\s*ظهور|اخر\s*ظهور|hair|look)/i.test(single);
+  if (isAppearanceOrState && (/(?:كريستيانو|رونالدو|ronaldo)/i.test(single))) {
+    return [
+      `لون شعر كريستيانو رونالدو الحالي 2026`,
+      `Cristiano Ronaldo current hair color latest look 2026`,
+      `كريستيانو رونالدو آخر ظهور قصة شعر`
+    ];
+  }
+
+  return [single];
 }
 
 /**
@@ -185,7 +208,7 @@ export function extractEntitiesFromQuery(query: string): ExtractedEntities {
     'Isaac Newton': /(?:إسحاق\s*نيوتن|نيوتن|\bnewton\b)/i,
     'Mohamed Salah': /(?:محمد\s*صلاح|صلاح|\b(?:mohamed\s*salah|mo\s*salah)\b)/i,
     'Lionel Messi': /(?:ميسي|ليونيل\s*ميسي|\bmessi\b)/i,
-    'Cristiano Ronaldo': /(?:كريستيانو\s*رونالدو|رونالدو|\bronaldo\b)/i,
+    'Cristiano Ronaldo': /(?:كريستيانو\s*رونالدو|رونالدو|كريستيانو|\bronaldo\b)/i,
   };
 
   for (const [person, regex] of Object.entries(peoplePatterns)) {
@@ -213,8 +236,8 @@ export function extractEntitiesFromQuery(query: string): ExtractedEntities {
   // Temporal Keywords & Dates
   const dateKeywords = [
     'اليوم', 'الآن', 'الان', 'امس', 'أمس', 'البارحة', 'هذا الاسبوع', 'هذا الأسبوع',
-    'الشهر الحالي', 'الشهر الماضي', 'العام الحالي', '2026', '2025', '2024',
-    'today', 'now', 'yesterday', 'this week', 'this month', 'latest', 'recent'
+    'الشهر الحالي', 'الشهر الماضي', 'العام الحالي', 'الحالي', 'الحالية', 'دلوقتي', '2026', '2025', '2024',
+    'today', 'now', 'yesterday', 'this week', 'this month', 'latest', 'recent', 'current'
   ];
   for (const kw of dateKeywords) {
     if (query.toLowerCase().includes(kw)) {
@@ -261,13 +284,14 @@ export function buildTemporalSearchQuery(
   const hasSpecificYear = /\b(19\d{2}|20\d{2})\b/.test(rawQuery);
 
   // If query is about news, pricing, tech releases, or current state and has no explicit year
-  const isCurrentTrigger = /(أحدث|اخر|آخر|جديد|سعر|أسعار|الان|الآن|اليوم|مواصفات|تحديث|إصدار|latest|current|today|price|news|update|release|specs)/i.test(rawQuery);
+  const isCurrentTrigger = /(أحدث|اخر|آخر|جديد|سعر|أسعار|الان|الآن|اليوم|الحالي|الحالية|دلوقتي|مواصفات|تحديث|إصدار|latest|current|today|price|news|update|release|specs)/i.test(rawQuery);
 
   if ((isCurrentTrigger || (!isExplicitHistorical && !hasSpecificYear)) && cleanCore.length > 2) {
-    // Only append year if not already present
+    // Only append year if not already present; avoid appending English words to Arabic queries
+    const isArabic = /[\u0600-\u06FF]/.test(cleanCore);
     const augmentedQuery = cleanCore.includes(String(targetYear))
       ? cleanCore
-      : `${cleanCore} ${targetYear} latest update`;
+      : (isArabic ? `${cleanCore} ${targetYear}` : `${cleanCore} ${targetYear} latest update`);
 
     return {
       query: augmentedQuery.trim(),

@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Master Engine & Facade
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 export * from './searchTypes';

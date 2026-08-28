@@ -1,13 +1,13 @@
 /**
  * Performance & High-Concurrency Stress Test
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { executeAutonomousSearch } from '../../server/searchEngine';
 
 async function runPerformanceStressTest() {
   console.log('\n\x1b[1m\x1b[33m====================================================================\x1b[0m');
-  console.log('\x1b[1m\x1b[33m⚡ HIGH-CONCURRENCY STRESS & LATENCY BENCHMARK (x1.link)\x1b[0m');
+  console.log('\x1b[1m\x1b[33m⚡ HIGH-CONCURRENCY STRESS & LATENCY BENCHMARK (Matany)\x1b[0m');
   console.log('\x1b[1m\x1b[33m====================================================================\x1b[0m\n');
 
   const testQueries = [

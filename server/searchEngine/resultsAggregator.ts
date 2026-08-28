@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Results Aggregation, Deduplication & 5-Pillar Ranking Engine
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { SearchResult, QueryIntent } from './searchTypes';

@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — React useSearch Hook
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { useState, useCallback, useRef } from 'react';

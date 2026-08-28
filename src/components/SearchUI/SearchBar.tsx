@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Advanced Search Bar Component
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import React, { useState, useRef, useEffect } from 'react';

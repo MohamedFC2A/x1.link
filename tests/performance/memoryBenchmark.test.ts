@@ -1,6 +1,6 @@
 /**
  * Memory Footprint & Rapid Cache Benchmark
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { TestHarness, expect } from '../testUtils';

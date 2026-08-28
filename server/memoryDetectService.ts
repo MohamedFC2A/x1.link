@@ -5,7 +5,7 @@ dotenv.config();
 
 /**
  * ============================================================================
- * MATANY.ONE / X1.LINK — MEMORY DETECT 2.0 MAX EDITION SERVICE LAYER
+ * MATANY.ONE / MATANY — MEMORY DETECT 2.0 MAX EDITION SERVICE LAYER
  * Autonomous Multi-Hop Vector Search, Temporal Invalidation & Conflict Engine
  * ============================================================================
  */

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import { highlightCode } from '@/lib/syntaxHighlighter';
 import { ChatMessageItem, ResolvedLinkInfo } from '../types';
 import ChatReasoning from './ui/chat-reasoning';
 import { Check, Copy, Flame, X, ShieldCheck, Sparkles, Camera, ExternalLink, Globe, PhoneCall, Phone, Mail, Zap, Loader2, Play, Pause, Video, Music, FileText, FileCode, FileType, Clock, RotateCcw, Bell, Trash2, Calendar, CheckCircle2, FileSearch } from 'lucide-react';
@@ -1118,10 +1121,14 @@ function CodeBlock({ className, children, language }: { className?: string; chil
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const highlightedHtml = useMemo(() => {
+    return highlightCode(codeText, language);
+  }, [codeText, language]);
+
   return (
-    <div className="my-2.5 sm:my-3 rounded-xl border border-white/[0.1] bg-black/85 overflow-hidden font-mono text-xs text-left shadow-lg" dir="ltr">
-      <div className="flex justify-between items-center bg-white/[0.05] px-3 py-1.5 border-b border-white/[0.08] text-zinc-400 text-[11px]">
-        <span className="font-mono text-zinc-300 font-semibold uppercase">{language || 'code'}</span>
+    <div className="my-2.5 sm:my-3 rounded-xl border border-white/[0.1] bg-[#090b10] overflow-hidden font-mono text-xs text-left shadow-lg" dir="ltr">
+      <div className="flex justify-between items-center bg-white/[0.04] px-3 py-1.5 border-b border-white/[0.08] text-zinc-400 text-[11px]">
+        <span className="font-mono text-zinc-300 font-semibold uppercase tracking-wider">{language || 'code'}</span>
         <button
           type="button"
           onClick={handleCopy}
@@ -1141,7 +1148,10 @@ function CodeBlock({ className, children, language }: { className?: string; chil
         </button>
       </div>
       <pre className="p-3 sm:p-3.5 overflow-x-auto text-zinc-200 text-xs leading-relaxed selection:bg-zinc-700">
-        <code className={className}>{children}</code>
+        <code
+          className={cn(className, `language-${language || 'code'}`)}
+          dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+        />
       </pre>
     </div>
   );
@@ -1184,7 +1194,28 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     }
     raw = raw.replace(thinkTagRegex, '').trim();
 
-    // 2. Extract and strip ```thought / ```think fences
+    // 1.b. Extract and strip token-based reasoning markers (<|begin_of_thought|>...<|end_of_thought|>, etc.)
+    const tokenThoughtRegex = /<\|(?:begin_of_thought|thought|think)\|>([\s\S]*?)(?:<\|(?:end_of_thought|\/thought|\/think)\|>|$)/gi;
+    let tokenMatch;
+    while ((tokenMatch = tokenThoughtRegex.exec(raw)) !== null) {
+      const extracted = tokenMatch[1].trim();
+      if (extracted) {
+        foundReasoning = foundReasoning ? `${foundReasoning}\n\n${extracted}` : extracted;
+      }
+    }
+    raw = raw.replace(tokenThoughtRegex, '').trim();
+
+    // 1.c. Extract and strip unclosed streaming <think> or <thought> tag so stream doesn't leak into main text
+    const unclosedThinkMatch = /<(?:think|thought)>([\s\S]*)$/i.exec(raw);
+    if (unclosedThinkMatch) {
+      const unclosedReasoning = unclosedThinkMatch[1].trim();
+      if (unclosedReasoning) {
+        foundReasoning = foundReasoning ? `${foundReasoning}\n\n${unclosedReasoning}` : unclosedReasoning;
+      }
+      raw = raw.replace(/<(?:think|thought)>[\s\S]*$/i, '').trim();
+    }
+
+    // 2. Extract and strip ```thought / ```think fences (closed)
     const thoughtRegex = /```(?:thought|think|thinking|reasoning)\s*\n?([\s\S]*?)```/gi;
     let match;
     while ((match = thoughtRegex.exec(raw)) !== null) {
@@ -1194,6 +1225,16 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       }
     }
     raw = raw.replace(thoughtRegex, '').trim();
+
+    // 2.b. Extract and strip unclosed streaming ```thought / ```think code fence
+    const unclosedThoughtFenceMatch = /```(?:thought|think|thinking|reasoning)\s*\n?([\s\S]*)$/i.exec(raw);
+    if (unclosedThoughtFenceMatch) {
+      const unclosedReasoning = unclosedThoughtFenceMatch[1].trim();
+      if (unclosedReasoning) {
+        foundReasoning = foundReasoning ? `${foundReasoning}\n\n${unclosedReasoning}` : unclosedReasoning;
+      }
+      raw = raw.replace(/```(?:thought|think|thinking|reasoning)\s*\n?[\s\S]*$/i, '').trim();
+    }
 
     // 3. Extract and strip leaked [S0: DISSECT] / [S1: PRUNE] / [S2: VERIFY] / [S3: CONVERGE] monologue blocks
     const sBlockRegex = /\[(?:S\d|DISSECT|PRUNE|VERIFY|LOCK|CONVERGE)\][\s\S]*?(?=\n\n[\u0621-\u064A]|\n[#*•-]*\s*[\u0621-\u064A]|$)/gi;
@@ -1472,7 +1513,15 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   }
 
   // Assistant Message
-  const isCyber = message.model === 'deepseek-v4-flash-cyber';
+  const isCyber = Boolean(
+    message.model === 'deepseek-v4-flash-cyber' ||
+    message.model === 'deepseek-v4-pro-cyber-2.6' ||
+    message.model === 'deepseek-v4-flash-cyber-2.6' ||
+    message.model === 'deepseek-v4-pro-cyber-2.1' ||
+    message.model === 'deepseek-v4-flash-cyber-2.1' ||
+    message.model?.includes('cyber') ||
+    message.model?.includes('cyper')
+  );
   const isMedia = message.model === 'meta/muse-spark-1.2-contributor';
   const isVision = message.model === 'deepseek-v4-flash-vision-exp' || Boolean(message.image);
 
@@ -1614,6 +1663,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             <span className="size-1.5 rounded-full bg-amber-400" />
             <span>تم إيقاف النموذج بواسطتك</span>
           </div>
+        ) : !displayContent.trim() && !hasReasoning && !isStreaming ? (
+          <div className="py-2.5 px-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs font-sans select-none">
+            <span>لم يتم استلام محتوى من النموذج. يرجى المحاولة مرة أخرى أو اختيار نموذج آخر.</span>
+          </div>
         ) : (
           <>
             {hasDownloadDetect && detectedMediaUrl && !message.content?.includes('[DOWNLOAD-DETECT-CARD:') && !message.content?.includes('[DOWNLOAD-BUTTON:') && (
@@ -1623,7 +1676,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             )}
             <div className="prose prose-invert max-w-none text-[#E2E8F0] text-sm sm:text-base leading-relaxed break-words font-sans">
               <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeKatex]}
               components={{
                 a: ({ href, children }: any) => {
                   const isTel = href?.startsWith('tel:');

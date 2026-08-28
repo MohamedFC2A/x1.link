@@ -1,6 +1,6 @@
 /**
  * High-Performance Test Harness & Assertion Engine
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 export interface TestResult {

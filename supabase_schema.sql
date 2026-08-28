@@ -1,5 +1,5 @@
 -- ============================================================================
--- MATANY.ONE / X1.LINK - SUPABASE PRODUCTION DATABASE SCHEMA
+-- MATANY.ONE / MATANY - SUPABASE PRODUCTION DATABASE SCHEMA
 -- ============================================================================
 
 -- 1. Create x1_chats table

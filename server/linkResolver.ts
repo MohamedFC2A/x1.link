@@ -1,6 +1,6 @@
 /**
  * Advanced Link Unshortener & Multi-Platform Deep Scraper / UI Profiler
- * Developed for x1.link / matany.one
+ * Developed for Matany / matany.one
  *
  * Capabilities:
  * 1. 4-Tier Deep Scraping Architecture (Facebook, Instagram, X/Twitter, YouTube, TikTok, Generic Web)

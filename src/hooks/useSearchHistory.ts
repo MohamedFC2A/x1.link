@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Search History Hook
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { useState, useEffect, useCallback } from 'react';

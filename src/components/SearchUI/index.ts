@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — SearchUI Components Barrel Export
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 export * from './SearchBar';

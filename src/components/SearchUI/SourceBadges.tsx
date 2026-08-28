@@ -1,6 +1,6 @@
 /**
  * Search Intelligence System — Source & Credibility Badges
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import React from 'react';

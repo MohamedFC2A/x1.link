@@ -1,7 +1,7 @@
 /**
  * Search Intelligence System — Deep Page Content Extractor
  * Fetches and extracts clean article text, match statistics, and deep page content.
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import * as cheerio from 'cheerio';

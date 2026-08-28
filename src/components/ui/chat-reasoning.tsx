@@ -41,7 +41,7 @@ export interface Milestone {
 /**
  * Parses raw reasoning into clean, high-level task titles with hidden deep thinking details.
  */
-function parseReasoningMilestones(
+export function parseReasoningMilestones(
   rawText: string,
   isThinking: boolean,
   hasFathomCam: boolean = false,
@@ -124,10 +124,13 @@ function parseReasoningMilestones(
       /•\s*المصدر\s*\[\d+\]/i.test(line);
 
     const isStepHeader = !isSourceLine && (
-      /^[-*•–—\d+.)\]]\s*/.test(line) ||
-      /^\[(?:S\d|DISSECT|PRUNE|VERIFY|LOCK|CONVERGE|FATHOM|TIME|AI|MEMORY|DOWNLOAD)[^\]]*\]/i.test(line) ||
-      /^(أولاً|ثانياً|ثالثاً|رابعاً|خامساً|الهدف|التحليل|الملاحظة|الاستنتاج|الخلاصة|الخطوة|مسار|المرحلة)\s*[:]/i.test(line) ||
-      /^(?:Step\s*\d|Phase\s*\d|Analysis|Hypothesis|Conclusion|Verification)\s*[:]/i.test(line)
+      /^[-*•–—\d+.)\]]+\s*/.test(line) ||
+      /^#{1,4}\s+/.test(line) ||
+      /^\*\*[^*]+\*\*/.test(line) ||
+      /^\[?(?:الفرع|المسار|المرحلة|الخطوة|محور|مسار|ركن)\s*(?:\d+|الأول|الثاني|الثالث|الرابع|الخامس|السادس|1|2|3|4|5|6)?\s*[:\]\-–—]/i.test(line) ||
+      /^\[(?:S\d|DISSECT|PRUNE|VERIFY|LOCK|CONVERGE|FATHOM|TIME|AI|MEMORY|DOWNLOAD|BRANCH|HYPOTHESIS|EVIDENCE|COUNTER_CHECK)[^\]]*\]/i.test(line) ||
+      /^(أولاً|ثانياً|ثالثاً|رابعاً|خامساً|الهدف|التحليل|الملاحظة|الاستنتاج|الخلاصة|الخطوة|مسار|المرحلة|تفكيك|مقاطعة|فحص|استنتاج|صياغة)\s*[:]/i.test(line) ||
+      /^(?:Step\s*\d|Phase\s*\d|Branch\s*\d|Analysis|Hypothesis|Conclusion|Verification|Synthesis)\s*[:]/i.test(line)
     );
 
     if (isStepHeader) {
@@ -153,13 +156,13 @@ function parseReasoningMilestones(
 
   const milestones: Milestone[] = [];
 
-  // Separate search blocks and consolidate all sources into ONE search milestone
+  // Separate search blocks and consolidate all sources into ONE rich search milestone
   const searchBlocks = rawBlocks.filter(b => 
-    /fathom\s*search|الاستعلام\s*الشبكي|البحث\s*عن|تدقيق\s*المصادر|search\s*for/i.test(b.header) ||
+    /fathom\s*search|serper|الاستعلام\s*الشبكي|البحث\s*عن|تدقيق\s*المصادر|search\s*for/i.test(b.header) ||
     /•\s*المصدر|المصدر\s*\[\d+\]/i.test(b.body) ||
     /•\s*المصدر|المصدر\s*\[\d+\]/i.test(b.header)
   );
-  const nonSearchBlocks = rawBlocks.filter(b => !searchBlocks.includes(b));
+  let nonSearchBlocks = rawBlocks.filter(b => !searchBlocks.includes(b));
 
   if (searchBlocks.length > 0) {
     let combinedQuery = '';
@@ -181,12 +184,16 @@ function parseReasoningMilestones(
     }
 
     const searchDetails = combinedDetailsList.join('\n\n').trim() || 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.';
-    let searchTitle = combinedQuery 
-      ? `الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search: [البحث عن: "${combinedQuery}"]`
-      : 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search';
+    const sourceMatches = searchDetails.match(/•\s*المصدر\s*\[\d+\]/g);
+    const sourceCount = sourceMatches ? sourceMatches.length : 0;
+    const sourceCountText = sourceCount > 0 ? ` (تم استرجاع وفحص ${sourceCount} مصادر معتمدة)` : '';
 
-    if (searchTitle.length > 95) {
-      searchTitle = searchTitle.slice(0, 95).trim() + '...]';
+    let searchTitle = combinedQuery 
+      ? `الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Serper AI و Fathom Search${sourceCountText}: [البحث عن: "${combinedQuery}"]`
+      : `الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Serper AI و Fathom Search${sourceCountText}`;
+
+    if (searchTitle.length > 105) {
+      searchTitle = searchTitle.slice(0, 105).trim() + '...]';
     }
 
     milestones.push({
@@ -199,7 +206,7 @@ function parseReasoningMilestones(
   } else if (hasFathomSearch) {
     milestones.push({
       id: 'step-fathom-search',
-      title: 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search',
+      title: 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Serper AI و Fathom Search',
       details: 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.',
       status: isThinking ? 'in-progress' : 'completed',
       specialType: 'search',
@@ -228,30 +235,69 @@ function parseReasoningMilestones(
     });
   }
 
-  // Process remaining non-search reasoning blocks
+  // Canonical branch titles for intelligent cognitive mapping
+  const branchArchetypes = [
+    'تفكيك المعطيات والكيانات وتحديد الإطار الزمني',
+    'تدقيق ومقاطعة مصادر وأدلة البحث الحي الميدانية',
+    'استكشاف الفرضيات البديلة وتفنيد الشائعات والالتباس',
+    'الاستدلال المنطقي وحسم الحقيقة القطعية المحدثة',
+    'هندسة وصياغة الإجابة الفصيحة والنهائية'
+  ];
+
+  // If nonSearchBlocks is only 1 block with extended body, subdivide into cognitive branches
+  if (nonSearchBlocks.length === 1 && (nonSearchBlocks[0].body.length > 40 || nonSearchBlocks[0].header.length > 40)) {
+    const singleBody = `${nonSearchBlocks[0].header}\n${nonSearchBlocks[0].body}`.trim();
+    let subSegments = singleBody.split(/\n+/).map(s => s.trim()).filter(s => s.length > 10);
+    if (subSegments.length < 2) {
+      // Split by sentence terminators
+      subSegments = singleBody.split(/(?<=[.؟!])\s+/).map(s => s.trim()).filter(s => s.length > 15);
+    }
+    if (subSegments.length >= 2) {
+      nonSearchBlocks = subSegments.slice(0, 5).map((seg, i) => ({
+        header: branchArchetypes[i] || `الفرع الاستدلالي ${i + 1}`,
+        body: seg
+      }));
+    }
+  }
+
+  // Process non-search reasoning blocks
   if (nonSearchBlocks.length >= 1) {
     nonSearchBlocks.slice(0, 6).forEach((blk, idx) => {
-      let rawHeader = blk.header.replace(/^[-*•–—\d+.)\]]+\s*/, '').trim();
+      let rawHeader = blk.header.replace(/^[-*•–—\d+.)\]#*]+\s*/, '').trim();
+      rawHeader = rawHeader.replace(/^\*\*(.*?)\*\*$/, '$1').trim();
       const isCamBlock = /fathom\s*cam|المسح\s*البصري|fathom\s*vision/i.test(rawHeader);
       const isSparkBlock = !isCamBlock && /fathom\s*spark|تفكيك\s*الأكواد|استيعاب\s*الوسائط/i.test(rawHeader);
 
       let title = rawHeader.replace(/^\[[^\]]+\]\s*/, '').trim();
 
-      // Clean and ensure title is crisp and concise (max ~65 chars)
-      if (title.length > 65) {
-        title = title.slice(0, 65).trim() + '...';
+      // Detect and map branch labels
+      const branchMatch = rawHeader.match(/(?:الفرع|المسار|المرحلة|الخطوة|محور|مسار|ركن)\s*(?:\d+|الأول|الثاني|الثالث|الرابع|الخامس|السادس|1|2|3|4|5|6)?\s*[:\]\-–—]\s*(.*)/i);
+      if (branchMatch && branchMatch[1]?.trim()) {
+        title = branchMatch[1].trim();
       }
 
       if (/^[a-zA-Z]/.test(title)) {
-        if (/dissect|constraint|variable|scope/i.test(title)) {
-          title = 'حصر الشروط والمتغيرات وتفكيك الفرضيات';
-        } else if (/prune|eliminate|contradict/i.test(title)) {
-          title = 'إبادة الاحتمالات المتناقضة وحصر مساحة البحث';
-        } else if (/verify|lock|fact|check/i.test(title)) {
-          title = 'تدقيق الأدلة وإثبات الحقائق القطعية';
-        } else if (/converge|synthesize|answer/i.test(title)) {
-          title = 'استخلاص النتيجة وصياغة الإجابة النهائية';
+        if (/dissect|constraint|variable|scope|entity/i.test(title)) {
+          title = 'تفكيك المعطيات والكيانات وتحديد الإطار الزمني';
+        } else if (/evidence|corroborat|cross|source|search/i.test(title)) {
+          title = 'تدقيق ومقاطعة مصادر البحث الميدانية الحية';
+        } else if (/prune|eliminate|contradict|hypothesis|counter/i.test(title)) {
+          title = 'استكشاف الفرضيات البديلة وتفنيد الشائعات';
+        } else if (/verify|lock|fact|check|deduce|synthesis/i.test(title)) {
+          title = 'الاستدلال المنطقي وحسم الحقيقة القطعية';
+        } else if (/converge|synthesize|answer|blueprint/i.test(title)) {
+          title = 'هندسة وصياغة الإجابة الفصيحة والنهائية';
         }
+      }
+
+      // If title is still generic or empty, assign from canonical branch archetypes
+      if (!title || /^(?:خطوة|step|استدلال|نقطة)\s*(?:الاستدلال)?\s*(?:رقم)?\s*\d*$/i.test(title)) {
+        title = branchArchetypes[idx] || `الفرع المعرفي ${idx + 1}`;
+      }
+
+      // Clean and ensure title is crisp and concise (max ~75 chars)
+      if (title.length > 75) {
+        title = title.slice(0, 75).trim() + '...';
       }
 
       let cleanDetails = blk.body;
@@ -264,39 +310,41 @@ function parseReasoningMilestones(
 
       milestones.push({
         id: `blk-${idx}`,
-        title: title || `خطوة الاستدلال رقم ${idx + 1}`,
+        title,
         details: cleanDetails.length > 5 ? cleanDetails : undefined,
         status: (isThinking && idx === nonSearchBlocks.length - 1) ? 'in-progress' : 'completed',
         specialType
       });
     });
-  } else if (milestones.length === 0) {
-    // Monologue fallback: Divide long text into 3 clean structural milestones
+  } else if (milestones.length === 0 || (milestones.length === 1 && milestones[0].specialType === 'search')) {
+    // Monologue fallback: Divide long text into 3-4 clean structural milestones
     const totalLen = cleaned.length;
-    const part1 = cleaned.slice(0, Math.floor(totalLen * 0.35)).trim();
-    const part2 = cleaned.slice(Math.floor(totalLen * 0.35), Math.floor(totalLen * 0.75)).trim();
-    const part3 = cleaned.slice(Math.floor(totalLen * 0.75)).trim();
+    if (totalLen > 60) {
+      const part1 = cleaned.slice(0, Math.floor(totalLen * 0.30)).trim();
+      const part2 = cleaned.slice(Math.floor(totalLen * 0.30), Math.floor(totalLen * 0.65)).trim();
+      const part3 = cleaned.slice(Math.floor(totalLen * 0.65)).trim();
 
-    milestones.push({
-      id: 'mono-1',
-      title: 'حصر الشروط والمتغيرات وتفكيك معطيات المسألة',
-      details: part1 || undefined,
-      status: 'completed',
-    });
+      milestones.push({
+        id: 'mono-1',
+        title: 'تفكيك المعطيات والكيانات وتحديد الإطار الزمني',
+        details: part1 || undefined,
+        status: 'completed',
+      });
 
-    milestones.push({
-      id: 'mono-2',
-      title: 'الاستدلال المنطقي ومطابقة الفرضيات والتقاطعات',
-      details: part2 || undefined,
-      status: isThinking && !part3 ? 'in-progress' : 'completed',
-    });
+      milestones.push({
+        id: 'mono-2',
+        title: 'تدقيق ومقاطعة مصادر البحث الميدانية والأدلة الحية',
+        details: part2 || undefined,
+        status: isThinking && !part3 ? 'in-progress' : 'completed',
+      });
 
-    milestones.push({
-      id: 'mono-3',
-      title: 'التحقق والتدقيق وحسم الاستنتاج النهائي',
-      details: part3 || undefined,
-      status: isThinking ? 'in-progress' : 'completed',
-    });
+      milestones.push({
+        id: 'mono-3',
+        title: 'الاستدلال المنطقي وحسم الحقيقة القطعية المحدثة',
+        details: part3 || undefined,
+        status: isThinking ? 'in-progress' : 'completed',
+      });
+    }
   }
 
   // Cap total milestones to avoid UI bloat
@@ -305,7 +353,7 @@ function parseReasoningMilestones(
 
 function renderMilestoneTitle(text: string) {
   if (!text) return null;
-  const engineRegex = /(?:\[?FATHOM\s*SEARCH\]?|Fathom\s*Search|\bFathom-Search\b|FathomSearch|فاثوم\s*سيرش|\[?FATHOM\s*SPARK\]?|Fathom\s*Spark|\bFathom-Spark\b|FathomSpark|فاثوم\s*سبارك|\[?SPARK\]?|\bSpark\b|\[?FATHOM\s*CAM(?:\s*VISION)?\]?|Fathom\s*Cam(?:\s*Vision)?|\bFathom-Cam\b|FathomCam|فاثوم\s*كام|\[?FATHOM\s*VISION\]?)/gi;
+  const engineRegex = /(?:\[?SERPER(?:\s*AI)?\]?|Serper(?:\s*AI)?|سيربر|\[?FATHOM\s*SEARCH\]?|Fathom\s*Search|\bFathom-Search\b|FathomSearch|فاثوم\s*سيرش|\[?FATHOM\s*SPARK\]?|Fathom\s*Spark|\bFathom-Spark\b|FathomSpark|فاثوم\s*سبارك|\[?SPARK\]?|\bSpark\b|\[?FATHOM\s*CAM(?:\s*VISION)?\]?|Fathom\s*Cam(?:\s*Vision)?|\bFathom-Cam\b|FathomCam|فاثوم\s*كام|\[?FATHOM\s*VISION\]?)/gi;
 
   if (!engineRegex.test(text)) {
     return text;
@@ -320,13 +368,24 @@ function renderMilestoneTitle(text: string) {
         const match = matches[i];
         if (!match) return <React.Fragment key={i}>{part}</React.Fragment>;
 
-        const isSearch = /search|سيرش/i.test(match);
-        const isSpark = !isSearch && /spark|سبارك/i.test(match);
-        const isCam = !isSearch && !isSpark && /cam|vision|كام/i.test(match);
+        const isSerper = /serper|سيربر/i.test(match);
+        const isSearch = !isSerper && /search|سيرش/i.test(match);
+        const isSpark = !isSerper && !isSearch && /spark|سبارك/i.test(match);
+        const isCam = !isSerper && !isSearch && !isSpark && /cam|vision|كام/i.test(match);
 
         return (
           <React.Fragment key={i}>
             {part}
+            {isSerper && (
+              <span dir="ltr" className="inline-flex items-center gap-1 mx-1.5 select-none font-sans font-black tracking-wide align-baseline">
+                <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                  Serper
+                </span>
+                <span className="bg-gradient-to-b from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                  AI
+                </span>
+              </span>
+            )}
             {isSearch && (
               <span dir="ltr" className="inline-flex items-center gap-1 mx-1.5 select-none font-sans font-black tracking-wide align-baseline">
                 <span className="bg-gradient-to-r from-cyan-300 via-sky-200 to-indigo-300 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">

@@ -1,6 +1,6 @@
 /**
  * Standalone Search API Endpoint (Edge / Serverless)
- * Matany AI (x1.link)
+ * Matany AI (Matany)
  */
 
 import { executeAutonomousSearch, SearchEngineOptions } from '../server/searchEngine';
