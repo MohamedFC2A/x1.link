@@ -2391,49 +2391,32 @@ export default async function handler(req: Request): Promise<Response> {
                     const delta = parsed.choices?.[0]?.delta;
                     if (delta?.reasoning_content) {
                       fullServerReasoning += delta.reasoning_content;
+                      if (cyberEngine) {
+                        cyberEngine.processStreamingChunk(delta.reasoning_content);
+                      }
                     }
                     if (delta?.content) {
                       fullServerContent += delta.content;
-                    }
 
-                    const incomingChunk = delta?.content || delta?.reasoning_content;
-                    if (incomingChunk) {
-                      if (cyberEngine) {
-                        const engineEval = cyberEngine.processStreamingChunk(incomingChunk);
-                        if (engineEval.shouldCutThinking && engineEval.reason === 'CYCLE_TERMINATION') {
-                          isCycleLoopDetected = true;
-                          console.warn(`[Vercel Edge] ⚠️ Fathom Cyber 2.6 Engine intercepted loop (${engineEval.reason}). Ending stream.`);
-                          const pending = cyberEngine.getCycleDetector().getPendingDelimiters(fullServerContent);
-                          const encoder = new TextEncoder();
-                          if (pending) {
-                            fullServerContent += pending;
-                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: pending } }] })}\n\n`));
-                          }
-                          controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
-                          controller.terminate();
-                          return;
-                        }
-                      }
-
-                      // Real-time Anti-Loop & Degeneracy Interceptor
-                      const cleanChunk = incomingChunk.replace(/[|\-:*#_`>\[\]()]/g, ' ').trim();
+                      // Real-time Anti-Loop & Degeneracy Interceptor on FINAL content only
+                      const cleanChunk = delta.content.replace(/[|\-:*#_`>\[\]()]/g, ' ').trim();
                       const incomingWords = cleanChunk.toLowerCase().split(/\s+/).filter((w: string) => w.length > 2);
                       for (const w of incomingWords) {
                         recentStreamWords.push(w);
                         if (recentStreamWords.length > 60) recentStreamWords.shift();
                       }
 
-                      if (fullServerContent.length > 150 && recentStreamWords.length >= 30) {
-                        const phrase = recentStreamWords.slice(-5).join(' ');
+                      if (fullServerContent.length > 300 && recentStreamWords.length >= 40) {
+                        const phrase = recentStreamWords.slice(-6).join(' ');
                         let count = 0;
-                        for (let i = 0; i <= recentStreamWords.length - 5; i++) {
-                          if (recentStreamWords.slice(i, i + 5).join(' ') === phrase) {
+                        for (let i = 0; i <= recentStreamWords.length - 6; i++) {
+                          if (recentStreamWords.slice(i, i + 6).join(' ') === phrase) {
                             count++;
                           }
                         }
-                        if (count >= 6 && phrase.length > 25) {
+                        if (count >= 8 && phrase.length > 30) {
                           isCycleLoopDetected = true;
-                          console.warn(`[Vercel Edge] ⚠️ Degenerate cycle loop detected on pattern "${phrase}". Ending stream.`);
+                          console.warn(`[Vercel Edge] ⚠️ Degenerate cycle loop detected on content pattern "${phrase}". Ending stream.`);
                           const pending = DeterministicCycleDetector.getPendingDelimiters(fullServerContent);
                           const encoder = new TextEncoder();
                           if (pending) {

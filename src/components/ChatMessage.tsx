@@ -1271,8 +1271,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     }
     raw = raw.replace(englishCoTRegex, '').trim();
 
-    // 6. If raw content is identical or a subset of reasoning (e.g. from prior fallback leaks in storage), clear it
-    if (raw.trim() && foundReasoning.trim() && (raw.trim() === foundReasoning.trim() || foundReasoning.includes(raw.trim()))) {
+    // 6. If raw content was an exact duplicate of stored message.reasoning (from prior storage fallback), clear duplicate display
+    if (raw.trim() && message.reasoning?.trim() && raw.trim() === message.reasoning.trim()) {
       raw = '';
     }
 

@@ -277,22 +277,24 @@ export function parseReasoningMilestones(
       }
 
       if (/^[a-zA-Z]/.test(title)) {
-        if (/dissect|constraint|variable|scope|entity/i.test(title)) {
+        if (/dissect|constraint|variable|scope|entity|clue|given/i.test(title)) {
           title = 'تفكيك المعطيات والكيانات وتحديد الإطار الزمني';
         } else if (/evidence|corroborat|cross|source|search/i.test(title)) {
           title = 'تدقيق ومقاطعة مصادر البحث الميدانية الحية';
-        } else if (/prune|eliminate|contradict|hypothesis|counter/i.test(title)) {
-          title = 'استكشاف الفرضيات البديلة وتفنيد الشائعات';
-        } else if (/verify|lock|fact|check|deduce|synthesis/i.test(title)) {
-          title = 'الاستدلال المنطقي وحسم الحقيقة القطعية';
-        } else if (/converge|synthesize|answer|blueprint/i.test(title)) {
+        } else if (/prune|eliminate|contradict|hypothesis|counter|case/i.test(title)) {
+          title = 'استكشاف الفرضيات البديلة وفحص الاحتمالات';
+        } else if (/verify|lock|fact|check|deduce|synthesis|oxygen|suit|speed|light/i.test(title)) {
+          title = 'الاستدلال المنطقي ومطابقة الشروط';
+        } else if (/converge|synthesize|answer|blueprint|output/i.test(title)) {
           title = 'هندسة وصياغة الإجابة الفصيحة والنهائية';
+        } else {
+          title = branchArchetypes[idx % branchArchetypes.length] || `الفرع الاستدلالي ${idx + 1}`;
         }
       }
 
       // If title is still generic or empty, assign from canonical branch archetypes
       if (!title || /^(?:خطوة|step|استدلال|نقطة)\s*(?:الاستدلال)?\s*(?:رقم)?\s*\d*$/i.test(title)) {
-        title = branchArchetypes[idx] || `الفرع المعرفي ${idx + 1}`;
+        title = branchArchetypes[idx % branchArchetypes.length] || `الفرع المعرفي ${idx + 1}`;
       }
 
       // Clean and ensure title is crisp and concise (max ~75 chars)
