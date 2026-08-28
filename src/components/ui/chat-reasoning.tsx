@@ -572,7 +572,9 @@ export default function ChatReasoning({
                 const isLast = idx === milestones.length - 1;
                 const isProgress = step.status === 'in-progress';
                 const isDone = step.status === 'completed';
-                const isExpanded = Boolean(expandedDetails[step.id]);
+                const isExpanded = expandedDetails[step.id] !== undefined 
+                  ? expandedDetails[step.id] 
+                  : Boolean(isThinking && (isProgress || isLast));
                 const hasDetails = Boolean(step.details && step.details.trim().length > 0);
 
                 return (

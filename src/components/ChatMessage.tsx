@@ -1705,6 +1705,15 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 <DownloadDetectCard url={detectedMediaUrl} />
               </div>
             )}
+            {isStreaming && isThinking && !displayContent && (
+              <div className="flex items-center gap-2.5 py-2.5 px-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs font-mono text-zinc-300 select-none my-1.5">
+                <span className="relative flex size-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full size-2 bg-rose-500"></span>
+                </span>
+                <span className="text-zinc-300 font-medium">المحرك العصبي يعالج الفرضيات ويدقق المعطيات لصياغة الإجابة...</span>
+              </div>
+            )}
             <div className="prose prose-invert max-w-none text-[#E2E8F0] text-sm sm:text-base leading-relaxed break-words font-sans">
               <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkMath]}

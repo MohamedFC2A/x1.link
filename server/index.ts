@@ -3066,6 +3066,14 @@ const server = app.listen(PORT, () => {
   console.log(`[X1-SERVER] Perception Engine: deepseek-v4-flash-vision-exp (Native DeepSeek Multi-Vision)`);
 });
 
+process.on('uncaughtException', (err) => {
+  console.error('[X1-SERVER UncaughtException]:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[X1-SERVER UnhandledRejection]:', reason);
+});
+
 process.on('SIGTERM', () => {
   server.close(() => process.exit(0));
 });
