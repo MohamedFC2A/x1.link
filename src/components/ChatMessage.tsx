@@ -1276,11 +1276,27 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       raw = '';
     }
 
+    // 7. Resilient Recovery: If raw became empty after regex stripping, restore the actual answer portion
+    if (!raw.trim() && foundReasoning.trim() && !message.isThinking) {
+      const tableMatch = foundReasoning.match(/\|[\s\S]*?\|/);
+      const arabicAnswerMatch = foundReasoning.search(/\n\n(?=[\u0621-\u064A])|\n(?=[#*•-]*\s*[\u0621-\u064A])/);
+      if (tableMatch) {
+        const tableIndex = foundReasoning.indexOf(tableMatch[0]);
+        raw = foundReasoning.substring(tableIndex).trim();
+        foundReasoning = foundReasoning.substring(0, tableIndex).trim();
+      } else if (arabicAnswerMatch !== -1) {
+        raw = foundReasoning.substring(arabicAnswerMatch).trim();
+        foundReasoning = foundReasoning.substring(0, arabicAnswerMatch).trim();
+      } else if (!message.reasoning?.trim()) {
+        raw = message.content || foundReasoning;
+      }
+    }
+
     return {
       displayContent: raw,
       effectiveReasoning: foundReasoning
     };
-  }, [message.content, message.reasoning]);
+  }, [message.content, message.reasoning, message.isThinking]);
 
   const hasReasoning = Boolean(effectiveReasoning && effectiveReasoning.trim().length > 0);
   const isThinking = Boolean(message.isThinking);
