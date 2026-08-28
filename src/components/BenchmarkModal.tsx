@@ -182,7 +182,7 @@ export const BenchmarkModal: React.FC<BenchmarkModalProps> = ({
                       <div className="flex flex-col items-center gap-0.5">
                         <span className="flex items-center gap-1">
                           {m.name}
-                          {m.isCyber && <span className="text-amber-400 text-xs">👑</span>}
+                          {m.isCyber && <span className="text-cyan-400 text-[9px] px-1 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 font-mono">PRO</span>}
                         </span>
                         <span className="text-[10px] font-normal text-zinc-500">{m.provider}</span>
                       </div>

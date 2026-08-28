@@ -1586,7 +1586,7 @@ async function processSingleLinkIntelligence(
           try {
             const searchContext = await performUltraDeepCyberSearch(cleanSearchQuery, undefined, signal);
             if (searchContext?.groundingContextBlock) {
-              searchGroundingBlock = `\n\n🌐 [استطلاع الفحص الحي وتدقيق الحقائق العلمية والطبية لموضوع الفيديو والادعاء المطروح]:\n${searchContext.groundingContextBlock}`;
+              searchGroundingBlock = `\n\n[استطلاع الفحص الحي وتدقيق الحقائق العلمية والطبية لموضوع الفيديو والادعاء المطروح]:\n${searchContext.groundingContextBlock}`;
             }
           } catch {}
         }
@@ -1594,9 +1594,9 @@ async function processSingleLinkIntelligence(
 
       let intelligenceDirective = '';
       if (isActuallyUnavailable) {
-        intelligenceDirective = `\n\n⚠️ [تنبيه استخباراتي]: هذا الرابط المحدد غير متاح حالياً على سيرفرات يوتيوب (محذوف أو خاص أو الرابط غير صالح). المطلوب منك: وضّح للمستخدم بلباقة أن الرابط غير متوفر حالياً على يوتيوب، ثم أجب مباشرة وبكل تفصيل على سؤاله وافحص الحقيقة العلمية والطبية للادعاء الشائع المرتبط بشرب الماء ووظائف الأعضاء واستشهاده بالآية الكريمة دون أي توقف أو اعتذار مجرد.`;
+        intelligenceDirective = `\n\n[تنبيه استخباراتي]: هذا الرابط المحدد غير متاح حالياً على سيرفرات يوتيوب (محذوف أو خاص أو الرابط غير صالح). المطلوب منك: وضّح للمستخدم بلباقة أن الرابط غير متوفر حالياً على يوتيوب، ثم أجب مباشرة وبكل تفصيل على سؤاله وافحص الحقيقة العلمية والطبية للادعاء الشائع المرتبط بشرب الماء ووظائف الأعضاء واستشهاده بالآية الكريمة دون أي توقف أو اعتذار مجرد.`;
       } else if (isSilentOrVisualOnly) {
-        intelligenceDirective = `\n\n🎬 [فيديو يعتمد على المحتوى البصري / الحيوانات / المؤثرات]: هذا الفيديو متاح بنجاح بعنوان "${ytResult.title}" من قناة "${ytResult.channelName || 'صانع المحتوى'}". لا يحتوي الفيديو على كلام منطوق مفرغ بل يعتمد على المشاهد والمؤثرات البصرية. المطلوب منك: الإجابة على سؤال المستخدم بدقة استناداً إلى سياق مقاطع قناة "${ytResult.channelName}" وموضوع الفيديو الظاهر في العنوان ونتائج البحث الحي المرفقة (مثل نوع الكائن وما يأكله وتصرفاته) دون أي ادعاء خاطئ بأن الفيديو محذوف.`;
+        intelligenceDirective = `\n\n[فيديو يعتمد على المحتوى البصري / الحيوانات / المؤثرات]: هذا الفيديو متاح بنجاح بعنوان "${ytResult.title}" من قناة "${ytResult.channelName || 'صانع المحتوى'}". لا يحتوي الفيديو على كلام منطوق مفرغ بل يعتمد على المشاهد والمؤثرات البصرية. المطلوب منك: الإجابة على سؤال المستخدم بدقة استناداً إلى سياق مقاطع قناة "${ytResult.channelName}" وموضوع الفيديو الظاهر في العنوان ونتائج البحث الحي المرفقة (مثل نوع الكائن وما يأكله وتصرفاته) دون أي ادعاء خاطئ بأن الفيديو محذوف.`;
       }
 
       const masterBlock = buildMasterVideoIntelligenceBlock(
@@ -1902,8 +1902,8 @@ function buildMultiLinkMatrixBlock(processedLinks: ProcessedLinkData[]): string 
   if (total === 1) {
     const item = processedLinks[0];
     return [
-      `🌐 [استخبارات وفحص محتوى الرابط والرؤية البصرية — LINK & FATHOM CAM VISION CONTEXT]:`,
-      `🔗 الرابط المفحوص: ${item.url}`,
+      `[استخبارات وفحص محتوى الرابط والرؤية البصرية — LINK & FATHOM CAM VISION CONTEXT]:`,
+      `الرابط المفحوص: ${item.url}`,
       `• التصنيف والمنصة: ${item.platformLabel}`,
       bar,
       item.summaryBlock,
@@ -1915,13 +1915,13 @@ function buildMultiLinkMatrixBlock(processedLinks: ProcessedLinkData[]): string 
   }
 
   const sections: string[] = [
-    `🌐 [مصفوفة استخبارات وفحص الروابط المتعددة — إجمالي الروابط: (${total}) روابط مفحوصة ومفهرسة بالتسلسل]`,
+    `[مصفوفة استخبارات وفحص الروابط المتعددة — إجمالي الروابط: (${total}) روابط مفحوصة ومفهرسة بالتسلسل]`,
     bar
   ];
 
   for (const item of processedLinks) {
     sections.push(`\n══════════════════════════════════════════════════════════════════════════════════`);
-    sections.push(`🔗 [رابط رقم ${item.index + 1} | Link #${item.index + 1}]: ${item.url}`);
+    sections.push(`[رابط رقم ${item.index + 1} | Link #${item.index + 1}]: ${item.url}`);
     sections.push(`• الترتيب في الرسالة: الرابط رقم (${item.index + 1})`);
     sections.push(`• النوع والمنصة: ${item.platformLabel}`);
     sections.push(`──────────────────────────────────────────────────────────────────────────────────`);

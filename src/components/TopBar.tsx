@@ -119,7 +119,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               title="مقارنة بينش مارك النماذج والذكاء الاصطناعي"
             >
               <Award className="w-3.5 h-3.5 text-cyan-400" />
-              <span>المقارنة والمعايير 👑</span>
+              <span>المقارنة والمعايير</span>
             </button>
           )}
 

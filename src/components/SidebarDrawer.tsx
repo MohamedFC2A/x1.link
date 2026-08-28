@@ -227,7 +227,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 <span className="font-sans">مقارنة بينش مارك النماذج</span>
               </div>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">
-                👑 58.4
+                Index: 53
               </span>
             </button>
           </div>

@@ -877,7 +877,7 @@ export const TimeDetectReminder: React.FC<{
               : "bg-white/[0.08] hover:bg-white/[0.14] text-white border-white/[0.16]"
           )}
         >
-          {isSaved ? "✓ تم حفظ التذكير" : "تأكيد الجدولة"}
+          {isSaved ? "تم حفظ التذكير" : "تأكيد الجدولة"}
         </button>
       </div>
     </div>
@@ -947,7 +947,7 @@ export const TimeDetectAutoDelete: React.FC<{
                 تم تدمير المحادثة ذاتياً بنجاح ومسح السجل...
               </span>
             ) : isCancelled ? (
-              <span className="text-emerald-400 font-bold">✓ تم إيقاف التدمير الذاتي بنجاح والاحتفاظ بالمحادثة.</span>
+              <span className="text-emerald-400 font-bold">تم إيقاف التدمير الذاتي بنجاح والاحتفاظ بالمحادثة.</span>
             ) : (
               'سيتم مسح هذه المحادثة بالكامل وتدمير سجلها محلياً وسحابياً فور انتهاء العداد:'
             )}

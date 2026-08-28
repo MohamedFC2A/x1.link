@@ -10,10 +10,10 @@ import { SearchResult, IntentClassificationResult } from './searchTypes';
  */
 function formatCredibilityStars(score?: number): string {
   const s = score ?? 0.85;
-  if (s >= 0.95) return '⭐⭐⭐⭐⭐ (موثوقية فائقة ومصدر رسمي)';
-  if (s >= 0.85) return '⭐⭐⭐⭐☆ (موثوقية عالية)';
-  if (s >= 0.70) return '⭐⭐⭐☆☆ (مصدر عام موثق)';
-  return '⭐⭐☆☆☆ (مصدر ثانوي)';
+  if (s >= 0.95) return '[5/5] (موثوقية فائقة ومصدر رسمي)';
+  if (s >= 0.85) return '[4/5] (موثوقية عالية)';
+  if (s >= 0.70) return '[3/5] (مصدر عام موثق)';
+  return '[2/5] (مصدر ثانوي)';
 }
 
 /**
@@ -32,7 +32,7 @@ export function buildSearchGroundingContextBlock(
   const bar = '━'.repeat(55);
 
   const lines: string[] = [
-    `🔍 [نتائج البحث الحي المباشر من الإنترنت وفحص الحداثة — ${currentYear} LIVE WEB INTELLIGENCE]`,
+    `[نتائج البحث الحي المباشر من الإنترنت وفحص الحداثة — ${currentYear} LIVE WEB INTELLIGENCE]`,
     `• الاستعلام الموجه: "${query}"`,
     `• تصنيف النية: ${intentResult.intent} (درجة الثقة: ${(intentResult.confidence * 100).toFixed(0)}%)`,
     `• توجيه الحداثة الزمنية: ${intentResult.temporalBias ? 'أولوية قصوى لبيانات وأخبار عام ' + currentYear : 'بحث سياقي شامل'}`,

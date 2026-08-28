@@ -348,17 +348,17 @@ export async function performVideoVisionPerception(
 
 المطلوب إجراء فحص جنائي واستخباراتي وبصري فائق الدقة باللغة العربية الفصحى يركز على المحاور الجوهرية التالية:
 
-1. 🔍 [رصد الأدوات والأجهزة والتفاصيل البصرية والميكرو-OCR (Physical Objects, Microphones, Tools & OCR)]:
+1. [رصد الأدوات والأجهزة والتفاصيل البصرية والميكرو-OCR (Physical Objects, Microphones, Tools & OCR)]:
    - افحص كل إطار بدقة متناهية: هل ظهرت أي أجهزة صوتية، ميكروفونات (مثل Condenser, Lavalier, Dynamic, Boom arm)، هواتف، شاشات، كاميرات، أدوات، أو شعارات؟ اذكر نوعها ولونها وموقعها الدقيق في الكادر وفي أي إطار/توقيت زمني ظهرت.
    - استخرج أي نصوص، أرقام، شعارات، أو علامات تجارية ظاهرة في الخلفية أو على الملابس أو الشاشات.
 
-2. 🧠 [الذاكرة البصرية التطورية وتتبع التحولات عبر الزمن (Temporal Visual Memory & State Transitions)]:
+2. [الذاكرة البصرية التطورية وتتبع التحولات عبر الزمن (Temporal Visual Memory & State Transitions)]:
    - تتبع تطور المشهد عبر الخط الزمني للإطارات:
      * الحالة الأولية (Initial State): كيف بدأ المشهد وما هي العناصر والمواد في البداية؟
      * التحولات والتغيرات المرحلية (Intermediate Progression & Actions): ما الذي طرأ وتغير؟
      * الحالة النهائية والنتيجة (Final State & Outcome): كيف انتهى المشهد وما النتيجة البصرية المحققة؟
 
-3. 🎬 [التفكيك البصري الزمني لكل إطار (Frame-by-Frame Timestamped Log)]:
+3. [التفكيك البصري الزمني لكل إطار (Frame-by-Frame Timestamped Log)]:
    - وثق كل إطار بطابعه الزمني، وما يظهر فيه من أشخاص، ملابس، تعابير وجوه، أدوات، إضاءة، وزوايا تصوير مع الإجابة المباشرة والصريحة على سؤال المستخدم.`;
 
   const contentParts: any[] = [
@@ -468,14 +468,14 @@ export function buildCrossReferencedMatrix(
   const bar = '━'.repeat(45);
   const rows: string[] = [];
 
-  rows.push('🔄 [مصفوفة المطابقة والربط الصوتي-البصري المتزامن — AUDIO/VISUAL CROSS-REFERENCE MATRIX]');
+  rows.push('[مصفوفة المطابقة والربط الصوتي-البصري المتزامن — AUDIO/VISUAL CROSS-REFERENCE MATRIX]');
   rows.push(bar);
 
   if (transcript && transcript.timestampedBlocks && transcript.timestampedBlocks.length > 0) {
     const blocks = transcript.timestampedBlocks.slice(0, 8); // Top representative timeline segments
     for (const b of blocks) {
-      rows.push(`📍 الفترة الزمنية [${b.timeRange}]:`);
-      rows.push(`  🎙️ ما قيل صوتياً (Monologue): "${b.speechText.slice(0, 180)}${b.speechText.length > 180 ? '...' : ''}"`);
+      rows.push(`• الفترة الزمنية [${b.timeRange}]:`);
+      rows.push(`  ما قيل صوتياً (Monologue): "${b.speechText.slice(0, 180)}${b.speechText.length > 180 ? '...' : ''}"`);
       
       // Find matching keyframe near this timestamp
       if (visionResult && visionResult.keyframes.length > 0) {
@@ -484,7 +484,7 @@ export function buildCrossReferencedMatrix(
         }, visionResult.keyframes[0]);
 
         if (nearestFrame) {
-          rows.push(`  👁️ المشهد البصري المقترن [${nearestFrame.timestampFormatted}]: ${nearestFrame.label}`);
+          rows.push(`  المشهد البصري المقترن [${nearestFrame.timestampFormatted}]: ${nearestFrame.label}`);
         }
       }
       rows.push('');
@@ -511,7 +511,7 @@ export function buildMasterVideoIntelligenceBlock(
     platform === 'facebook' ? 'فيسبوك (Facebook Video)' :
     platform === 'twitter' ? 'منصة إكس / تويتر (X / Twitter)' : 'الفيديو';
 
-  parts.push(`🎬 [استخبارات الفيديو الشاملة — الفحص البصري الفعلي، التفريغ الصوتي، والربط الزمني المتزامن]`);
+  parts.push(`[استخبارات الفيديو الشاملة — الفحص البصري الفعلي، التفريغ الصوتي، والربط الزمني المتزامن]`);
   parts.push(bar);
   parts.push(`• المنصة: ${platformName}`);
   if (transcriptResult) {
@@ -528,13 +528,13 @@ export function buildMasterVideoIntelligenceBlock(
   parts.push(bar);
 
   if (visionResult && visionResult.visualAnalysisAr) {
-    parts.push(`\n👁️ [1. التحليل البصري الفعلي، الذاكرة الزمنية، والتفاصيل غير المنطوقة]:\n`);
+    parts.push(`\n[1. التحليل البصري الفعلي، الذاكرة الزمنية، والتفاصيل غير المنطوقة]:\n`);
     parts.push(visionResult.visualAnalysisAr);
   }
 
   if (transcriptResult && (transcriptResult.rawSpokenText || transcriptResult.formattedCaptionsWithTimestamps)) {
     parts.push(`\n${bar}`);
-    parts.push(`\n🎙️ [2. التفريغ الصوتي الحرفي لكلام المتحدث بالطوابع الزمنية [MM:SS]]:\n`);
+    parts.push(`\n[2. التفريغ الصوتي الحرفي لكلام المتحدث بالطوابع الزمنية [MM:SS]]:\n`);
     if (Array.isArray(transcriptResult.timestampedBlocks) && transcriptResult.timestampedBlocks.length > 0) {
       const spokenPreview = transcriptResult.timestampedBlocks.slice(0, 15).map((b: any) => `[${b.timeRange}] ${b.speechText}`).join('\n\n');
       parts.push(spokenPreview);
@@ -630,14 +630,14 @@ export async function performPostImageVisionPerception(
 
 المطلوب إجراء فحص جنائي، بصري، وميكرو-OCR فائق الدقة باللغة العربية الفصحى يركز على المحاور التالية:
 
-1. 🔍 [استخراج النصوص الكاملة والميكرو-OCR (Micro-OCR & Full Text Extraction)]:
+1. [استخراج النصوص الكاملة والميكرو-OCR (Micro-OCR & Full Text Extraction)]:
    - استخرج بدقة 100% كافة النصوص، الجداول، التواريخ، الجداول الزمنية، المراحل، الأرقام، الدرجات، النسب المئوية، والملاحظات المكتوبة داخل الصور.
    - إذا كانت الصورة لجدول تنسيق، جدول امتحانات، بيان درجات، قرار وزاري، أو منشور تنسيق الثانوية العامة (مثل مواعيد تسجيل الرغبات للمرحلة الثالثة، مواعيد فتح وغلق الموقع، والحدود الدنيا): استخرج كافة التواريخ، الكليات المتاحة، والتعليمات الرسمية بالكامل.
 
-2. 📊 [تفكيك وتحليل المعطيات والجداول (Table & Structured Data Breakdown)]:
+2. [تفكيك وتحليل المعطيات والجداول (Table & Structured Data Breakdown)]:
    - حوّل أي جداول أو بيانات مجدولة ظاهرة في الصورة إلى نصوص أو جداول مهيكلة وواضحة.
 
-3. 💡 [الاستنتاج المباشر والإجابة على استفسار المنشور (Direct Contextual Advisory)]:
+3. [الاستنتاج المباشر والإجابة على استفسار المنشور (Direct Contextual Advisory)]:
    - لخص ما تعنيه الصورة بدقة وقدم التوصية المباشرة وحل الحيرة أو التساؤل المطروح (مثل: هل يتم التسجيل الآن أم الانتظار لموعد محدد وفق الجدول الرسمي الظاهر بالصورة؟).`;
 
   const contentParts: any[] = [

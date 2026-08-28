@@ -65,7 +65,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 title="مقارنة بينش مارك النماذج والذكاء الاصطناعي"
               >
                 <Award className="w-4 h-4 text-cyan-400" />
-                <span className="hidden sm:inline font-sans">المقارنة والمعايير 👑</span>
+                <span className="hidden sm:inline font-sans">المقارنة والمعايير</span>
               </button>
             )}
 

@@ -58,7 +58,7 @@ export async function runPromptAugmentationTests(harness: TestHarness) {
 
     await harness.it('should augment user or system prompt cleanly', () => {
       const basePrompt = 'أنت مساعد ذكي.';
-      const block = '🔍 [نتائج البحث الحي]: معلومات مؤكدة';
+      const block = '[نتائج البحث الحي]: معلومات مؤكدة';
       const combined = augmentPromptWithSearchResults(basePrompt, block);
       expect(combined).toBe(`${basePrompt}\n\n${block}`);
     });

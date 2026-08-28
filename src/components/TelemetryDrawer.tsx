@@ -209,7 +209,7 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
                 className="w-full mt-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-950/60 to-emerald-950/40 border border-cyan-500/30 hover:border-cyan-500/60 text-cyan-300 hover:text-white font-sans text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer active:scale-98"
               >
                 <Award className="w-4 h-4 text-cyan-400" />
-                <span>عرض مقارنة النماذج والذكاء (Benchmark Matrix) 👑</span>
+                <span>عرض مقارنة النماذج والذكاء (Benchmark Matrix)</span>
               </button>
             )}
           </div>

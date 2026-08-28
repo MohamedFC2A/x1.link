@@ -411,7 +411,7 @@ export const ImageForensicsModal: React.FC<ImageForensicsModalProps> = ({
                             </p>
                             {finding.recommendation && (
                               <p className="text-[11px] text-zinc-500 pt-1 font-sans border-t border-white/[0.04]">
-                                💡 نصيحة: {finding.recommendation}
+                                نصيحة: {finding.recommendation}
                               </p>
                             )}
                           </div>

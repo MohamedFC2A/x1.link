@@ -600,11 +600,11 @@ export function buildTikTokContextBlock(result: TikTokResult, maxChars = 10000):
     : 'غير محدد';
 
   const statsStr = [
-    result.stats.views ? `👁️ ${result.stats.views.toLocaleString('ar-EG')} مشاهدة` : '',
-    result.stats.likes ? `❤️ ${result.stats.likes.toLocaleString('ar-EG')} إعجاب` : '',
-    result.stats.comments ? `💬 ${result.stats.comments.toLocaleString('ar-EG')} تعليق` : '',
-    result.stats.shares ? `🔄 ${result.stats.shares.toLocaleString('ar-EG')} مشاركة` : '',
-    result.stats.saves ? `🔖 ${result.stats.saves.toLocaleString('ar-EG')} حفظ` : '',
+    result.stats.views ? `${result.stats.views.toLocaleString('ar-EG')} مشاهدة` : '',
+    result.stats.likes ? `${result.stats.likes.toLocaleString('ar-EG')} إعجاب` : '',
+    result.stats.comments ? `${result.stats.comments.toLocaleString('ar-EG')} تعليق` : '',
+    result.stats.shares ? `${result.stats.shares.toLocaleString('ar-EG')} مشاركة` : '',
+    result.stats.saves ? `${result.stats.saves.toLocaleString('ar-EG')} حفظ` : '',
   ].filter(Boolean).join(' | ') || 'إحصائيات غير معلنة';
 
   const truncatedText = (result.transcriptText || result.description).length > maxChars
@@ -612,16 +612,16 @@ export function buildTikTokContextBlock(result: TikTokResult, maxChars = 10000):
     : (result.transcriptText || result.description);
 
   const lines = [
-    '🎵 [بيانات واستخبارات فيديو تيك توك — TikTok Intelligence & Video Context]',
+    '[بيانات واستخبارات فيديو تيك توك — TikTok Intelligence & Video Context]',
     bar,
-    `• صانع المحتوى: ${result.author.nickname} (@${result.author.username})` + (result.author.verified ? ' [موثق ✅]' : ''),
+    `• صانع المحتوى: ${result.author.nickname} (@${result.author.username})` + (result.author.verified ? ' [موثق]' : ''),
     `• عنوان / وصف الفيديو: ${result.description || result.title || 'بدون وصف'}`,
     result.hashtags.length > 0 ? `• الهاشتاجات: ${result.hashtags.join(' ')}` : '',
     `• الصوت / الموسيقى: ${result.music.title} (بواسطة ${result.music.authorName})`,
     `• التفاعل والإحصائيات: ${statsStr}`,
     `• تاريخ النشر: ${uploadDate}`,
     `• الرابط المباشر: ${result.canonicalUrl}`,
-    `• حالة تفريغ الكلام المنطوق: ${result.hasRealTranscript ? '✓ متوفر تفريغ صوتي دقيق للكلام المنطوق' : '⚠️ لا يوجد تفريغ لكلام منطوق (يعتمد على المؤثرات/الموسيقى أو مجرد عنوان ووصف)'}`,
+    `• حالة تفريغ الكلام المنطوق: ${result.hasRealTranscript ? 'متوفر تفريغ صوتي دقيق للكلام المنطوق' : 'لا يوجد تفريغ لكلام منطوق (يعتمد على المؤثرات/الموسيقى أو مجرد عنوان ووصف)'}`,
     bar,
   ];
 
@@ -735,9 +735,9 @@ export async function fetchTikTokUserProfileAndVideos(username: string): Promise
 export function buildTikTokProfileContextBlock(profile: TikTokUserProfileResult): string {
   const bar = '━'.repeat(45);
   const lines: string[] = [
-    `🎵 [استخبارات حساب صانع المحتوى على تيك توك: @${profile.username}]`,
+    `[استخبارات حساب صانع المحتوى على تيك توك: @${profile.username}]`,
     bar,
-    `• الاسم التعريفي: ${profile.nickname} (@${profile.username})` + (profile.verified ? ' [موثق ✅]' : ''),
+    `• الاسم التعريفي: ${profile.nickname} (@${profile.username})` + (profile.verified ? ' [موثق]' : ''),
     profile.bio ? `• النبذة التعريفية (Bio): ${profile.bio}` : '',
     profile.followers ? `• المتابعون: ${profile.followers.toLocaleString('ar-EG')}` : '',
     profile.totalLikes ? `• إجمالي الإعجابات: ${profile.totalLikes.toLocaleString('ar-EG')}` : '',
@@ -749,7 +749,7 @@ export function buildTikTokProfileContextBlock(profile: TikTokUserProfileResult)
       ? new Date(profile.latestVideo.createTime * 1000).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
       : 'حديثاً';
     lines.push(
-      '🌟 [أحدث فيديو تم نشره بواسطة الحساب (Latest Video)]:',
+      '[أحدث فيديو تم نشره بواسطة الحساب (Latest Video)]:',
       `• عنوان/وصف أحدث فيديو: ${profile.latestVideo.title}`,
       `• رابط أحدث فيديو: ${profile.latestVideo.url}`,
       `• تاريخ النشر: ${latestDate}`,
@@ -760,7 +760,7 @@ export function buildTikTokProfileContextBlock(profile: TikTokUserProfileResult)
   }
 
   if (profile.recentVideos.length > 1) {
-    lines.push('📹 [قائمة الفيديوهات السابقة والحديثة للحساب]:');
+    lines.push('[قائمة الفيديوهات السابقة والحديثة للحساب]:');
     profile.recentVideos.slice(0, 5).forEach((v, idx) => {
       lines.push(`${idx + 1}. "${v.title}" — الرابط: ${v.url} (${v.views ? `${v.views} مشاهدة` : ''})`);
     });

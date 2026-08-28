@@ -586,7 +586,7 @@ export function buildSocialVideoContextBlock(
   }
 
   parts.push(bar);
-  parts.push(`📘 [استخبارات وتحليل وسائط ومنشورات ${pName}]`);
+  parts.push(`[استخبارات وتحليل وسائط ومنشورات ${pName}]`);
   parts.push(`• المنصة: ${pName}`);
   parts.push(`• نوع المنشور: ${metadata.postType === 'video' ? 'فيديو / ريلز (Video / Reel)' : metadata.postType === 'photo' ? 'منشور بصري / صور (Photo / Gallery)' : 'منشور وسائط اجتماعية (Social Post)'}`);
   parts.push(`• الرابط الأصلي المعتمد: ${metadata.canonicalUrl}`);
@@ -594,35 +594,35 @@ export function buildSocialVideoContextBlock(
   parts.push(`• عنوان المنشور: "${metadata.title}"`);
 
   if (metadata.mediaUrls && metadata.mediaUrls.length > 0) {
-    parts.push(`\n🖼️ [الصور والمرفقات البصرية المستخرجة — إجمالي (${metadata.mediaUrls.length}) صور عالية الدقة]:`);
+    parts.push(`\n[الصور والمرفقات البصرية المستخرجة — إجمالي (${metadata.mediaUrls.length}) صور عالية الدقة]:`);
     metadata.mediaUrls.forEach((img, i) => {
       parts.push(`  ${i + 1}. [صورة ${i + 1}]: ${img}`);
     });
   }
 
   if (metadata.videoUrl) {
-    parts.push(`\n🎬 [بث ورابط الفيديو المستخرج]: ${metadata.videoUrl}`);
+    parts.push(`\n[بث ورابط الفيديو المستخرج]: ${metadata.videoUrl}`);
   }
 
   if (metadata.metrics && (metadata.metrics.likes || metadata.metrics.comments || metadata.metrics.shares)) {
-    parts.push(`\n📊 [إحصائيات التفاعل على المنشور]: ${metadata.metrics.likes ? `${metadata.metrics.likes} إعجاب | ` : ''}${metadata.metrics.comments ? `${metadata.metrics.comments} تعليق | ` : ''}${metadata.metrics.shares ? `${metadata.metrics.shares} مشاركة` : ''}`);
+    parts.push(`\n[إحصائيات التفاعل على المنشور]: ${metadata.metrics.likes ? `${metadata.metrics.likes} إعجاب | ` : ''}${metadata.metrics.comments ? `${metadata.metrics.comments} تعليق | ` : ''}${metadata.metrics.shares ? `${metadata.metrics.shares} مشاركة` : ''}`);
   }
 
   if (metadata.commentsList && metadata.commentsList.length > 0) {
-    parts.push(`\n💬 [أبرز التعليقات والردود الواردة على المنشور — تم رصد (${metadata.commentsList.length}) تعليقات]:`);
+    parts.push(`\n[أبرز التعليقات والردود الواردة على المنشور — تم رصد (${metadata.commentsList.length}) تعليقات]:`);
     metadata.commentsList.forEach((c, idx) => {
       parts.push(`  ${idx + 1}. [${c.author}]: "${c.text}"${c.time ? ` (${c.time})` : ''}`);
     });
   }
 
   if (metadata.hashtags && metadata.hashtags.length > 0) {
-    parts.push(`\n🏷️ [الهاشتاجات]: ${metadata.hashtags.join(' ')}`);
+    parts.push(`\n[الهاشتاجات]: ${metadata.hashtags.join(' ')}`);
   }
 
   parts.push(bar);
 
   if (visionResult && visionResult.visualAnalysisAr) {
-    parts.push(`\n👁️ [الإدراك والتحليل البصري الفعلي والميكرو-OCR للصور والمشاهد المرفقة بالبوست]:\n`);
+    parts.push(`\n[الإدراك والتحليل البصري الفعلي والميكرو-OCR للصور والمشاهد المرفقة بالبوست]:\n`);
     parts.push(visionResult.visualAnalysisAr);
     parts.push(bar);
   }

@@ -477,7 +477,7 @@ export class ContextMemoryEngine {
     const content = m.content || '';
 
     // High priority: Contains Target URL or cyber reconnaissance
-    if (detectAndExtractUrl(content).hasUrl || content.includes('[🛡️ تقرير الاستطلاع الأمني') || content.includes('[تقرير الاستطلاع الأمني')) {
+    if (detectAndExtractUrl(content).hasUrl || content.includes('[تقرير الاستطلاع الأمني')) {
       weight += 1.0;
     }
 
@@ -954,12 +954,12 @@ export class ContextMemoryEngine {
     if (isMemoryDetectActive) {
       const summaryItems: string[] = [];
 
-      summaryItems.push(`[🧠 منظومة الذاكرة العرضية والدلالية ثلاثية المستويات — FATHOM CYBER 2.0 COGNITIVE MEMORY AURA]:`);
+      summaryItems.push(`[منظومة الذاكرة العرضية والدلالية ثلاثية المستويات — FATHOM CYBER 2.0 COGNITIVE MEMORY AURA]:`);
       summaryItems.push(`- حالة الذاكرة: نشطة ومتزامنة سحابياً عبر (50 محادثة / شبكة مفاهيم استنتاجية ديناميكية).`);
 
       // TIER 1: Working Memory Context
       if (this.memorySnapshot.workingMemory.activeTargets.length > 0 || this.memorySnapshot.workingMemory.activeGoal) {
-        summaryItems.push(`\n⚡ [المستوى 1: الذاكرة اللحظية والتنفيذية النشطة (Working Memory Scratchpad)]:`);
+        summaryItems.push(`\n[المستوى 1: الذاكرة اللحظية والتنفيذية النشطة (Working Memory Scratchpad)]:`);
         if (this.memorySnapshot.workingMemory.activeGoal) {
           summaryItems.push(`  * الهدف التنفيذي الحالي: "${this.memorySnapshot.workingMemory.activeGoal}"`);
         }
@@ -971,7 +971,7 @@ export class ContextMemoryEngine {
       // TIER 2: Episodic Memory Ledger
       const episodesToPresent = topEpisodicNodes.length > 0 ? topEpisodicNodes : chronologicalPastEpisodes.slice(0, 6);
       if (episodesToPresent.length > 0) {
-        summaryItems.push(`\n📜 [المستوى 2: ذاكرة المواقف والأحداث السابقة كاملة التفاصيل (Episodic Event Ledger)]:`);
+        summaryItems.push(`\n[المستوى 2: ذاكرة المواقف والأحداث السابقة كاملة التفاصيل (Episodic Event Ledger)]:`);
         episodesToPresent.forEach((ep, idx) => {
           const label = idx === 0 
             ? 'الموقف/المحادثة السابقة مباشرة (جلسة 1)' 
@@ -994,13 +994,13 @@ export class ContextMemoryEngine {
         12
       );
       if (compactTriples) {
-        summaryItems.push(`\n🕸️ [المستوى 3: الذاكرة الاستنتاجية التراكمية وشبكة المفاهيم (Semantic Dynamic Graph)]:`);
+        summaryItems.push(`\n[المستوى 3: الذاكرة الاستنتاجية التراكمية وشبكة المفاهيم (Semantic Dynamic Graph)]:`);
         summaryItems.push(compactTriples);
       }
 
       // Conflict Resolution & Truth Reconciliation
       if (matchedConflicts.length > 0) {
-        summaryItems.push(`\n⚖️ [سجل تسوية التناقضات المعرفية والتحديث الزمني (Conflict Reconciliation)]:`);
+        summaryItems.push(`\n[سجل تسوية التناقضات المعرفية والتحديث الزمني (Conflict Reconciliation)]:`);
         matchedConflicts.forEach(c => {
           summaryItems.push(`  * المفهوم (${c.conceptId}): تم استبدال [${c.previousFact}] بـ [${c.revisedFact}] (${c.reason}).`);
         });

@@ -272,11 +272,11 @@ export async function extractTextClientMetadata(file: File): Promise<{
       for (const rawPath of entries) {
         const entry = zip.files[rawPath];
         if (entry.dir) {
-          filePaths.push(`📁 ${rawPath}`);
+          filePaths.push(`[DIR] ${rawPath}`);
           continue;
         }
 
-        filePaths.push(`📄 ${rawPath} (${formatFileSize((entry as any)._data?.uncompressedSize || 0)})`);
+        filePaths.push(`[FILE] ${rawPath} (${formatFileSize((entry as any)._data?.uncompressedSize || 0)})`);
 
         if (isReadableCodeOrTextFile(rawPath) && totalExtractedLength < MAX_TOTAL_ARCHIVE_TEXT) {
           try {

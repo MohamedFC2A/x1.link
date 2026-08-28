@@ -1380,34 +1380,34 @@ export function buildForensicReportMarkdown(report: ForensicReport): string {
   });
 
   // ── Executive Metadata Summary Table
-  lines.push(`\n### 📋 جدول ملخص بيانات العتاد والميتاداتا (Hardware & Technical Summary):`);
+  lines.push(`\n### جدول ملخص بيانات العتاد والميتاداتا (Hardware & Technical Summary):`);
   lines.push(`| التصنيف الفني | الحقل / المعيار | القيمة المستخرجة والحالة |`);
   lines.push(`|:---|:---|:---|`);
-  lines.push(`| 📁 **الملف والبصمة** | نوع الملف الحقيقي (Magic) | \`${report.fileInfo.detectedMimeType}\` |`);
-  lines.push(`| 📁 **الملف والبصمة** | أبعاد الصورة | \`${report.fileInfo.imageWidth || '?'} × ${report.fileInfo.imageHeight || '?'} px\` |`);
-  lines.push(`| 📁 **الملف والبصمة** | MD5 Hash | \`${report.fileInfo.md5Hash}\` |`);
-  lines.push(`| 📁 **الملف والبصمة** | SHA-256 Hash | \`${report.fileInfo.sha256Hash.slice(0, 16)}...\` |`);
+  lines.push(`| **الملف والبصمة** | نوع الملف الحقيقي (Magic) | \`${report.fileInfo.detectedMimeType}\` |`);
+  lines.push(`| **الملف والبصمة** | أبعاد الصورة | \`${report.fileInfo.imageWidth || '?'} × ${report.fileInfo.imageHeight || '?'} px\` |`);
+  lines.push(`| **الملف والبصمة** | MD5 Hash | \`${report.fileInfo.md5Hash}\` |`);
+  lines.push(`| **الملف والبصمة** | SHA-256 Hash | \`${report.fileInfo.sha256Hash.slice(0, 16)}...\` |`);
   
   if (report.device.make || report.device.model) {
-    lines.push(`| 📷 **العتاد والكاميرا** | الصانع والطراز | \`${[report.device.make, report.device.model].filter(Boolean).join(' ')}\` |`);
+    lines.push(`| **العتاد والكاميرا** | الصانع والطراز | \`${[report.device.make, report.device.model].filter(Boolean).join(' ')}\` |`);
   }
   if (report.device.lensModel) {
-    lines.push(`| 📷 **العتاد والكاميرا** | طراز العدسة | \`${report.device.lensModel}\` |`);
+    lines.push(`| **العتاد والكاميرا** | طراز العدسة | \`${report.device.lensModel}\` |`);
   }
   if (report.captureSettings.iso || report.captureSettings.shutterSpeed) {
-    lines.push(`| ⚙️ **إعدادات الالتقاط** | ISO / غالق / فتحة | \`ISO ${report.captureSettings.iso || '-'} | ${report.captureSettings.shutterSpeed || '-'} | ${report.captureSettings.aperture || '-'}\` |`);
+    lines.push(`| **إعدادات الالتقاط** | ISO / غالق / فتحة | \`ISO ${report.captureSettings.iso || '-'} | ${report.captureSettings.shutterSpeed || '-'} | ${report.captureSettings.aperture || '-'}\` |`);
   }
   if (report.timestamps.dateTimeOriginal) {
-    lines.push(`| ⏱️ **الطابع الزمني** | تاريخ التقاط الصورة | \`${report.timestamps.dateTimeOriginal}\` |`);
+    lines.push(`| **الطابع الزمني** | تاريخ التقاط الصورة | \`${report.timestamps.dateTimeOriginal}\` |`);
   }
   if (report.gps) {
-    lines.push(`| 🛰️ **الموقع الجغرافي** | إحداثيات GPS | \`${report.gps.latitude.toFixed(5)}, ${report.gps.longitude.toFixed(5)}\` |`);
+    lines.push(`| **الموقع الجغرافي** | إحداثيات GPS | \`${report.gps.latitude.toFixed(5)}, ${report.gps.longitude.toFixed(5)}\` |`);
     if (report.reverseGeocode?.fullAddress) {
-      lines.push(`| 📍 **العنوان المستنتج** | العنوان الفعلي | \`${report.reverseGeocode.fullAddress.slice(0, 60)}...\` |`);
+      lines.push(`| **العنوان المستنتج** | العنوان الفعلي | \`${report.reverseGeocode.fullAddress.slice(0, 60)}...\` |`);
     }
   }
-  lines.push(`| 🛡️ **سلامة الميتاداتا** | حالة التلاعب / التعديل | \`${report.integrity.reSaveDetected ? 'تم رصد تعديلات برمجية' : report.integrity.metadataStripped ? 'ميتاداتا مجردة جزئياً' : 'ميتاداتا أصلية سليمة'}\` |`);
-  lines.push(`| ⚠️ **مستوى خطورة الخصوصية** | OPSEC Threat Level | **${riskBadge(report.threat.overallRisk)}** |`);
+  lines.push(`| **سلامة الميتاداتا** | حالة التلاعب / التعديل | \`${report.integrity.reSaveDetected ? 'تم رصد تعديلات برمجية' : report.integrity.metadataStripped ? 'ميتاداتا مجردة جزئياً' : 'ميتاداتا أصلية سليمة'}\` |`);
+  lines.push(`| **مستوى خطورة الخصوصية** | OPSEC Threat Level | **${riskBadge(report.threat.overallRisk)}** |`);
 
   // ── Detailed Technical Layers
   lines.push(`\n══ 1. طبقة التوثيق المشفر والعلامات العصبية (Layer 1: Cryptographic Provenance & Watermarks):`);
@@ -1478,9 +1478,9 @@ export function buildForensicReportMarkdown(report: ForensicReport): string {
   lines.push(`\n══ 7. تقرير تقييم التهديد والتعرض الأمني (Automated OPSEC Threat Report):`);
   lines.push(`• تصنيف الخطورة: **${riskBadge(report.threat.overallRisk)}**`);
   lines.push(`• عوامل الخطر المكتشفة:`);
-  report.threat.riskFactors.forEach(f => lines.push(`  — ⚠️ ${f}`));
+  report.threat.riskFactors.forEach(f => lines.push(`  — [تحذير] ${f}`));
   lines.push(`• إجراءات التطهير والتعقيم الموصى بها (Sanitization Steps):`);
-  report.threat.remediationAdvice.forEach(a => lines.push(`  — 🛡️ ${a}`));
+  report.threat.remediationAdvice.forEach(a => lines.push(`  — [إجراء] ${a}`));
 
   // ── Categorized JSON Schema
   lines.push(`\n══ 8. مخطط البيانات المهيكل المكتمل (Categorized JSON Schema):`);

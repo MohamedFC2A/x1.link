@@ -902,7 +902,7 @@ export class MemoryDetectService {
     if (memories.length === 0) return '';
 
     const lines: string[] = [];
-    lines.push(`[🧠 منظومة الذاكرة السحابية المستقلة — MEMORY DETECT 2.0 MAX EDITION]:`);
+    lines.push(`[منظومة الذاكرة السحابية المستقلة — MEMORY DETECT 2.0 MAX EDITION]:`);
     lines.push(`- حالة الاستدعاء: تم استرجاع (${memories.length}) عقدة ذاكرة دلالية عبر البحث الهجين المتعدد المسارات.`);
     if (temporalContextLabel) {
       lines.push(`- النطاق الزمني المستشعر: ${temporalContextLabel}`);
@@ -915,9 +915,9 @@ export class MemoryDetectService {
                          mem.scope === 'decisions' ? 'استنتاجات الجلسة' : 'سياق سابق';
       
       const hopInfo = mem.hop_depth && mem.hop_depth > 0 ? ` [Graph Multi-Hop: Edge Depth ${mem.hop_depth}]` : '';
-      const symbolInfo = mem.symbol_match_score === 1.0 ? ' [🎯 Exact Symbol Hit]' : '';
+      const symbolInfo = mem.symbol_match_score === 1.0 ? ' [Exact Symbol Hit]' : '';
       
-      lines.push(`\n📌 [عقدة #${idx + 1} | ${scopeLabel}${hopInfo}${symbolInfo}]:`);
+      lines.push(`\n[عقدة #${idx + 1} | ${scopeLabel}${hopInfo}${symbolInfo}]:`);
       if (mem.summary) lines.push(`  * الملخص: "${mem.summary}"`);
       lines.push(`  * المحتوى: "${mem.content.trim()}"`);
       if (mem.code_symbols && mem.code_symbols.length > 0) {

@@ -8,7 +8,7 @@ import { REFERENCE_MODELS, ModelBenchmarkData } from './benchmarkTypes';
 
 export async function runComparativeBenchmark() {
   console.log('\n\x1b[1m\x1b[35m╔═══════════════════════════════════════════════════════════════════════════════════════════╗\x1b[0m');
-  console.log('\x1b[1m\x1b[35m║   ⚡ FATHOM CYBER 2.6 — MASTER ARTIFICIAL ANALYSIS BENCHMARK VALIDATION SUITE           ║\x1b[0m');
+  console.log('\x1b[1m\x1b[35m║   FATHOM CYBER 2.6 — MASTER ARTIFICIAL ANALYSIS BENCHMARK VALIDATION SUITE               ║\x1b[0m');
   console.log('\x1b[1m\x1b[35m╚═══════════════════════════════════════════════════════════════════════════════════════════╝\x1b[0m\n');
 
   const suiteStartTime = performance.now();
@@ -76,8 +76,8 @@ export async function runComparativeBenchmark() {
   printComparisonTable(models);
 
   const totalTime = ((performance.now() - suiteStartTime) / 1000).toFixed(2);
-  console.log(`\n\x1b[1m\x1b[32m✨ BENCHMARK AUDIT COMPLETE (Total Elapsed: ${totalTime}s)\x1b[0m`);
-  console.log(`\x1b[1m\x1b[36m🏆 Fathom Cyber 2.6 (DeepSeek V4 Pro Engine) verified by Artificial Analysis: Leads in Terminal-bench 2.1 (87.9%), Code Arena (1552 Elo), DeepSWE (62.7% vs Claude Sonnet 53.8%), and Unrivaled Cost-Efficiency ($0.55 / $2.19 — 80%+ Savings).\x1b[0m\n`);
+  console.log(`\n\x1b[1m\x1b[32m[AUDIT COMPLETE] (Total Elapsed: ${totalTime}s)\x1b[0m`);
+  console.log(`\x1b[1m\x1b[36m[LEADER] Fathom Cyber 2.6 (DeepSeek V4 Pro Engine) verified by Artificial Analysis: Leads in Terminal-bench 2.1 (87.9%), Code Arena (1552 Elo), DeepSWE (62.7% vs Claude Sonnet 53.8%), and Unrivaled Cost-Efficiency ($0.55 / $2.19 — 80%+ Savings).\x1b[0m\n`);
 
   return true;
 }
@@ -96,7 +96,7 @@ function printComparisonTable(models: ModelBenchmarkData[]) {
     pad('GPT-5.6 Terra', colWidths[4]),
     pad('Muse Spark 1.2', colWidths[5]),
     pad('Fathom Cyber 2.0', colWidths[6]),
-    pad('Fathom Cyber 2.6 ⭐', colWidths[7]),
+    pad('Fathom Cyber 2.6', colWidths[7]),
   ].join(' | ');
 
   const separator = colWidths.map(w => '─'.repeat(w)).join('─┼─');

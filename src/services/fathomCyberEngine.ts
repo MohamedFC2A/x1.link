@@ -395,9 +395,9 @@ export class DynamicScratchpadCompressor {
     [/(?:ينتمي إلى|عضو في|belongs to)/gi, ' ∈ '],
     [/(?:باقي القسمة|قياساً بـ|modulo)/gi, ' mod '],
     [/(?:معرفة مشتركة|common knowledge)/gi, ' CK '],
-    [/(?:حالة فوز|winning state)/gi, ' 𝒩 '],
-    [/(?:حالة خسارة|losing state)/gi, ' 𝒫 '],
-    [/(?:حالة تعادل|draw attractor)/gi, ' 𝒟 '],
+    [/(?:حالة فوز|winning state)/gi, ' N '],
+    [/(?:حالة خسارة|losing state)/gi, ' P '],
+    [/(?:حالة تعادل|draw attractor)/gi, ' D '],
     [/(?:دعني أفكر|فلنراجع|ربما علينا|من الجدير بالذكر|على أي حال|نلاحظ أن)/gi, '']
   ];
 

@@ -90,42 +90,6 @@ export function purgeEmojis(text: string): string {
 }
 
 export function renderSmartTextWithIcons(text: string): React.ReactNode {
-  if (!text || typeof text !== 'string' || !EMOJI_FAST_TEST.test(text)) return text;
-
-  EMOJI_REGEX.lastIndex = 0;
-
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = EMOJI_REGEX.exec(text)) !== null) {
-    const emojiChar = match[1];
-    const matchIndex = match.index;
-
-    if (matchIndex > lastIndex) {
-      parts.push(text.substring(lastIndex, matchIndex));
-    }
-
-    const IconComponent = EMOJI_ICON_MAP[emojiChar] || Sparkles;
-    parts.push(
-      React.createElement(
-        'span',
-        {
-          key: `smart-icon-${matchIndex}`,
-          className: 'inline-flex items-center justify-center text-zinc-400 align-middle mx-1 shrink-0 select-none'
-        },
-        React.createElement(IconComponent, {
-          className: 'w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[1.75] text-zinc-400'
-        })
-      )
-    );
-
-    lastIndex = matchIndex + emojiChar.length;
-  }
-
-  if (lastIndex < text.length) {
-    parts.push(text.substring(lastIndex));
-  }
-
-  return parts.length === 1 ? parts[0] : React.createElement(React.Fragment, null, ...parts);
+  if (!text || typeof text !== 'string') return text || '';
+  return purgeEmojis(text);
 }
