@@ -2,6 +2,8 @@ export type ModelType =
   | 'deepseek-v4-flash' 
   | 'deepseek-v4-flash-vision-exp' 
   | 'deepseek-v4-flash-cyber' 
+  | 'deepseek-v4-pro-cyber-2.6'
+  | 'deepseek-v4-flash-cyber-2.6'
   | 'deepseek-v4-pro-cyber-2.1'
   | 'deepseek-v4-flash-cyber-2.1'
   | 'meta/muse-spark-1.2-contributor';

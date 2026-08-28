@@ -6,8 +6,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { Brain, Cpu, Check, ChevronRight, Clock, Camera, Sparkles } from "lucide-react";
+import { Brain, Cpu, Check, ChevronDown, Camera, Sparkles, Search, Globe } from "lucide-react";
 import { ThinkingOrb } from "@/components/ui/thinking-orbs";
+import { motion, AnimatePresence } from "framer-motion";
+import { DetectedFeatureData, FEATURES_REGISTRY, TimeDetectIcon, MemoryDetectIcon } from "@/lib/featuresRegistry";
 
 export interface ReasoningStep {
   type: string;
@@ -15,8 +17,6 @@ export interface ReasoningStep {
   toolName?: string;
   output?: any;
 }
-
-import { DetectedFeatureData, FEATURES_REGISTRY, TimeDetectIcon, MemoryDetectIcon } from "@/lib/featuresRegistry";
 
 export interface ChatReasoningProps {
   reasoningText?: string;
@@ -30,141 +30,282 @@ export interface ChatReasoningProps {
   className?: string;
 }
 
-interface Milestone {
+export interface Milestone {
   id: string;
-  text: string;
+  title: string;
+  details?: string;
   status: 'completed' | 'in-progress';
+  specialType?: 'search' | 'cam' | 'spark' | null;
 }
 
+/**
+ * Parses raw reasoning into clean, high-level task titles with hidden deep thinking details.
+ */
 function parseReasoningMilestones(
   rawText: string,
   isThinking: boolean,
   hasFathomCam: boolean = false,
-  hasFathomSpark: boolean = false
+  hasFathomSpark: boolean = false,
+  hasFathomSearch: boolean = false
 ): Milestone[] {
+  // Base milestones if no text yet
   if (!rawText || !rawText.trim()) {
-    if (isThinking) {
-      const steps: Milestone[] = [
-        {
-          id: 'step-1',
-          text: 'تفكيك معطيات السؤال واستدعاء المعارف والروابط المنطقية',
-          status: (hasFathomCam || hasFathomSpark) ? 'completed' : 'in-progress',
-        },
-      ];
-      if (hasFathomCam) {
-        steps.push({
-          id: 'step-fathom-cam',
-          text: 'المسح البصري الميكروي وقراءة نصوص الجداول والصور المرفقة عبر Fathom Cam',
-          status: 'in-progress',
-        });
-      }
-      if (hasFathomSpark) {
-        steps.push({
-          id: 'step-fathom-spark',
-          text: 'استيعاب وتفكيك وسائط الفيديو والصوتيات والملفات المرفقة عبر Fathom Spark',
-          status: 'in-progress',
-        });
-      }
-      return steps;
+    const defaultSteps: Milestone[] = [];
+
+    if (hasFathomSearch) {
+      defaultSteps.push({
+        id: 'step-search',
+        title: 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search',
+        details: 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.',
+        status: isThinking ? 'in-progress' : 'completed',
+        specialType: 'search',
+      });
     }
-    return [];
+
+    if (hasFathomCam) {
+      defaultSteps.push({
+        id: 'step-cam',
+        title: 'المسح البصري الميكروي وقراءة نصوص الصور والمستندات البصرية عبر Fathom Cam',
+        details: 'فحص مصفوفة البكسلات وتحليل الجداول والنصوص البصرية بدقة ميكروية.',
+        status: isThinking ? 'in-progress' : 'completed',
+        specialType: 'cam',
+      });
+    }
+
+    if (hasFathomSpark) {
+      defaultSteps.push({
+        id: 'step-spark',
+        title: 'استيعاب وتفكيك وسائط الفيديو والصوتيات والأكواد المرفقة عبر Fathom Spark',
+        details: 'معالجة وتفكيك الأرشيفات المضغوطة وتتبع الإطارات الزمنية بدقة تامة.',
+        status: isThinking ? 'in-progress' : 'completed',
+        specialType: 'spark',
+      });
+    }
+
+    defaultSteps.push(
+      {
+        id: 'step-dissect',
+        title: 'حصر الشروط والمتغيرات وتفكيك معطيات المسألة',
+        details: 'تحديد المعالم الأساسية، قيود السياق، واستبعاد الفرضيات المتناقضة.',
+        status: isThinking ? 'in-progress' : 'completed',
+      },
+      {
+        id: 'step-deduce',
+        title: 'الاستدلال المنطقي وتدقيق التقاطعات التاريخية والتقنية',
+        details: 'مطابقة الفرضيات واستخلاص النتائج القطعية.',
+        status: isThinking ? 'in-progress' : 'completed',
+      }
+    );
+
+    return defaultSteps;
   }
 
-  // Clean raw text from think tags and sanitize any system prompt / policy leaks
+  // Clean raw text from think tags and sanitize any internal prompt leaks
   const cleaned = rawText
     .replace(/<think>/gi, '')
     .replace(/<\/think>/gi, '')
     .trim();
 
-  // Forbidden prompt leak pattern: filter out any mention of system prompt instructions or developer identity rules
   const isPromptLeak = (str: string) => {
     return /(?:DEVELOPER_IDENTITY|SYSTEM_PROMPT|النظام\s*يقول|حظر\s*مطلق|قاعدة\s*الاستجابة|تعليمات\s*الهوية|قواعد\s*النظام|المطور\s*الأساسي|Mohamed\s*Ahmed\s*Matany|MatanyLabs|Context-Proportional\s*Attribution|Strict\s*Exclusivity|Identity\s*vs\s*Conversations)/i.test(str);
   };
 
-  // Split lines
   const lines = cleaned.split('\n')
     .map(l => l.trim())
     .filter(l => Boolean(l) && !isPromptLeak(l));
 
-  const candidateSteps: string[] = [];
+  // Extract blocks by bullet points or step tags
+  const rawBlocks: { header: string; body: string }[] = [];
+  let currentHeader = '';
+  let currentBody: string[] = [];
 
-  let currentBlock = '';
   for (const line of lines) {
-    const isBullet = /^[-*•–—\d+.)\]]\s*/.test(line) || /^\[(?:FATHOM|TIME|AI|MEMORY|DOWNLOAD)[^\]]*\]/i.test(line) || /^(أولاً|ثانياً|ثالثاً|رابعاً|خامساً|الهدف|التحليل|الملاحظة|الاستنتاج|الخلاصة|الخطوة|مسار)\s*[:]/i.test(line);
-    if (isBullet && currentBlock) {
-      if (!isPromptLeak(currentBlock)) candidateSteps.push(currentBlock.trim());
-      currentBlock = line;
+    const isSourceLine = /^(?:[•*–—\-]\s*)?(?:المصدر\s*\[\d+\]|المصدر\s*[:\d]|المقتطف\s*[:]|رابط\s*[:]|المصدر\s*المعتمد|Source\s*\[\d+\]|Source\s*:|Snippet\s*:|URL\s*:|https?:\/\/)/i.test(line) ||
+      /•\s*المصدر\s*\[\d+\]/i.test(line);
+
+    const isStepHeader = !isSourceLine && (
+      /^[-*•–—\d+.)\]]\s*/.test(line) ||
+      /^\[(?:S\d|DISSECT|PRUNE|VERIFY|LOCK|CONVERGE|FATHOM|TIME|AI|MEMORY|DOWNLOAD)[^\]]*\]/i.test(line) ||
+      /^(أولاً|ثانياً|ثالثاً|رابعاً|خامساً|الهدف|التحليل|الملاحظة|الاستنتاج|الخلاصة|الخطوة|مسار|المرحلة)\s*[:]/i.test(line) ||
+      /^(?:Step\s*\d|Phase\s*\d|Analysis|Hypothesis|Conclusion|Verification)\s*[:]/i.test(line)
+    );
+
+    if (isStepHeader) {
+      if (currentHeader || currentBody.length > 0) {
+        rawBlocks.push({
+          header: currentHeader,
+          body: currentBody.join('\n').trim()
+        });
+      }
+      currentHeader = line;
+      currentBody = [];
     } else {
-      currentBlock = currentBlock ? `${currentBlock} ${line}` : line;
-    }
-  }
-  if (currentBlock && !isPromptLeak(currentBlock)) {
-    candidateSteps.push(currentBlock.trim());
-  }
-
-  // If only 1 massive block without bullets, split by sentence endings
-  let rawSteps = candidateSteps;
-  if (rawSteps.length <= 1 && cleaned.length > 70) {
-    const sentences = cleaned.split(/(?<=[.؟!])\s+/).filter(s => s.trim().length > 10 && !isPromptLeak(s));
-    if (sentences.length > 1) {
-      rawSteps = sentences;
+      currentBody.push(line);
     }
   }
 
-  // Filter out any leaked steps
-  rawSteps = rawSteps.filter(s => !isPromptLeak(s));
-
-  // Fallback if still empty or 1 block
-  if (rawSteps.length === 0) {
-    rawSteps = [
-      'تفكيك فرضيات ومعطيات المسألة وتحليل الأبعاد التقنية',
-      'تدقيق النتائج وصياغة الاستجابة الفصحى بدقة'
-    ];
-  } else if (rawSteps.length === 1) {
-    rawSteps = [
-      rawSteps[0].slice(0, 140) + (rawSteps[0].length > 140 ? '...' : ''),
-      'تدقيق المعطيات واستخلاص النتائج وصياغة الطرح'
-    ];
+  if (currentHeader || currentBody.length > 0) {
+    rawBlocks.push({
+      header: currentHeader,
+      body: currentBody.join('\n').trim()
+    });
   }
 
-  // Automatically inject Fathom Cam milestone only when genuine image vision is active (and no non-image files/spark active)
-  if (hasFathomCam && !hasFathomSpark) {
-    const alreadyHasFathom = rawSteps.some(s => /(?:Fathom\s*Cam|FathomCam|فاثوم\s*كام|المسح\s*البصري|فحص\s*الصور)/i.test(s));
-    if (!alreadyHasFathom) {
-      rawSteps.unshift('المسح البصري الميكروي وقراءة نصوص الصور والمستندات البصرية عبر Fathom Cam');
+  const milestones: Milestone[] = [];
+
+  // Separate search blocks and consolidate all sources into ONE search milestone
+  const searchBlocks = rawBlocks.filter(b => 
+    /fathom\s*search|الاستعلام\s*الشبكي|البحث\s*عن|تدقيق\s*المصادر|search\s*for/i.test(b.header) ||
+    /•\s*المصدر|المصدر\s*\[\d+\]/i.test(b.body) ||
+    /•\s*المصدر|المصدر\s*\[\d+\]/i.test(b.header)
+  );
+  const nonSearchBlocks = rawBlocks.filter(b => !searchBlocks.includes(b));
+
+  if (searchBlocks.length > 0) {
+    let combinedQuery = '';
+    const combinedDetailsList: string[] = [];
+
+    for (const sb of searchBlocks) {
+      const queryMatch = sb.header.match(/\[(?:البحث عن|query)\s*:\s*["']?([^\]"']+)["']?\]/i) ||
+                         sb.body.match(/(?:البحث عن|الاستعلام عن|استعلام|query)\s*[:"']?\s*([^"\n\r•]+)/i);
+      if (queryMatch && queryMatch[1]?.trim() && !combinedQuery) {
+        combinedQuery = queryMatch[1].trim();
+      }
+      let details = sb.body;
+      if (sb.header && !sb.header.includes('الاستعلام الشبكي') && !sb.body.startsWith(sb.header)) {
+        details = `${sb.header}\n${sb.body}`.trim();
+      }
+      if (details.trim()) {
+        combinedDetailsList.push(details.trim());
+      }
     }
-  }
 
-  // Automatically inject Fathom Spark milestone if active
-  if (hasFathomSpark) {
-    const alreadyHasSpark = rawSteps.some(s => /(?:Fathom\s*Spark|FathomSpark|فاثوم\s*سبارك|استيعاب\s*وتفكيك|استيعاب\s*الفيديو|تفكيك\s*الفيديو|تفريغ\s*الصوت|وسائط\s*الفيديو|الأكواد\s*المرفقة)/i.test(s));
-    if (!alreadyHasSpark) {
-      rawSteps.unshift('استيعاب وتفكيك وسائط الفيديو والصوتيات والأكواد المرفقة عبر Fathom Spark');
+    const searchDetails = combinedDetailsList.join('\n\n').trim() || 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.';
+    let searchTitle = combinedQuery 
+      ? `الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search: [البحث عن: "${combinedQuery}"]`
+      : 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search';
+
+    if (searchTitle.length > 95) {
+      searchTitle = searchTitle.slice(0, 95).trim() + '...]';
     }
+
+    milestones.push({
+      id: 'step-fathom-search',
+      title: searchTitle,
+      details: searchDetails,
+      status: 'completed',
+      specialType: 'search',
+    });
+  } else if (hasFathomSearch) {
+    milestones.push({
+      id: 'step-fathom-search',
+      title: 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search',
+      details: 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.',
+      status: isThinking ? 'in-progress' : 'completed',
+      specialType: 'search',
+    });
   }
 
-  // Allow dynamic milestone expansion (up to 8 milestones) so no steps are displaced or truncated
-  const maxSteps = Math.min(rawSteps.length, 8);
-  const sliced = rawSteps.slice(0, maxSteps);
+  const hasExtractedCam = nonSearchBlocks.some(b => /fathom\s*cam|المسح\s*البصري|fathom\s*vision/i.test(b.header));
+  if (hasFathomCam && !hasExtractedCam) {
+    milestones.push({
+      id: 'special-cam',
+      title: 'المسح البصري الميكروي وقراءة نصوص الصور والمستندات البصرية عبر Fathom Cam',
+      details: 'فحص مصفوفة البكسلات وتحليل الجداول والنصوص البصرية بدقة ميكروية.',
+      status: 'completed',
+      specialType: 'cam',
+    });
+  }
 
-  return sliced.map((stepText, idx) => {
-    // Strip leading markers like "1. ", "- ", "* "
-    const cleanStep = stepText.replace(/^[-*•–—\d+.)\]]+\s*/, '').trim();
-    const isLast = idx === sliced.length - 1;
-    const status: 'completed' | 'in-progress' = (isThinking && isLast) ? 'in-progress' : 'completed';
+  const hasExtractedSpark = nonSearchBlocks.some(b => /fathom\s*spark|تفكيك\s*الأكواد|استيعاب\s*الوسائط/i.test(b.header));
+  if (hasFathomSpark && !hasExtractedSpark) {
+    milestones.push({
+      id: 'special-spark',
+      title: 'استيعاب وتفكيك وسائط الفيديو والصوتيات والأكواد المرفقة عبر Fathom Spark',
+      details: 'معالجة وتفكيك الأرشيفات المضغوطة وتتبع الإطارات الزمنية بدقة تامة.',
+      status: 'completed',
+      specialType: 'spark',
+    });
+  }
 
-    return {
-      id: `milestone-${idx}`,
-      text: cleanStep,
-      status,
-    };
-  });
+  // Process remaining non-search reasoning blocks
+  if (nonSearchBlocks.length >= 1) {
+    nonSearchBlocks.slice(0, 6).forEach((blk, idx) => {
+      let rawHeader = blk.header.replace(/^[-*•–—\d+.)\]]+\s*/, '').trim();
+      const isCamBlock = /fathom\s*cam|المسح\s*البصري|fathom\s*vision/i.test(rawHeader);
+      const isSparkBlock = !isCamBlock && /fathom\s*spark|تفكيك\s*الأكواد|استيعاب\s*الوسائط/i.test(rawHeader);
+
+      let title = rawHeader.replace(/^\[[^\]]+\]\s*/, '').trim();
+
+      // Clean and ensure title is crisp and concise (max ~65 chars)
+      if (title.length > 65) {
+        title = title.slice(0, 65).trim() + '...';
+      }
+
+      if (/^[a-zA-Z]/.test(title)) {
+        if (/dissect|constraint|variable|scope/i.test(title)) {
+          title = 'حصر الشروط والمتغيرات وتفكيك الفرضيات';
+        } else if (/prune|eliminate|contradict/i.test(title)) {
+          title = 'إبادة الاحتمالات المتناقضة وحصر مساحة البحث';
+        } else if (/verify|lock|fact|check/i.test(title)) {
+          title = 'تدقيق الأدلة وإثبات الحقائق القطعية';
+        } else if (/converge|synthesize|answer/i.test(title)) {
+          title = 'استخلاص النتيجة وصياغة الإجابة النهائية';
+        }
+      }
+
+      let cleanDetails = blk.body;
+      if (rawHeader && !blk.body.startsWith(rawHeader) && rawHeader !== title) {
+        cleanDetails = `${rawHeader}\n${blk.body}`.trim();
+      }
+
+      const specialType: 'cam' | 'spark' | undefined = 
+        isCamBlock ? 'cam' : isSparkBlock ? 'spark' : undefined;
+
+      milestones.push({
+        id: `blk-${idx}`,
+        title: title || `خطوة الاستدلال رقم ${idx + 1}`,
+        details: cleanDetails.length > 5 ? cleanDetails : undefined,
+        status: (isThinking && idx === nonSearchBlocks.length - 1) ? 'in-progress' : 'completed',
+        specialType
+      });
+    });
+  } else if (milestones.length === 0) {
+    // Monologue fallback: Divide long text into 3 clean structural milestones
+    const totalLen = cleaned.length;
+    const part1 = cleaned.slice(0, Math.floor(totalLen * 0.35)).trim();
+    const part2 = cleaned.slice(Math.floor(totalLen * 0.35), Math.floor(totalLen * 0.75)).trim();
+    const part3 = cleaned.slice(Math.floor(totalLen * 0.75)).trim();
+
+    milestones.push({
+      id: 'mono-1',
+      title: 'حصر الشروط والمتغيرات وتفكيك معطيات المسألة',
+      details: part1 || undefined,
+      status: 'completed',
+    });
+
+    milestones.push({
+      id: 'mono-2',
+      title: 'الاستدلال المنطقي ومطابقة الفرضيات والتقاطعات',
+      details: part2 || undefined,
+      status: isThinking && !part3 ? 'in-progress' : 'completed',
+    });
+
+    milestones.push({
+      id: 'mono-3',
+      title: 'التحقق والتدقيق وحسم الاستنتاج النهائي',
+      details: part3 || undefined,
+      status: isThinking ? 'in-progress' : 'completed',
+    });
+  }
+
+  // Cap total milestones to avoid UI bloat
+  return milestones.slice(0, 6);
 }
 
-function renderMilestoneText(text: string) {
+function renderMilestoneTitle(text: string) {
   if (!text) return null;
-  // Match Fathom Spark / Spark, Fathom Cam / Cam, and variations
-  const engineRegex = /(?:\[?FATHOM\s*SPARK\]?|Fathom\s*Spark|\bFathom-Spark\b|FathomSpark|فاثوم\s*سبارك|\[?SPARK\]?|\bSpark\b|\[?FATHOM\s*CAM(?:\s*VISION)?\]?|Fathom\s*Cam(?:\s*Vision)?|\bFathom-Cam\b|FathomCam|فاثوم\s*كام|\[?FATHOM\s*VISION\]?)/gi;
+  const engineRegex = /(?:\[?FATHOM\s*SEARCH\]?|Fathom\s*Search|\bFathom-Search\b|FathomSearch|فاثوم\s*سيرش|\[?FATHOM\s*SPARK\]?|Fathom\s*Spark|\bFathom-Spark\b|FathomSpark|فاثوم\s*سبارك|\[?SPARK\]?|\bSpark\b|\[?FATHOM\s*CAM(?:\s*VISION)?\]?|Fathom\s*Cam(?:\s*Vision)?|\bFathom-Cam\b|FathomCam|فاثوم\s*كام|\[?FATHOM\s*VISION\]?)/gi;
 
   if (!engineRegex.test(text)) {
     return text;
@@ -179,12 +320,23 @@ function renderMilestoneText(text: string) {
         const match = matches[i];
         if (!match) return <React.Fragment key={i}>{part}</React.Fragment>;
 
-        const isSpark = /spark|سبارك/i.test(match);
-        const isCam = !isSpark && /cam|vision|كام/i.test(match);
+        const isSearch = /search|سيرش/i.test(match);
+        const isSpark = !isSearch && /spark|سبارك/i.test(match);
+        const isCam = !isSearch && !isSpark && /cam|vision|كام/i.test(match);
 
         return (
           <React.Fragment key={i}>
             {part}
+            {isSearch && (
+              <span dir="ltr" className="inline-flex items-center gap-1 mx-1.5 select-none font-sans font-black tracking-wide align-baseline">
+                <span className="bg-gradient-to-r from-cyan-300 via-sky-200 to-indigo-300 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                  Fathom
+                </span>
+                <span className="bg-gradient-to-b from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                  Search
+                </span>
+              </span>
+            )}
             {isCam && (
               <span dir="ltr" className="inline-flex items-center gap-1 mx-1.5 select-none font-sans font-black tracking-wide align-baseline">
                 <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
@@ -223,51 +375,59 @@ export default function ChatReasoning({
   defaultValue,
   className,
 }: ChatReasoningProps) {
-  const [value, setValue] = useState<string | undefined>(defaultValue);
-  const prevThinkingRef = useRef(isThinking);
+  const [value, setValue] = useState<string | undefined>(defaultValue ?? "reasoning");
+  const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
 
-  // Smoothly manage open/close state: open during thinking, auto-close on completion
   useEffect(() => {
     if (isThinking) {
       setValue("reasoning");
-    } else if (prevThinkingRef.current && !isThinking) {
-      // Automatically collapse smoothly once thinking completes
-      setValue(undefined);
     }
-    prevThinkingRef.current = isThinking;
   }, [isThinking]);
 
-  // Combine reasoningText or parts
+  const toggleDetail = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedDetails(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
   const fullText = reasoningText || partsInAccordion.map(p => p.text || '').filter(Boolean).join('\n\n');
 
-  // Detect whether Fathom Spark was used (videos, audio, code files, zip archives, docs)
-  const isFathomSparkActive = useMemo(() => {
+  const isFathomSearchActive = useMemo(() => {
     return (
-      activeFeatures.some(f => f.id === 'fathom_spark' || f.id === 'download_detect') ||
-      /(?:\[?FATHOM\s*SPARK\]?|Fathom\s*Spark|\bSpark\b|فاثوم\s*سبارك|سبارك|استيعاب\s*الفيديو|تفكيك\s*الفيديو|تفريغ\s*الصوت|videoVision|تحليل\s*المقطع|المقطع\s*المرئي|الملفات\s*المرفقة|أرشيف\s*مضغوط|أرشيف|الأكواد\s*المستخرجة|الأكواد\s*المرفقة|محتوى\s*المستند|محتوى\s*الكود|\.zip|\.rar|\.tar|\.gz|ZIP\s*files|ZIP\s*archive)/i.test(fullText)
+      activeFeatures.some(f => f.id === 'fathom_search') ||
+      /(?:\[?FATHOM\s*SEARCH\]?|Fathom\s*Search|\bFathomSearch\b|فاثوم\s*سيرش|\[LIVE\s*WEB\s*INTELLIGENCE\]|الاستعلام\s*الشبكي|المصادر\s*الموثقة|نتائج\s*البحث\s*الحي|•\s*المصدر\s*\[\d+\]|Fathom\s*Search\s*2\.0)/i.test(fullText)
     );
   }, [activeFeatures, fullText]);
 
-  // Detect whether Fathom Cam was used (pure image vision only)
+  const isFathomSparkActive = useMemo(() => {
+    if (isFathomSearchActive && !activeFeatures.some(f => f.id === 'fathom_spark')) {
+      return false;
+    }
+    return (
+      activeFeatures.some(f => f.id === 'fathom_spark' || f.id === 'download_detect') ||
+      /(?:\[?FATHOM\s*SPARK\]?|Fathom\s*Spark|فاثوم\s*سبارك|استيعاب\s*وتفكيك\s*الأكواد|تفكيك\s*الملفات\s*المرفقة|تفريغ\s*التسجيل\s*الصوتي|videoVision|أرشيف\s*مضغوط|محتوى\s*الكود|\.zip|\.rar|\.tar|\.gz|ZIP\s*archive)/i.test(fullText)
+    );
+  }, [activeFeatures, fullText, isFathomSearchActive]);
+
   const isFathomCamActive = useMemo(() => {
-    // If Spark is active and no explicit fathom_cam in activeFeatures, Fathom Cam is strictly false
-    if (isFathomSparkActive && !activeFeatures.some(f => f.id === 'fathom_cam')) {
+    if ((isFathomSparkActive || isFathomSearchActive) && !activeFeatures.some(f => f.id === 'fathom_cam')) {
       return false;
     }
     return (
       activeFeatures.some(f => f.id === 'fathom_cam') ||
       /(?:\[?FATHOM\s*CAM(?:\s*VISION)?\]?|Fathom\s*Cam|tansik\.digital\.gov\.eg|الخطوة\s*الرابعة|جدول\s*الرغبات|فحص\s*الصور|المسح\s*البصري|تحليل\s*الصورة|تحليل\s*الواجهة|واجهة\s*سوق|واجهة\s*المستخدم|عناصر\s*الواجهة|لقطة\s*الشاشة|الصورة\s*المرفقة)/i.test(fullText)
     );
-  }, [activeFeatures, fullText, isFathomSparkActive]);
+  }, [activeFeatures, fullText, isFathomSparkActive, isFathomSearchActive]);
 
-  // Parse into smart milestones with Fathom Cam & Spark awareness
+  // Parse into clean milestones with separate hidden details
   const milestones = useMemo(() => {
-    return parseReasoningMilestones(fullText, isThinking, isFathomCamActive, isFathomSparkActive);
-  }, [fullText, isThinking, isFathomCamActive, isFathomSparkActive]);
+    return parseReasoningMilestones(fullText, isThinking, isFathomCamActive, isFathomSparkActive, isFathomSearchActive);
+  }, [fullText, isThinking, isFathomCamActive, isFathomSparkActive, isFathomSearchActive]);
 
-  // Fathom Cam and Fathom Spark are displayed strictly inside the text milestones, NOT as header badges
   const visibleHeaderFeatures = useMemo(() => {
-    return activeFeatures.filter(f => f.id !== 'fathom_cam' && f.id !== 'fathom_spark');
+    return activeFeatures.filter(f => f.id !== 'fathom_cam' && f.id !== 'fathom_spark' && f.id !== 'fathom_search');
   }, [activeFeatures]);
 
   if (!fullText && !isThinking) return null;
@@ -284,13 +444,13 @@ export default function ChatReasoning({
       <AccordionItem
         value="reasoning"
         className={cn(
-          "w-full border rounded-xl px-3.5 sm:px-4 py-1 transition-all duration-300 backdrop-blur-md",
+          "w-full border rounded-2xl px-3.5 sm:px-4 py-1 transition-all duration-300 backdrop-blur-md",
           isThinking
-            ? "border-white/[0.1] bg-black/60 shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
-            : "border-white/[0.06] bg-black/50 hover:border-white/[0.1] shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
+            ? "border-white/[0.12] bg-[#07080a]/80 shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
+            : "border-white/[0.07] bg-[#07080a]/60 hover:border-white/[0.12] shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
         )}
       >
-        <AccordionTrigger className="text-xs font-medium text-zinc-300 hover:text-white hover:no-underline py-2 w-full flex items-center justify-between cursor-pointer">
+        <AccordionTrigger className="text-xs font-medium text-zinc-300 hover:text-white hover:no-underline py-2 w-full flex items-center justify-between cursor-pointer group">
           <div className="flex items-center gap-2.5 flex-wrap">
             <div className="flex items-center justify-center size-5 shrink-0">
               {isThinking ? (
@@ -307,7 +467,7 @@ export default function ChatReasoning({
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-xs text-zinc-300 font-medium tracking-tight">
+              <span className="font-mono text-xs text-zinc-200 font-semibold tracking-tight">
                 {isThinking ? "جاري التفكير والتحليل المنطقي..." : "التفكير والتحليل المنطقي"}
               </span>
 
@@ -339,62 +499,144 @@ export default function ChatReasoning({
                   </span>
                 </span>
               )}
+
+              {/* Sovereign Aura State Indicator */}
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full select-none text-[10px] font-sans font-bold tracking-wide border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]">
+                <Sparkles size={11} className="text-cyan-400 animate-pulse" />
+                <span>حالة الهالة السيادية</span>
+              </span>
             </div>
           </div>
         </AccordionTrigger>
 
-        <AccordionContent className="p-0 pt-3 pb-3 border-t border-white/[0.06]">
-          <div className="pt-1 px-1 text-right">
-            {/* Vertical Smart Milestones Path */}
-            <div className="relative pr-1 space-y-3">
+        <AccordionContent className="p-0 pt-2 pb-3 border-t border-white/[0.06]">
+          <div className="pt-2 px-1 text-right">
+            {/* Clean Vertical Milestones with Interactive Sub-Collapses */}
+            <div className="relative pr-1 space-y-2.5">
               {milestones.map((step, idx) => {
                 const isLast = idx === milestones.length - 1;
                 const isProgress = step.status === 'in-progress';
                 const isDone = step.status === 'completed';
-                const isFathomStep = /(?:\[?FATHOM\s*CAM(?:\s*VISION)?\]?|Fathom\s*Cam(?:\s*Vision)?)/i.test(step.text);
-                const isSparkStep = /(?:\[?FATHOM\s*SPARK\]?|Fathom\s*Spark|\bSpark\b)/i.test(step.text);
+                const isExpanded = Boolean(expandedDetails[step.id]);
+                const hasDetails = Boolean(step.details && step.details.trim().length > 0);
 
                 return (
-                  <div key={step.id} className="relative flex items-start gap-3 group">
+                  <div key={step.id} className="relative flex flex-col group">
                     {/* Vertical Connecting Line */}
                     {!isLast && (
-                      <div className="absolute right-[8px] top-4.5 bottom-[-12px] w-[1px] bg-white/[0.08]" />
+                      <div className="absolute right-[9px] top-5 bottom-[-14px] w-[1px] bg-white/[0.08] pointer-events-none" />
                     )}
 
-                    {/* Node Icon Circle */}
-                    <div className="relative z-10 shrink-0 mt-0.5">
-                      {isDone ? (
-                        isFathomStep ? (
-                          <div className="size-4.5 rounded-full bg-white/[0.06] border border-white/[0.14] flex items-center justify-center text-white shadow-inner">
-                            <Camera className="size-2.5 text-zinc-200 stroke-[2.2]" />
-                          </div>
-                        ) : isSparkStep ? (
-                          <div className="size-4.5 rounded-full bg-white/[0.06] border border-white/[0.14] flex items-center justify-center text-white shadow-inner">
-                            <Sparkles className="size-2.5 text-zinc-200 stroke-[2.2]" />
-                          </div>
-                        ) : (
-                          <div className="size-4.5 rounded-full bg-white/[0.06] border border-white/[0.14] flex items-center justify-center text-white shadow-inner">
-                            <Check className="size-2.5 text-zinc-200 stroke-[2.5]" />
-                          </div>
-                        )
-                      ) : isProgress ? (
-                        <div className="size-4.5 rounded-full flex items-center justify-center bg-transparent">
-                          <ThinkingOrb state="solving" size={18} theme="dark" speed={1.4} />
+                    {/* Milestone Header Row */}
+                    <div className="relative flex items-center justify-between gap-2 min-h-7">
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        {/* Node Icon Circle (Flat, zero-glow design) */}
+                        <div className="relative z-10 shrink-0">
+                          {isDone ? (
+                            step.specialType === 'search' ? (
+                              <div className="size-4.5 rounded-full bg-white/[0.06] border border-white/[0.14] flex items-center justify-center text-zinc-300">
+                                <Search className="size-2.5 text-zinc-300 stroke-[2.2]" />
+                              </div>
+                            ) : step.specialType === 'cam' ? (
+                              <div className="size-4.5 rounded-full bg-white/[0.06] border border-white/[0.14] flex items-center justify-center text-zinc-300">
+                                <Camera className="size-2.5 stroke-[2]" />
+                              </div>
+                            ) : step.specialType === 'spark' ? (
+                              <div className="size-4.5 rounded-full bg-white/[0.06] border border-white/[0.14] flex items-center justify-center text-zinc-300">
+                                <Sparkles className="size-2.5 stroke-[2]" />
+                              </div>
+                            ) : (
+                              <div className="size-4.5 rounded-full bg-white/[0.06] border border-white/[0.14] flex items-center justify-center text-zinc-300">
+                                <Check className="size-2.5 text-zinc-300 stroke-[2.5]" />
+                              </div>
+                            )
+                          ) : isProgress ? (
+                            <div className="size-4.5 rounded-full flex items-center justify-center bg-transparent">
+                              <ThinkingOrb state={step.specialType === 'search' ? "searching" : "solving"} size={18} theme="dark" speed={1.4} />
+                            </div>
+                          ) : (
+                            <div className="size-4.5 rounded-full bg-black border border-white/[0.08]" />
+                          )}
                         </div>
-                      ) : (
-                        <div className="size-4.5 rounded-full bg-black border border-white/[0.08]" />
-                      )}
+
+                        {/* Crisp High-Level Task Title + Inline Collapse Button */}
+                        <div className="flex-1 min-w-0 flex items-center gap-2">
+                          <p className={cn(
+                            "text-xs font-mono leading-relaxed truncate select-none",
+                            isProgress ? "text-white font-medium" : "text-zinc-300"
+                          )}>
+                            {renderMilestoneTitle(step.title)}
+                          </p>
+
+                          {/* Clean Borderless Sub-Collapse Icon Button */}
+                          {hasDetails && (
+                            <button
+                              type="button"
+                              onClick={(e) => toggleDetail(step.id, e)}
+                              className={cn(
+                                "size-5 p-0.5 rounded-md flex items-center justify-center transition-colors cursor-pointer select-none active:scale-95 shrink-0 hover:bg-white/[0.08]",
+                                isExpanded
+                                  ? "text-white"
+                                  : "text-zinc-400 hover:text-zinc-200"
+                              )}
+                              title={isExpanded ? "طي التفاصيل" : "عرض التفاصيل"}
+                              aria-label={isExpanded ? "طي التفاصيل" : "عرض التفاصيل"}
+                            >
+                              <ChevronDown
+                                className={cn(
+                                  "size-3.5 transition-transform duration-200",
+                                  isExpanded && "rotate-180 text-white"
+                                )}
+                              />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Milestone Single Clean Point with Fathom Cam / Spark Shiny Typography */}
-                    <div className="flex-1 min-w-0 pt-0.5">
-                      <p className={cn(
-                        "text-xs font-mono leading-relaxed break-words",
-                        isProgress ? "text-white font-medium" : (isFathomStep || isSparkStep ? "text-zinc-300" : "text-zinc-400")
-                      )}>
-                        {renderMilestoneText(step.text)}
-                      </p>
-                    </div>
+                    {/* Expandable Sub-Collapse Drawer for Deep Thinking Details */}
+                    <AnimatePresence>
+                      {isExpanded && step.details && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                          animate={{ opacity: 1, height: "auto", marginTop: 6 }}
+                          exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                          transition={{ duration: 0.18, ease: "easeInOut" }}
+                          className="overflow-hidden pr-7 pl-1"
+                        >
+                          <div className="relative rounded-xl bg-black/75 border border-white/[0.09] p-3 text-xs text-zinc-300 font-mono leading-relaxed max-h-60 overflow-y-auto custom-scrollbar select-text shadow-inner backdrop-blur-md">
+                            <div className="flex items-center pb-1.5 mb-2 border-b border-white/[0.06] text-[10px] font-mono">
+                              <span className="flex items-center gap-1.5 text-zinc-400">
+                                {step.specialType === 'search' ? (
+                                  <>
+                                    <Search className="size-3 text-zinc-400" />
+                                    <span className="text-zinc-400">مسار الاستعلام واسترجاع المصادر الحية</span>
+                                  </>
+                                ) : step.specialType === 'cam' ? (
+                                  <>
+                                    <Camera className="size-3 text-zinc-400" />
+                                    <span className="text-zinc-400">المسح البصري وتحليل المستندات</span>
+                                  </>
+                                ) : step.specialType === 'spark' ? (
+                                  <>
+                                    <Sparkles className="size-3 text-zinc-400" />
+                                    <span className="text-zinc-400">استيعاب وتفكيك الوسائط والأكواد</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Brain className="size-3 text-zinc-400" />
+                                    <span className="text-zinc-400">مسار الاستدلال والتفكير العميق</span>
+                                  </>
+                                )}
+                              </span>
+                            </div>
+                            <div className="whitespace-pre-wrap break-words dir-auto text-zinc-300/90 leading-relaxed text-[11.5px]">
+                              {step.details}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 );
               })}

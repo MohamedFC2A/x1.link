@@ -118,7 +118,7 @@ export async function createCloudChat(userId: string | null, title: string, mode
     const payload: any = {
       title: title.slice(0, 60),
       mode: isX1 ? 'x1' : 'base',
-      model: (model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') ? 'Fathom Cyber 2.1' : model === 'deepseek-v4-flash-cyber' ? 'Fathom Cyber 2.0' : model === 'deepseek-v4-flash-vision-exp' ? 'Fathom Cam' : 'Fathom 1.1',
+      model: (model === 'deepseek-v4-pro-cyber-2.6' || model === 'deepseek-v4-flash-cyber-2.6' || model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') ? 'Fathom Cyber 2.6' : model === 'deepseek-v4-flash-cyber' ? 'Fathom Cyber 2.0' : model === 'deepseek-v4-flash-vision-exp' ? 'Fathom Cam' : 'Fathom 1.1',
       device_id: deviceId,
     };
 
@@ -194,6 +194,24 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
       });
     }
 
+    // If saving assistant message, check if already persisted by server to prevent double-insert
+    if (msg.role === 'assistant') {
+      const { data: recentMsgs } = await supabase
+        .from('x1_messages')
+        .select('id, content')
+        .eq('chat_id', chatId)
+        .eq('role', 'assistant')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (recentMsgs && recentMsgs.length > 0) {
+        const lastContent = (recentMsgs[0].content || '').trim();
+        if (lastContent === finalContent.trim() || (finalContent.includes(lastContent) && lastContent.length > 50)) {
+          return;
+        }
+      }
+    }
+
     const payload: any = {
       chat_id: chatId,
       role: msg.role,
@@ -259,7 +277,7 @@ export async function fetchChatMessages(chatId: string): Promise<ChatMessageItem
       return [];
     }
 
-    return (data || []).map(row => {
+    const rawList = (data || []).map(row => {
       let content = row.content || '';
       let reasoning: string | undefined = row.reasoning || undefined;
 
@@ -293,11 +311,28 @@ export async function fetchChatMessages(chatId: string): Promise<ChatMessageItem
         image: images?.[0] || row.image_url || undefined,
         images: images && images.length > 0 ? images : undefined,
         mediaAttachments: nonImageAttachments && nonImageAttachments.length > 0 ? nonImageAttachments : undefined,
-        isX1: row.is_x1,
-        tokensCount: row.tokens_count,
+        isX1: !!row.is_x1,
+        tokensCount: row.tokens_count || 0,
         timestamp: formatEnglishTimestamp(new Date(row.created_at)),
       };
     });
+
+    // Deduplicate consecutive identical messages (prevents context poisoning from double-save bugs)
+    const deduplicatedList: ChatMessageItem[] = [];
+    for (const item of rawList) {
+      const prev = deduplicatedList[deduplicatedList.length - 1];
+      if (
+        prev &&
+        prev.role === item.role &&
+        prev.content.trim() === item.content.trim() &&
+        (prev.reasoning || '') === (item.reasoning || '')
+      ) {
+        continue;
+      }
+      deduplicatedList.push(item);
+    }
+
+    return deduplicatedList;
   } catch {
     return [];
   }

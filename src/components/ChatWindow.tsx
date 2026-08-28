@@ -28,8 +28,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   const modelDisplayName = isX1Active
     ? 'matany.one'
-    : activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1'
-    ? 'Fathom Cyber 2.1'
+    : activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-flash-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1'
+    ? 'Fathom Cyber 2.6'
     : activeModel === 'deepseek-v4-flash-cyber'
     ? 'Fathom Cyber 2.0'
     : activeModel === 'deepseek-v4-flash-vision-exp'

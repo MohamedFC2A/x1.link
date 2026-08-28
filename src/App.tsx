@@ -5,6 +5,7 @@ import { X1UnlockModal } from './components/X1UnlockModal';
 import { ArchitectureModal } from './components/ArchitectureModal';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { AuthRequiredModal } from './components/AuthRequiredModal';
+import { BenchmarkModal } from './components/BenchmarkModal';
 import { LandingPage } from './components/LandingPage';
 import { TopBar } from './components/TopBar';
 import { ChatWindow } from './components/ChatWindow';
@@ -122,17 +123,18 @@ export const App: React.FC = () => {
   const [isArchitectureModalOpen, setIsArchitectureModalOpen] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isBenchmarkModalOpen, setIsBenchmarkModalOpen] = useState<boolean>(false);
 
   // Supabase User & Cloud Sync
   const [user, setUser] = useState<User | null>(null);
   const [cloudChats, setCloudChats] = useState<SupabaseChat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
 
-  // Model & Chat State (Persistent Smart Preferred Base Model: Fathom 1.1, Fathom Cyber 2.0 or Fathom Cyber 2.1 Pro)
+  // Model & Chat State (Persistent Smart Preferred Base Model: Fathom 1.1, Fathom Cyber 2.0 or Fathom Cyber 2.6 Pro)
   const [preferredBaseModel, setPreferredBaseModel] = useState<ModelType>(() => {
     try {
       const saved = localStorage.getItem('matany_preferred_base_model');
-      if (saved === 'deepseek-v4-pro-cyber-2.1' || saved === 'deepseek-v4-flash-cyber-2.1' || saved === 'deepseek-v4-flash-cyber' || saved === 'deepseek-v4-flash') {
+      if (saved === 'deepseek-v4-pro-cyber-2.6' || saved === 'deepseek-v4-flash-cyber-2.6' || saved === 'deepseek-v4-pro-cyber-2.1' || saved === 'deepseek-v4-flash-cyber-2.1' || saved === 'deepseek-v4-flash-cyber' || saved === 'deepseek-v4-flash') {
         return saved as ModelType;
       }
     } catch (e) {}
@@ -143,7 +145,7 @@ export const App: React.FC = () => {
 
   const handleSelectModel = (model: ModelType) => {
     setActiveModel(model);
-    if (model === 'deepseek-v4-flash' || model === 'deepseek-v4-flash-cyber' || model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') {
+    if (model === 'deepseek-v4-flash' || model === 'deepseek-v4-flash-cyber' || model === 'deepseek-v4-pro-cyber-2.6' || model === 'deepseek-v4-flash-cyber-2.6' || model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') {
       setPreferredBaseModel(model);
       try {
         localStorage.setItem('matany_preferred_base_model', model);
@@ -465,7 +467,7 @@ export const App: React.FC = () => {
 
     const limitCheck = checkPlanLimit(currentPlanId, {
       isVision: uniqueImagesDataUrls.length > 0,
-      isCyber: meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
+      isCyber: meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.6' || meta?.model === 'deepseek-v4-flash-cyber-2.6' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
       isCyberUrlScan: isActualCyberUrlScan,
     });
 
@@ -477,7 +479,7 @@ export const App: React.FC = () => {
       } else if (limitCheck.reason === 'free_vision_limit') {
         limitMsg = 'لقد استهلكت حد التجربة المتاح في الخطة المجانية لإدراك Fathom Cam البصري (صورتان فقط). يرجى الترقية إلى باقة المحترف ($29) أو النخبة ($99) لتحليل غير محدود.';
       } else if (limitCheck.reason === 'free_cyber_disabled') {
-        limitMsg = 'فحوصات Fathom Cyber (2.0 / 2.1) والاستخبارات السيبرانية غير مفعلة في الخطة المجانية. يرجى تفعيل باقة المحترف ($29) أو النخبة ($99).';
+        limitMsg = 'فحوصات Fathom Cyber (2.0 / 2.6) والاستخبارات السيبرانية غير مفعلة في الخطة المجانية. يرجى تفعيل باقة المحترف ($29) أو النخبة ($99).';
       } else {
         limitMsg = 'لقد بلغت الحد الأقصى لرصيد التوكن الشهري لخطة اشتراكك الحالية. يمكنك الترقية لباقة النخبة ($99) للحصول على سعة مفتوحة.';
       }
@@ -760,7 +762,7 @@ export const App: React.FC = () => {
           reasoningText: fullAssistantReasoning,
           hasImages: uniqueImagesDataUrls.length > 0,
           imagesCount: uniqueImagesDataUrls.length,
-          isCyberScan: !!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
+          isCyberScan: !!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.6' || meta?.model === 'deepseek-v4-flash-cyber-2.6' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
           userId,
           currentPlanId,
         });
@@ -880,7 +882,7 @@ export const App: React.FC = () => {
           reasoningText: effectiveFinalReasoning,
           hasImages: uniqueImagesDataUrls.length > 0,
           imagesCount: uniqueImagesDataUrls.length,
-          isCyberScan: !!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
+          isCyberScan: !!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.6' || meta?.model === 'deepseek-v4-flash-cyber-2.6' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
           userId: currentUserId,
           currentPlanId: currentPlanId || 'free',
         });
@@ -1068,6 +1070,17 @@ export const App: React.FC = () => {
         }}
       />
 
+      {/* Artificial Analysis Benchmark Comparison Matrix Modal */}
+      <BenchmarkModal
+        isOpen={isBenchmarkModalOpen}
+        onClose={() => setIsBenchmarkModalOpen(false)}
+        onSelectModel={(modelId) => {
+          if (modelId.includes('cyber')) {
+            handleSelectModel('deepseek-v4-pro-cyber-2.6');
+          }
+        }}
+      />
+
       {/* Cloud History & Navigation Drawer */}
       <SidebarDrawer
         isOpen={isSidebarOpen}
@@ -1087,6 +1100,7 @@ export const App: React.FC = () => {
         onNavigateToLimits={() => navigateTo('limits')}
         onNavigateToProfile={() => navigateTo('profile')}
         onNavigateToChat={() => navigateTo('chat')}
+        onOpenBenchmark={() => setIsBenchmarkModalOpen(true)}
       />
 
       {/* Main App Layout */}
@@ -1106,6 +1120,7 @@ export const App: React.FC = () => {
           onNavigateToPricing={() => navigateTo('pricing')}
           onNavigateToLimits={() => navigateTo('limits')}
           onNavigateToProfile={() => navigateTo('profile')}
+          onOpenBenchmark={() => setIsBenchmarkModalOpen(true)}
           user={user}
         />
       ) : (
@@ -1130,6 +1145,7 @@ export const App: React.FC = () => {
             onNavigateToLimits={() => navigateTo('limits')}
             onNavigateToProfile={() => navigateTo('profile')}
             onNavigateToChat={() => navigateTo('chat')}
+            onOpenBenchmark={() => setIsBenchmarkModalOpen(true)}
           />
 
           {/* Dynamic Page Views Container */}
@@ -1212,8 +1228,8 @@ export const App: React.FC = () => {
                       activeModel={activeModel}
                       onSelectModel={handleSelectModel}
                       placeholder={
-                        activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1'
-                          ? "اطرح فرضية علمية أو افحص أمنياً..."
+                        activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-flash-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1'
+                          ? "اطرح لغزاً، مسألة معقدة، أو افحص أمنياً..."
                           : activeModel === 'deepseek-v4-flash-cyber'
                           ? "أدخل رابط الهدف أو اسأل أمنياً..."
                           : activeModel === 'deepseek-v4-flash-vision-exp'

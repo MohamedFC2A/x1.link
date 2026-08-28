@@ -8,7 +8,8 @@ import {
   CreditCard, 
   Activity, 
   User as UserIcon, 
-  ArrowRight
+  ArrowRight,
+  Award
 } from 'lucide-react';
 
 interface TopBarProps {
@@ -30,6 +31,7 @@ interface TopBarProps {
   onNavigateToLimits?: () => void;
   onNavigateToProfile?: () => void;
   onNavigateToChat?: () => void;
+  onOpenBenchmark?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -42,6 +44,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onNavigateToLimits,
   onNavigateToProfile,
   onNavigateToChat,
+  onOpenBenchmark,
 }) => {
   const isSecondaryPage = currentView !== 'chat' && currentView !== 'landing';
 
@@ -107,6 +110,18 @@ export const TopBar: React.FC<TopBarProps> = ({
             <CreditCard className="w-3.5 h-3.5" />
             <span>الاشتراكات</span>
           </button>
+
+          {onOpenBenchmark && (
+            <button
+              type="button"
+              onClick={onOpenBenchmark}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 text-cyan-400 hover:text-cyan-200 hover:bg-cyan-500/10 border border-cyan-500/20 bg-cyan-500/5 shadow-sm"
+              title="مقارنة بينش مارك النماذج والذكاء الاصطناعي"
+            >
+              <Award className="w-3.5 h-3.5 text-cyan-400" />
+              <span>المقارنة والمعايير 👑</span>
+            </button>
+          )}
 
           <button
             type="button"

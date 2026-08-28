@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, ShieldOff, Eye, Camera, ShieldCheck, ArrowLeft, MessageSquarePlus, Zap, Lock, MessageSquare, CreditCard, Activity, User as UserIcon } from 'lucide-react';
+import { Sparkles, ShieldOff, Eye, Camera, ShieldCheck, ArrowLeft, MessageSquarePlus, Zap, Lock, MessageSquare, CreditCard, Activity, User as UserIcon, Award } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { motion } from 'framer-motion';
 
@@ -11,6 +11,7 @@ interface LandingPageProps {
   onNavigateToPricing?: () => void;
   onNavigateToLimits?: () => void;
   onNavigateToProfile?: () => void;
+  onOpenBenchmark?: () => void;
   user: User | null;
 }
 
@@ -22,6 +23,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onNavigateToPricing,
   onNavigateToLimits,
   onNavigateToProfile,
+  onOpenBenchmark,
   user,
 }) => {
   return (
@@ -52,6 +54,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               >
                 <CreditCard className="w-4 h-4 text-zinc-300" />
                 <span className="hidden sm:inline font-sans">الاشتراكات</span>
+              </button>
+            )}
+
+            {onOpenBenchmark && (
+              <button
+                type="button"
+                onClick={onOpenBenchmark}
+                className="glass-button flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-cyan-300 hover:text-white border-cyan-500/30 hover:border-cyan-500/60 bg-cyan-950/20 text-xs font-semibold cursor-pointer active:scale-95 shadow-sm"
+                title="مقارنة بينش مارك النماذج والذكاء الاصطناعي"
+              >
+                <Award className="w-4 h-4 text-cyan-400" />
+                <span className="hidden sm:inline font-sans">المقارنة والمعايير 👑</span>
               </button>
             )}
 
@@ -93,7 +107,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Subtitle */}
         <p className="text-xs sm:text-base lg:text-lg text-zinc-400 max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed font-sans font-normal px-2">
-          منظومة محادثة فائقة الذكاء تجمع بين محرك <strong className="text-zinc-200 font-semibold">Fathom 1.1</strong> للتوليد اللغوي الحر، وإدراك <strong className="text-zinc-200 font-semibold">Fathom Cam</strong> البصري، وتدقيق <strong className="text-cyan-300 font-semibold">Fathom Cyber (2.0 / 2.1)</strong> بهالة الذاكرة ثلاثية المستويات والاستدلال الاختطافي الخوارزمي، ووضع <strong className="text-white font-semibold font-['Space_Grotesk']">NSFW Off</strong> المحمي بيومترياً.
+          منظومة محادثة فائقة الذكاء تجمع بين محرك <strong className="text-zinc-200 font-semibold">Fathom 1.1</strong> للتوليد اللغوي الحر، وإدراك <strong className="text-zinc-200 font-semibold">Fathom Cam</strong> البصري، وتدقيق <strong className="text-cyan-300 font-semibold">Fathom Cyber (2.0 / 2.6)</strong> بهالة الذاكرة ثلاثية المستويات والاستنباط المباشر الخاطف للألغاز، ووضع <strong className="text-white font-semibold font-['Space_Grotesk']">NSFW Off</strong> المحمي بيومترياً.
         </p>
 
         {/* Primary CTA Buttons */}
@@ -248,7 +262,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-200 border border-cyan-400/30">
-                  FATHOM CYBER 2.1 PRO
+                  FATHOM CYBER 2.6 PRO
                 </span>
               </div>
 

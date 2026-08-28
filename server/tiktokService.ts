@@ -71,6 +71,7 @@ export interface TikTokResult {
     originCover?: string;
     avatarUrl?: string;
     images?: string[];
+    playUrl?: string;
   };
   subtitles: TikTokSubtitleTrack[];
   transcriptText?: string;
@@ -561,6 +562,7 @@ export async function fetchTikTokData(input: string): Promise<TikTokResult | Tik
         originCover,
         avatarUrl: author.avatarUrl,
         images: images.length > 0 ? images : undefined,
+        playUrl,
       },
       subtitles,
       transcriptText,

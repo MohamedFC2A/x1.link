@@ -9,6 +9,9 @@
  *   5. Seamless Multimodal AI Injection & Direct Vision Model Routing
  */
 
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 import type { TimestampedBlock, YouTubeTranscriptResult } from './youtubeTranscript';
 
 export interface VideoKeyframe {
@@ -93,13 +96,101 @@ export function extractYouTubeKeyframes(videoId: string, durationSeconds?: numbe
   ];
 }
 
-export function extractTikTokKeyframes(
-  thumbnailUrl: string,
-  extraFrames?: { dynamicCover?: string; originCover?: string; avatarUrl?: string; images?: string[] },
-  durationSeconds?: number
-): VideoKeyframe[] {
+/**
+ * Extracts high-resolution keyframe snapshots across the video duration using ffmpeg
+ */
+export async function extractVideoKeyframesWithFfmpeg(
+  playUrl: string,
+  durationSeconds?: number,
+  maxFrames = 4
+): Promise<VideoKeyframe[]> {
+  if (!playUrl || !playUrl.startsWith('http')) return [];
+  const duration = durationSeconds && durationSeconds > 0 ? durationSeconds : 30;
+
+  const tmpDir = path.join(process.cwd(), 'scratch', 'extracted_frames');
+  if (!fs.existsSync(tmpDir)) {
+    try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {}
+  }
+
+  const timestamps: number[] = [];
+  if (duration <= 8) {
+    timestamps.push(1, Math.round(duration * 0.5));
+  } else {
+    const percentages = [0.10, 0.35, 0.65, 0.88];
+    percentages.slice(0, maxFrames).forEach(p => {
+      const ts = Math.max(1, Math.min(Math.round(duration * p), Math.round(duration - 1)));
+      if (!timestamps.includes(ts)) timestamps.push(ts);
+    });
+  }
+
   const frames: VideoKeyframe[] = [];
+  const sessionId = Math.random().toString(36).slice(2, 8);
+
+  for (let i = 0; i < timestamps.length; i++) {
+    const ts = timestamps[i];
+    const outPath = path.join(tmpDir, `frame_${sessionId}_${i}.jpg`);
+    try {
+      execSync(`ffmpeg -ss ${ts} -i "${playUrl}" -vframes 1 -q:v 2 -y "${outPath}"`, {
+        stdio: 'ignore',
+        timeout: 9000
+      });
+
+      if (fs.existsSync(outPath)) {
+        const buf = fs.readFileSync(outPath);
+        try { fs.unlinkSync(outPath); } catch {}
+
+        if (buf.length > 500) {
+          const b64 = `data:image/jpeg;base64,${buf.toString('base64')}`;
+          frames.push({
+            label: `إطار زمني عند التوقيت [${formatSecs(ts)}] (~${Math.round((ts / duration) * 100)}% من المقطع)`,
+            url: b64,
+            timestampSec: ts,
+            timestampFormatted: formatSecs(ts),
+          });
+        }
+      }
+    } catch (e: any) {
+      console.warn(`[VideoVisionEngine] ffmpeg frame extraction at ${ts}s warning:`, e?.message);
+    }
+  }
+
+  return frames;
+}
+
+export async function extractTikTokKeyframes(
+  thumbnailUrl: string,
+  extraFrames?: {
+    dynamicCover?: string;
+    originCover?: string;
+    avatarUrl?: string;
+    images?: string[];
+    playUrl?: string;
+  },
+  durationSeconds?: number
+): Promise<VideoKeyframe[]> {
   const duration = durationSeconds || 30;
+
+  // 1. High-fidelity timeline frame extraction via ffmpeg if video stream playUrl is available
+  if (extraFrames?.playUrl) {
+    try {
+      const ffmpegFrames = await extractVideoKeyframesWithFfmpeg(extraFrames.playUrl, duration);
+      if (ffmpegFrames.length > 0) {
+        if (thumbnailUrl && !ffmpegFrames.some(f => f.timestampSec === 0)) {
+          ffmpegFrames.unshift({
+            label: 'الغلاف البصري الأولي (Master Cover)',
+            url: thumbnailUrl,
+            timestampSec: 0,
+            timestampFormatted: '00:00',
+          });
+        }
+        return ffmpegFrames;
+      }
+    } catch (ffErr: any) {
+      console.warn('[VideoVisionEngine] Ffmpeg TikTok extraction fallback:', ffErr?.message);
+    }
+  }
+
+  const frames: VideoKeyframe[] = [];
 
   if (thumbnailUrl) {
     frames.push({
@@ -128,7 +219,7 @@ export function extractTikTokKeyframes(
 
   // If photo carousel / images present
   if (extraFrames?.images && Array.isArray(extraFrames.images)) {
-    extraFrames.images.slice(0, 3).forEach((imgUrl, idx) => {
+    extraFrames.images.slice(0, 4).forEach((imgUrl, idx) => {
       if (imgUrl && !frames.some(f => f.url === imgUrl)) {
         frames.push({
           label: `صورة رقم (${idx + 1}) من ألبوم التحدي`,
@@ -257,8 +348,9 @@ export async function performVideoVisionPerception(
 
 المطلوب إجراء فحص جنائي واستخباراتي وبصري فائق الدقة باللغة العربية الفصحى يركز على المحاور الجوهرية التالية:
 
-1. 🔍 [استخراج التفاصيل غير المنطوقة والميكرو-OCR (Unspoken Visual Details & Micro-OCR)]:
-   - استخرج بدقة 100% أي نصوص، أرقام موديلات، وحدات قياس (مثل 600 lines/mm، 12V، pH=7.4)، شعارات، علامات تجارية، عناوين كتب، أكواد برمجية على الشاشات، ألوان دقيقة، أو عناصر وأدوات تظهر في المشهد دون أن يذكرها المتحدث بصوته.
+1. 🔍 [رصد الأدوات والأجهزة والتفاصيل البصرية والميكرو-OCR (Physical Objects, Microphones, Tools & OCR)]:
+   - افحص كل إطار بدقة متناهية: هل ظهرت أي أجهزة صوتية، ميكروفونات (مثل Condenser, Lavalier, Dynamic, Boom arm)، هواتف، شاشات، كاميرات، أدوات، أو شعارات؟ اذكر نوعها ولونها وموقعها الدقيق في الكادر وفي أي إطار/توقيت زمني ظهرت.
+   - استخرج أي نصوص، أرقام، شعارات، أو علامات تجارية ظاهرة في الخلفية أو على الملابس أو الشاشات.
 
 2. 🧠 [الذاكرة البصرية التطورية وتتبع التحولات عبر الزمن (Temporal Visual Memory & State Transitions)]:
    - تتبع تطور المشهد عبر الخط الزمني للإطارات:
@@ -267,7 +359,7 @@ export async function performVideoVisionPerception(
      * الحالة النهائية والنتيجة (Final State & Outcome): كيف انتهى المشهد وما النتيجة البصرية المحققة؟
 
 3. 🎬 [التفكيك البصري الزمني لكل إطار (Frame-by-Frame Timestamped Log)]:
-   - وثق كل إطار بطابعه الزمني، وما يظهر فيه من أشخاص، ملابس، تعابير وجوه، أدوات، إضاءة، وزوايا تصوير.`;
+   - وثق كل إطار بطابعه الزمني، وما يظهر فيه من أشخاص، ملابس، تعابير وجوه، أدوات، إضاءة، وزوايا تصوير مع الإجابة المباشرة والصريحة على سؤال المستخدم.`;
 
   const contentParts: any[] = [
     { type: 'text', text: visionPrompt }
@@ -291,27 +383,27 @@ export async function performVideoVisionPerception(
     model: string;
     headers: Record<string, string>;
   }> = [
-    ...(openRouterKey ? [{
-      url: 'https://openrouter.ai/api/v1/chat/completions',
-      key: openRouterKey,
-      model: 'google/gemini-2.5-flash',
-      headers: {
-        'HTTP-Referer': 'https://matany.one',
-        'X-Title': 'Matany AI',
-      }
-    }] : []),
     {
       url: `${baseUrl}/chat/completions`,
       key: apiKey,
       model: 'deepseek-v4-flash-vision-exp',
       headers: {}
-    }
+    },
+    ...(openRouterKey ? [{
+      url: 'https://openrouter.ai/api/v1/chat/completions',
+      key: openRouterKey,
+      model: 'meta/muse-spark-1.2-contributor',
+      headers: {
+        'HTTP-Referer': 'https://matany.one',
+        'X-Title': 'Matany AI',
+      }
+    }] : [])
   ];
 
   for (const gw of videoGateways) {
     try {
       const visionController = new AbortController();
-      const visionTimeout = setTimeout(() => visionController.abort(), 7000);
+      const visionTimeout = setTimeout(() => visionController.abort(), 25000);
       if (signal) {
         signal.addEventListener('abort', () => visionController.abort(), { once: true });
       }
@@ -573,7 +665,7 @@ export async function performPostImageVisionPerception(
     ...(openRouterKey ? [{
       url: 'https://openrouter.ai/api/v1/chat/completions',
       key: openRouterKey,
-      model: 'google/gemini-2.5-flash',
+      model: 'meta/muse-spark-1.2-contributor',
       headers: {
         'HTTP-Referer': 'https://matany.one',
         'X-Title': 'Matany AI',

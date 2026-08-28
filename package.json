@@ -9,7 +9,13 @@
     "dev:server": "tsx watch server/index.ts",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "start": "tsx server/index.ts"
+    "start": "tsx server/index.ts",
+    "test": "tsx tests/runAllTests.ts",
+    "test:unit": "tsx tests/unit/runUnitTests.ts",
+    "test:integration": "tsx tests/integration/runIntegrationTests.ts",
+    "test:e2e": "tsx tests/e2e/runE2ETests.ts",
+    "test:stress": "tsx tests/performance/stressTest.ts",
+    "test:benchmark": "tsx tests/benchmark/runBenchmark.ts"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.20",

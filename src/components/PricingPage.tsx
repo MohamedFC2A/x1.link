@@ -50,7 +50,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
         'تجربة إدراك Fathom Cam البصري (صورتان فقط إجمالاً)',
       ],
       disabledFeatures: [
-        'فحوصات Fathom Cyber (2.0 / 2.1) والاستدلال غير مفعلة (0 فحص)',
+        'فحوصات Fathom Cyber (2.0 / 2.6) والاستدلال غير مفعلة (0 فحص)',
         'لا توجد ذاكرة سحابية أو حفظ دائم',
         'وضع المحادثة الحرة NSFW Off غير متاح',
       ],
@@ -212,7 +212,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 <tr>
                   <td className="p-4 sm:p-5 font-medium flex items-center gap-2">
                     <Shield className="w-4 h-4 text-zinc-400 shrink-0" />
-                    <span>فحوصات Fathom Cyber (2.0 / 2.1)</span>
+                    <span>فحوصات Fathom Cyber (2.0 / 2.6)</span>
                   </td>
                   <td className="p-4 sm:p-5 text-center text-zinc-500">غير مفعل</td>
                   <td className="p-4 sm:p-5 text-center font-mono text-zinc-300">500 فحص / شهر</td>

@@ -46,7 +46,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
     },
     {
       id: 5,
-      title: 'المرحلة الخامسة: الاكتشاف العلمي المؤتمت والاستدلال الاختطافي (Fathom Cyber 2.1 — Super Thinking)',
+      title: 'المرحلة الخامسة: الاستنباط المباشر الخاطف للألغاز والاستدلال الاختطافي (Fathom Cyber 2.6 — Super Thinking)',
       description: 'حلقة المعرفة المغلقة (O-H-E-U Loop): رصد الشذوذ والمعضلات، صياغة الفرضيات بنصل أوكام، والتحقق الآلي عبر بيئة برهان شكلي (Lean/Coq) وتثبيت البديهيات.',
       timestamp: 'المرحلة 05 • الاكتشاف العلمي والاستدلال الفائق',
       status: 'in-progress',

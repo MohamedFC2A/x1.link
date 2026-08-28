@@ -13,7 +13,8 @@ import {
   Activity, 
   User as UserIcon,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Award
 } from 'lucide-react';
 
 interface SidebarDrawerProps {
@@ -34,6 +35,7 @@ interface SidebarDrawerProps {
   onNavigateToLimits?: () => void;
   onNavigateToProfile?: () => void;
   onNavigateToChat?: () => void;
+  onOpenBenchmark?: () => void;
 }
 
 export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
@@ -54,6 +56,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   onNavigateToLimits,
   onNavigateToProfile,
   onNavigateToChat,
+  onOpenBenchmark,
 }) => {
   return (
     <AnimatePresence>
@@ -207,6 +210,28 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
             ))
           )}
         </div>
+
+        {/* Benchmark Matrix Action Button */}
+        {onOpenBenchmark && (
+          <div className="p-2.5 bg-black/40 border-t border-white/[0.08]">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenBenchmark();
+              }}
+              className="w-full flex items-center justify-between p-2 rounded-xl text-xs font-semibold bg-cyan-950/30 hover:bg-cyan-900/40 text-cyan-300 hover:text-white border border-cyan-500/25 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4 text-cyan-400" />
+                <span className="font-sans">مقارنة بينش مارك النماذج</span>
+              </div>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">
+                👑 58.4
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* Memory Ledger Metrics & Clear Chat */}
         <div className="p-3 bg-black/50 border-t border-white/[0.08] space-y-2.5">

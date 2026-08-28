@@ -2,7 +2,7 @@ import React from 'react';
 import { Sparkles, ShieldCheck, Database, BrainCircuit, Clock, Flame, Zap } from 'lucide-react';
 import { cn } from './utils';
 
-export type FeatureIntentType = 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | 'download_detect' | 'fathom_cam' | 'fathom_spark';
+export type FeatureIntentType = 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | 'download_detect' | 'fathom_cam' | 'fathom_spark' | 'fathom_search';
 
 export type IntentCategory = 'actionable' | 'informational' | 'none';
 
@@ -262,6 +262,35 @@ export const FathomSparkIcon: React.FC<{ className?: string; size?: number }> = 
     <path d="M19 17v4" />
     <path d="M3 5h4" />
     <path d="M17 19h4" />
+  </svg>
+);
+
+export const FathomSearchIcon: React.FC<{ className?: string; size?: number }> = ({
+  className,
+  size = 14
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="url(#fathom-search-grad)"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn("inline-block shrink-0", className)}
+  >
+    <defs>
+      <linearGradient id="fathom-search-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#06b6d4" />
+        <stop offset="30%" stopColor="#38bdf8" />
+        <stop offset="70%" stopColor="#818cf8" />
+        <stop offset="100%" stopColor="#34d399" />
+      </linearGradient>
+    </defs>
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    <path d="M11 8a3 3 0 0 0-3 3" />
   </svg>
 );
 
@@ -551,6 +580,37 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
         details: 'تم استيعاب وتفكيك ملفات الأكواد والمستندات والوسائط المرفقة بدقة فائقة عبر محرك Fathom Spark',
         statusPill: 'MULTIMODAL & CODE INTELLIGENCE',
         confidence: 0.98,
+        category: 'actionable'
+      };
+    }
+  },
+
+  // ── 8. Fathom Search 2.0 Live Intelligence Engine
+  fathom_search: {
+    id: 'fathom_search',
+    name: 'Fathom Search',
+    nameAr: 'البحث الحي واستخبارات الويب الفورية',
+    badgeLabel: 'FATHOM SEARCH',
+    textClassName: 'fathom-search-text',
+    glassClassName: 'fathom-search-glass',
+    badgeClassName: 'fathom-search-glass',
+    accentColor: '#06b6d4',
+    borderHoverColor: 'border-cyan-400/50',
+    icon: FathomSearchIcon,
+    detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
+      const plan = routeFeatureIntent('fathom_search', prompt, reasoning, content, context);
+      return plan.confidence >= 0.6;
+    },
+    extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
+      return {
+        id: 'fathom_search',
+        name: 'Fathom Search',
+        nameAr: 'البحث الحي واستخبارات الويب الفورية',
+        badgeLabel: 'FATHOM SEARCH',
+        summary: 'الاستعلام الشبكي المتوازي وتدقيق المصادر الحية عبر Fathom Search',
+        details: 'تم استدعاء وفحص نتائج البحث المباشرة وتوثيق المعطيات من مصادر الويب المعتمدة لعام 2026',
+        statusPill: 'LIVE SEARCH INTELLIGENCE',
+        confidence: 0.99,
         category: 'actionable'
       };
     }
@@ -929,11 +989,11 @@ export function routeFeatureIntent(
   // 7. Fathom Spark Media, Code, Zip & Document Intent
   if (featureId === 'fathom_spark') {
     const hasSparkBadge = cLower.includes('fathom spark') || cLower.includes('fathom-spark') || cLower.includes('[fathom spark]') || cLower.includes('muse-spark');
-    const hasSparkReasoning = rLower.includes('fathom spark') || rLower.includes('fathom_spark') || rLower.includes('spark') || rLower.includes('استيعاب وتفكيك') || rLower.includes('أرشيف') || rLower.includes('الأكواد') || rLower.includes('تفريغ الصوت') || rLower.includes('فيديو');
-    const isSparkPrompt = /(?:كود|أكواد|ملف|ملفات|مستند|مستندات|فيديو|مقطع|صوت|صوتيات|أرشيف|مضغوط|zip|tar|script|code|compare|مقارنة|النسخة|قبل|بعد)/i.test(pLower);
     const isContextTriggered = Boolean(context?.hasNonImageMedia || context?.hasDocs || context?.hasZip || context?.hasSpark || context?.hasMediaAttachments || context?.hasVideo || context?.hasAudio);
+    const hasSparkReasoning = (rLower.includes('fathom spark') || rLower.includes('fathom_spark') || rLower.includes('تفكيك وسائط') || rLower.includes('تفريغ الصوت') || rLower.includes('أرشيف مضغوط')) && isContextTriggered;
+    const isSparkPrompt = /(?:كود|أكواد|مستند|مستندات|صوتيات|أرشيف|مضغوط|zip|tar|script|compare|مقارنة|النسخة|قبل|بعد)/i.test(pLower) && isContextTriggered;
 
-    if (hasSparkBadge || isContextTriggered || (hasSparkReasoning && (isSparkPrompt || isContextTriggered))) {
+    if (hasSparkBadge || isContextTriggered || (hasSparkReasoning && isSparkPrompt)) {
       return {
         featureId,
         confidence: 1.0,
@@ -945,19 +1005,29 @@ export function routeFeatureIntent(
       };
     }
 
-    if (hasSparkReasoning) {
+    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No Fathom Spark intent.' };
+  }
+
+  // 8. Fathom Search Live Web Intelligence Intent
+  if (featureId === 'fathom_search') {
+    const hasSearchBadge = cLower.includes('fathom search') || cLower.includes('[live web intelligence]') || cLower.includes('المصادر الموثقة') || cLower.includes('fathom-search') || cLower.includes('fathom_search');
+    const hasSearchReasoning = rLower.includes('fathom search') || rLower.includes('fathom_search') || rLower.includes('البحث الحي') || rLower.includes('الاستعلام الشبكي') || rLower.includes('live web intelligence') || rLower.includes('نتائج البحث') || rLower.includes('تدقيق المصادر') || rLower.includes('our search result') || rLower.includes('search result') || rLower.includes('news.google.com') || rLower.includes('google search') || rLower.includes('search memory') || rLower.includes("let's search") || rLower.includes('search sources') || rLower.includes('web search');
+    const isSearchPrompt = /(?:ابحث|بحث|سيرش|search|google|مصادر\s*حية|تواريخ\s*قطعية|استقصائي|بيانات\s*متقاطعة|ما\s*هو\s*سعر|اخر\s*اخبار|آخر\s*أخبار|اليوم|2026)/i.test(pLower);
+    const isSearchContext = Boolean(context?.hasSearchGrounding || context?.deepSearch || context?.isSearchActive || (context as any)?.hasSearch);
+
+    if (hasSearchBadge || isSearchContext || hasSearchReasoning || (isSearchPrompt && rLower.length > 0)) {
       return {
         featureId,
-        confidence: 0.95,
+        confidence: 1.0,
         category: 'actionable',
         shouldRenderWidget: true,
         shouldInjectContext: true,
         extractedParams: {},
-        reason: 'Fathom Spark reasoning active.'
+        reason: 'Fathom Search live web intelligence and verified sources active.'
       };
     }
 
-    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No Fathom Spark intent.' };
+    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No Fathom Search intent.' };
   }
 
   return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Unknown feature.' };
@@ -973,7 +1043,7 @@ export function detectIntentsMulti(
   content: string = '',
   context: any = {}
 ): MultiIntentPlan {
-  const featureIds: FeatureIntentType[] = ['download_detect', 'fathom_spark', 'fathom_cam', 'ai_detect', 'metadata_detect', 'memory_detect', 'time_detect'];
+  const featureIds: FeatureIntentType[] = ['fathom_search', 'download_detect', 'fathom_spark', 'fathom_cam', 'ai_detect', 'metadata_detect', 'memory_detect', 'time_detect'];
   
   const plans: Record<FeatureIntentType, FeatureActivationPlan> = {} as any;
   const activeFeatures: DetectedFeatureData[] = [];

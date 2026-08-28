@@ -2,7 +2,7 @@ import React from 'react';
 import { ModelType } from '../types';
 import { memoryEngine } from '../services/memoryManager';
 import { scientificDiscoveryEngine } from '../services/scientificDiscoveryEngine';
-import { Brain, Cpu, History, Network, GitMerge, ShieldCheck, Atom, Sparkles } from 'lucide-react';
+import { Brain, Cpu, History, Network, GitMerge, ShieldCheck, Atom, Sparkles, Award } from 'lucide-react';
 
 interface TelemetryDrawerProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface TelemetryDrawerProps {
   isX1Active: boolean;
   isX1Unlocked: boolean;
   messagesCount: number;
+  onOpenBenchmark?: () => void;
 }
 
 export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
@@ -19,15 +20,16 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
   activeModel,
   isX1Active,
   isX1Unlocked,
-  messagesCount
+  messagesCount,
+  onOpenBenchmark
 }) => {
   if (!isOpen) return null;
 
   const memStats = memoryEngine.getMemoryStats();
   const discStats = scientificDiscoveryEngine.getDiscoveryStats();
-  const isCyber21 = activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1';
+  const isCyber26 = activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-flash-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1';
   const isCyber20 = activeModel === 'deepseek-v4-flash-cyber';
-  const isCyber = isCyber20 || isCyber21;
+  const isCyber = isCyber20 || isCyber26;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/80 backdrop-blur-md animate-in fade-in duration-200" dir="rtl">
@@ -59,15 +61,15 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
             <div className="bg-black/50 p-3 rounded-xl border border-white/[0.08]">
               <span className="text-zinc-400 block text-[10px] uppercase font-bold">CURRENT ACTIVE MODEL</span>
               <span className="text-white font-bold block mt-1">
-                {isCyber21 
-                  ? 'Fathom Cyber 2.1 (v4-pro-cyber-2.1)' 
+                {isCyber26 
+                  ? 'Fathom Cyber 2.6 (v4-pro-cyber-2.6)' 
                   : isCyber20 
                   ? 'Fathom Cyber 2.0 (v4-flash-cyber)' 
                   : activeModel}
               </span>
               <span className="text-[10px] text-cyan-400 block mt-0.5 font-bold">
-                {isCyber21
-                  ? 'V4-PRO ENGINE // O-H-E-U SCIENTIFIC DISCOVERY & 3-TIER MEMORY'
+                {isCyber26
+                  ? 'V4-PRO ENGINE // HYPER-DEDUCTIVE REASONING & 3-TIER MEMORY'
                   : isCyber20 
                   ? '3-TIER UNIFIED EPISODIC & SEMANTIC DYNAMIC MEMORY AURA' 
                   : activeModel.includes('vision') 
@@ -78,16 +80,6 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
 
             {/* 3-Tier Cognitive Memory Aura Stats */}
             <div className="bg-black/50 p-3.5 rounded-xl border border-cyan-500/20 shadow-inner">
-              <div className="flex items-center justify-between border-b border-white/[0.08] pb-2 mb-2.5">
-                <span className="text-cyan-300 font-bold text-[11px] flex items-center gap-1.5">
-                  <Brain className="size-3.5 text-cyan-400" />
-                  <span>3-TIER COGNITIVE MEMORY ENGINE</span>
-                </span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-200 border border-cyan-500/30">
-                  v2.0 DYNAMIC
-                </span>
-              </div>
-              
               <div className="grid grid-cols-2 gap-2 text-[11px] text-zinc-300">
                 <div className="p-1.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
                   <span className="text-[9px] text-zinc-400 block flex items-center gap-1">
@@ -147,7 +139,7 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
                   <span>CLOSED-LOOP SCIENTIFIC DISCOVERY (O-H-E-U)</span>
                 </span>
                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-400/40 font-bold">
-                  v2.1 AURA
+                  v2.6 AURA
                 </span>
               </div>
 
@@ -205,12 +197,27 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
                 <div>CAPACITY: <strong className="text-white">50M TOKENS</strong></div>
               </div>
             </div>
+
+            {/* Benchmark Matrix Action Button */}
+            {onOpenBenchmark && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenBenchmark();
+                }}
+                className="w-full mt-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-950/60 to-emerald-950/40 border border-cyan-500/30 hover:border-cyan-500/60 text-cyan-300 hover:text-white font-sans text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer active:scale-98"
+              >
+                <Award className="w-4 h-4 text-cyan-400" />
+                <span>عرض مقارنة النماذج والذكاء (Benchmark Matrix) 👑</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Footer */}
         <div className="mt-6 pt-4 border-t border-white/[0.08] text-center text-[10px] text-zinc-500 font-mono">
-          MATANY.ONE ENGINE // FATHOM CYBER 2.1 COGNITIVE PLATFORM
+          MATANY.ONE ENGINE // FATHOM CYBER 2.6 COGNITIVE PLATFORM
         </div>
 
       </div>

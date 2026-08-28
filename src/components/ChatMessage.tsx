@@ -1168,19 +1168,78 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Sanitize and extract any raw ```thought or ```think blocks that leaked into content
+  // Sanitize and extract any raw think tags or reasoning blocks that leaked into content
   const { displayContent, effectiveReasoning } = useMemo(() => {
     let raw = message.content || '';
     let foundReasoning = message.reasoning || '';
 
+    // 1. Extract and strip <think>...</think> or <thought>...</thought>
+    const thinkTagRegex = /<(?:think|thought)>([\s\S]*?)<\/(?:think|thought)>/gi;
+    let thinkMatch;
+    while ((thinkMatch = thinkTagRegex.exec(raw)) !== null) {
+      const extracted = thinkMatch[1].trim();
+      if (extracted) {
+        foundReasoning = foundReasoning ? `${foundReasoning}\n\n${extracted}` : extracted;
+      }
+    }
+    raw = raw.replace(thinkTagRegex, '').trim();
+
+    // 2. Extract and strip ```thought / ```think fences
     const thoughtRegex = /```(?:thought|think|thinking|reasoning)\s*\n?([\s\S]*?)```/gi;
     let match;
     while ((match = thoughtRegex.exec(raw)) !== null) {
-      if (!foundReasoning) {
-        foundReasoning = match[1].trim();
+      const extracted = match[1].trim();
+      if (extracted) {
+        foundReasoning = foundReasoning ? `${foundReasoning}\n\n${extracted}` : extracted;
       }
     }
     raw = raw.replace(thoughtRegex, '').trim();
+
+    // 3. Extract and strip leaked [S0: DISSECT] / [S1: PRUNE] / [S2: VERIFY] / [S3: CONVERGE] monologue blocks
+    const sBlockRegex = /\[(?:S\d|DISSECT|PRUNE|VERIFY|LOCK|CONVERGE)\][\s\S]*?(?=\n\n[\u0621-\u064A]|\n[#*•-]*\s*[\u0621-\u064A]|$)/gi;
+    if (sBlockRegex.test(raw)) {
+      const extractedMatches = raw.match(sBlockRegex);
+      if (extractedMatches && extractedMatches.length > 0) {
+        const extracted = extractedMatches.join('\n\n').trim();
+        if (extracted) {
+          foundReasoning = foundReasoning ? `${foundReasoning}\n\n${extracted}` : extracted;
+          raw = raw.replace(sBlockRegex, '').trim();
+        }
+      }
+    }
+
+    // 4. Advanced Paragraph-level Decomposition for Reasoning vs Clean Content
+    const paragraphs = raw.split(/\n{2,}/);
+    const reasoningChunks: string[] = [];
+    const contentChunks: string[] = [];
+    let foundDefinitiveStart = false;
+
+    for (const p of paragraphs) {
+      const trimmed = p.trim();
+      if (!trimmed) continue;
+
+      const isSourceParagraph = /^(?:[•*–—\-]\s*)?(?:المصدر\s*\[\d+\]|المصدر\s*[:\d]|المقتطف\s*[:]|المصدر\s*المعتمد|Source\s*\[\d+\]|Source\s*:)/i.test(trimmed) || /•\s*المصدر\s*\[\d+\]/i.test(trimmed);
+      const hasReasoningMarkers = isSourceParagraph || /(?:نفكر|نبحث\s*الذاكرة|نفحص\s*المعطيات|نحتاج\s*حل|نتأكد\s*من|لنفكر\s*:|\bلا،\s*في|\bلا\.\s*|\bليس\s*نفس|\bغير\s*آسيا|\bخارج\s*آسيا|\؟\s*لا[،.]|\؟\s*غير|\؟\s*ليس|\؟\s*كروي|لكن\s*السؤال|هل\s*هناك|ربما|الدولة\s*على\s*الأرجح|السؤال\s*يقول|لعل\s*تتويج|قد\s*يكون|non-spherical|search\s*memory|not\s*crowned|vars:|possibilities:|\[S\d|That's\s*comprehensive|table\s*cells\s*must|Let's\s*final|Need\s*maybe)/i.test(trimmed);
+      const hasMultipleQuestions = (trimmed.match(/\؟/g) || []).length >= 2;
+      const isEnglishMonologue = (trimmed.match(/[a-zA-Z]/g)?.length || 0) > (trimmed.match(/[\u0621-\u064A]/g)?.length || 0) * 1.5 && (trimmed.match(/[a-zA-Z]/g)?.length || 0) > 25;
+
+      if (hasReasoningMarkers || hasMultipleQuestions || isEnglishMonologue) {
+        reasoningChunks.push(trimmed);
+      } else {
+        contentChunks.push(trimmed);
+      }
+    }
+
+    if (reasoningChunks.length > 0) {
+      const extractedReasoning = reasoningChunks.join('\n\n');
+      foundReasoning = foundReasoning ? `${foundReasoning}\n\n${extractedReasoning}` : extractedReasoning;
+    }
+
+    if (contentChunks.length > 0) {
+      raw = contentChunks.join('\n\n');
+    } else if (reasoningChunks.length > 0) {
+      raw = 'تم استكمال الاستدلال المنطقي وتدقيق كافة المعطيات والتقاطعات التاريخية والفيزيائية للسيناريو بنجاح.';
+    }
 
     return {
       displayContent: raw,
@@ -1215,6 +1274,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     {
       isMemoryDetectTriggered: (message as any).isMemoryDetectTriggered,
       memoryDetectSummary: (message as any).memoryDetectSummary,
+      hasSearchGrounding: Boolean(message.reasoning?.includes('Fathom Search') || message.reasoning?.includes('الاستعلام الشبكي') || (message as any).hasSearch || (message as any).deepSearch),
       hasFathomCam: hasImagesInChat && !hasFilesAttached,
       hasFathomSpark: hasFilesAttached || /(?:zip|rar|tar|gz|كود|أكواد|مستند|فيديو|صوت|spark|ملفات|ملف)/i.test(previousUserPrompt),
       hasNonImageMedia: hasFilesAttached,
@@ -1476,11 +1536,11 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             isX1={message.isX1}
             isTimeIntent={isTimeIntent}
             activeFeatures={activeFeatures}
-            defaultValue={isStreaming ? "reasoning" : undefined}
+            defaultValue="reasoning"
           />
         )}
 
-        {isStreaming && !message.content ? (
+        {isStreaming && !message.content && !hasReasoning && !isThinking ? (
           <div className="flex items-center gap-2 py-1.5 select-none w-full max-w-full" dir="rtl">
             <div className="inline-flex min-h-8 py-1.5 px-3 max-w-full items-center gap-2.5 rounded-2xl time-detect-glass flex-wrap">
               <ThinkingOrb

@@ -23,8 +23,8 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
   hasContent = false,
   className,
 }) => {
-  const isCyber21 = model === "deepseek-v4-pro-cyber-2.1" || model === "deepseek-v4-flash-cyber-2.1";
-  const isCyber = model === "deepseek-v4-flash-cyber" || isCyber21;
+  const isCyber26 = model === "deepseek-v4-pro-cyber-2.6" || model === "deepseek-v4-flash-cyber-2.6" || model === "deepseek-v4-pro-cyber-2.1" || model === "deepseek-v4-flash-cyber-2.1";
+  const isCyber = model === "deepseek-v4-flash-cyber" || isCyber26;
 
   // Step 1: Input / Recon
   const step1Done = true;
@@ -52,8 +52,8 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
             <CheckCircle2 className="size-3 sm:size-3.5" />
           </div>
           <span className="text-zinc-300 font-sans font-medium text-[10px] sm:text-xs">
-            {isCyber21
-              ? "رصد الشذوذ والاستدلال الاختطافي"
+            {isCyber26
+              ? "حصر الشروط والاستنباط المباشر"
               : isCyber
               ? "استخبارات ومسح 100+ صفحة"
               : "معالجة المدخلات"}
@@ -88,8 +88,8 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
               step2Active ? "text-white font-semibold" : step2Done ? "text-zinc-200" : "text-zinc-500"
             )}
           >
-            {isCyber21
-              ? "توليد الفرضية والمحاكي الآلي (O-H-E-U)"
+            {isCyber26
+              ? "الاستدلال المباشر الخاطف وحسم التقاطعات"
               : isCyber
               ? "تزامن الذاكرة العرضية وشبكة المفاهيم"
               : isX1
@@ -114,7 +114,7 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
           >
             {step3Active ? (
               <ThinkingOrb state="composing" size={20} theme="dark" />
-            ) : step3Done ? (
+            ) : step2Done ? (
               <CheckCircle2 className="size-3 sm:size-3.5" />
             ) : (
               <Sparkles className="size-2.5 sm:size-3" />
@@ -129,8 +129,8 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
             {isStreaming && step3Active
               ? "توليد الرد المباشر..."
               : step3Done
-              ? (isCyber21 ? "اكتمل البرهان والتثبيت البديهي" : "اكتمل التوليد")
-              : (isCyber21 ? "تثبيت البديهيات والصياغة" : "التوليد النهائي")}
+              ? (isCyber26 ? "اكتمل الاستنباط بدقة 100%" : "اكتمل التوليد")
+              : (isCyber26 ? "صياغة الاستجابة الفصحى" : "التوليد النهائي")}
           </span>
         </div>
       </div>
