@@ -2234,7 +2234,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
   console.log(`[DYNAMIC-TUNER] ✓ User Intent Detected: ${dynamicTuning.detectedIntent} (${dynamicTuning.complexityLevel}) | Target Family: ${dynamicTuning.targetModelFamily} | Tuned Hyperparameters: temp=${dynamicTuning.hyperparameters.temperature}, top_p=${dynamicTuning.hyperparameters.top_p}, freq_pen=${dynamicTuning.hyperparameters.frequency_penalty}, pres_pen=${dynamicTuning.hyperparameters.presence_penalty}, max_tokens=${dynamicTuning.hyperparameters.max_tokens}`);
 
-  const activeSystemPrompt = `${baseSystemPrompt}\n\n${timeDetectContext}\n\n${dynamicTuning.calibrationDirective}${effectiveMemoryPrompt ? `\n\n${effectiveMemoryPrompt}` : ''}`;
+  let activeSystemPrompt = `${baseSystemPrompt}\n\n${timeDetectContext}\n\n${dynamicTuning.calibrationDirective}${effectiveMemoryPrompt ? `\n\n${effectiveMemoryPrompt}` : ''}`;
 
   let processedMessages = cleanedMessages;
 
@@ -2259,29 +2259,12 @@ app.post('/api/chat', async (req: Request, res: Response) => {
        | المكون / الملف | النسخة "قبل" (v1.0.0) | النسخة "بعد" (v2.0.0) | الفروقات والتحسينات التقنية |
        | :--- | :--- | :--- | :--- |
        | \`package.json\` | 95 بايت، تبعية \`express@4.18.2\` | 140 بايت، إصدار 2.0.0 مع \`jszip\` و \`ai\` | ترقية Express وإضافة محرك فك الأرشيفات وSDK الذكاء الاصطناعي |
-      * لا تفرط في استخدام علامات الكود (backticks) داخل نصوص الشرح والفقرات؛ اكتب الشرح بلغة عربية فصحى انسيابية ونقية بدون تمييز زائد، واقتصر على استخدام الكود فقط داخل جدول المقارنة أو عند ذكر دالة برمجية أساسية.
+     * لا تفرط في استخدام علامات الكود (backticks) داخل نصوص الشرح والفقرات؛ اكتب الشرح بلغة عربية فصحى انسيابية ونقية بدون تمييز زائد، واقتصر على استخدام الكود فقط داخل جدول المقارنة أو عند ذكر دالة برمجية أساسية.
      * اجعل محتوى كل خلية في الجدول مركزاً ومختصراً ومصاغاً بعبارات مباشرة وواضحة لتفادي ازدحام الخلايا.
      * ركّز مباشرة على صلب التحليل المقارن المطلوب وتجنب أي استطلاع غير مطلوب.
 ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية أو استخدام كود بلوك thought للإجابة.`;
 
-    const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
-    if (lastUserIdx !== -1) {
-      const targetMsg = processedMessages[lastUserIdx];
-      if (Array.isArray(targetMsg.content)) {
-        const textItem = targetMsg.content.find((c: any) => c.type === 'text');
-        if (textItem) {
-          textItem.text = `${textItem.text}\n\n${mediaAndCodeGuidance}`;
-        } else {
-          targetMsg.content.unshift({ type: 'text', text: mediaAndCodeGuidance });
-        }
-      } else {
-        const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
-        processedMessages[lastUserIdx] = {
-          ...targetMsg,
-          content: `${orig}\n\n${mediaAndCodeGuidance}`
-        };
-      }
-    }
+    activeSystemPrompt += `\n\n${mediaAndCodeGuidance}`;
   } else if (hasMultimodal || isVision) {
     const latestUserContent = cleanedMessages.filter((m: any) => m.role === 'user').pop();
     const userPromptForForensics = typeof latestUserContent?.content === 'string'
@@ -2305,25 +2288,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 2. بعد إغلاق وسم </think>، قدّم إجابتك باللغة العربية الفصحى بشكل منظم، قاطع، مباشر، وعميق يجيب بدقة تامة على استفسار المستخدم مستنداً إلى التفاصيل البصرية المرئية عبر Fathom Cam دون أي تردد أو اعتذار.
 ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية أو استخدام كود بلوك thought للإجابة.`;
 
-    const combinedBlocks = visionGuidance;
-    const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
-    if (lastUserIdx !== -1) {
-      const targetMsg = processedMessages[lastUserIdx];
-      if (Array.isArray(targetMsg.content)) {
-        const textItem = targetMsg.content.find((c: any) => c.type === 'text');
-        if (textItem) {
-          textItem.text = `${textItem.text}\n\n${combinedBlocks}`;
-        } else {
-          targetMsg.content.unshift({ type: 'text', text: combinedBlocks });
-        }
-      } else {
-        const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
-        processedMessages[lastUserIdx] = {
-          ...targetMsg,
-          content: `${orig}\n\n${combinedBlocks}`
-        };
-      }
-    }
+    activeSystemPrompt += `\n\n${visionGuidance}`;
   }
 
   // Stage 2: Universal Multi-Link Intelligence Matrix
@@ -2395,16 +2360,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     const masterMultiLinkMatrix = buildMultiLinkMatrixBlock(validProcessedLinks);
 
     if (masterMultiLinkMatrix) {
-      console.log(`[MULTI-LINK MATRIX] ✓ Injected structured intelligence for (${validProcessedLinks.length}) links (${masterMultiLinkMatrix.length} chars)`);
-      const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
-      if (lastUserIdx !== -1) {
-        const targetMsg = processedMessages[lastUserIdx];
-        const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
-        processedMessages[lastUserIdx] = {
-          ...targetMsg,
-          content: `${orig}\n\n${masterMultiLinkMatrix}`
-        };
-      }
+      activeSystemPrompt += `\n\n${masterMultiLinkMatrix}`;
     }
   } else {
     const contextualQuery = resolveMultiTurnQuery(rawUserContent, processedMessages);
@@ -2427,15 +2383,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 - بروتوكول التفكير الشجري: طبق الفروع الخمسة داخل <think> (تفكيك المعطيات، تدقيق المصادر، فحص الفرضيات، الاستنتاج المنطقي، وهندسة الإجابة).
 - التزم التزاماً مطلقاً بكافة شروط وقيود الإخراج الصارمة التي يحددها المستخدم (مثل منع المقدمات أو الخاتمة، التقييد بجدول أو عدد أسطر محدد). صغ الإجابة النهائية باللغة العربية الفصحى مباشرة.`;
 
-        const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
-        if (lastUserIdx !== -1) {
-          const targetMsg = processedMessages[lastUserIdx];
-          const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
-          processedMessages[lastUserIdx] = {
-            ...targetMsg,
-            content: `${orig}\n\n${searchRes}\n\n${fathomSearchGuidance}`
-          };
-        }
+        activeSystemPrompt += `\n\n${searchRes}\n\n${fathomSearchGuidance}`;
       }
     }
   }

@@ -21,7 +21,8 @@ import { FeaturesBar } from './ui/FeaturesBar';
 import { MemoryDetectBadge } from './ui/MemoryDetectBadge';
 import { DownloadDetectCard } from './ui/DownloadDetectCard';
 import { DownloadButton } from './ui/DownloadButton';
-import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon, DownloadDetectIcon } from '@/lib/featuresRegistry';
+import { SvgStudioCard } from './ui/SvgStudioCard';
+import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon, DownloadDetectIcon, SvgStudioIcon } from '@/lib/featuresRegistry';
 
 const YouTubeIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -1917,6 +1918,22 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   if (!isInline && (isPromptLang || isAdLang || isCoderLang || isScriptLang)) {
                     const type = isAdLang ? 'ad' : isCoderLang ? 'coder' : isScriptLang ? 'script' : 'prompt';
                     return <PromptCard text={String(children).replace(/\n$/, '')} type={type} />;
+                  }
+
+                  const rawCodeString = String(children).replace(/\n$/, '');
+                  const isSvgBlock = !isInline && (
+                    lang === 'svg' ||
+                    ((lang === 'xml' || lang === 'html' || lang === 'markup' || !lang || lang === 'code') &&
+                      rawCodeString.includes('<svg') && (rawCodeString.includes('</svg>') || isStreaming))
+                  );
+
+                  if (isSvgBlock) {
+                    return (
+                      <SvgStudioCard
+                        svgCode={rawCodeString}
+                        isStreaming={isStreaming}
+                      />
+                    );
                   }
 
                   return !isInline ? (

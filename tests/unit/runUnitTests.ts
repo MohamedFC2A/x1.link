@@ -18,6 +18,7 @@ import { runFathomCyberEngineTests } from './fathomCyberEngine.test';
 import { runChatReasoningMilestonesTests } from './chatReasoningMilestones.test';
 import { runCyberSecurityArchitectureTests } from './cyberSecurityArchitecture.test';
 import { runDynamicParameterTunerTests } from './dynamicParameterTuner.test';
+import { runSvgStudioTests } from './svgStudio.test';
 
 export async function runAllUnitTests(): Promise<boolean> {
   const harness = new TestHarness();
@@ -40,6 +41,7 @@ export async function runAllUnitTests(): Promise<boolean> {
   await runChatReasoningMilestonesTests(harness);
   await runCyberSecurityArchitectureTests(harness);
   await runDynamicParameterTunerTests(harness);
+  await runSvgStudioTests(harness);
 
   const passed = harness.printSummary('UNIT TEST SUITE SUMMARY');
   return passed;

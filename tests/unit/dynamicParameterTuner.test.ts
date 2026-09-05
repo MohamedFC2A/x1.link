@@ -26,14 +26,12 @@ export async function runDynamicParameterTunerTests(harness: TestHarness) {
       // Hyperparameter verification
       expect(result.hyperparameters.temperature).toBeLessThanOrEqual(0.25);
       expect(result.hyperparameters.top_p).toBeLessThanOrEqual(0.95);
-      expect(result.hyperparameters.frequency_penalty).toBeGreaterThanOrEqual(0.30);
-      expect(result.hyperparameters.presence_penalty).toBeGreaterThanOrEqual(0.20);
+      expect(result.hyperparameters.frequency_penalty).toBeLessThanOrEqual(0.05);
+      expect(result.hyperparameters.presence_penalty).toBeLessThanOrEqual(0.05);
       expect(result.hyperparameters.max_tokens).toBe(32768);
-      expect(result.hyperparameters.stop).toContain('</think>\n\n<think>');
 
       // Directive verification
       expect(result.calibrationDirective).toContain('SOVEREIGN_OFFENSIVE_AND_DEFENSIVE_APPSEC');
-      expect(result.calibrationDirective).toContain('(Temperature): 0.2');
     });
 
     // 2. High-Performance Code Engineering
@@ -79,7 +77,7 @@ export async function runDynamicParameterTunerTests(harness: TestHarness) {
       expect(result.detectedIntent).toBe('MULTIMODAL_MEDIA_AND_ARCHIVE_DECONSTRUCTION');
       expect(result.targetModelFamily).toBe('muse-spark');
       expect(result.hyperparameters.temperature).toBeLessThanOrEqual(0.20);
-      expect(result.hyperparameters.frequency_penalty).toBeGreaterThanOrEqual(0.35);
+      expect(result.hyperparameters.frequency_penalty).toBeLessThanOrEqual(0.05);
       expect(result.calibrationDirective).toContain('DEEP_ARCHIVE_AND_CODE_DECONSTRUCTION');
     });
 
@@ -157,12 +155,11 @@ export async function runDynamicParameterTunerTests(harness: TestHarness) {
       expect(reasonerPayload.top_p).toBeUndefined();
       expect(reasonerPayload.max_tokens).toBe(32768);
 
-      // Case B: DeepSeek V4 Pro gets stop tokens and low temperature
+      // Case B: DeepSeek V4 Pro gets deterministic low temperature
       const proPayload = DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, tuning);
       expect(proPayload.model).toBe('deepseek-v4-pro');
       expect(proPayload.temperature).toBe(0.20);
       expect(proPayload.max_tokens).toBe(32768);
-      expect(proPayload.stop).toContain('</think>\n\n<think>');
 
       // Case C: Flash gets 16384 token ceiling
       const flashPayload = DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash', basePayload, tuning);

@@ -1166,6 +1166,32 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   </div>
                 </button>
 
+                {/* Action: SVG Vector Studio Design */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const svgPrompt = 'صمم لي صورة ورسمة فيكتور SVG فائقة الدقة والجمال لـ: ';
+                    if (isControlled && onChange) {
+                      onChange(svgPrompt);
+                    } else {
+                      setLocalValue(svgPrompt);
+                    }
+                    setIsActionsMenuOpen(false);
+                    textareaRef.current?.focus();
+                  }}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.06] text-xs font-sans text-zinc-200 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-white/[0.08]"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-7 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400 group-hover:text-pink-300 shrink-0">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-semibold text-xs text-white">تصميم صور وفيكتور (SVG Studio)</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0 bg-pink-500/10 border-pink-500/30 text-pink-300 font-bold">
+                    SVG ➔ PNG
+                  </span>
+                </button>
+
                 {/* Action 5: Target URL Scanner */}
                 <button
                   type="button"

@@ -14,6 +14,7 @@
 export type UserIntentCategory =
   | 'CYBERSECURITY_AND_EXPLOIT_AUDITING'
   | 'CODE_ENGINEERING_AND_ARCHITECTURE'
+  | 'SVG_VECTOR_STUDIO_AND_DESIGN'
   | 'MATHEMATICAL_AND_DEDUCTIVE_LOGIC'
   | 'SCIENTIFIC_AND_ACADEMIC_RESEARCH'
   | 'FACTUAL_SEARCH_AND_REALTIME_GROUNDING'
@@ -102,6 +103,14 @@ const CYBER_PATTERNS = [
 const CODE_ENGINEERING_PATTERNS = [
   /(كود|برمجة|دالة|كلاس|class|function|async|await|typescript|javascript|python|rust|golang|c\+\+|react|vue|node\.js|express|api|rest|graphql|database|sql|nosql|schema|docker|kubernetes|refactor|إعادة\s*هيكلة|تصحيح\s*خطأ|debug|syntax|ast|ring\s*buffer|lock-free|concurrency|multithreading|خوارزمية|algorithm|data\s*structure|مصفوفة|شجرة|tree|graph|git|pull\s*request|سكريبت|script|frontend|backend)/i,
   /\b(code|function|interface|refactor|debugging|typescript|python|rust|c\+\+|algorithms?|data\s+structures?|lock-free|ring\s+buffer|concurrency|deadlock|memory\s+leak|compiler|ast|sql\s+schema|unit\s+tests?|e2e\s+tests?)\b/i
+];
+
+const SVG_DESIGN_PATTERNS = [
+  /<svg[\s\S]*?<\/svg>/i,
+  /```svg/i,
+  /(?=.*\bsvg\b)(?=.*(?:تصميم|صمم|ارسم|رسم|رسمة|شعار|لوجو|ايقونة|أيقونة|أيقونات|فيكتور|متجهات|صورة|كود|انشئ|أنشئ|اعمل|سوي|ولد|توليد|إنفوجرافيك|انفوجرافيك|رمز|شارة|طابع|زخرفة|design|logo|icon|art|vector|graphic|draw|create|generate|illustration|emblem|badge|diagram|format|png)).*/is,
+  /(?:فيكتور|متجهات|vector\s*graphics?|vector\s*art|vector\s*illustration)/i,
+  /\b(?:draw|create|generate|design)\s+(?:an?\s+)?(?:svg|vector)/i
 ];
 
 const MATH_DEDUCTIVE_LOGIC_PATTERNS = [
@@ -311,7 +320,22 @@ export class DynamicParameterTuner {
       };
     }
 
-    // 7. Code Engineering & Architecture Check (with conversation history support)
+    // 7. SVG Vector Studio & Design Check (prioritized before generic code engineering)
+    const matchesSvg = SVG_DESIGN_PATTERNS.some(p => p.test(text)) ||
+      (isFollowUpPrompt && SVG_DESIGN_PATTERNS.some(p => p.test(historyText)));
+    if (matchesSvg) {
+      const combined = `${historyText} ${text}`;
+      const isExhaustive = combined.length > 150 || /(شامل|مفصل|معقد|تفصيلي|مشهد|بانوراما|landscape|detailed|infographic)/i.test(combined);
+      return {
+        intent: 'SVG_VECTOR_STUDIO_AND_DESIGN',
+        confidence: 0.98,
+        complexity: isExhaustive ? 'EXHAUSTIVE_ARCHITECTURAL' : 'DEEP_ANALYTICAL',
+        hallucinationRisk: 'HIGH',
+        rationale: 'SVG vector illustration, vector logo, icon set, or visual vector graphic generation requested.'
+      };
+    }
+
+    // 8. Code Engineering & Architecture Check (with conversation history support)
     const matchesCode = CODE_ENGINEERING_PATTERNS.some(p => p.test(text)) ||
       (isFollowUpPrompt && CODE_ENGINEERING_PATTERNS.some(p => p.test(historyText)));
     if (matchesCode) {
@@ -398,8 +422,8 @@ export class DynamicParameterTuner {
     // Default base tuning
     let temperature = 0.5;
     let top_p = 0.95;
-    let frequency_penalty = 0.15;
-    let presence_penalty = 0.10;
+    let frequency_penalty = 0.0;
+    let presence_penalty = 0.0;
     let max_tokens = 16384;
     const stop: string[] = [];
 
@@ -410,27 +434,36 @@ export class DynamicParameterTuner {
       case 'CYBERSECURITY_AND_EXPLOIT_AUDITING':
         // Zero-deviation determinism: low temperature to eliminate imaginary CVEs/flaws
         temperature = 0.20;
-        top_p = 0.92;
-        frequency_penalty = 0.35; // Break repetitive code/token loops
-        presence_penalty = 0.25;  // Force progression through threat vectors
-        max_tokens = 32768;       // Full depth for complete PoC and remediation
+        top_p = 0.95;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
+        max_tokens = 32768; // Full depth for complete PoC and remediation
         break;
 
       case 'CODE_ENGINEERING_AND_ARCHITECTURE':
         // High syntactic fidelity and exactness
         temperature = 0.18;
-        top_p = 0.92;
-        frequency_penalty = 0.30;
-        presence_penalty = 0.20;
+        top_p = 0.95;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
         max_tokens = 32768;
+        break;
+
+      case 'SVG_VECTOR_STUDIO_AND_DESIGN':
+        // Optimal balance: visual creativity + precise mathematical vector coordinates & XML tags
+        temperature = 0.38;
+        top_p = 0.95;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
+        max_tokens = 24576;
         break;
 
       case 'MATHEMATICAL_AND_DEDUCTIVE_LOGIC':
         // Minimum entropy to prevent logic branch wandering
         temperature = 0.15;
         top_p = 0.90;
-        frequency_penalty = 0.25;
-        presence_penalty = 0.15;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
         max_tokens = 32768;
         break;
 
@@ -439,67 +472,67 @@ export class DynamicParameterTuner {
         // High forensic accuracy, exact OCR and archive table matching
         temperature = 0.15;
         top_p = 0.90;
-        frequency_penalty = 0.40;
-        presence_penalty = 0.30;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
         max_tokens = 16384;
         break;
 
       case 'SCIENTIFIC_AND_ACADEMIC_RESEARCH':
-        temperature = 0.28;
-        top_p = 0.94;
-        frequency_penalty = 0.25;
-        presence_penalty = 0.20;
+        temperature = 0.25;
+        top_p = 0.95;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
         max_tokens = 24576;
         break;
 
       case 'FACTUAL_SEARCH_AND_REALTIME_GROUNDING':
         // Grounded tightly to live search results
-        temperature = 0.30;
+        temperature = 0.25;
         top_p = 0.95;
-        frequency_penalty = 0.20;
-        presence_penalty = 0.15;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
         max_tokens = 16384;
         break;
 
       case 'COMPARATIVE_AND_EVALUATION_ANALYSIS':
-        temperature = 0.40;
+        temperature = 0.30;
         top_p = 0.95;
-        frequency_penalty = 0.25;
-        presence_penalty = 0.20;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
         max_tokens = 16384;
         break;
 
       case 'TECHNICAL_DOCUMENTATION':
-        temperature = 0.35;
+        temperature = 0.25;
         top_p = 0.95;
-        frequency_penalty = 0.20;
-        presence_penalty = 0.15;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
         max_tokens = 16384;
         break;
 
       case 'CREATIVE_LITERARY_AND_BRAINSTORMING':
         // Elevated entropy for rich linguistic prose and poetic diversity
-        temperature = 0.82;
+        temperature = 0.80;
         top_p = 0.96;
-        frequency_penalty = 0.30;
-        presence_penalty = 0.25;
+        frequency_penalty = 0.05;
+        presence_penalty = 0.05;
         max_tokens = 16384;
         break;
 
       case 'UNINHIBITED_PERSONA_X1':
-        temperature = 0.85;
+        temperature = 0.82;
         top_p = 0.96;
-        frequency_penalty = 0.35;
-        presence_penalty = 0.25;
+        frequency_penalty = 0.05;
+        presence_penalty = 0.05;
         max_tokens = 32768;
         break;
 
       case 'GENERAL_CONVERSATION_AND_QUICK_QA':
       default:
-        temperature = 0.65;
+        temperature = 0.60;
         top_p = 0.95;
-        frequency_penalty = 0.10;
-        presence_penalty = 0.05;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
         max_tokens = complexity === 'LIGHT' ? 4096 : 8192;
         break;
     }
@@ -509,8 +542,6 @@ export class DynamicParameterTuner {
     // ─────────────────────────────────────────────────────────────────────────
     switch (modelFamily) {
       case 'deepseek-pro':
-        // Flagship reasoning engine: add sovereign stop tokens
-        stop.push('</think>\n\n<think>', '</think><think>', '<|end_of_thought|>');
         if (complexity === 'EXHAUSTIVE_ARCHITECTURAL') {
           max_tokens = 32768;
         }
@@ -541,7 +572,6 @@ export class DynamicParameterTuner {
       case 'muse-spark':
         // Meta Muse Spark 1.2 multimodal & archive specialist
         max_tokens = 16384;
-        frequency_penalty = Math.max(frequency_penalty, 0.35);
         break;
 
       case 'deepseek-vision':
@@ -596,6 +626,17 @@ export class DynamicParameterTuner {
         ar: 'هندسة البرمجيات، المعمارية الموزعة، والأكواد الإنتاجية الصارمة',
         mode: 'ENTERPRISE_PRODUCTION_ENGINEERING',
         directive: 'كتابة أكواد برمجية متكاملة تماماً بدون أي اختصارات أو تعليقات استبدالية (zero placeholders)، تطبيق مبادئ SOLID وDRY، معالجة استثنائية للحالات الحدية، وضمان خلو الأنظمة من التسريبات وحلقات التعليق.'
+      },
+      SVG_VECTOR_STUDIO_AND_DESIGN: {
+        ar: 'استوديو تصميم الفيكتور ورسومات الـ SVG فائقة الجودة والدقة',
+        mode: 'SOVEREIGN_SVG_VECTOR_STUDIO',
+        directive: 'أنت مهندس ومصمم فيكتور محترف (Principal Vector Architect): ' +
+          '1) فكّر وتأمّل أولاً داخل وسم التفكير <think> حول التكوين البصري والجمالي، تناسق وتدرج الألوان، الإضاءة والظلال، ونظام إحداثيات الـ viewBox بدقة هندسية. ' +
+          '2) قم بإنتاج كود SVG نقي، متكامل، وصالح قياسياً 100% داخل وسم الماركداون: ```svg\\n<svg ...>\\n...\\n</svg>\\n```. ' +
+          '3) يجب أن يتضمن الـ SVG دائماً: xmlns="http://www.w3.org/2000/svg"، أبعاد مرنة responsive عبر viewBox="0 0 W H" (مثل 0 0 800 600 أو 0 0 1024 1024) مع width="100%" و height="100%". ' +
+          '4) استخدم عناصر الفيكتور الحديثة باحترافية: التدرجات اللونية داخل <defs> عبر <linearGradient> و <radialGradient>، فلاتر التوهج والظلال الناعمة <filter id="...">، الأشكال الهندسية والمسارات المنحنية المتقنة <path>، والمجموعات الدلالية المنظمة <g id="...">. ' +
+          '5) يُحظر تماماً استخدام روابط لصور خارجية أو خطوط غير مدمجة لضمان إمكانية التحويل والتنزيل الفوري إلى صورة PNG عالية الدقة بدون أي مشاكل أو تلف في الـ Canvas. ' +
+          '6) احرص أن تكون الرسمة مكتملة ومغلقة هندسياً وجمالياً بدون أي قطع أو أجزاء مبتورة.'
       },
       MATHEMATICAL_AND_DEDUCTIVE_LOGIC: {
         ar: 'الاستدلال الاستنباطي الرياضي والفيزيائي والمنطق الصارم',
@@ -652,18 +693,11 @@ export class DynamicParameterTuner {
     const target = intentLabelMap[intent] || intentLabelMap.GENERAL_CONVERSATION_AND_QUICK_QA;
 
     return `
-[توجيه ضبط البارامترات والمعايرة الديناميكية للنموذج — DYNAMIC PARAMETER TUNING DIRECTIVE]:
-• نية المستخدم المستخلصة (Detected Intent): [${target.ar}] — Mode: ${target.mode}
-• مستوى التعقيد المطلوب (Target Complexity): ${complexity}
-• إعدادات النموذج المضبوطة مسبقاً (Tuned Hyperparameters):
-  - حرارة النموذج (Temperature): ${params.temperature} (معايرة لمنع التشتت والهلوسة)
-  - فضاء أخذ العينات (Top_P): ${params.top_p}
-  - عقوبة التكرار (Frequency Penalty): ${params.frequency_penalty}
-  - عقوبة الركود (Presence Penalty): ${params.presence_penalty}
-  - ميزانية الرموز (Max Tokens): ${params.max_tokens}
-• التوجيه الإلزامي قبل البدء:
+[توجيه المعايرة التلقائية وجودة الإخراج — COGNITIVE ALIGNMENT DIRECTIVE]:
+• نمط الإجابة والمسار: [${target.ar}] (${target.mode})
+• التوجيه الصارم:
   ${target.directive}
-• ضوابط الإخراج الصارمة: التفكير باللغة العربية داخل <think>...</think>، ثم تقديم الحل فوراً بعد إغلاق الوسم بلغة عربية فصحى معاصرة خالية تماماً من أي رموز تعبيرية (Emojis)، والبدء بصلب الإجابة دون مقدمات أو حشو.
+• ضوابط الإخراج الصارمة: فكّر أولاً بعمق وهدوء باللغة العربية داخل وسم <think>...</think> لتنظيم وتفكيك المعطيات منطقياً، ثم بعد إغلاق الوسم قدّم إجابتك فوراً بصلب الموضوع باللغة العربية الفصحى المعاصرة بدون أي مقدمات تكرارية أو رموز تعبيرية (Emojis).
 `.trim();
   }
 

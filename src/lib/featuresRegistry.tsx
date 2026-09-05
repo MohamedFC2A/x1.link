@@ -2,7 +2,7 @@ import React from 'react';
 import { Sparkles, ShieldCheck, Database, BrainCircuit, Clock, Flame, Zap } from 'lucide-react';
 import { cn } from './utils';
 
-export type FeatureIntentType = 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | 'download_detect' | 'fathom_cam' | 'fathom_spark' | 'fathom_search';
+export type FeatureIntentType = 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | 'download_detect' | 'fathom_cam' | 'fathom_spark' | 'fathom_search' | 'svg_studio';
 
 export type IntentCategory = 'actionable' | 'informational' | 'none';
 
@@ -291,6 +291,33 @@ export const FathomSearchIcon: React.FC<{ className?: string; size?: number }> =
     <circle cx="11" cy="11" r="8" />
     <line x1="21" y1="21" x2="16.65" y2="16.65" />
     <path d="M11 8a3 3 0 0 0-3 3" />
+  </svg>
+);
+
+export const SvgStudioIcon: React.FC<{ className?: string; size?: number }> = ({
+  className,
+  size = 14
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="url(#svg-studio-grad)"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn("inline-block shrink-0", className)}
+  >
+    <defs>
+      <linearGradient id="svg-studio-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#ec4899" />
+        <stop offset="35%" stopColor="#f43f5e" />
+        <stop offset="70%" stopColor="#a855f7" />
+        <stop offset="100%" stopColor="#3b82f6" />
+      </linearGradient>
+    </defs>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
   </svg>
 );
 
@@ -610,6 +637,37 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
         summary: 'الاستعلام الشبكي المتوازي وتدقيق المصادر الحية عبر Fathom Search',
         details: 'تم استدعاء وفحص نتائج البحث المباشرة وتوثيق المعطيات من مصادر الويب المعتمدة لعام 2026',
         statusPill: 'LIVE SEARCH INTELLIGENCE',
+        confidence: 0.99,
+        category: 'actionable'
+      };
+    }
+  },
+
+  // ── 9. SVG Studio (Intelligent Vector Design & High-Res PNG Exporter Engine)
+  svg_studio: {
+    id: 'svg_studio',
+    name: 'SVG Studio',
+    nameAr: 'استوديو الفيكتور وتصميم رسومات الـ SVG',
+    badgeLabel: 'SVG STUDIO',
+    textClassName: 'text-pink-400 font-bold',
+    glassClassName: 'bg-pink-950/70 border border-pink-400/50 text-pink-300 shadow-[0_0_15px_rgba(236,72,153,0.3)]',
+    badgeClassName: 'bg-pink-950/70 text-pink-300 border border-pink-400/40',
+    accentColor: '#ec4899',
+    borderHoverColor: 'border-pink-400/50',
+    icon: SvgStudioIcon,
+    detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
+      const plan = routeFeatureIntent('svg_studio', prompt, reasoning, content, context);
+      return plan.confidence >= 0.6;
+    },
+    extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
+      return {
+        id: 'svg_studio',
+        name: 'SVG Studio',
+        nameAr: 'استوديو الفيكتور وتصميم رسومات الـ SVG',
+        badgeLabel: 'SVG STUDIO',
+        summary: 'محرك تصميم الفيكتور وتوليد رسومات SVG فائقة الجودة والدقة',
+        details: 'تم إنشاء كود SVG نقي ومتكامل مع إمكانية التنزيل الفوري بصيغة PNG عالية الدقة (1x, 2x, 4x)',
+        statusPill: 'VECTOR ENGINE & PNG EXPORT',
         confidence: 0.99,
         category: 'actionable'
       };
@@ -1030,6 +1088,32 @@ export function routeFeatureIntent(
     return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No Fathom Search intent.' };
   }
 
+  // 9. SVG Studio Live Vector & High-Res PNG Engine Intent
+  if (featureId === 'svg_studio') {
+    const hasSvgBadge = cLower.includes('svg studio') || cLower.includes('svg-studio') || cLower.includes('[svg-studio');
+    const hasSvgCode = cLower.includes('```svg') || (cLower.includes('<svg') && cLower.includes('</svg>'));
+    const hasSvgReasoning = rLower.includes('svg') || rLower.includes('فيكتور') || rLower.includes('vector studio') || rLower.includes('svg studio');
+    const isSvgPrompt = (
+      pLower.includes('svg') &&
+      /(?:تصميم|صمم|ارسم|رسم|رسمة|شعار|لوجو|ايقونة|أيقونة|أيقونات|فيكتور|متجهات|صورة|كود|انشئ|أنشئ|اعمل|سوي|ولد|توليد|إنفوجرافيك|انفوجرافيك|رمز|شارة|طابع|زخرفة|design|logo|icon|art|vector|graphic|draw|create|generate|illustration|emblem|badge|diagram|format|png)/i.test(pLower)
+    ) || /(?:فيكتور|متجهات|vector\s*graphics?|vector\s*art|vector\s*illustration)/i.test(pLower) ||
+    /\b(?:draw|create|generate|design)\s+(?:an?\s+)?(?:svg|vector)/i.test(pLower);
+
+    if (hasSvgBadge || hasSvgCode || isSvgPrompt || hasSvgReasoning) {
+      return {
+        featureId,
+        confidence: 1.0,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: {},
+        reason: 'SVG Studio vector design or SVG code block active.'
+      };
+    }
+
+    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No SVG Studio intent.' };
+  }
+
   return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Unknown feature.' };
 }
 
@@ -1043,7 +1127,7 @@ export function detectIntentsMulti(
   content: string = '',
   context: any = {}
 ): MultiIntentPlan {
-  const featureIds: FeatureIntentType[] = ['fathom_search', 'download_detect', 'fathom_spark', 'fathom_cam', 'ai_detect', 'metadata_detect', 'memory_detect', 'time_detect'];
+  const featureIds: FeatureIntentType[] = ['fathom_search', 'download_detect', 'svg_studio', 'fathom_spark', 'fathom_cam', 'ai_detect', 'metadata_detect', 'memory_detect', 'time_detect'];
   
   const plans: Record<FeatureIntentType, FeatureActivationPlan> = {} as any;
   const activeFeatures: DetectedFeatureData[] = [];
@@ -1070,9 +1154,10 @@ export function detectIntentsMulti(
     }
   });
 
-  // Pipeline Execution Order: Download/Extraction -> Fathom Cam Vision -> AI Forensics -> Metadata Headers -> Memory Context -> Time/Widgets
+  // Pipeline Execution Order: Download/Extraction -> SVG Studio -> Fathom Cam Vision -> AI Forensics -> Metadata Headers -> Memory Context -> Time/Widgets
   const executionPipelineOrder: FeatureIntentType[] = [];
   if (plans.download_detect.confidence >= 0.6) executionPipelineOrder.push('download_detect');
+  if (plans.svg_studio?.confidence >= 0.6) executionPipelineOrder.push('svg_studio');
   if (plans.fathom_cam.confidence >= 0.6) executionPipelineOrder.push('fathom_cam');
   if (plans.ai_detect.confidence >= 0.6) executionPipelineOrder.push('ai_detect');
   if (plans.metadata_detect.confidence >= 0.6) executionPipelineOrder.push('metadata_detect');

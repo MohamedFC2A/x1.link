@@ -1737,7 +1737,7 @@ export default async function handler(req: Request): Promise<Response> {
   console.log(`[DYNAMIC-TUNER Edge] ✓ User Intent Detected: ${dynamicTuning.detectedIntent} (${dynamicTuning.complexityLevel}) | Target Family: ${dynamicTuning.targetModelFamily} | Tuned Hyperparameters: temp=${dynamicTuning.hyperparameters.temperature}, top_p=${dynamicTuning.hyperparameters.top_p}, freq_pen=${dynamicTuning.hyperparameters.frequency_penalty}, pres_pen=${dynamicTuning.hyperparameters.presence_penalty}, max_tokens=${dynamicTuning.hyperparameters.max_tokens}`);
 
   const timeDetectContext = getTimeDetectPromptBlock();
-  const activeSystemPrompt = `${baseSystemPrompt}\n\n${timeDetectContext}\n\n${dynamicTuning.calibrationDirective}${effectiveMemoryPrompt ? `\n\n${effectiveMemoryPrompt}` : ''}`;
+  let activeSystemPrompt = `${baseSystemPrompt}\n\n${timeDetectContext}\n\n${dynamicTuning.calibrationDirective}${effectiveMemoryPrompt ? `\n\n${effectiveMemoryPrompt}` : ''}`;
 
   let processedMessages = cleanedMessages;
 
@@ -1766,18 +1766,7 @@ export default async function handler(req: Request): Promise<Response> {
      * ركّز مباشرة على صلب التحليل المقارن المطلوب وتجنب أي استطلاع غير مطلوب.
 ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية أو استخدام كود بلوك thought للإجابة.`;
 
-    processedMessages = cleanedMessages.map((m: any) => {
-      if (Array.isArray(m.content)) {
-        const textItem = m.content.find((c: any) => c.type === 'text');
-        if (textItem) {
-          return {
-            ...m,
-            content: m.content.map((c: any) => c.type === 'text' ? { ...c, text: `${c.text}\n\n${mediaAndCodeGuidance}` } : c)
-          };
-        }
-      }
-      return m;
-    });
+    activeSystemPrompt += `\n\n${mediaAndCodeGuidance}`;
   } else if (hasMultimodal || isVision) {
     const latestUserContent = cleanedMessages.filter((m: any) => m.role === 'user').pop();
     const userPromptForForensics = typeof latestUserContent?.content === 'string'
@@ -1801,25 +1790,7 @@ export default async function handler(req: Request): Promise<Response> {
 2. بعد إغلاق وسم </think>، قدّم إجابتك باللغة العربية الفصحى بشكل منظم، قاطع، مباشر، وعميق يجيب بدقة تامة على استفسار المستخدم مستنداً إلى التفاصيل البصرية المرئية عبر Fathom Cam دون أي تردد أو اعتذار.
 ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية أو استخدام كود بلوك thought للإجابة.`;
 
-    const combinedBlocks = visionGuidance;
-    const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
-    if (lastUserIdx !== -1) {
-      const targetMsg = processedMessages[lastUserIdx];
-      if (Array.isArray(targetMsg.content)) {
-        const textItem = targetMsg.content.find((c: any) => c.type === 'text');
-        if (textItem) {
-          textItem.text = `${textItem.text}\n\n${combinedBlocks}`;
-        } else {
-          targetMsg.content.unshift({ type: 'text', text: combinedBlocks });
-        }
-      } else {
-        const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
-        processedMessages[lastUserIdx] = {
-          ...targetMsg,
-          content: `${orig}\n\n${combinedBlocks}`
-        };
-      }
-    }
+    activeSystemPrompt += `\n\n${visionGuidance}`;
   }
 
   // Step 2: Multi-Link Intelligence Matrix Engine (Up to 5 Links with Smart Chat-Wide Indexing)
@@ -1892,15 +1863,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     if (masterMultiLinkMatrix) {
       console.log(`[MULTI-LINK MATRIX Edge] ✓ Injected structured intelligence for (${validProcessedLinks.length}) links (${masterMultiLinkMatrix.length} chars)`);
-      const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
-      if (lastUserIdx !== -1) {
-        const targetMsg = processedMessages[lastUserIdx];
-        const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
-        processedMessages[lastUserIdx] = {
-          ...targetMsg,
-          content: `${orig}\n\n${masterMultiLinkMatrix}`
-        };
-      }
+      activeSystemPrompt += `\n\n${masterMultiLinkMatrix}`;
     }
   } else {
     const contextualQuery = resolveMultiTurnQuery(rawUserContent, processedMessages);
@@ -1923,15 +1886,7 @@ export default async function handler(req: Request): Promise<Response> {
 - بروتوكول التفكير الشجري: طبق الفروع الخمسة داخل <think> (تفكيك المعطيات، تدقيق المصادر، فحص الفرضيات، الاستنتاج المنطقي، وهندسة الإجابة).
 - التزم التزاماً مطلقاً بكافة شروط وقيود الإخراج الصارمة التي يحددها المستخدم (مثل منع المقدمات أو الخاتمة، التقييد بجدول أو عدد أسطر محدد). صغ الإجابة النهائية باللغة العربية الفصحى مباشرة.`;
 
-        const lastUserIdx = processedMessages.map(m => m.role).lastIndexOf('user');
-        if (lastUserIdx !== -1) {
-          const targetMsg = processedMessages[lastUserIdx];
-          const orig = typeof targetMsg.content === 'string' ? targetMsg.content : JSON.stringify(targetMsg.content);
-          processedMessages[lastUserIdx] = {
-            ...targetMsg,
-            content: `${orig}\n\n${searchRes}\n\n${fathomSearchGuidance}`
-          };
-        }
+        activeSystemPrompt += `\n\n${searchRes}\n\n${fathomSearchGuidance}`;
       }
     }
   }

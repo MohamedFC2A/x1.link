@@ -320,18 +320,22 @@ export function resolveMultiTurnQuery(
   if (!cleanPrompt) return '';
   if (!history || !Array.isArray(history) || history.length === 0) return cleanPrompt;
 
-  // Check if current prompt is a follow-up with pronouns or short query
+  // Never consider greetings, self-intros, or code requests as context follow-ups
+  const isGreetingOrCode = /^(?:مرحبا|أهلا|اهلا|السلام عليكم|صباح الخير|مساء الخير|هاي|hello|hi|hey|عرف بنفسك|من أنت|من انت|كود|اكتب|صمم|ارسم|برمج|حلل)\b/i.test(cleanPrompt);
+  if (isGreetingOrCode) return cleanPrompt;
+
+  // Check if current prompt is an explicit follow-up with pronouns pointing to antecedent
   const isFollowUp =
-    /\b(فيها|فيه|عنها|عنه|منها|منه|بها|به|عليهم|هو|هي|هما|هم|المباراة|الماتش|اللقاء|اللاعب|الفريق|الخبر|التقرير|الحادث|المسلسل|الفيلم|الجهاز|الموبايل|الهاتف|الشركة|النتيجة|الاهداف|الأهداف|سجل|احرز|أحرز|كام|كم|مين|متى)\b/i.test(cleanPrompt) ||
-    cleanPrompt.split(/\s+/).length <= 5;
+    /(?:^|\s|[.,!?،؟])(فيها|فيه|عنها|عنه|منها|منه|بها|به|عليهم|هو|هي|هما|هم|المباراة|الماتش|اللقاء|اللاعب|الفريق|الخبر|التقرير|الحادث|المسلسل|الفيلم|الجهاز|الموبايل|الهاتف|الشركة|النتيجة|الاهداف|الأهداف|سجل|احرز|أحرز|كام|كم|مين|متى)(?:$|\s|[.,!?،؟])/i.test(cleanPrompt);
 
   if (!isFollowUp) return cleanPrompt;
 
-  // Search backwards for the most recent meaningful context from user or assistant turns
+  // Search backwards for the most recent meaningful context from user turns
   const pastTurns = [...history].reverse();
   let contextTopic = '';
 
   for (const turn of pastTurns) {
+    if (turn.role === 'system') continue;
     let text = '';
     if (typeof turn.content === 'string') {
       text = turn.content;
@@ -345,11 +349,15 @@ export function resolveMultiTurnQuery(
     const cleanText = text
       .replace(/<think>[\s\S]*?<\/think>/gi, '')
       .replace(/\[(?:LIVE WEB INTELLIGENCE|نتائج البحث)[^\]]*\]/gi, '')
+      .replace(/\[(?:توجيه|DIRECTIVE|FATHOM|SERPER|SYSTEM)[\s\S]*?\]/gi, '')
       .replace(/https?:\/\/[^\s]+/g, '')
       .trim();
 
     // Extract significant nouns or topic phrases
-    const lines = cleanText.split('\n').filter(l => l.trim().length > 8);
+    const lines = cleanText.split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 8 && !l.startsWith('[') && !l.includes('DIRECTIVE') && !l.includes('توجيه'));
+
     if (lines.length > 0) {
       const sample = lines[0].replace(/^[-*#\d+.)\s]+/, '').slice(0, 120).trim();
       if (sample && sample.length > 6) {

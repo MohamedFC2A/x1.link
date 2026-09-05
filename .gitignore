@@ -30,3 +30,4 @@ scratch/
 
 .vercel
 .env*
+tests/e2e/*.png

@@ -44,6 +44,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const isAutoScrollLockedRef = useRef(true);
   const isUserInteractingRef = useRef(false);
   const lastScrollHeightRef = useRef(0);
+  const lastScrollTopRef = useRef(0);
   const prevMessagesLength = useRef(messages.length);
 
   // Synchronize locking state
@@ -67,6 +68,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     } else {
       container.scrollTop = container.scrollHeight;
     }
+    lastScrollTopRef.current = container.scrollTop;
   }, [setAutoScrollLocked]);
 
   // Intelligent scroll threshold tracking
@@ -74,19 +76,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const container = containerRef.current;
     if (!container) return;
 
-    const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const currentScrollTop = container.scrollTop;
+    const distFromBottom = container.scrollHeight - currentScrollTop - container.clientHeight;
     
-    // If user scrolled up by more than 50px, release lock so user can read smoothly without interruptions!
-    if (distFromBottom > 60) {
+    // If user scrolled up by even 1px or is away from the bottom by more than 30px
+    if (currentScrollTop < lastScrollTopRef.current - 1 || distFromBottom > 30) {
       if (isAutoScrollLockedRef.current) {
         setAutoScrollLocked(false);
       }
-    } else if (distFromBottom <= 20) {
+    } else if (distFromBottom <= 15) {
       // User naturally scrolled back down to bottom
       if (!isAutoScrollLockedRef.current) {
         setAutoScrollLocked(true);
       }
     }
+    lastScrollTopRef.current = currentScrollTop;
   }, [setAutoScrollLocked]);
 
   // Decouple user touch / wheel gestures to prevent violent jitter during streaming
@@ -95,28 +99,49 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     if (!container) return;
 
     const onWheel = (e: WheelEvent) => {
-      // If user is scrolling UP with wheel
-      if (e.deltaY < -2) {
+      if (e.deltaY < 0) {
+        // Scrolling UP: immediately release auto-scroll lock
         setAutoScrollLocked(false);
+      } else if (e.deltaY > 0) {
+        const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
+        if (dist <= 15) {
+          setAutoScrollLocked(true);
+        }
       }
     };
 
-    const onTouchStart = () => {
+    let touchStartY = 0;
+    const onTouchStart = (e: TouchEvent) => {
       isUserInteractingRef.current = true;
+      if (e.touches.length > 0) {
+        touchStartY = e.touches[0].clientY;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const currentY = e.touches[0].clientY;
+        // Dragging finger downwards means user intends to scroll upwards
+        if (currentY > touchStartY + 4) {
+          setAutoScrollLocked(false);
+        }
+      }
     };
 
     const onTouchEnd = () => {
       isUserInteractingRef.current = false;
-      setTimeout(handleScroll, 60);
+      setTimeout(handleScroll, 50);
     };
 
     container.addEventListener('wheel', onWheel, { passive: true });
     container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: true });
     container.addEventListener('touchend', onTouchEnd, { passive: true });
 
     return () => {
       container.removeEventListener('wheel', onWheel);
       container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
       container.removeEventListener('touchend', onTouchEnd);
     };
   }, [handleScroll, setAutoScrollLocked]);
@@ -145,7 +170,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const streamFollower = () => {
       if (isStreaming && isAutoScrollLockedRef.current && !isUserInteractingRef.current) {
         const currentHeight = container.scrollHeight;
-        if (currentHeight !== lastScrollHeightRef.current) {
+        const currentDist = currentHeight - container.scrollTop - container.clientHeight;
+        // ONLY follow if auto-scroll is locked and we are legitimately within latch range of bottom
+        if (currentDist <= 40 && currentHeight !== lastScrollHeightRef.current) {
           lastScrollHeightRef.current = currentHeight;
           container.scrollTop = currentHeight - container.clientHeight;
         }

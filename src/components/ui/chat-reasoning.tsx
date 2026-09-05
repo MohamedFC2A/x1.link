@@ -6,7 +6,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { Brain, Cpu, Check, ChevronDown, Camera, Sparkles, Search, Globe, Copy, ListOrdered } from "lucide-react";
+import { Brain, Cpu, Check, ChevronDown, Camera, Sparkles, Search, Globe, ListOrdered } from "lucide-react";
 import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 import { motion, AnimatePresence } from "framer-motion";
 import { DetectedFeatureData, FEATURES_REGISTRY, TimeDetectIcon, MemoryDetectIcon } from "@/lib/featuresRegistry";
@@ -585,13 +585,10 @@ export default function ChatReasoning({
   className,
 }: ChatReasoningProps) {
   const [value, setValue] = useState<string | undefined>(defaultValue ?? "reasoning");
-  const [copied, setCopied] = useState(false);
   const [openStepIds, setOpenStepIds] = useState<Record<string, boolean>>({});
-  const [viewMode, setViewMode] = useState<'stepper' | 'full'>('stepper');
 
   const userToggledRef = useRef<Record<string, boolean>>({});
   const lastActiveIdRef = useRef<string | null>(null);
-  const fullStreamRef = useRef<HTMLDivElement>(null);
   const activeStepDetailsRef = useRef<HTMLDivElement>(null);
 
   const toggleStep = (stepId: string) => {
@@ -698,27 +695,6 @@ export default function ChatReasoning({
     return lines.join('\n').trim();
   }, [fullText]);
 
-  // Auto-scroll full view and active details during live streaming
-  useEffect(() => {
-    if (isThinking && fullStreamRef.current && viewMode === 'full') {
-      fullStreamRef.current.scrollTop = fullStreamRef.current.scrollHeight;
-    }
-  }, [cleanThinkingText, fullText, isThinking, viewMode]);
-
-  useEffect(() => {
-    if (isThinking && activeStepDetailsRef.current && viewMode === 'stepper') {
-      activeStepDetailsRef.current.scrollTop = activeStepDetailsRef.current.scrollHeight;
-    }
-  }, [milestones, isThinking, viewMode]);
-
-  const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const textToCopy = cleanThinkingText || fullText;
-    if (!textToCopy) return;
-    navigator.clipboard.writeText(textToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const visibleHeaderFeatures = useMemo(() => {
     return activeFeatures.filter(f => f.id !== 'fathom_cam' && f.id !== 'fathom_spark' && f.id !== 'fathom_search');
@@ -806,80 +782,16 @@ export default function ChatReasoning({
 
         <AccordionContent className="p-0 pt-2 pb-3 border-t border-white/[0.06]">
           <div className="pt-2 px-1 text-right space-y-3">
-            {/* Steps Header Bar, View Toggle & Copy Button */}
-            <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] text-xs font-mono select-none flex-wrap gap-2">
+            {/* Steps Header Bar */}
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] text-xs font-mono select-none">
               <div className="flex items-center gap-2 text-zinc-300 text-[11px]">
                 <ListOrdered className="size-3.5 text-indigo-400" />
                 <span className="font-semibold tracking-tight">خطوات الاستدلال والتفكير المنطقي</span>
               </div>
-
-              <div className="flex items-center gap-2">
-                {/* Stepper vs Full Stream View Toggle */}
-                <div className="inline-flex p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[10px]">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('stepper')}
-                    className={cn(
-                      "px-2 py-0.5 rounded-md transition-all cursor-pointer font-medium",
-                      viewMode === 'stepper'
-                        ? "bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 shadow-xs"
-                        : "text-zinc-400 hover:text-zinc-200"
-                    )}
-                  >
-                    مخطط الخطوات
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('full')}
-                    className={cn(
-                      "px-2 py-0.5 rounded-md transition-all cursor-pointer font-medium",
-                      viewMode === 'full'
-                        ? "bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 shadow-xs"
-                        : "text-zinc-400 hover:text-zinc-200"
-                    )}
-                  >
-                    المسار الكامل
-                  </button>
-                </div>
-
-                {/* Copy reasoning button */}
-                {(cleanThinkingText || fullText) && (
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors px-2 py-1 rounded-md hover:bg-white/[0.08] cursor-pointer"
-                    title="نسخ مسار التفكير"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="size-3.5 text-emerald-400" />
-                        <span className="text-emerald-400 font-medium">تم النسخ</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="size-3.5" />
-                        <span>نسخ التفكير</span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
             </div>
 
-            {viewMode === 'full' ? (
-              <div
-                ref={fullStreamRef}
-                dir="auto"
-                className="p-3 rounded-xl bg-black/40 border border-white/[0.06] text-[11.5px] font-mono text-zinc-300/90 whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto custom-scrollbar select-text"
-              >
-                {cleanThinkingText || fullText}
-                {isThinking && (
-                  <span className="inline-block w-1.5 h-3.5 bg-indigo-400 align-middle mr-1.5 animate-pulse rounded-xs" />
-                )}
-              </div>
-            ) : (
-              /* Steps View: Vertical Stepper Timeline with Integrated Search, Cam, Spark & Reasoning */
-              <div className="relative pr-6 space-y-2.5">
+            {/* Steps View: Vertical Stepper Timeline with Integrated Search, Cam, Spark & Reasoning */}
+            <div className="relative pr-6 space-y-2.5">
                 {visibleMilestones.map((m, idx) => {
                   const isSearch = m.specialType === 'search';
                   const isCam = m.specialType === 'cam';
@@ -1043,7 +955,6 @@ export default function ChatReasoning({
                   );
                 })}
               </div>
-            )}
           </div>
         </AccordionContent>
       </AccordionItem>
