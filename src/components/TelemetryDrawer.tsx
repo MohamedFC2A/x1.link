@@ -28,8 +28,7 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
   const memStats = memoryEngine.getMemoryStats();
   const discStats = scientificDiscoveryEngine.getDiscoveryStats();
   const isCyber26 = activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-flash-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1';
-  const isCyber20 = activeModel === 'deepseek-v4-flash-cyber';
-  const isCyber = isCyber20 || isCyber26;
+  const isCyber = isCyber26;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/80 backdrop-blur-md animate-in fade-in duration-200" dir="rtl">
@@ -62,16 +61,12 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
               <span className="text-zinc-400 block text-[10px] uppercase font-bold">CURRENT ACTIVE MODEL</span>
               <span className="text-white font-bold block mt-1">
                 {isCyber26 
-                  ? 'Fathom Cyber 2.6 (v4-pro-cyber-2.6)' 
-                  : isCyber20 
-                  ? 'Fathom Cyber 2.0 (v4-flash-cyber)' 
+                  ? (activeModel === 'deepseek-v4-flash-cyber-2.6' ? 'Fathom Cyber Flash 2.6' : 'Fathom Cyber Ultra 2.6')
                   : activeModel}
               </span>
               <span className="text-[10px] text-cyan-400 block mt-0.5 font-bold">
                 {isCyber26
                   ? 'V4-PRO ENGINE // HYPER-DEDUCTIVE REASONING & 3-TIER MEMORY'
-                  : isCyber20 
-                  ? '3-TIER UNIFIED EPISODIC & SEMANTIC DYNAMIC MEMORY AURA' 
                   : activeModel.includes('vision') 
                   ? 'MULTIMODAL_IMAGE_PROCESSING' 
                   : 'HIGH_SPEED_REASONING_CHAT'}

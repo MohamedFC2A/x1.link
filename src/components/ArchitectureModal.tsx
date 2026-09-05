@@ -39,14 +39,14 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
     },
     {
       id: 4,
-      title: 'المرحلة الرابعة: التوليد السيادي فائق الذكاء (Fathom Cyber 2.0 & Fathom 1.1)',
+      title: 'المرحلة الرابعة: التوليد السيادي فائق الذكاء (Fathom Cyber Ultra 2.6 & Fathom Cyber Flash 2.6 & Fathom 1.1)',
       description: 'صياغة المخرجات باللغة العربية الفصحى البليغة، مع دقة تقنية متناهية، تفنيد للثغرات، وترقيع دفاعي فوري بدون شوائب.',
       timestamp: 'المرحلة 04 • التوليد السيادي',
       status: 'completed',
     },
     {
       id: 5,
-      title: 'المرحلة الخامسة: الاستنباط المباشر الخاطف للألغاز والاستدلال الاختطافي (Fathom Cyber 2.6 — Super Thinking)',
+      title: 'المرحلة الخامسة: الاستنباط المباشر الخاطف للألغاز والاستدلال الاختطافي (Fathom Cyber Ultra 2.6 — Super Thinking)',
       description: 'حلقة المعرفة المغلقة (O-H-E-U Loop): رصد الشذوذ والمعضلات، صياغة الفرضيات بنصل أوكام، والتحقق الآلي عبر بيئة برهان شكلي (Lean/Coq) وتثبيت البديهيات.',
       timestamp: 'المرحلة 05 • الاكتشاف العلمي والاستدلال الفائق',
       status: 'in-progress',

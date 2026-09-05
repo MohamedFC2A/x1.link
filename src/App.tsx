@@ -130,7 +130,7 @@ export const App: React.FC = () => {
   const [cloudChats, setCloudChats] = useState<SupabaseChat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
 
-  // Model & Chat State (Persistent Smart Preferred Base Model: Fathom 1.1, Fathom Cyber 2.0 or Fathom Cyber 2.6 Pro)
+  // Model & Chat State (Persistent Smart Preferred Base Model: Fathom 1.1, Fathom Cyber Flash 2.6 or Fathom Cyber Ultra 2.6)
   const [preferredBaseModel, setPreferredBaseModel] = useState<ModelType>(() => {
     try {
       const saved = localStorage.getItem('matany_preferred_base_model');

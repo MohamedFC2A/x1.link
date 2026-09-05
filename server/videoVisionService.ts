@@ -10,6 +10,7 @@
  */
 
 import type { TimestampedBlock, YouTubeTranscriptResult } from './youtubeTranscript';
+import { DynamicParameterTuner } from './dynamicParameterTuner';
 
 export interface VideoKeyframe {
   label: string;
@@ -350,6 +351,12 @@ export async function performVideoVisionPerception(
     }] : [])
   ];
 
+  const dynamicTuning = DynamicParameterTuner.tune({
+    userPrompt: contextInfo.userPrompt || contextInfo.title || 'استيعاب وفحص لقطات الفيديو',
+    requestedModel: 'meta/muse-spark-1.2-contributor',
+    hasVideoOrAudio: true,
+  });
+
   for (const gw of videoGateways) {
     try {
       const visionController = new AbortController();
@@ -358,6 +365,11 @@ export async function performVideoVisionPerception(
         signal.addEventListener('abort', () => visionController.abort(), { once: true });
       }
 
+      const gatewayPayload = DynamicParameterTuner.tuneGatewayPayload(gw.model, {
+        messages: [{ role: 'user', content: contentParts }],
+        stream: false,
+      }, dynamicTuning);
+
       const res = await fetch(gw.url, {
         method: 'POST',
         headers: {
@@ -365,12 +377,7 @@ export async function performVideoVisionPerception(
           'Authorization': `Bearer ${gw.key}`,
           ...gw.headers
         },
-        body: JSON.stringify({
-          model: gw.model,
-          messages: [{ role: 'user', content: contentParts }],
-          temperature: 0.2,
-          max_tokens: 4096,
-        }),
+        body: JSON.stringify(gatewayPayload),
         signal: visionController.signal
       });
       clearTimeout(visionTimeout);
@@ -629,6 +636,12 @@ export async function performPostImageVisionPerception(
     }
   ];
 
+  const dynamicTuning = DynamicParameterTuner.tune({
+    userPrompt: contextInfo.userPrompt || contextInfo.caption || contextInfo.title || 'فحص وتحليل الصور المرفقة بدقة بصرية متناهية',
+    requestedModel: 'deepseek-v4-flash-vision-exp',
+    hasMultimodalImages: true,
+  });
+
   for (const gw of visionGateways) {
     try {
       const visionController = new AbortController();
@@ -637,6 +650,11 @@ export async function performPostImageVisionPerception(
         signal.addEventListener('abort', () => visionController.abort(), { once: true });
       }
 
+      const gatewayPayload = DynamicParameterTuner.tuneGatewayPayload(gw.model, {
+        messages: [{ role: 'user', content: contentParts }],
+        stream: false,
+      }, dynamicTuning);
+
       const res = await fetch(gw.url, {
         method: 'POST',
         headers: {
@@ -644,12 +662,7 @@ export async function performPostImageVisionPerception(
           'Authorization': `Bearer ${gw.key}`,
           ...gw.headers
         },
-        body: JSON.stringify({
-          model: gw.model,
-          messages: [{ role: 'user', content: contentParts }],
-          temperature: 0.15,
-          max_tokens: 4096,
-        }),
+        body: JSON.stringify(gatewayPayload),
         signal: visionController.signal
       });
       clearTimeout(visionTimeout);

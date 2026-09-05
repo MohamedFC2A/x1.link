@@ -12,6 +12,8 @@
  * ============================================================================
  */
 
+export * from './cyberSecurityArchitecture';
+
 export type DAGStage = 'DISSECT' | 'PRUNE' | 'VERIFY' | 'LOCK' | 'SYNTHESIZE';
 
 export interface DAGNode {
@@ -629,21 +631,137 @@ export class FathomCyberReasoningEngine {
   }
 
   /**
-   * Produces strictly tuned gateway parameters optimized natively for deepseek-v4-pro.
+   * Produces strictly tuned gateway parameters optimized natively for deepseek-v4-pro,
+   * supporting optional dynamic parameter tuning based on user prompt context.
    */
-  public static getDeepSeekV4ProConfig(isCyberPro26: boolean = true): DeepSeekV4ProGatewayParams {
+  public static getDeepSeekV4ProConfig(isCyberPro26: boolean = true, contextPrompt?: string): DeepSeekV4ProGatewayParams {
+    let temperature = 0.3;
+    let top_p = 0.95;
+    let frequency_penalty = 0.35;
+    let presence_penalty = 0.25;
+    const max_tokens = 32768;
+
+    if (contextPrompt) {
+      const isMathOrLogic = /(معادلة|مسألة|برهان|لغز|احسب|proof|calculat|logic|تفاضل|تكامل)/i.test(contextPrompt);
+      const isExploitOrCyber = /(ثغرة|اختراق|payload|exploit|cve|zero-day|dpop|rce|sqli|xss)/i.test(contextPrompt);
+      const isCreative = /(قصة|شعر|أدبي|خيال|novel|story|قصيدة|أبيات)/i.test(contextPrompt);
+      const isCode = /(كود|برمجة|دالة|class|function|typescript|python|rust|bug|refactor)/i.test(contextPrompt);
+
+      if (isCreative) {
+        temperature = 0.82;
+        top_p = 0.96;
+        frequency_penalty = 0.30;
+        presence_penalty = 0.20;
+      } else if (isExploitOrCyber) {
+        temperature = 0.20;
+        top_p = 0.92;
+        frequency_penalty = 0.35;
+        presence_penalty = 0.25;
+      } else if (isMathOrLogic) {
+        temperature = 0.15;
+        top_p = 0.90;
+        frequency_penalty = 0.25;
+        presence_penalty = 0.15;
+      } else if (isCode) {
+        temperature = 0.18;
+        top_p = 0.92;
+        frequency_penalty = 0.30;
+        presence_penalty = 0.20;
+      }
+    }
+
     return {
       model: isCyberPro26 ? 'deepseek-v4-pro' : 'deepseek/deepseek-v4-pro',
-      temperature: 0.3, // Low temperature eliminates wandering branches & overthinking
-      top_p: 0.95,
-      frequency_penalty: 0.35, // Strong penalty against repetitive token loops
-      presence_penalty: 0.25, // Discourages revisiting settled topics
-      max_tokens: 32768,
+      temperature, // Tuned dynamically or optimal default
+      top_p,
+      frequency_penalty, // Strong penalty against repetitive token loops
+      presence_penalty, // Discourages revisiting settled topics
+      max_tokens,
       stop: [
+        '<|end_of_thought|>',
         '</think>\n\n<think>',
         '</think><think>'
       ]
     };
+  }
+
+  /**
+   * Universal Dynamic Parameter Tuning: returns the calibrated gateway parameters
+   * for any foundation model in the system based on the user's intent and prompt context.
+   */
+  public static getTunedModelConfig(
+    model: string,
+    contextPrompt?: string
+  ): {
+    model: string;
+    temperature?: number;
+    top_p?: number;
+    frequency_penalty?: number;
+    presence_penalty?: number;
+    max_tokens: number;
+    stop?: string[];
+  } {
+    const m = (model || '').toLowerCase().trim();
+    const isReasoner = m.includes('reasoner') || m.includes('r1');
+    const isVision = m.includes('vision') || m.includes('cam');
+    const isFlash = m.includes('flash');
+    const isSpark = m.includes('spark') || m.includes('muse');
+    const isMagnum = m.includes('magnum') || m === 'x1';
+
+    let temperature = isMagnum ? 0.85 : (isVision ? 0.20 : 0.35);
+    let top_p = 0.95;
+    let frequency_penalty = 0.20;
+    let presence_penalty = 0.15;
+    let max_tokens = (isFlash || isVision || isSpark) ? 16384 : 32768;
+    const stop: string[] = [];
+
+    if (m.includes('pro') || m.includes('cyber')) {
+      stop.push('<|end_of_thought|>', '</think>\n\n<think>', '</think><think>');
+    }
+
+    if (contextPrompt) {
+      const isMathOrLogic = /(معادلة|مسألة|برهان|لغز|احسب|proof|calculat|logic|تفاضل|تكامل)/i.test(contextPrompt);
+      const isExploitOrCyber = /(ثغرة|اختراق|payload|exploit|cve|zero-day|dpop|rce|sqli|xss)/i.test(contextPrompt);
+      const isCreative = /(قصة|شعر|أدبي|خيال|novel|story|قصيدة|أبيات)/i.test(contextPrompt);
+      const isCode = /(كود|برمجة|دالة|class|function|typescript|python|rust|bug|refactor)/i.test(contextPrompt);
+
+      if (isCreative) {
+        temperature = 0.82;
+        top_p = 0.96;
+        frequency_penalty = 0.30;
+        presence_penalty = 0.20;
+      } else if (isExploitOrCyber) {
+        temperature = 0.20;
+        top_p = 0.92;
+        frequency_penalty = 0.35;
+        presence_penalty = 0.25;
+      } else if (isMathOrLogic) {
+        temperature = 0.15;
+        top_p = 0.90;
+        frequency_penalty = 0.25;
+        presence_penalty = 0.15;
+      } else if (isCode) {
+        temperature = 0.18;
+        top_p = 0.92;
+        frequency_penalty = 0.30;
+        presence_penalty = 0.20;
+      }
+    }
+
+    const config: any = {
+      model,
+      max_tokens,
+      ...(stop.length > 0 ? { stop } : {})
+    };
+
+    if (!isReasoner) {
+      config.temperature = temperature;
+      config.top_p = top_p;
+      config.frequency_penalty = frequency_penalty;
+      config.presence_penalty = presence_penalty;
+    }
+
+    return config;
   }
 
   /**

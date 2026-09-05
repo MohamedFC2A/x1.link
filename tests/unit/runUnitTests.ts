@@ -15,6 +15,9 @@ import { runImageForensicsTests } from './imageForensics.test';
 import { runMemoryIntentTests } from './memoryIntent.test';
 import { runDeepContentExtractorTests } from './deepContentExtractor.test';
 import { runFathomCyberEngineTests } from './fathomCyberEngine.test';
+import { runChatReasoningMilestonesTests } from './chatReasoningMilestones.test';
+import { runCyberSecurityArchitectureTests } from './cyberSecurityArchitecture.test';
+import { runDynamicParameterTunerTests } from './dynamicParameterTuner.test';
 
 export async function runAllUnitTests(): Promise<boolean> {
   const harness = new TestHarness();
@@ -34,6 +37,9 @@ export async function runAllUnitTests(): Promise<boolean> {
   await runMemoryIntentTests(harness);
   await runDeepContentExtractorTests(harness);
   await runFathomCyberEngineTests(harness);
+  await runChatReasoningMilestonesTests(harness);
+  await runCyberSecurityArchitectureTests(harness);
+  await runDynamicParameterTunerTests(harness);
 
   const passed = harness.printSummary('UNIT TEST SUITE SUMMARY');
   return passed;

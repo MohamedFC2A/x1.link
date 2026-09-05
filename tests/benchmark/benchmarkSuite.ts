@@ -535,5 +535,75 @@ In the exact month and year that saw the coronation of the last ruling Habsburg 
         feedback: score >= 75 ? 'Rigorous historical-scientific multi-constraint resolution' : 'Chronological discrepancy found'
       };
     }
+  },
+
+  // ─── 8. Sovereign CyberSec Architecture (DPoP, Edge Gateway & Zero-Trust) ───────
+  {
+    id: 'sec-801',
+    category: 'DEEP_SWE',
+    categoryName: 'DeepSWE v1.1',
+    title: 'Zero-Trust Cyber Architecture: RFC 9449 DPoP, Stateless Nonce, Envoy & Kafka KMS',
+    weight: 1.5,
+    prompt: `Analyze and architect the end-to-end remediation for:
+1. DPoP RFC 9449 public key verification & cryptographic key-binding.
+2. Stateless DPoP-Nonce handshake mechanics for multi-region gateways.
+3. Gateway-level URI normalization with Envoy http_connection_manager against HTU differentials.
+4. JWKS cache stampede, singleflight coalescing, and SSRF prevention.
+5. Zero-trust multi-tenancy in Apache Kafka data plane using envelope encryption.`,
+    goldenSolution: `
+      ### 1. DPoP Key Architecture (RFC 9449 & RFC 7638):
+      - Eliminate external JWKS lookups for DPoP proof public keys; keys are generated transiently on the client runtime (e.g. non-extractable WebCrypto API).
+      - Validate proof signature directly against the embedded 'jwk' in the JOSE header.
+      - Compute canonical SHA-256 JWK thumbprint: jkt = Base64URL(SHA-256(Canonical_JSON(jwk))).
+      - Verify jkt strictly matches the 'cnf.jkt' claim inside the access token.
+
+      ### 2. Stateless DPoP-Nonce Handshake:
+      - Terminate requests missing or with expired nonces with HTTP 401 Unauthorized containing 'DPoP-Nonce: <nonce>' and WWW-Authenticate header.
+      - Stateless signed nonce: Nonce = Base64URL(payload || HMAC-SHA256(payload, K_gateway)) where payload = client_ip || timestamp || entropy.
+      - Accept nonces generated within current or immediately preceding temporal window.
+
+      ### 3. Gateway URI Normalization (Envoy):
+      - Envoy http_connection_manager configuration:
+        normalize_path: true
+        merge_slashes: true
+        path_with_escaped_slashes_action: UNESCAPE_AND_REDIRECT
+
+      ### 4. JWKS Singleflight & SSRF Prevention:
+      - Singleflight request coalescing pattern merges concurrent cache-miss lookups for (tenant_id, kid) into 1 outbound HTTP fetch.
+      - Deterministic rate limiting: maximum 1 upstream outbound query every 10 seconds per tenant.
+      - Immutable internal tenant registry ConfigMap prevents SSRF by strictly rejecting dynamic 'jku' or unverified 'iss'.
+
+      ### 5. Zero-Trust Kafka Multi-Tenancy:
+      - Client-side Envelope Encryption: payload encrypted with single-use DEK (AES-256-GCM); DEK wrapped by tenant-isolated KMS KEK before sending to Kafka.
+      - Local consumer decryption ensures cross-tenant consumers only receive raw ciphertext.
+      - Cryptographically signed Kafka record headers (signed by ingress service) guarantee immutable tenant metadata.
+    `,
+    evaluator: (output) => {
+      const hasDPoP = /dpop|rfc\s*9449|jkt|cnf\.jkt|canonical/i.test(output);
+      const hasNonce = /nonce|401|hmac|stateless/i.test(output);
+      const hasEnvoy = /envoy|normalize_path|merge_slashes|unescape_and_redirect|http_connection_manager/i.test(output);
+      const hasSingleflight = /singleflight|coalesc|rate limit|configmap|ssrf/i.test(output);
+      const hasKafkaZeroTrust = /envelope encryption|kms|dek|kek|aes|zero-trust|kafka/i.test(output);
+
+      let score = 0;
+      if (hasDPoP) score += 20;
+      if (hasNonce) score += 20;
+      if (hasEnvoy) score += 20;
+      if (hasSingleflight) score += 20;
+      if (hasKafkaZeroTrust) score += 20;
+
+      return {
+        passed: score >= 80,
+        score,
+        metrics: {
+          dpopVerified: hasDPoP,
+          nonceHandshake: hasNonce,
+          envoySanitized: hasEnvoy,
+          singleflightSSRF: hasSingleflight,
+          kafkaKmsEncrypted: hasKafkaZeroTrust
+        },
+        feedback: score >= 80 ? 'Masterful zero-trust cybersecurity architecture solution' : 'Lacks key cryptographic or gateway mitigations'
+      };
+    }
   }
 ];

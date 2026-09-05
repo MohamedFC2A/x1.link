@@ -15,6 +15,9 @@ import { runImageForensicsTests } from './unit/imageForensics.test';
 import { runMemoryIntentTests } from './unit/memoryIntent.test';
 import { runDeepContentExtractorTests } from './unit/deepContentExtractor.test';
 import { runFathomCyberEngineTests } from './unit/fathomCyberEngine.test';
+import { runChatReasoningMilestonesTests } from './unit/chatReasoningMilestones.test';
+import { runCyberSecurityArchitectureTests } from './unit/cyberSecurityArchitecture.test';
+import { runDynamicParameterTunerTests } from './unit/dynamicParameterTuner.test';
 import { runMultiSourceSearchIntegrationTests } from './integration/multiSourceSearch.test';
 import { runSearchApiRouteIntegrationTests } from './integration/searchApiRoute.test';
 import { runChatSearchPipelineIntegrationTests } from './integration/chatSearchPipeline.test';
@@ -43,6 +46,9 @@ async function runMasterTestSuite() {
   await runMemoryIntentTests(harness);
   await runDeepContentExtractorTests(harness);
   await runFathomCyberEngineTests(harness);
+  await runChatReasoningMilestonesTests(harness);
+  await runCyberSecurityArchitectureTests(harness);
+  await runDynamicParameterTunerTests(harness);
 
   // 2. Integration Tests
   console.log('\n\x1b[1m\x1b[36m[STAGE 2/5]: Executing Live Integration Tests Battery...\x1b[0m');

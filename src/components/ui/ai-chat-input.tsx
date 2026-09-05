@@ -276,14 +276,15 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
     const isVisionMode = hasAttachments && !hasNonImageMedia;
     const isCyber26Mode = internalModel === 'deepseek-v4-pro-cyber-2.6' || internalModel === 'deepseek-v4-flash-cyber-2.6' || internalModel === 'deepseek-v4-pro-cyber-2.1' || internalModel === 'deepseek-v4-flash-cyber-2.1';
-    const isCyber20Mode = internalModel === 'deepseek-v4-flash-cyber';
-    const isCyberMode = isCyber20Mode || isCyber26Mode;
+    const isCyberMode = isCyber26Mode;
     const isMediaMode = hasNonImageMedia;
 
-    const activeModelDisplayName = isCyber26Mode
-      ? "Fathom Cyber 2.6"
-      : isCyber20Mode
-      ? "Fathom Cyber 2.0"
+    const activeModelDisplayName = internalModel === 'deepseek-v4-flash-cyber-2.6'
+      ? "Fathom Cyber Flash 2.6"
+      : internalModel === 'deepseek-v4-pro-cyber-2.6'
+      ? "Fathom Cyber Ultra 2.6"
+      : isCyber26Mode
+      ? "Fathom Cyber Ultra 2.6"
       : "Fathom 1.1";
 
     const activeBackendModel = effectiveModel;
@@ -304,8 +305,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           const combined = [...prev, ...newOnes].slice(0, 5);
           return combined;
         });
-        setInternalModel('deepseek-v4-flash-cyber');
-        onSelectModel?.('deepseek-v4-flash-cyber');
+        setInternalModel('deepseek-v4-flash-cyber-2.6');
+        onSelectModel?.('deepseek-v4-flash-cyber-2.6');
         setCyberInputUrl('');
       }
     }, [showUrlLimitToast, onSelectModel]);
@@ -340,8 +341,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               }
               return [...prev, ...newOnes].slice(0, 5);
             });
-            setInternalModel('deepseek-v4-flash-cyber');
-            onSelectModel?.('deepseek-v4-flash-cyber');
+            setInternalModel('deepseek-v4-flash-cyber-2.6');
+            onSelectModel?.('deepseek-v4-flash-cyber-2.6');
 
             const remainingClean = extracted.remainingText.trim();
             if (!isControlled) setLocalValue(remainingClean);
@@ -565,9 +566,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           return combined;
         });
 
-        // Always activate Fathom Cyber URL Mode on link detection
-        setInternalModel('deepseek-v4-flash-cyber');
-        onSelectModel?.('deepseek-v4-flash-cyber');
+        // Always activate Fathom Cyber Flash 2.6 URL Mode on link detection
+        setInternalModel('deepseek-v4-flash-cyber-2.6');
+        onSelectModel?.('deepseek-v4-flash-cyber-2.6');
 
         if (extracted.remainingText && extracted.remainingText.trim()) {
           const existingValue = value.trim();
@@ -991,15 +992,15 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   );
                 })()}
 
-                {/* Model 2: Fathom Cyber 2.0 */}
+                {/* Model 2: Fathom Cyber Flash 2.6 */}
                 {(() => {
-                  const isSelected = internalModel === 'deepseek-v4-flash-cyber';
+                  const isSelected = internalModel === 'deepseek-v4-flash-cyber-2.6' || internalModel === 'deepseek-v4-flash-cyber-2.1';
                   return (
                     <button
                       type="button"
                       onClick={() => {
-                        setInternalModel('deepseek-v4-flash-cyber');
-                        onSelectModel?.('deepseek-v4-flash-cyber');
+                        setInternalModel('deepseek-v4-flash-cyber-2.6');
+                        onSelectModel?.('deepseek-v4-flash-cyber-2.6');
                         setIsModelMenuOpen(false);
                       }}
                       className={cn(
@@ -1013,18 +1014,18 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         <div className={cn(
                           "size-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
                           isSelected
-                            ? "bg-cyan-500/15 border border-cyan-400/30 text-cyan-300"
-                            : "bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 group-hover:bg-cyan-500/15"
+                            ? "bg-amber-500/15 border border-amber-400/30 text-amber-300"
+                            : "bg-amber-500/10 border border-amber-500/20 text-amber-400 group-hover:bg-amber-500/15"
                         )}>
-                          <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                          <Zap className="w-4 h-4 text-amber-400" />
                         </div>
                         <div className="min-w-0 flex-1 text-right">
                           <div className="flex items-center justify-between gap-1.5">
-                            <span className="font-bold text-xs text-white">Fathom Cyber 2.0</span>
+                            <span className="font-bold text-xs text-white">Fathom Cyber Flash 2.6</span>
                             {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
                           </div>
-                          <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5 group-hover:text-zinc-300 transition-colors">
-                            استخبارات أمنية وهندسة سيبرانية سيادية مع الذاكرة العرضية والدلالية الديناميكية
+                          <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5 group-hover:text-zinc-200 transition-colors">
+                            محرك سيبراني فائق السرعة، استجابة لحظية، واستدلال خاطف باللغة العربية
                           </div>
                         </div>
                       </div>
@@ -1032,9 +1033,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   );
                 })()}
 
-                {/* Model 3: Fathom Cyber 2.6 */}
+                {/* Model 3: Fathom Cyber Ultra 2.6 */}
                 {(() => {
-                  const isSelected = internalModel === 'deepseek-v4-pro-cyber-2.6' || internalModel === 'deepseek-v4-flash-cyber-2.6' || internalModel === 'deepseek-v4-pro-cyber-2.1' || internalModel === 'deepseek-v4-flash-cyber-2.1';
+                  const isSelected = internalModel === 'deepseek-v4-pro-cyber-2.6' || internalModel === 'deepseek-v4-pro-cyber-2.1';
                   return (
                     <button
                       type="button"
@@ -1061,11 +1062,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         </div>
                         <div className="min-w-0 flex-1 text-right">
                           <div className="flex items-center justify-between gap-1.5">
-                            <span className="font-bold text-xs text-white">Fathom Cyber 2.6</span>
+                            <span className="font-bold text-xs text-white">Fathom Cyber Ultra 2.6</span>
                             {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
                           </div>
                           <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5 group-hover:text-zinc-200 transition-colors">
-                            استدلال اختطافي فائق واستنباط مباشر خاطف للألغاز مع هندسة سيبرانية سيادية متقدمة
+                            استدلال اختطافي فائق، تفكير عميق باللغة العربية، وهندسة معمارية سيادية متقدمة
                           </div>
                         </div>
                       </div>
@@ -1170,8 +1171,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   type="button"
                   onClick={() => {
                     if (!isCyberMode) {
-                      setInternalModel('deepseek-v4-flash-cyber');
-                      onSelectModel?.('deepseek-v4-flash-cyber');
+                      setInternalModel('deepseek-v4-flash-cyber-2.6');
+                      onSelectModel?.('deepseek-v4-flash-cyber-2.6');
                     }
                     setIsTargetUrlBarOpen(true);
                     setIsActionsMenuOpen(false);
@@ -1653,8 +1654,6 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     ? "ابحث في الويب مباشرة مع Fathom Search..."
                     : isCyber26Mode
                     ? "اطرح لغزاً، مسألة معقدة، أو افحص أمنياً..."
-                    : isCyber20Mode || isCyberMode
-                    ? "أدخل رابط الهدف أو اسأل أمنياً..."
                     : isVisionMode || hasAttachments
                     ? "اسأل Fathom Cam أو أرفق صورة..."
                     : isX1Active

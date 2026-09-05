@@ -114,6 +114,11 @@ export function expect<T>(actual: T) {
         throw new Error(`Expected ${actual} to be >= ${num}`);
       }
     },
+    toBeLessThanOrEqual(num: number) {
+      if (typeof actual !== 'number' || actual > num) {
+        throw new Error(`Expected ${actual} to be <= ${num}`);
+      }
+    },
     toContain(sub: any) {
       if (typeof actual === 'string') {
         if (!actual.includes(sub)) {

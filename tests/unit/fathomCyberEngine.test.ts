@@ -196,6 +196,29 @@ export async function runFathomCyberEngineTests(harness: TestHarness) {
       expect(chunkRes.shouldCutThinking).toBe(true);
       expect(chunkRes.reason).toBe('ALL_CONSTRAINTS_LOCKED');
     });
+
+    await harness.it('dynamically tunes deepseek-v4-pro hyperparameters based on context prompt', () => {
+      const mathConfig = FathomCyberReasoningEngine.getDeepSeekV4ProConfig(true, 'احسب تكامل المعادلة الرياضية');
+      expect(mathConfig.temperature).toBe(0.15);
+      expect(mathConfig.top_p).toBe(0.90);
+
+      const cyberConfig = FathomCyberReasoningEngine.getDeepSeekV4ProConfig(true, 'فحص ثغرة dpop rce exploit');
+      expect(cyberConfig.temperature).toBe(0.20);
+      expect(cyberConfig.top_p).toBe(0.92);
+
+      const creativeConfig = FathomCyberReasoningEngine.getDeepSeekV4ProConfig(true, 'اكتب قصيدة شعرية أدبية');
+      expect(creativeConfig.temperature).toBe(0.82);
+    });
+
+    await harness.it('universally tunes foundation model hyperparameters across models via getTunedModelConfig', () => {
+      const flashConfig = FathomCyberReasoningEngine.getTunedModelConfig('deepseek-v4-flash', 'اكتب كود دالة سريعة');
+      expect(flashConfig.temperature).toBe(0.18);
+      expect(flashConfig.max_tokens).toBe(16384);
+
+      const reasonerConfig = FathomCyberReasoningEngine.getTunedModelConfig('deepseek-reasoner', 'برهان رياضي معقد');
+      expect(reasonerConfig.temperature).toBeUndefined();
+      expect(reasonerConfig.max_tokens).toBe(32768);
+    });
   });
 }
 

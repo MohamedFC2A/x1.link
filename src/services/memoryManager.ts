@@ -954,7 +954,7 @@ export class ContextMemoryEngine {
     if (isMemoryDetectActive) {
       const summaryItems: string[] = [];
 
-      summaryItems.push(`[منظومة الذاكرة العرضية والدلالية ثلاثية المستويات — FATHOM CYBER 2.0 COGNITIVE MEMORY AURA]:`);
+      summaryItems.push(`[منظومة الذاكرة العرضية والدلالية ثلاثية المستويات — FATHOM CYBER 2.6 COGNITIVE MEMORY AURA]:`);
       summaryItems.push(`- حالة الذاكرة: نشطة ومتزامنة سحابياً عبر (50 محادثة / شبكة مفاهيم استنتاجية ديناميكية).`);
 
       // TIER 1: Working Memory Context
@@ -1007,7 +1007,7 @@ export class ContextMemoryEngine {
       }
 
       // Operational Cognitive Directives
-      summaryItems.push(`\n[توجيهات الإدراك المعرفي والاستدعاء الفائق — FATHOM CYBER 2.0 DIRECTIVE]:`);
+      summaryItems.push(`\n[توجيهات الإدراك المعرفي والاستدعاء الفائق — FATHOM CYBER 2.6 DIRECTIVE]:`);
       summaryItems.push(`1. أجب بوعي إدراكي كامل يربط بين الذاكرة اللحظية (Working)، والتجارب السابقة (Episodic)، وحقائق شبكة المفاهيم (Semantic).`);
       summaryItems.push(`2. إذا سأل المستخدم عن "المحادثة السابقة" أو "الشات اللي فات"، ارجع فوراً إلى [المحادثة السابقة مباشرة (جلسة 1)] واشرح بالتفصيل سؤاله ونتائجه.`);
       summaryItems.push(`3. إذا سأل عن "التي قبل السابقة"، ارجع إلى [جلسة 2].`);

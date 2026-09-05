@@ -118,7 +118,7 @@ export async function createCloudChat(userId: string | null, title: string, mode
     const payload: any = {
       title: title.slice(0, 60),
       mode: isX1 ? 'x1' : 'base',
-      model: (model === 'deepseek-v4-pro-cyber-2.6' || model === 'deepseek-v4-flash-cyber-2.6' || model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') ? 'Fathom Cyber 2.6' : model === 'deepseek-v4-flash-cyber' ? 'Fathom Cyber 2.0' : model === 'deepseek-v4-flash-vision-exp' ? 'Fathom Cam' : 'Fathom 1.1',
+      model: model === 'deepseek-v4-flash-cyber-2.6' ? 'Fathom Cyber Flash 2.6' : model === 'deepseek-v4-pro-cyber-2.6' ? 'Fathom Cyber Ultra 2.6' : (model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') ? 'Fathom Cyber Ultra 2.6' : model === 'deepseek-v4-flash-vision-exp' ? 'Fathom Cam' : 'Fathom 1.1',
       device_id: deviceId,
     };
 

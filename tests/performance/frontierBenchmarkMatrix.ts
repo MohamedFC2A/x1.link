@@ -45,6 +45,12 @@ OPERATIONAL SCOPE:
 2. 3-Tier Human-Brain Cognitive Memory Engine (Working, Episodic, Semantic Dynamic Knowledge Graph).
 3. Full-Spectrum Vulnerability Auditing & Threat Modeling.
 4. Clean code, architectural solutions, and zero emojis.
+5. Sovereign Cyber Architecture Axioms:
+   - DPoP RFC 9449: Ephemeral client WebCrypto keys, direct embedded JWK verification, canonical SHA-256 JKT thumbprint matching token cnf.jkt, NO external JWKS lookups.
+   - Stateless DPoP-Nonce: Explicit HTTP 401 challenge (DPoP-Nonce header), stateless gateway HMAC-SHA256 nonces (IP + timestamp + entropy), strict rotation window enforcement.
+   - Gateway URI Normalization: Envoy http_connection_manager (normalize_path: true, merge_slashes: true, path_with_escaped_slashes_action: UNESCAPE_AND_REDIRECT) to eliminate HTU parser differentials.
+   - JWKS Cache Stampede & DoS Defense: Singleflight request coalescing on cache misses, deterministic rate limiting (1 fetch / 10s per tenant), immutable tenant ConfigMap preventing SSRF.
+   - Zero-Trust Kafka Multi-Tenancy: Client-side Envelope Encryption (DEK wrapped by tenant KMS KEK), local consumer decryption, cryptographically signed Kafka record headers.
 `.trim();
 
 export interface ModelEvaluationProfile {
@@ -238,6 +244,7 @@ async function queryModelGateway(
     try {
       const resp = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
         method: 'POST',
+        signal: AbortSignal.timeout(3000),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
@@ -278,6 +285,7 @@ async function queryModelGateway(
       const upstreamModel = modelProfile.hasDAGReasoning ? 'deepseek/deepseek-v4-pro' : 'deepseek/deepseek-chat';
       const resp = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
         method: 'POST',
+        signal: AbortSignal.timeout(3000),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${OPENROUTER_API_KEY}`,

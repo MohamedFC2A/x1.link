@@ -1237,7 +1237,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     }
 
     // 3. Extract and strip leaked [S0: DISSECT] / [S1: PRUNE] / [S2: VERIFY] / [S3: CONVERGE] monologue blocks
-    const sBlockRegex = /\[(?:S\d|DISSECT|PRUNE|VERIFY|LOCK|CONVERGE)\][\s\S]*?(?=\n\n[\u0621-\u064A]|\n[#*•-]*\s*[\u0621-\u064A]|$)/gi;
+    const contentBoundaryLookahead = '(?=\\n\\n(?:[-#*•`~|\\[\\]$0-9\\u0621-\\u064A]|\\$\\$|\\\\\\(|\\[|\\d+\\.)|\\n[#*•-]*\\s*[\\u0621-\\u064A]|$)';
+    const sBlockRegex = new RegExp(`\\[(?:S\\d|DISSECT|PRUNE|VERIFY|LOCK|CONVERGE)\\][\\s\\S]*?${contentBoundaryLookahead}`, 'gi');
     if (sBlockRegex.test(raw)) {
       const extractedMatches = raw.match(sBlockRegex);
       if (extractedMatches && extractedMatches.length > 0) {
@@ -1250,7 +1251,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     }
 
     // 4. Extract and strip leaked search citations / snippet dumps
-    const searchSnippetRegex = /(?:-?\s*الاستعلام\s*الشبكي|•\s*المصدر\s*\[\d+\])[\s\S]*?(?=\n\n(?!(?:•\s*المصدر|\s*المقتطف))|\n[#*•-]*\s*[\u0621-\u064A]|$)/gi;
+    const searchSnippetRegex = new RegExp(`(?:-?\\s*الاستعلام\\s*الشبكي|•\\s*المصدر\\s*\\[\\d+\\])[\\s\\S]*?${contentBoundaryLookahead}`, 'gi');
     let searchSnippetMatch;
     while ((searchSnippetMatch = searchSnippetRegex.exec(raw)) !== null) {
       const extracted = searchSnippetMatch[0].trim();
@@ -1261,7 +1262,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     raw = raw.replace(searchSnippetRegex, '').trim();
 
     // 5. Extract and strip leaked English thinking / chain-of-thought monologues
-    const englishCoTRegex = /(?:We need answer|Need obey strict|Need analyze|Need understand|User asks:|Let's restate|Need solve puzzle|Let's think|Case 1:|Case 2:)[\s\S]*?(?=\n\n(?:[-#*•]|\u0627\u0644\u0633\u0624\u0627\u0644|\||[\u0621-\u064A])|$)/gi;
+    const englishCoTRegex = new RegExp(`(?:We need answer|Need obey strict|Need analyze|Need understand|User asks:|Let's restate|Need solve puzzle|Let's think|Case 1:|Case 2:)[\\s\\S]*?${contentBoundaryLookahead}`, 'gi');
     let englishCoTMatch;
     while ((englishCoTMatch = englishCoTRegex.exec(raw)) !== null) {
       const extracted = englishCoTMatch[0].trim();
@@ -1279,16 +1280,16 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     // 7. Resilient Recovery: If raw became empty after regex stripping, restore the actual answer portion
     if (!raw.trim() && foundReasoning.trim() && !message.isThinking) {
       const tableMatch = foundReasoning.match(/\|[\s\S]*?\|/);
-      const arabicAnswerMatch = foundReasoning.search(/\n\n(?=[\u0621-\u064A])|\n(?=[#*•-]*\s*[\u0621-\u064A])/);
+      const mathOrGeneralMatch = foundReasoning.search(/\n\n(?=[\u0621-\u064A0-9`#*•\-\\|$~]|\\\[|\$\$)/);
       if (tableMatch) {
         const tableIndex = foundReasoning.indexOf(tableMatch[0]);
         raw = foundReasoning.substring(tableIndex).trim();
         foundReasoning = foundReasoning.substring(0, tableIndex).trim();
-      } else if (arabicAnswerMatch !== -1) {
-        raw = foundReasoning.substring(arabicAnswerMatch).trim();
-        foundReasoning = foundReasoning.substring(0, arabicAnswerMatch).trim();
-      } else if (!message.reasoning?.trim()) {
-        raw = message.content || foundReasoning;
+      } else if (mathOrGeneralMatch !== -1) {
+        raw = foundReasoning.substring(mathOrGeneralMatch).trim();
+        foundReasoning = foundReasoning.substring(0, mathOrGeneralMatch).trim();
+      } else if (message.content && message.content.trim()) {
+        raw = message.content.trim();
       }
     }
 
@@ -1576,10 +1577,26 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       className="flex flex-col items-start my-2 group w-full gpu-layer"
     >
       <div className="flex items-center justify-between w-full mb-1.5 px-1 text-xs text-zinc-400 select-none">
-        <div className="flex items-center gap-1.5 font-sans font-medium">
+        <div className="flex items-center gap-1.5 font-sans font-medium flex-wrap">
           {message.isX1 && (
             <span className="text-[10px] font-mono font-bold text-rose-400/90 tracking-wide px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20">
               X1 MAX
+            </span>
+          )}
+          {message.model === 'deepseek-v4-flash-cyber-2.6' && (
+            <span className="text-[10px] font-mono font-bold text-amber-300/90 tracking-wide px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+              Fathom Cyber Flash 2.6
+            </span>
+          )}
+          {(message.model === 'deepseek-v4-pro-cyber-2.6' || message.model === 'deepseek-v4-pro-cyber-2.1') && (
+            <span className="text-[10px] font-mono font-bold text-indigo-300/90 tracking-wide px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
+              Fathom Cyber Ultra 2.6
+            </span>
+          )}
+
+          {message.model === 'deepseek-v4-flash' && (
+            <span className="text-[10px] font-mono font-bold text-zinc-300/90 tracking-wide px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.08]">
+              Fathom 1.1
             </span>
           )}
         </div>
@@ -1719,15 +1736,6 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             {hasDownloadDetect && detectedMediaUrl && !message.content?.includes('[DOWNLOAD-DETECT-CARD:') && !message.content?.includes('[DOWNLOAD-BUTTON:') && (
               <div className="mb-3">
                 <DownloadDetectCard url={detectedMediaUrl} />
-              </div>
-            )}
-            {isStreaming && isThinking && !displayContent && (
-              <div className="flex items-center gap-2.5 py-2.5 px-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs font-mono text-zinc-300 select-none my-1.5">
-                <span className="relative flex size-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full size-2 bg-rose-500"></span>
-                </span>
-                <span className="text-zinc-300 font-medium">المحرك العصبي يعالج الفرضيات ويدقق المعطيات لصياغة الإجابة...</span>
               </div>
             )}
             <div className="prose prose-invert max-w-none text-[#E2E8F0] text-sm sm:text-base leading-relaxed break-words font-sans">

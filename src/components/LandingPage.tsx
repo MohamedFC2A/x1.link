@@ -262,7 +262,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-200 border border-cyan-400/30">
-                  FATHOM CYBER 2.6 PRO
+                  FATHOM CYBER ULTRA 2.6
                 </span>
               </div>
 

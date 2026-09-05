@@ -14,11 +14,43 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
 
 async function testLiveGatewayStreaming() {
-  console.log('\n[LIVE GATEWAY TEST] Testing real-time connection to Fathom Cyper 2.6 upstream...');
+  console.log('\n[LIVE GATEWAY TEST] Testing real-time connection across all DeepSeek upstreams...');
 
   const gateways = [
     {
-      name: 'DeepSeek Direct (deepseek-chat @ api.deepseek.com)',
+      name: 'Flash Cyber 2.6 / Fathom 1.1 (deepseek-v4-flash @ api.deepseek.com)',
+      url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      },
+      payload: {
+        model: 'deepseek-v4-flash',
+        messages: [{ role: 'user', content: 'احسب 17 في 23 مع كتابة الناتج النهائي.' }],
+        temperature: 0.3,
+        max_tokens: 512,
+        stream: true
+      },
+      keyPresent: !!DEEPSEEK_API_KEY
+    },
+    {
+      name: 'Cyber 2.6 Pro (deepseek-v4-pro @ api.deepseek.com)',
+      url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      },
+      payload: {
+        model: 'deepseek-v4-pro',
+        messages: [{ role: 'user', content: 'احسب 17 في 23 مع كتابة الناتج النهائي.' }],
+        temperature: 0.3,
+        max_tokens: 512,
+        stream: true
+      },
+      keyPresent: !!DEEPSEEK_API_KEY
+    },
+    {
+      name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com)',
       url: `${DEEPSEEK_BASE_URL}/chat/completions`,
       headers: {
         'Content-Type': 'application/json',
@@ -34,24 +66,23 @@ async function testLiveGatewayStreaming() {
       keyPresent: !!DEEPSEEK_API_KEY
     },
     {
-      name: 'OpenRouter Backup (deepseek/deepseek-v4-pro @ openrouter.ai)',
-      url: `${OPENROUTER_BASE_URL}/chat/completions`,
+      name: 'DeepSeek Direct Reasoner (deepseek-reasoner @ api.deepseek.com)',
+      url: `${DEEPSEEK_BASE_URL}/chat/completions`,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://matany.one',
-        'X-Title': 'Matany AI',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
       },
       payload: {
-        model: 'deepseek/deepseek-v4-pro',
-        messages: [{ role: 'user', content: 'Respond with one word: Ready' }],
-        temperature: 0.3,
-        max_tokens: 16,
+        model: 'deepseek-reasoner',
+        messages: [{ role: 'user', content: 'احسب 17 في 23' }],
+        max_tokens: 512,
         stream: true
       },
-      keyPresent: !!OPENROUTER_API_KEY
+      keyPresent: !!DEEPSEEK_API_KEY
     }
   ];
+
+  let successCount = 0;
 
   for (const gate of gateways) {
     if (!gate.keyPresent) {
@@ -84,7 +115,8 @@ async function testLiveGatewayStreaming() {
       const decoder = new TextDecoder('utf-8');
       let ttft = 0;
       let chunksCount = 0;
-      let accumulated = '';
+      let accumulatedReasoning = '';
+      let accumulatedContent = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -93,18 +125,39 @@ async function testLiveGatewayStreaming() {
           ttft = performance.now() - start;
         }
         chunksCount++;
-        accumulated += decoder.decode(value, { stream: true });
+        const text = decoder.decode(value, { stream: true });
+        const lines = text.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
+            try {
+              const json = JSON.parse(line.slice(6));
+              const delta = json.choices?.[0]?.delta;
+              if (delta?.reasoning_content) {
+                accumulatedReasoning += delta.reasoning_content;
+              }
+              if (delta?.content) {
+                accumulatedContent += delta.content;
+              }
+            } catch (e) {}
+          }
+        }
       }
 
       const totalDuration = performance.now() - start;
-      console.log(`  ✓ Gateway ONLINE | Status: ${responseStatus} | TTFT: ${ttft.toFixed(1)}ms | Total Time: ${totalDuration.toFixed(1)}ms | Chunks: ${chunksCount}`);
-      return { success: true, gateway: gate.name, ttft, totalDuration };
+      console.log(`  ✓ Gateway ONLINE | Status: ${responseStatus} | TTFT: ${ttft.toFixed(1)}ms | Total: ${totalDuration.toFixed(1)}ms | Chunks: ${chunksCount}`);
+      if (accumulatedReasoning) {
+        console.log(`    → Reasoning Length: ${accumulatedReasoning.length} chars (Sample: ${accumulatedReasoning.slice(0, 80).replace(/\n/g, ' ')}...)`);
+      }
+      if (accumulatedContent) {
+        console.log(`    → Content Length: ${accumulatedContent.length} chars (Sample: ${accumulatedContent.slice(0, 80).replace(/\n/g, ' ')}...)`);
+      }
+      successCount++;
     } catch (err: any) {
       console.log(`  ✗ Exception: ${err?.message || err}`);
     }
   }
 
-  return { success: false };
+  return { success: successCount > 0, successCount };
 }
 
 testLiveGatewayStreaming().then(res => {

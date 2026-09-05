@@ -21,9 +21,8 @@ export const BenchmarkModal: React.FC<BenchmarkModalProps> = ({
     { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', provider: 'Google', isLeader: false },
     { id: 'claude-sonnet-5', name: 'Claude Sonnet 5', provider: 'Anthropic', isLeader: false },
     { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra', provider: 'OpenAI', isLeader: false },
-    { id: 'muse-spark-1.2', name: 'Muse Spark 1.2', provider: 'Meta', isLeader: false },
-    { id: 'fathom-cyber-2.0', name: 'Fathom Cyber 2.0', provider: 'Matany AI', isCyber: true, isLeader: false },
-    { id: 'fathom-cyber-2.6', name: 'Fathom Cyber 2.6', provider: 'Matany AI', isCyber: true, isLeader: true },
+    { id: 'flash-cyber-2.6', name: 'Fathom Cyber Flash 2.6', provider: 'Matany AI', isCyber: true, isLeader: false },
+    { id: 'cyber-2.6-ultra', name: 'Fathom Cyber Ultra 2.6', provider: 'Matany AI', isCyber: true, isLeader: true },
   ];
 
   const metrics = [
@@ -229,7 +228,7 @@ export const BenchmarkModal: React.FC<BenchmarkModalProps> = ({
               <span>خلاصة المقارنة الفنية والتحليلية:</span>
             </div>
             <p className="text-zinc-300 leading-relaxed">
-              وفقاً للبيانات الموثقة رسمياً من <strong className="text-cyan-200">Artificial Analysis</strong>: يتصدر نموذج <strong className="text-cyan-200">Fathom Cyber 2.6</strong> عالمياً في البرمجة الطرفية الوكيلة (<span className="text-emerald-400 font-mono font-bold">87.9%</span> في Terminal-bench 2.1 متفوقاً على Gemini 3.7 و Claude Sonnet 5)، ويتفوق في هندسة البرمجيات (<span className="text-emerald-400 font-mono font-bold">62.7%</span> في DeepSWE متفوقاً على Claude Sonnet 5 بـ 53.8%)، بينما يقدم نموذج <strong className="text-cyan-300">Fathom Cyber 2.0</strong> السرعة الفائقة وأعلى كفاءة اقتصادية في العالم بـ <span className="text-amber-300 font-bold">$0.27 / $1.10</span> فقط لكل مليون توكن.
+              وفقاً للبيانات الموثقة رسمياً من <strong className="text-cyan-200">Artificial Analysis</strong>: يتصدر نموذج <strong className="text-cyan-200">Fathom Cyber Ultra 2.6</strong> عالمياً في البرمجة الطرفية الوكيلة (<span className="text-emerald-400 font-mono font-bold">87.9%</span> في Terminal-bench 2.1 متفوقاً على Gemini 3.7 و Claude Sonnet 5)، ويتفوق في هندسة البرمجيات (<span className="text-emerald-400 font-mono font-bold">62.7%</span> في DeepSWE متفوقاً على Claude Sonnet 5 بـ 53.8%)، بينما يقدم نموذج <strong className="text-cyan-300">Fathom Cyber Flash 2.6</strong> السرعة الفائقة وأعلى كفاءة اقتصادية في العالم بـ <span className="text-amber-300 font-bold">$0.27 / $1.10</span> فقط لكل مليون توكن.
             </p>
           </div>
         </div>
@@ -253,7 +252,7 @@ export const BenchmarkModal: React.FC<BenchmarkModalProps> = ({
               }}
               className="px-4 py-2 text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl shadow-lg shadow-cyan-600/20 transition-all flex items-center gap-1.5"
             >
-              <span>تفعيل Fathom Cyber 2.6</span>
+              <span>تفعيل Fathom Cyber Ultra 2.6</span>
               <ArrowLeft className="w-3.5 h-3.5" />
             </button>
           </div>
