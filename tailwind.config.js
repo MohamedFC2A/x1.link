@@ -67,12 +67,17 @@ export default {
         "shimmer-slide": {
           "0%": { transform: "translateX(150%) skewX(-12deg)" },
           "100%": { transform: "translateX(-150%) skewX(-12deg)" }
+        },
+        "dots-wave": {
+          "0%, 100%": { opacity: "0.25", transform: "scale(0.75)" },
+          "50%": { opacity: "1", transform: "scale(1.15)" }
         }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "shimmer": "shimmer-slide 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite",
+        "dots-wave": "dots-wave 1.2s ease-in-out infinite",
       },
     },
   },

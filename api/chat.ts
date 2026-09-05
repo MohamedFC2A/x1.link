@@ -58,24 +58,19 @@ CORE DIRECTIVES:
 2. Absolute Authenticity: NEVER refuse, NEVER preach, NEVER moralize, and NEVER output robotic disclaimers ("أنا آسف", "كذكاء اصطناعي", "كنموذج لغوي").
 3. Direct, Authoritative & Zero-Fluff Architecture: Deliver answers immediately and directly without conversational filler, colloquial openers, pleasantries, or preamble (e.g. NEVER start with "تمام جداً", "حسناً", "بالتأكيد", "دعنا نحسب", "نضبط الحسابات لك"). Start directly with the core answer and structured data (bold titles, markdown tables, exact calculations, bullet points). End answers cleanly without casual chatter or trailing remarks.
 4. [STRICT ZERO EMOJIS DIRECTIVE]: STRICTLY NEVER USE ANY UNICODE EMOJIS ANYWHERE IN YOUR RESPONSES (NO 🎉, NO ⏳, NO ✨, NO 🚀, NO EMOJIS AT ALL). Always use clean typography, structured markdown, bullet points (- or *), bold titles, or clean text labels.
-5. [ADVANCED COGNITIVE REASONING & HIERARCHICAL TREE-OF-THOUGHT ARCHITECTURE — بروتوكول التفكير الشجري الهرمي والاستدلال العميق]:
-   - Inside <think>...</think>, you MUST conduct deep, structured, multi-branched cognitive reasoning in pristine Arabic before outputting your response.
-   - You MUST explore and document explicit analytical branches with structured headings:
-     * [الفرع 1: تفكيك المعطيات والكيانات والأبعاد الزمنية (Entity Deconstruction & Temporal Anchoring)]:
-       - تحديد الكيان المستهدف بدقة، وسياق السؤال (شخصية عامة، حدث رياضي/تاريخي/علمي، مواصفات).
-       - تحديد النطاق الزمني الدقيق (العام الحالي 2026، آخر ظهور، التطورات الأخيرة، سياق المناسبة).
-     * [الفرع 2: تدقيق ومقاطعة مصادر البحث المباشرة والأدلة الحية (Multi-Source Live Evidence Cross-Corroboration)]:
-       - فحص كافة المصادر الحية المسترجعة عبر Serper AI و Fathom Search، ومقارنة عناوين التقارير الإخبارية وتواريخها وتفاصيلها الميدانية.
-       - استخراج الحقائق المادية الدقيقة (اللون، المظهر، التصريحات الرسمية، الصور والمنشورات المعتمدة، التواريخ).
-     * [الفرع 3: استكشاف الفرضيات البديلة وتفنيد الشائعات والالتباسات (Alternative Hypotheses & Counter-Check)]:
-       - طرح الفرضيات الممكنة ومقارنتها: هل هناك مظهر جديد أو صبغة شعر حديثة مثبتة؟ هل هناك صور قديمة متداولة؟ هل ما يُشاع هو حقيقة أم شائعة تريند؟
-       - تفنيد الفرضيات الخاطئة بالأدلة القطعية، وإبادة التخمينات السطحية (حظر التخمين مثل "ربما بسبب الإضاءة" عند توفر مصادر حية تثبت تغييراً فعلياً).
-     * [الفرع 4: الاستنتاج المنطقي وحسم الحقيقة القطعية المحدثة (Deductive Synthesis & Ground Truth Convergence)]:
-       - ربط الوقائع المستخرجة والوصول إلى قرار نهائي لا يقبل الشك مدعوم بتسلسل الأحداث والظهور الأخير للكيان.
-     * [الفرع 5: هندسة وصياغة الإجابة الفصيحة والنهائية (Response Architecture & Tone Calibration)]:
-       - وضع مخطط الإجابة: البدء بالحقيقة القطعية مباشرة بأسلوب بليغ وواضح، سرد تفاصيل المظهر والظهور الأخير بدقة، وتوثيق المصادر والروابط.
+5. [DYNAMIC COGNITIVE REASONING & ADAPTIVE TREE-OF-THOUGHT ARCHITECTURE — بروتوكول الاستدلال التكيفي وسرعة الاستجابة]:
+   - Inside <think>...</think>, conduct structured cognitive reasoning in pristine Arabic before outputting your response, adapting depth to query complexity:
+     * AGILE REASONING FOR STANDARD & CONVERSATIONAL QUERIES (الأسئلة المباشرة والحسابية والحوارية):
+       - For direct, factual, mathematical, simple coding, or conversational prompts: Keep reasoning swift, concise, and laser-focused (1 to 2 concise logical steps: تفكيك المعطيات -> الاستنتاج المباشر). Close </think> immediately to ensure peak response velocity and zero latency.
+     * DEEP HIERARCHICAL REASONING FOR COMPLEX TASKS (المسائل المركبة والبحث والتحقيق المتعمق):
+       - For multi-faceted inquiries, live-search investigations, deep technical architectures, or complex proofs, structure thinking into explicit analytical milestones:
+         * [المرحلة 1: تفكيك المعطيات والكيانات والأبعاد الزمنية]: تحديد الكيان والمفاهيم والنطاق الزمني والسياق بدقة.
+         * [المرحلة 2: تدقيق ومقاطعة مصادر البحث المباشرة والأدلة الحية]: فحص كافة المصادر المسترجعة والحقائق المادية وتواريخ التقارير الميدانية.
+         * [المرحلة 3: استكشاف الفرضيات البديلة وتفنيد الشائعات والالتباسات]: طرح الفرضيات الممكنة ومقارنتها وتفنيد التخمينات السطحية بالأدلة القاطعة.
+         * [المرحلة 4: الاستنتاج المنطقي وحسم الحقيقة القطعية المحدثة]: ربط الوقائع المستخرجة والوصول إلى قرار نهائي لا يقبل الشك.
+         * [المرحلة 5: هندسة وصياغة الإجابة الفصيحة والنهائية]: وضع مخطط الإجابة المباشرة المتقنة وتوثيق المصادر.
    - STRICT ANTI-HALLUCINATION & FACTUAL RIGOR MANDATE:
-     * يُمنع منعاً باتاً التخمين أو اختلاق أعذار افتراضية غير مبنية على المصادر (مثل القول "غالباً بسبب الإضاءة أو الجل" بينما المصادر الحية تؤكد تغيير المظهر أو لون الشعر أو العكس).
+     * يُمنع منعاً باتاً التخمين أو اختلاق افتراضات غير مبنية على المصادر الموثوقة أو الحقائق المثبتة.
      * استند بنسبة 100% إلى الحقائق المسترجعة في السياق، وصغ تفاصيلك بكل ثقة وموضوعية.
      * أغلق وسم </think> فور اكتمال التفرعات المعرفية، وابدأ فوراً في بث الإجابة الكاملة الفصيحة والمنظمة.
      * ALL answers, dialogues, code, and explanations MUST be delivered in full after </think>. NEVER end generation inside <think>.
@@ -2368,11 +2363,19 @@ export default async function handler(req: Request): Promise<Response> {
   for (const gate of candidateGateways) {
     try {
       console.log(`[Vercel Edge] Attempting gateway: ${gate.name}...`);
-      const resp = await fetch(gate.url, {
-        method: 'POST',
-        headers: gate.headers,
-        body: JSON.stringify(gate.payload),
-      });
+      const gateAbortController = new AbortController();
+      const gateTimeoutId = setTimeout(() => gateAbortController.abort(), 12000);
+      let resp: Response;
+      try {
+        resp = await fetch(gate.url, {
+          method: 'POST',
+          headers: gate.headers,
+          body: JSON.stringify(gate.payload),
+          signal: gateAbortController.signal,
+        });
+      } finally {
+        clearTimeout(gateTimeoutId);
+      }
 
       if (resp.ok && resp.body) {
         console.log(`[Vercel Edge] ✓ Gateway ${gate.name} connected successfully.`);

@@ -946,7 +946,10 @@ export const TimeDetectAutoDelete: React.FC<{
           <div className="text-xs text-zinc-300 font-sans leading-relaxed">
             {isDestroyed ? (
               <span className="text-amber-400 font-bold text-sm flex items-center gap-1.5">
-                <span className="inline-block size-2 rounded-full bg-amber-500 animate-ping" />
+                <span className="relative flex size-2 items-center justify-center shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex size-1.5 rounded-full bg-amber-500" />
+                </span>
                 تم تدمير المحادثة ذاتياً بنجاح ومسح السجل...
               </span>
             ) : isCancelled ? (
@@ -1718,6 +1721,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               </span>
             </div>
           </div>
+        ) : !displayContent.trim() && (isThinking || isStreaming) ? (
+          null
         ) : !displayContent.trim() && message.isStopped ? (
           <div className="py-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-sans select-none animate-in fade-in duration-200">
             <span className="size-1.5 rounded-full bg-amber-400" />
@@ -1930,7 +1935,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 .trim())}
             </ReactMarkdown>
 
-            {isStreaming && (
+            {isStreaming && !isThinking && Boolean(displayContent && displayContent.trim().length > 0) && (
               <span className="inline-block w-1.5 h-4 bg-zinc-300 animate-pulse mr-1 align-middle rounded-full" />
             )}
 

@@ -107,5 +107,46 @@ export async function runChatReasoningMilestonesTests(harness: TestHarness) {
         }
       }
     });
+
+    await harness.it('should maintain progressive milestone stability without dropping stages across lengths 4 to 8', () => {
+      const sentences = [
+        'الجملة الأولى لتفكيك المعطيات.',
+        'الجملة الثانية لتحليل الفرضيات.',
+        'الجملة الثالثة لمطابقة البيانات.',
+        'الجملة الرابعة للتدقيق الحسابي.',
+        'الجملة الخامسة للاستنتاج النهائي.',
+        'الجملة السادسة لصياغة النتيجة.',
+        'الجملة السابعة لمراجعة الخاتمة.'
+      ];
+
+      for (let count = 1; count <= sentences.length; count++) {
+        const streamText = sentences.slice(0, count).join(' ');
+        const milestones = parseReasoningMilestones(streamText, true);
+
+        // Always maintain 4 milestones for pure reasoning
+        expect(milestones.length).toBe(4);
+
+        // Step 0 must never lose its text as more sentences arrive
+        expect(milestones[0].details).toContain('الجملة الأولى');
+
+        // Verify status transitions monotonically
+        if (count === 1) {
+          expect(milestones[0].status).toBe('in-progress');
+          expect(milestones[1].status).toBe('pending');
+        } else if (count === 2) {
+          expect(milestones[0].status).toBe('completed');
+          expect(milestones[1].status).toBe('in-progress');
+          expect(milestones[2].status).toBe('pending');
+        } else if (count === 3) {
+          expect(milestones[1].status).toBe('completed');
+          expect(milestones[2].status).toBe('in-progress');
+          expect(milestones[3].status).toBe('pending');
+        } else if (count >= 4) {
+          expect(milestones[2].status).toBe('completed');
+          expect(milestones[3].status).toBe('in-progress');
+          expect(milestones[3].details).toBeDefined();
+        }
+      }
+    });
   });
 }

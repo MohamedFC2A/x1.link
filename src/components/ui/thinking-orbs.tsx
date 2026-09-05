@@ -61,15 +61,16 @@ export const ThinkingOrb: React.FC<ThinkingOrbProps> = ({
       const cy = size / 2;
       const radius = size * 0.32;
       const dotCount = size <= 24 ? 6 : 10;
-      const dotRadius = size <= 24 ? 1.6 : 2.5;
+      const dotRadius = size <= 24 ? 1.5 : 2.2;
+      const maxBlur = Math.min(2.5, size * 0.12);
 
       // Draw active orbiting particle nodes
       for (let i = 0; i < dotCount; i++) {
         const phi = (i / dotCount) * Math.PI * 2;
-        const timeOffset = elapsed * speed * 2.5;
+        const timeOffset = elapsed * speed * 2.0;
         
-        // Fluid Lissajous harmonic orbit
-        const rVar = radius * (0.8 + 0.25 * Math.sin(timeOffset * 1.5 + phi * 2));
+        // Fluid Lissajous harmonic orbit (smooth, non-glitchy)
+        const rVar = radius * (0.85 + 0.15 * Math.sin(timeOffset * 1.2 + phi * 2));
         const x = cx + rVar * Math.cos(phi + timeOffset);
         const y = cy + rVar * Math.sin(phi * 2 + timeOffset * 0.8) * 0.85;
 
@@ -77,17 +78,17 @@ export const ThinkingOrb: React.FC<ThinkingOrbProps> = ({
         ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
         ctx.fillStyle = getColor(elapsed, i, dotCount);
         ctx.shadowColor = ctx.fillStyle;
-        ctx.shadowBlur = 6;
+        ctx.shadowBlur = maxBlur;
         ctx.fill();
       }
 
       // Draw faint center core pulse
       ctx.beginPath();
-      const corePulse = (Math.sin(elapsed * speed * 3) + 1) * 0.5;
-      ctx.arc(cx, cy, 2 + corePulse * 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + corePulse * 0.4})`;
+      const corePulse = (Math.sin(elapsed * speed * 2.5) + 1) * 0.5;
+      ctx.arc(cx, cy, Math.max(1.2, size * 0.08 + corePulse * 0.8), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.45 + corePulse * 0.35})`;
       ctx.shadowColor = "#ffffff";
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = Math.min(3, size * 0.15);
       ctx.fill();
 
       if (!paused) {

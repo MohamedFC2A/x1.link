@@ -48,6 +48,45 @@ export async function streamChatCompletion({
     }
   }
 
+  let pendingRaf: number | null = null;
+  let pendingTimeout: any = null;
+  let pendingChunkData: { content: string; reasoning: string; isThinking: boolean } | null = null;
+
+  const flushChunk = () => {
+    if (pendingTimeout !== null) {
+      clearTimeout(pendingTimeout);
+      pendingTimeout = null;
+    }
+    if (pendingRaf !== null) {
+      if (typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(pendingRaf);
+      }
+      pendingRaf = null;
+    }
+    if (pendingChunkData) {
+      onChunk(pendingChunkData);
+      pendingChunkData = null;
+    }
+  };
+
+  const scheduleChunkFlush = (data: { content: string; reasoning: string; isThinking: boolean }, immediate = false) => {
+    pendingChunkData = data;
+    const isHidden = typeof document !== 'undefined' && document.hidden;
+    if (immediate || isHidden || typeof window === 'undefined' || typeof requestAnimationFrame !== 'function') {
+      flushChunk();
+      return;
+    }
+    if (pendingRaf === null) {
+      pendingRaf = requestAnimationFrame(() => {
+        pendingRaf = null;
+        flushChunk();
+      });
+      pendingTimeout = setTimeout(() => {
+        flushChunk();
+      }, 32);
+    }
+  };
+
   try {
     let effectiveTargetUrl = targetUrl;
 
@@ -230,16 +269,20 @@ export async function streamChatCompletion({
     let accumulatedReasoning = '';
     let accumulatedContent = '';
     let isThinking = false;
+    let prevThinking = false;
+    let prevHasContent = false;
 
     const processDelta = (deltaContent: string, deltaReasoning?: string) => {
       if (deltaReasoning) {
+        const wasThinking = isThinking;
         accumulatedReasoning += deltaReasoning;
         isThinking = true;
-        onChunk({
+        prevThinking = true;
+        scheduleChunkFlush({
           content: accumulatedContent,
           reasoning: accumulatedReasoning,
           isThinking: true
-        });
+        }, !wasThinking);
         return;
       }
 
@@ -299,11 +342,15 @@ export async function streamChatCompletion({
         isThinking = false;
       }
 
-      onChunk({
+      const isTransition = isThinking !== prevThinking || (!prevHasContent && Boolean(accumulatedContent));
+      prevThinking = isThinking;
+      prevHasContent = Boolean(accumulatedContent);
+
+      scheduleChunkFlush({
         content: accumulatedContent,
         reasoning: accumulatedReasoning,
         isThinking
-      });
+      }, isTransition);
     };
 
     try {
@@ -372,6 +419,7 @@ export async function streamChatCompletion({
     }
 
     // Final stream resolution: ensure unclosed think tags or trailing content are cleanly resolved
+    flushChunk();
     if (!accumulatedContent && accumulatedReasoning && !controller.signal.aborted) {
       // Check if accumulatedReasoning has an Arabic answer part
       const arabicMatch = accumulatedReasoning.search(/\n\n(?=[\u0621-\u064A])|\n(?=[#*•-]*\s*[\u0621-\u064A])/);
@@ -398,8 +446,10 @@ export async function streamChatCompletion({
       });
     }
 
+    flushChunk();
     onComplete();
   } catch (err: any) {
+    flushChunk();
     if (err.name === 'AbortError' || controller.signal.aborted) {
       console.log('[Stream Aborted gracefully by User]');
     } else {
@@ -414,6 +464,7 @@ export async function streamChatCompletion({
 
   return () => {
     try {
+      flushChunk();
       controller.abort();
     } catch {}
   };

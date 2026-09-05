@@ -534,8 +534,8 @@ export class DynamicParameterTuner {
         break;
 
       case 'deepseek-chat':
-        // DeepSeek V3 chat
-        max_tokens = Math.min(max_tokens, 16384);
+        // DeepSeek V3 chat: strictly capped at official 8192 token limit
+        max_tokens = Math.min(max_tokens, 8192);
         break;
 
       case 'muse-spark':

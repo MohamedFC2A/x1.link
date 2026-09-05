@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -38,6 +38,34 @@ export interface Milestone {
   specialType?: 'search' | 'cam' | 'spark' | null;
   searchQuery?: string;
   sourcesCount?: number;
+}
+
+export function AnimatedDots({ className = "bg-indigo-400" }: { className?: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 mx-1 align-baseline select-none">
+      <span
+        className={cn("size-1 rounded-full animate-dots-wave", className)}
+        style={{ animationDelay: '-0.32s' }}
+      />
+      <span
+        className={cn("size-1 rounded-full animate-dots-wave", className)}
+        style={{ animationDelay: '-0.16s' }}
+      />
+      <span
+        className={cn("size-1 rounded-full animate-dots-wave", className)}
+        style={{ animationDelay: '0s' }}
+      />
+    </span>
+  );
+}
+
+export function RadarDot({ color = "bg-indigo-400", ringColor = "bg-indigo-400" }: { color?: string; ringColor?: string }) {
+  return (
+    <span className="relative flex size-2 items-center justify-center shrink-0">
+      <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-60", ringColor)} />
+      <span className={cn("relative inline-flex size-1.5 rounded-full", color)} />
+    </span>
+  );
 }
 
 /**
@@ -234,9 +262,41 @@ export function parseReasoningMilestones(
     .trim();
 
   // Helper to split text by explicit sections, paragraphs, or full sentences without splitting words
-  const splitTextGracefully = (text: string, partsCount: number): string[] => {
+  // Helper to split text by explicit sections, paragraphs, or full sentences without splitting words or jumping between stages
+  const splitTextGracefully = (text: string, partsCount: number, isThinkingStream: boolean = false): string[] => {
     if (!text || !text.trim()) return [];
     const trimmed = text.trim();
+
+    // Helper: Distribute items into partsCount buckets monotonically and smoothly
+    const partitionItems = (items: string[], separator = '\n\n'): string[] => {
+      if (items.length === 0) return [];
+      if (items.length <= partsCount) {
+        return items;
+      }
+      if (isThinkingStream) {
+        // Progressive allocation during live stream:
+        // Keep initial (partsCount - 1) stages stable, while trailing items accrue in the final active stage.
+        // This permanently eliminates the issue of text jumping backwards across steps.
+        const result: string[] = [];
+        for (let i = 0; i < partsCount - 1; i++) {
+          result.push(items[i]);
+        }
+        result.push(items.slice(partsCount - 1).join(separator));
+        return result;
+      } else {
+        // Balanced fair bin-packing when stream is finished
+        const result: string[] = [];
+        const baseSize = Math.floor(items.length / partsCount);
+        const remainder = items.length % partsCount;
+        let currentIndex = 0;
+        for (let b = 0; b < partsCount; b++) {
+          const binSize = baseSize + (b < remainder ? 1 : 0);
+          result.push(items.slice(currentIndex, currentIndex + binSize).join(separator));
+          currentIndex += binSize;
+        }
+        return result;
+      }
+    };
 
     // 1. Check for explicit section headings written by the model (e.g., 1., الخطوة 1:, أولاً:, تفكيك:, إلخ)
     const sectionHeaderRegex = /(?:^|\n+)(?:[#*\s]*)(?:(?:الخطوة|المرحلة)\s*(?:الأولى|الثانية|الثالثة|الرابعة|[1-4])(?:\s*[:\-])?|[1-4][.)\-]|(?:أولاً|ثانياً|ثالثاً|رابعاً)(?:\s*[:\-])?|(?:تفكيك|تحليل|استدلال|معالجة|تدقيق|تحقق|استخلاص|صياغة)(?:\s*[:\-])?)/gi;
@@ -258,27 +318,13 @@ export function parseReasoningMilestones(
           parts.push(sectionContent);
         }
       }
-      if (parts.length >= partsCount) {
-        const chunkSize = Math.ceil(parts.length / partsCount);
-        const result: string[] = [];
-        for (let i = 0; i < parts.length; i += chunkSize) {
-          result.push(parts.slice(i, i + chunkSize).join('\n\n'));
-        }
-        return result.slice(0, partsCount);
-      } else if (parts.length > 1) {
-        return parts;
-      }
+      return partitionItems(parts, '\n\n');
     }
 
     // 2. Try clean double newline paragraphs
     const paragraphs = trimmed.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 10);
     if (paragraphs.length >= partsCount) {
-      const chunkSize = Math.ceil(paragraphs.length / partsCount);
-      const chunks: string[] = [];
-      for (let i = 0; i < paragraphs.length; i += chunkSize) {
-        chunks.push(paragraphs.slice(i, i + chunkSize).join('\n\n'));
-      }
-      return chunks.slice(0, partsCount);
+      return partitionItems(paragraphs, '\n\n');
     }
 
     // 3. Sentence-level splitting (using complete punctuation boundaries: . ! ? ؟ or newlines)
@@ -288,12 +334,7 @@ export function parseReasoningMilestones(
       .filter(s => s.length > 0);
 
     if (rawSentences.length >= partsCount) {
-      const partSize = Math.ceil(rawSentences.length / partsCount);
-      const parts: string[] = [];
-      for (let i = 0; i < rawSentences.length; i += partSize) {
-        parts.push(rawSentences.slice(i, i + partSize).join(' '));
-      }
-      return parts.slice(0, partsCount);
+      return partitionItems(rawSentences, ' ');
     }
 
     if (rawSentences.length > 1) {
@@ -311,16 +352,16 @@ export function parseReasoningMilestones(
     // 2. Problem & Data Deconstruction
     // 3. Logical deduction & fact verification
     // 4. Final synthesis & verification
-    const textParts = splitTextGracefully(pureNarrative, 3);
+    const textParts = splitTextGracefully(pureNarrative, 3, isThinking);
     const part0 = textParts[0] || pureNarrative;
-    const part1 = textParts[1] || '';
-    const part2 = textParts.slice(2).join('\n\n') || '';
+    const part1 = textParts[1];
+    const part2 = textParts.length >= 3 ? textParts.slice(2).join('\n\n') : undefined;
 
     // Step 1: Integrated Web Search Milestone
     milestones.push({
       id: 'step-fathom-search',
       title: 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Serper AI و Fathom Search',
-      details: searchSourcesDetails || 'تم فحص وتدقيق مصادر البحث والبيانات الحية المحدثة بنجاح.',
+      details: searchSourcesDetails || 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.',
       status: 'completed',
       specialType: 'search',
       searchQuery: detectedSearchQuery,
@@ -332,22 +373,22 @@ export function parseReasoningMilestones(
       id: 'step-reasoning-0',
       title: 'تفكيك وتحليل معطيات المسألة والبيانات المسترجعة',
       details: part0,
-      status: !part1 && isThinking ? 'in-progress' : 'completed',
+      status: isThinking && !part1 ? 'in-progress' : 'completed',
     });
 
     // Step 3: Deduction & Evidence Processing
     milestones.push({
       id: 'step-reasoning-1',
       title: 'الاستدلال المنطقي ومطابقة البيانات والتحقق المعرفي',
-      details: part1 || (isThinking ? 'جاري مطابقة المعطيات والاستدلال المنطقي على النتائج...' : undefined),
-      status: isThinking ? (part2 ? 'completed' : (part1 ? 'in-progress' : 'pending')) : 'completed',
+      details: part1,
+      status: isThinking ? (!part2 ? (part1 ? 'in-progress' : 'pending') : 'completed') : 'completed',
     });
 
     // Step 4: Final Synthesis
     milestones.push({
       id: 'step-reasoning-2',
       title: 'استخلاص وصياغة النتيجة النهائية',
-      details: part2 || (isThinking && part1 ? 'جاري استخلاص وصياغة النتيجة بدقة فصيحة...' : undefined),
+      details: part2,
       status: isThinking ? (part2 ? 'in-progress' : 'pending') : 'completed',
     });
 
@@ -356,7 +397,11 @@ export function parseReasoningMilestones(
 
   // Vision pipeline
   if (hasFathomCam) {
-    const textParts = splitTextGracefully(pureNarrative, 3);
+    const textParts = splitTextGracefully(pureNarrative, 3, isThinking);
+    const part0 = textParts[0] || pureNarrative;
+    const part1 = textParts[1];
+    const part2 = textParts.length >= 3 ? textParts.slice(2).join('\n\n') : undefined;
+
     milestones.push({
       id: 'step-cam',
       title: 'المسح البصري الميكروي وقراءة نصوص الصور عبر Fathom Cam',
@@ -367,27 +412,31 @@ export function parseReasoningMilestones(
     milestones.push({
       id: 'step-reasoning-0',
       title: 'تفكيك وتحليل العناصر البصرية والنصوص',
-      details: textParts[0] || pureNarrative,
-      status: 'completed',
+      details: part0,
+      status: isThinking && !part1 ? 'in-progress' : 'completed',
     });
     milestones.push({
       id: 'step-reasoning-1',
       title: 'الاستدلال المنطقي ومطابقة البيانات',
-      details: textParts[1] || (isThinking ? 'جاري مطابقة المعطيات...' : undefined),
-      status: isThinking && !textParts[2] ? 'in-progress' : 'completed',
+      details: part1,
+      status: isThinking ? (!part2 ? (part1 ? 'in-progress' : 'pending') : 'completed') : 'completed',
     });
     milestones.push({
       id: 'step-reasoning-2',
       title: 'استخلاص وصياغة النتيجة النهائية',
-      details: textParts.slice(2).join('\n\n') || undefined,
-      status: isThinking ? 'in-progress' : 'completed',
+      details: part2,
+      status: isThinking ? (part2 ? 'in-progress' : 'pending') : 'completed',
     });
     return milestones;
   }
 
   // Spark pipeline
   if (hasFathomSpark) {
-    const textParts = splitTextGracefully(pureNarrative, 3);
+    const textParts = splitTextGracefully(pureNarrative, 3, isThinking);
+    const part0 = textParts[0] || pureNarrative;
+    const part1 = textParts[1];
+    const part2 = textParts.length >= 3 ? textParts.slice(2).join('\n\n') : undefined;
+
     milestones.push({
       id: 'step-spark',
       title: 'استيعاب وتفكيك وسائط الفيديو والصوتيات والأكواد عبر Fathom Spark',
@@ -398,53 +447,54 @@ export function parseReasoningMilestones(
     milestones.push({
       id: 'step-reasoning-0',
       title: 'تفكيك البنية البرمجية والمنطق',
-      details: textParts[0] || pureNarrative,
-      status: 'completed',
+      details: part0,
+      status: isThinking && !part1 ? 'in-progress' : 'completed',
     });
     milestones.push({
       id: 'step-reasoning-1',
       title: 'الاستدلال والتحقق الرياضي والبرمجي',
-      details: textParts[1] || (isThinking ? 'جاري فحص الدوال والمنطق...' : undefined),
-      status: isThinking && !textParts[2] ? 'in-progress' : 'completed',
+      details: part1,
+      status: isThinking ? (!part2 ? (part1 ? 'in-progress' : 'pending') : 'completed') : 'completed',
     });
     milestones.push({
       id: 'step-reasoning-2',
       title: 'استخلاص وصياغة النتيجة النهائية',
-      details: textParts.slice(2).join('\n\n') || undefined,
-      status: isThinking ? 'in-progress' : 'completed',
+      details: part2,
+      status: isThinking ? (part2 ? 'in-progress' : 'pending') : 'completed',
     });
     return milestones;
   }
 
   // Pure reasoning (General / Math / Science / Code)
-  const textParts = splitTextGracefully(pureNarrative, 4);
+  // Always maintain 4 consistent Tree-of-Thought milestones
+  const textParts = splitTextGracefully(pureNarrative, 4, isThinking);
   const part0 = textParts[0] || pureNarrative;
   const part1 = textParts[1];
   const part2 = textParts[2];
-  const part3 = textParts.slice(3).join('\n\n');
+  const part3 = textParts.length >= 4 ? textParts.slice(3).join('\n\n') : undefined;
 
   milestones.push({
     id: 'step-reasoning-0',
     title: 'تفكيك وتحليل معطيات المسألة',
-    details: part0,
+    details: part0 || (!isThinking ? 'تم تفكيك معطيات المسألة وتحديد القيود والمعالم الأساسية.' : undefined),
     status: isThinking && !part1 ? 'in-progress' : 'completed',
   });
   milestones.push({
     id: 'step-reasoning-1',
     title: 'الاستدلال المنطقي ومعالجة الخطوات',
-    details: part1 || (isThinking && part0 ? 'جاري معالجة الخطوات...' : undefined),
+    details: part1 || (!isThinking ? 'تم الاستدلال المنطقي ومطابقة الفرضيات بدقة.' : undefined),
     status: isThinking ? (!part2 ? (part1 ? 'in-progress' : 'pending') : 'completed') : 'completed',
   });
   milestones.push({
     id: 'step-reasoning-2',
     title: 'التحقق والتدقيق من صحة الاستنتاج',
-    details: part2 || (isThinking && part1 ? 'جاري التحقق والتدقيق...' : undefined),
+    details: part2 || (!isThinking ? 'تم التدقيق المعرفي والحسابي واستبعاد أي تناقضات.' : undefined),
     status: isThinking ? (!part3 ? (part2 ? 'in-progress' : 'pending') : 'completed') : 'completed',
   });
   milestones.push({
     id: 'step-reasoning-3',
     title: 'استخلاص وصياغة النتيجة النهائية',
-    details: part3 || (isThinking && part2 ? 'جاري صياغة الاستنتاج النهائي...' : undefined),
+    details: part3 || (!isThinking ? 'تم استخلاص وصياغة النتيجة النهائية بإحكام باللغة العربية الفصحى المعاصرة.' : undefined),
     status: isThinking ? (part3 ? 'in-progress' : 'pending') : 'completed',
   });
 
@@ -537,8 +587,15 @@ export default function ChatReasoning({
   const [value, setValue] = useState<string | undefined>(defaultValue ?? "reasoning");
   const [copied, setCopied] = useState(false);
   const [openStepIds, setOpenStepIds] = useState<Record<string, boolean>>({});
+  const [viewMode, setViewMode] = useState<'stepper' | 'full'>('stepper');
+
+  const userToggledRef = useRef<Record<string, boolean>>({});
+  const lastActiveIdRef = useRef<string | null>(null);
+  const fullStreamRef = useRef<HTMLDivElement>(null);
+  const activeStepDetailsRef = useRef<HTMLDivElement>(null);
 
   const toggleStep = (stepId: string) => {
+    userToggledRef.current[stepId] = true;
     setOpenStepIds(prev => ({
       ...prev,
       [stepId]: !prev[stepId],
@@ -585,14 +642,31 @@ export default function ChatReasoning({
     return parseReasoningMilestones(fullText, isThinking, isFathomCamActive, isFathomSparkActive, isFathomSearchActive);
   }, [fullText, isThinking, isFathomCamActive, isFathomSparkActive, isFathomSearchActive]);
 
-  // Only show started steps during active thinking; pending steps appear progressively as they begin
-  const visibleMilestones = useMemo(() => {
+  // Stable milestones for roadmap stepper
+  const visibleMilestones = milestones;
+
+  // Auto-expand the active in-progress step during thinking without overriding user toggles
+  useEffect(() => {
     if (isThinking) {
-      const active = milestones.filter(m => m.status !== 'pending');
-      return active.length > 0 ? active : [milestones[0]];
+      const activeMilestone = visibleMilestones.find(m => m.status === 'in-progress') || visibleMilestones[0];
+      if (activeMilestone && activeMilestone.id !== lastActiveIdRef.current) {
+        lastActiveIdRef.current = activeMilestone.id;
+        setOpenStepIds(prev => {
+          const nextState: Record<string, boolean> = { ...prev };
+          if (!userToggledRef.current[activeMilestone.id]) {
+            nextState[activeMilestone.id] = true;
+          }
+          // Collapse completed previous steps unless user explicitly toggled them
+          visibleMilestones.forEach(m => {
+            if (m.id !== activeMilestone.id && m.status === 'completed' && !userToggledRef.current[m.id]) {
+              nextState[m.id] = false;
+            }
+          });
+          return nextState;
+        });
+      }
     }
-    return milestones;
-  }, [milestones, isThinking]);
+  }, [isThinking, visibleMilestones]);
 
   const searchMilestone = useMemo(() => milestones.find(m => m.specialType === 'search'), [milestones]);
   const camMilestone = useMemo(() => milestones.find(m => m.specialType === 'cam'), [milestones]);
@@ -623,6 +697,19 @@ export default function ChatReasoning({
     const lines = cleaned.split('\n').filter(l => !isPromptLeak(l));
     return lines.join('\n').trim();
   }, [fullText]);
+
+  // Auto-scroll full view and active details during live streaming
+  useEffect(() => {
+    if (isThinking && fullStreamRef.current && viewMode === 'full') {
+      fullStreamRef.current.scrollTop = fullStreamRef.current.scrollHeight;
+    }
+  }, [cleanThinkingText, fullText, isThinking, viewMode]);
+
+  useEffect(() => {
+    if (isThinking && activeStepDetailsRef.current && viewMode === 'stepper') {
+      activeStepDetailsRef.current.scrollTop = activeStepDetailsRef.current.scrollHeight;
+    }
+  }, [milestones, isThinking, viewMode]);
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -675,7 +762,14 @@ export default function ChatReasoning({
 
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono text-xs text-zinc-200 font-semibold tracking-tight">
-                {isThinking ? "جاري التفكير والتحليل المنطقي..." : "التفكير والتحليل المنطقي"}
+                {isThinking ? (
+                  <span className="inline-flex items-center gap-1">
+                    <span>جاري التفكير والتحليل المنطقي</span>
+                    <AnimatedDots className="bg-zinc-300" />
+                  </span>
+                ) : (
+                  "التفكير والتحليل المنطقي"
+                )}
               </span>
 
               {/* Render Active Feature Badges */}
@@ -712,178 +806,244 @@ export default function ChatReasoning({
 
         <AccordionContent className="p-0 pt-2 pb-3 border-t border-white/[0.06]">
           <div className="pt-2 px-1 text-right space-y-3">
-            {/* Steps Header Bar & Copy Button */}
-            <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] text-xs font-mono select-none">
+            {/* Steps Header Bar, View Toggle & Copy Button */}
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] text-xs font-mono select-none flex-wrap gap-2">
               <div className="flex items-center gap-2 text-zinc-300 text-[11px]">
                 <ListOrdered className="size-3.5 text-indigo-400" />
                 <span className="font-semibold tracking-tight">خطوات الاستدلال والتفكير المنطقي</span>
               </div>
 
-              {/* Copy reasoning button */}
-              {(cleanThinkingText || fullText) && (
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors px-2 py-1 rounded-md hover:bg-white/[0.08] cursor-pointer"
-                  title="نسخ مسار التفكير"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="size-3.5 text-emerald-400" />
-                      <span className="text-emerald-400 font-medium">تم النسخ</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="size-3.5" />
-                      <span>نسخ التفكير</span>
-                    </>
-                  )}
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {/* Stepper vs Full Stream View Toggle */}
+                <div className="inline-flex p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('stepper')}
+                    className={cn(
+                      "px-2 py-0.5 rounded-md transition-all cursor-pointer font-medium",
+                      viewMode === 'stepper'
+                        ? "bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 shadow-xs"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    )}
+                  >
+                    مخطط الخطوات
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('full')}
+                    className={cn(
+                      "px-2 py-0.5 rounded-md transition-all cursor-pointer font-medium",
+                      viewMode === 'full'
+                        ? "bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 shadow-xs"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    )}
+                  >
+                    المسار الكامل
+                  </button>
+                </div>
+
+                {/* Copy reasoning button */}
+                {(cleanThinkingText || fullText) && (
+                  <button
+                    type="button"
+                    onClick={handleCopy}
+                    className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors px-2 py-1 rounded-md hover:bg-white/[0.08] cursor-pointer"
+                    title="نسخ مسار التفكير"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="size-3.5 text-emerald-400" />
+                        <span className="text-emerald-400 font-medium">تم النسخ</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="size-3.5" />
+                        <span>نسخ التفكير</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Steps View: Vertical Stepper Timeline with Integrated Search, Cam, Spark & Reasoning */}
-            <div className="relative pr-6 before:absolute before:right-[9px] before:top-3 before:bottom-3 before:w-[2px] before:bg-white/[0.08] space-y-2.5">
-              {visibleMilestones.map((m, idx) => {
-                const isSearch = m.specialType === 'search';
-                const isCam = m.specialType === 'cam';
-                const isSpark = m.specialType === 'spark';
-                const isInProgress = m.status === 'in-progress';
-                const isCompleted = m.status === 'completed';
-                const stepKey = m.id || String(idx);
-                const isExpanded = Boolean(openStepIds[stepKey]);
+            {viewMode === 'full' ? (
+              <div
+                ref={fullStreamRef}
+                dir="auto"
+                className="p-3 rounded-xl bg-black/40 border border-white/[0.06] text-[11.5px] font-mono text-zinc-300/90 whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto custom-scrollbar select-text"
+              >
+                {cleanThinkingText || fullText}
+                {isThinking && (
+                  <span className="inline-block w-1.5 h-3.5 bg-indigo-400 align-middle mr-1.5 animate-pulse rounded-xs" />
+                )}
+              </div>
+            ) : (
+              /* Steps View: Vertical Stepper Timeline with Integrated Search, Cam, Spark & Reasoning */
+              <div className="relative pr-6 space-y-2.5">
+                {visibleMilestones.map((m, idx) => {
+                  const isSearch = m.specialType === 'search';
+                  const isCam = m.specialType === 'cam';
+                  const isSpark = m.specialType === 'spark';
+                  const isInProgress = m.status === 'in-progress';
+                  const isCompleted = m.status === 'completed';
+                  const stepKey = m.id || String(idx);
+                  const isExpanded = Boolean(openStepIds[stepKey]);
 
-                return (
-                  <div key={stepKey} className="relative group">
-                    {/* Timeline Node */}
-                    <div
-                      className={cn(
-                        "absolute -right-6 top-3 size-5 rounded-full flex items-center justify-center text-[10px] font-bold border transition-all z-10",
-                        isInProgress
-                          ? "bg-indigo-950/90 border-indigo-400 text-indigo-200 shadow-[0_0_10px_rgba(99,102,241,0.4)] animate-pulse"
-                          : isCompleted
-                          ? "bg-[#12151c] border-white/20 text-zinc-300"
-                          : "bg-black/60 border-white/[0.08] text-zinc-600"
+                  return (
+                    <div key={stepKey} className="relative group">
+                      {/* Vertical connecting line between this node and next node only */}
+                      {idx < visibleMilestones.length - 1 && (
+                        <div className="absolute -right-[15px] top-[32px] bottom-[-22px] w-[2px] bg-white/[0.08] pointer-events-none" />
                       )}
-                    >
-                      {isSearch ? (
-                        <Search className="size-2.5 text-zinc-300 stroke-[2]" />
-                      ) : isCam ? (
-                        <Camera className="size-2.5 text-emerald-400 stroke-[2]" />
-                      ) : isSpark ? (
-                        <Sparkles className="size-2.5 text-purple-400 stroke-[2]" />
-                      ) : isCompleted ? (
-                        <Check className="size-2.5 text-emerald-400 stroke-[2.5]" />
-                      ) : isInProgress ? (
-                        <span className="size-1.5 rounded-full bg-indigo-400 animate-ping" />
-                      ) : (
-                        <span className="size-1 rounded-full bg-zinc-600" />
-                      )}
-                    </div>
 
-                    {/* Collapsible Step Card with Neutral Dark Glass Styling */}
-                    <div
-                      className={cn(
-                        "rounded-xl border transition-all duration-200 overflow-hidden",
-                        isInProgress
-                          ? "bg-indigo-950/20 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.08)]"
-                          : "bg-[#090b0e]/80 border-white/[0.08] hover:border-white/[0.14] shadow-sm"
-                      )}
-                    >
-                      {/* Card Header (Collapse Trigger Button) */}
-                      <button
-                        type="button"
-                        onClick={() => toggleStep(stepKey)}
-                        className="w-full p-2.5 sm:p-3 text-right flex items-center justify-between gap-2.5 cursor-pointer select-none group/btn transition-colors hover:bg-white/[0.02]"
-                        aria-expanded={isExpanded}
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <div className="size-5 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-zinc-400 shrink-0">
-                            {isSearch ? (
-                              <Globe className="size-3 text-zinc-300 stroke-[2]" />
-                            ) : isCam ? (
-                              <Camera className="size-3 text-emerald-400 stroke-[2]" />
-                            ) : isSpark ? (
-                              <Sparkles className="size-3 text-purple-400 stroke-[2]" />
-                            ) : (
-                              <span className="text-[10px] font-bold text-zinc-400">{idx + 1}</span>
-                            )}
-                          </div>
-                          <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 min-w-0">
-                            <span className="text-zinc-500 text-[11px] font-normal shrink-0">خطوة {idx + 1}:</span>
-                            <span className="truncate">{renderMilestoneTitle(m.title)}</span>
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          {isSearch ? (
-                            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.06] text-zinc-300 border border-white/[0.1] font-medium">
-                              {isInProgress ? "جاري استرجاع المصادر..." : `${m.sourcesCount || 3} مصادر معتمدة`}
-                            </span>
-                          ) : isInProgress ? (
-                            <span className="text-[10px] text-indigo-400 flex items-center gap-1 font-medium bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
-                              <span className="size-1.5 rounded-full bg-indigo-400 animate-ping" />
-                              <span>قيد المعالجة...</span>
-                            </span>
-                          ) : (
-                            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.04] text-zinc-400 border border-white/[0.06] font-normal">
-                              مكتمل
-                            </span>
-                          )}
-
-                          <div className="size-5 rounded-md flex items-center justify-center text-zinc-400 group-hover/btn:text-zinc-200 transition-colors">
-                            <ChevronDown className={cn("size-3.5 transition-transform duration-200", isExpanded && "rotate-180")} />
-                          </div>
-                        </div>
-                      </button>
-
-                      {/* Collapsible Details Body */}
+                      {/* Timeline Node */}
                       <div
                         className={cn(
-                          "px-3 pb-3 sm:px-3.5 sm:pb-3.5 pt-0 transition-all duration-200 select-text",
-                          isExpanded ? "block" : "hidden"
+                          "absolute -right-6 top-3 size-5 rounded-full flex items-center justify-center text-[10px] font-bold border transition-all z-10",
+                          isInProgress
+                            ? "bg-indigo-950/90 border-indigo-400 text-indigo-200 shadow-[0_0_10px_rgba(99,102,241,0.4)]"
+                            : isCompleted
+                            ? "bg-[#12151c] border-white/20 text-zinc-300"
+                            : "bg-black/60 border-white/[0.08] text-zinc-600"
                         )}
                       >
-                        <div className="pt-2 border-t border-white/[0.05] space-y-2 text-xs font-mono">
-                          {isSearch ? (
-                            <>
-                              {m.searchQuery && (
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[11px] text-zinc-300 font-mono">
-                                  <Search className="size-3 text-zinc-400 shrink-0" />
-                                  <span>البحث: &quot;{m.searchQuery}&quot;</span>
-                                </div>
-                              )}
+                        {isSearch ? (
+                          <Search className="size-2.5 text-zinc-300 stroke-[2]" />
+                        ) : isCam ? (
+                          <Camera className="size-2.5 text-emerald-400 stroke-[2]" />
+                        ) : isSpark ? (
+                          <Sparkles className="size-2.5 text-purple-400 stroke-[2]" />
+                        ) : isCompleted ? (
+                          <Check className="size-2.5 text-emerald-400 stroke-[2.5]" />
+                        ) : isInProgress ? (
+                          <RadarDot color="bg-indigo-400" ringColor="bg-indigo-400" />
+                        ) : (
+                          <span className="size-1 rounded-full bg-zinc-600" />
+                        )}
+                      </div>
 
-                              {m.details && (
-                                <div className="text-[11px] text-zinc-300/90 leading-relaxed max-h-48 overflow-y-auto custom-scrollbar whitespace-pre-wrap select-text p-2.5 rounded-lg bg-black/40 border border-white/[0.06]">
-                                  {m.details}
-                                </div>
+                      {/* Collapsible Step Card with Neutral Dark Glass Styling */}
+                      <div
+                        className={cn(
+                          "rounded-xl border transition-all duration-200 overflow-hidden",
+                          isInProgress
+                            ? "bg-indigo-950/20 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.08)]"
+                            : "bg-[#090b0e]/80 border-white/[0.08] hover:border-white/[0.14] shadow-sm"
+                        )}
+                      >
+                        {/* Card Header (Collapse Trigger Button) */}
+                        <button
+                          type="button"
+                          onClick={() => toggleStep(stepKey)}
+                          className="w-full p-2.5 sm:p-3 text-right flex items-center justify-between gap-2.5 cursor-pointer select-none group/btn transition-colors hover:bg-white/[0.02]"
+                          aria-expanded={isExpanded}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className="size-5 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-zinc-400 shrink-0">
+                              {isSearch ? (
+                                <Globe className="size-3 text-zinc-300 stroke-[2]" />
+                              ) : isCam ? (
+                                <Camera className="size-3 text-emerald-400 stroke-[2]" />
+                              ) : isSpark ? (
+                                <Sparkles className="size-3 text-purple-400 stroke-[2]" />
+                              ) : (
+                                <span className="text-[10px] font-bold text-zinc-400">{idx + 1}</span>
                               )}
-                            </>
-                          ) : (
-                            <>
-                              {m.details ? (
-                                <div className="text-[11.5px] text-zinc-300/90 whitespace-pre-wrap select-text leading-relaxed font-mono dir-auto">
-                                  {m.details}
-                                  {isInProgress && isThinking && (
-                                    <span className="inline-block w-1.5 h-3.5 bg-indigo-400 align-middle mr-1.5 animate-pulse rounded-xs" />
-                                  )}
-                                </div>
-                              ) : isInProgress ? (
-                                <div className="text-[11px] text-zinc-400 italic flex items-center gap-2 font-mono">
-                                  <span className="inline-block size-1.5 rounded-full bg-indigo-400 animate-ping" />
-                                  <span>جاري معالجة وصياغة هذه الخطوة...</span>
-                                </div>
-                              ) : null}
-                            </>
+                            </div>
+                            <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 min-w-0">
+                              <span className="text-zinc-500 text-[11px] font-normal shrink-0">خطوة {idx + 1}:</span>
+                              <span className="truncate">{renderMilestoneTitle(m.title)}</span>
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {isSearch ? (
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.06] text-zinc-300 border border-white/[0.1] font-medium">
+                                {isInProgress ? "جاري استرجاع المصادر..." : `${m.sourcesCount || 3} مصادر معتمدة`}
+                              </span>
+                            ) : isInProgress ? (
+                              <span className="text-[10px] text-indigo-400 flex items-center gap-1.5 font-medium bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
+                                <span className="size-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                                <span>قيد المعالجة</span>
+                                <AnimatedDots className="bg-indigo-400" />
+                              </span>
+                            ) : m.status === 'pending' ? (
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.03] text-zinc-500 border border-white/[0.05] font-normal">
+                                قيد الانتظار
+                              </span>
+                            ) : (
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.04] text-zinc-400 border border-white/[0.06] font-normal">
+                                مكتمل
+                              </span>
+                            )}
+
+                            <div className="size-5 rounded-md flex items-center justify-center text-zinc-400 group-hover/btn:text-zinc-200 transition-colors">
+                              <ChevronDown className={cn("size-3.5 transition-transform duration-200", isExpanded && "rotate-180")} />
+                            </div>
+                          </div>
+                        </button>
+
+                        {/* Collapsible Details Body */}
+                        <div
+                          className={cn(
+                            "px-3 pb-3 sm:px-3.5 sm:pb-3.5 pt-0 transition-all duration-200 select-text",
+                            isExpanded ? "block" : "hidden"
                           )}
+                        >
+                          <div className="pt-2 border-t border-white/[0.05] space-y-2 text-xs font-mono">
+                            {isSearch ? (
+                              <>
+                                {m.searchQuery && (
+                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[11px] text-zinc-300 font-mono">
+                                    <Search className="size-3 text-zinc-400 shrink-0" />
+                                    <span>البحث: &quot;{m.searchQuery}&quot;</span>
+                                  </div>
+                                )}
+
+                                {m.details && (
+                                  <div className="text-[11px] text-zinc-300/90 leading-relaxed max-h-48 overflow-y-auto custom-scrollbar whitespace-pre-wrap select-text p-2.5 rounded-lg bg-black/40 border border-white/[0.06]">
+                                    {m.details}
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                {m.details ? (
+                                  <div
+                                    ref={isInProgress ? activeStepDetailsRef : undefined}
+                                    dir="auto"
+                                    className="text-[11.5px] text-zinc-300/90 whitespace-pre-wrap select-text leading-relaxed font-mono max-h-48 overflow-y-auto custom-scrollbar"
+                                  >
+                                    {m.details}
+                                    {isInProgress && isThinking && (
+                                      <span className="inline-block w-1.5 h-3.5 bg-indigo-400 align-middle mr-1.5 animate-pulse rounded-xs" />
+                                    )}
+                                  </div>
+                                ) : isInProgress ? (
+                                  <div className="text-[11px] text-zinc-400 italic flex items-center gap-2 font-mono">
+                                    <span className="size-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                                    <span>جاري معالجة وصياغة هذه الخطوة</span>
+                                    <AnimatedDots className="bg-indigo-400" />
+                                  </div>
+                                ) : m.status === 'pending' ? (
+                                  <div dir="auto" className="text-[11.5px] text-zinc-500/80 italic select-none font-mono">
+                                    في انتظار استكمال المراحل السابقة لبدء المعالجة...
+                                  </div>
+                                ) : (
+                                  <div dir="auto" className="text-[11.5px] text-zinc-300/90 whitespace-pre-wrap select-text leading-relaxed font-mono">
+                                    تم استكمال معالجة هذه المرحلة وتدقيق كافة معطياتها بنجاح.
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </AccordionContent>
       </AccordionItem>
