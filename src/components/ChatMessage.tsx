@@ -1392,6 +1392,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     if (/(?:ارسم|صمم)\s+(?:لي\s+)?(?:رسمة|صورة\s+فيكتور|شكل\s+هندسي|رسم\s+شعاعي)/i.test(pLower)) return true;
     if (/\b(?:image\s+of|picture\s+of|drawing\s+of|illustration\s+of|draw\s+me|generate\s+an?\s+image|create\s+an?\s+image|paint\s+me|make\s+a\s+picture)\b/i.test(pLower)) return true;
     if (/\bdraw\s+(?:me\s+)?(?:a|an|the)\b/i.test(pLower)) return true;
+    if (hasImagesInChat && /(?:حول|تحويل|فيكتور|متجهات|عدل|تعديل|غير|أضف|ادخل|احذف|ارسم|صمم|شكل|تشكيل|svg|vector|vectorize|convert\s+to\s+svg)/i.test(pLower)) return true;
     if (message.content && (message.content.includes('<svg') || message.content.includes('```svg'))) return true;
     if (message.reasoning && (message.reasoning.includes('<svg') || message.reasoning.includes('```svg'))) return true;
     return false;
@@ -1982,19 +1983,27 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   }
 
                   const rawCodeString = String(children).replace(/\n$/, '');
+                  const hasCompleteSvg = rawCodeString.includes('<svg') && rawCodeString.includes('</svg>');
                   const isSvgBlock = !isInline && (
-                    lang === 'svg' ||
-                    ((lang === 'xml' || lang === 'html' || lang === 'markup' || !lang || lang === 'code') &&
-                      rawCodeString.includes('<svg') && (rawCodeString.includes('</svg>') || isStreaming))
+                    (lang === 'svg' && (hasCompleteSvg || !isStreaming)) ||
+                    ((lang === 'xml' || lang === 'html' || lang === 'markup' || !lang || lang === 'code') && hasCompleteSvg)
                   );
 
-                  if (isSvgBlock) {
+                  if (isSvgBlock && hasCompleteSvg) {
                     return (
                       <SvgStudioCard
+                        key={`svg-card-${message.id || 'current'}`}
                         svgCode={rawCodeString}
                         isStreaming={isStreaming}
                       />
                     );
+                  }
+
+                  // While SVG code is streaming and hasn't closed yet, suppress partial code output
+                  // to prevent parsererror thrashing and repeated screen flicker.
+                  // The single-line indicator above cleanly informs the user of progress.
+                  if (!isInline && (lang === 'svg' || (rawCodeString.includes('<svg') && !hasCompleteSvg)) && isStreaming) {
+                    return null;
                   }
 
                   return !isInline ? (

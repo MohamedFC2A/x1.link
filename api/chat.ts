@@ -1802,9 +1802,18 @@ export default async function handler(req: Request): Promise<Response> {
 
     const isForensicsExplicitlyRequested = isForensicAnalysisRequested(userPromptForForensics);
 
-    console.log(`[X1-PIPELINE Edge] Multimodal image detected. Fast native multimodal routing activated (forensics: ${isForensicsExplicitlyRequested})...`);
+    console.log(`[X1-PIPELINE Edge] Multimodal image detected. Fast native multimodal routing activated (forensics: ${isForensicsExplicitlyRequested}, intent: ${dynamicTuning.detectedIntent})...`);
 
-    const visionGuidance = `
+    if (dynamicTuning.detectedIntent === 'SVG_VECTOR_STUDIO_AND_DESIGN') {
+      const imageToSvgGuidance = `
+[توجيه تحويل الصور المرفقة إلى فيكتور والتعديل البصري الشامل — FATHOM VISION TO EDITABLE SVG DIRECTIVE]:
+- افحص الصورة المرفقة واستوعب كافة معالمها، أشكالها، تفاصيلها الهندسية، ألوانها وتدرجاتها.
+- أعد بناء وتحويل محتوى الصورة إلى كود SVG نقي، متكامل، غني بالطبقات (layered)، ومغلق هندسياً.
+- نفذ أي طلب تعديل محدد من قبل المستخدم (مثل إضافة عناصر، حذف عناصر، تغيير الألوان أو الخلفية، تعديل الأشكال والوجوه، إدخال نصوص) بدقة فائقة وبشكل فوري داخل كود الـ SVG.
+- يُحظر تماماً كتابة أي تفكير أو نصوص قبل أو بعد الكود؛ ابدأ وأخرج فوراً الكود النقي داخل \`\`\`svg ... \`\`\` ليتم عرضه وتحميله كـ 2K / 4K مباشرة.`;
+      activeSystemPrompt += `\n\n${imageToSvgGuidance}`;
+    } else {
+      const visionGuidance = `
 [توجيه الإدراك البصري وفحص المستندات والواجهات والصور المرفقة — FATHOM CAM UNIVERSAL MULTIMODAL DIRECTIVE]:
 1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى:
    - افحص واسترجع كافة الصور، لقطات الشاشة (Screenshots)، الجداول، واجهات المستخدم (UI/UX)، المستندات، والتصاميم المرفقة في هذه المحادثة (سواء أُرفقت في هذه الرسالة أو في الرسائل السابقة أعلاه) عبر محرك المسح البصري الميكروي Fathom Cam.
@@ -1815,7 +1824,8 @@ export default async function handler(req: Request): Promise<Response> {
 2. بعد إغلاق وسم </think>، قدّم إجابتك باللغة العربية الفصحى بشكل منظم، قاطع، مباشر، وعميق يجيب بدقة تامة على استفسار المستخدم مستنداً إلى التفاصيل البصرية المرئية عبر Fathom Cam دون أي تردد أو اعتذار.
 ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية أو استخدام كود بلوك thought للإجابة.`;
 
-    activeSystemPrompt += `\n\n${visionGuidance}`;
+      activeSystemPrompt += `\n\n${visionGuidance}`;
+    }
   }
 
   // Step 2: Multi-Link Intelligence Matrix Engine (Up to 5 Links with Smart Chat-Wide Indexing)
@@ -1904,7 +1914,15 @@ export default async function handler(req: Request): Promise<Response> {
       searchMilestonesStreamText = searchObj.searchMilestonesText;
 
       if (searchRes) {
-        const fathomSearchGuidance = `
+        const isSvgOrImageIntent = dynamicTuning.detectedIntent === 'SVG_VECTOR_STUDIO_AND_DESIGN' ||
+          /(?:svg|فيكتور|متجهات|vector|رسمة|صورة|شعار|لوجو|ايقونة|أيقونة|ارسم|صمم)/i.test(rawUserContent);
+
+        const fathomSearchGuidance = isSvgOrImageIntent ? `
+[توجيه استخبارات البحث البصري وتوليد الصور والرسومات — VISUAL SEARCH & DESIGN SYNTHESIS DIRECTIVE]:
+- استند إلى بيانات وحقائق ومعالم البحث المسترجعة أعلاه لاستخلاص الملامح البصرية الدقيقة، الألوان الواقعية، النسب المعمارية أو الفنية، والخصائص البصرية للكيان أو العنصر المطلوب.
+- حظر إخراج أي تفكير أو نصوص بحثية أو روابط أو اقتباسات نصية خارج كود الـ SVG.
+- قم فوراً بترجمة وتجسيد كافة المعلومات المستخلصة من البحث إلى كود SVG نقي متقن ومكتمل داخل \`\`\`svg ... \`\`\` يعبر عن التصميم أو الصورة المطلوبة بأعلى دقة فنية وجمالية وبدقة 2K / 4K.
+- يُمنع تماماً طباعة أي رموز عشوائية أو تهويمات؛ أخرج الكود مباشرة ونظيفاً 100%.` : `
 [توجيه استخبارات البحث الحي وحسم الحقائق — SERPER AI & FATHOM SEARCH FACTUAL SYNTHESIS DIRECTIVE]:
 - في خطوات تفكيرك الداخلي <think>، استند 100% إلى الحقائق والمصادر الحية المستخرجة أعلاه لحسم أي وقائع أو أحداث أو تفاصيل بدقة قطعية.
 - حظر التخمين والهلوسة (Strict Anti-Hallucination): يُحظر تماماً التخمين الافتراضي أو إنكار الوقائع المذكورة في المصادر الحية المسترجعة.

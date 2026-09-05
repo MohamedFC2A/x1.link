@@ -1113,7 +1113,10 @@ export function routeFeatureIntent(
     /(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول|ضع|خليه|خلها|اجعله|اجعلها|سوه|سوها)\s+(?:لي\s+)?(?:الخلفية|خلفية|لون|الوان|ألوان|الألوان|الالوان|الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|العنصر|الرمز|الكتابة|ذهبي|فضي|أبيض|ابيض|أسود|اسود|أحمر|احمر|أزرق|ازرق|أخضر|اخضر|شفاف|شفافة|نيون|داكن|مضيء|أغمق|أفتح)/i.test(pLower) ||
     /\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:background|color|colors|logo|icon|svg|vector|style|design)\b/i.test(pLower);
 
-    if (hasSvgBadge || hasSvgCode || isSvgPrompt || hasSvgReasoning) {
+    const isImageToSvgPrompt = (hasImages || Boolean(context?.hasImagesInHistory)) &&
+      /(?:حول|تحويل|فيكتور|متجهات|عدل|تعديل|غير|أضف|ادخل|احذف|ارسم|صمم|شكل|تشكيل|svg|vector|vectorize|convert\s+to\s+svg)/i.test(pLower);
+
+    if (hasSvgBadge || hasSvgCode || isSvgPrompt || hasSvgReasoning || isImageToSvgPrompt) {
       return {
         featureId,
         confidence: 1.0,
@@ -1121,7 +1124,7 @@ export function routeFeatureIntent(
         shouldRenderWidget: true,
         shouldInjectContext: true,
         extractedParams: {},
-        reason: 'SVG Studio vector design or SVG code block active.'
+        reason: 'SVG Studio vector design, image-to-vector transformation, or SVG code block active.'
       };
     }
 

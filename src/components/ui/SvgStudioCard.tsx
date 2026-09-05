@@ -188,11 +188,11 @@ function normalizeSvgXml(rawSvg: string): { normalizedSvg: string; metrics: SvgM
   }
 }
 
-export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
+export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
   svgCode,
   className,
   isStreaming = false,
-  title = 'استوديو تصميم الفيكتور (SVG)'
+  title = 'لوحة التعديل'
 }) => {
   const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
   const [zoomLevel, setZoomLevel] = useState<number>(1);
@@ -439,7 +439,7 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
   return (
     <div
       className={cn(
-        "my-3 sm:my-4 rounded-2xl border border-white/[0.08] bg-[#090b11]/95 backdrop-blur-xl overflow-hidden shadow-2xl transition-all duration-200 select-none",
+        "my-3 sm:my-4 rounded-2xl border border-white/[0.08] bg-[#090b11]/95 backdrop-blur-xl overflow-hidden shadow-2xl select-none",
         isFullscreen && "fixed inset-0 z-[150] m-0 rounded-none bg-black/95 backdrop-blur-2xl flex flex-col",
         className
       )}
@@ -548,7 +548,7 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
       {/* ── 2. Main Stage / Content Area (Proportional & Responsive) ──────── */}
       <div
         className={cn(
-          "relative overflow-hidden flex items-center justify-center transition-all duration-200",
+          "relative overflow-hidden flex items-center justify-center",
           isFullscreen 
             ? "flex-1 min-h-0" 
             : "h-[250px] xs:h-[280px] sm:h-[360px] md:h-[420px] max-h-[55vh]",
@@ -733,3 +733,6 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
     </div>
   );
 };
+
+export const SvgStudioCard = React.memo(SvgStudioCardComponent);
+

@@ -365,5 +365,94 @@ export async function runSvgStudioTests(harness: TestHarness) {
       expect(clean2).not.toContain('إليك التصميم المطلوب:');
     });
 
+    // 17. Image-to-SVG Vectorization & Transformation with Uploaded Image Payload
+    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN when images are attached with vectorization or editing intent', () => {
+      const imageToSvgPrompts = [
+        'حول الصورة دي لـ svg وعدل عليها خلي الخلفية كحلي واضف نجمة ذهبية',
+        'عدل على الصورة المرفقة واعملها فيكتور بدقة عالية',
+        'حول اللوجو ده لـ SVG vector عشان اطبعه بجودة 4K',
+        'convert this attached image to editable SVG and recolor it to emerald green'
+      ];
+
+      for (const prompt of imageToSvgPrompts) {
+        const request: DynamicTuningRequest = {
+          userPrompt: prompt,
+          hasMultimodalImages: true,
+          requestedModel: 'deepseek-v4-pro',
+        };
+
+        const result = DynamicParameterTuner.tune(request);
+        expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+        expect(result.hyperparameters.thinking_mode).toBe('disabled');
+        expect(result.calibrationDirective).toContain('بروتوكول تحويل الصور المرفوعة إلى فيكتور وتعديلها');
+        expect(result.calibrationDirective).toContain('SOVEREIGN_SVG_VECTOR_STUDIO');
+
+        // Feature registry check
+        const plan = routeFeatureIntent('svg_studio', prompt, '', '', { hasImages: true });
+        expect(plan.confidence).toBe(1.0);
+        expect(plan.shouldRenderWidget).toBe(true);
+      }
+    });
+
+    // 18. Visual Search Grounding Protocol in SVG Directive
+    await harness.it('should include Visual Search Grounding in calibrationDirective for visual synthesis', () => {
+      const request: DynamicTuningRequest = {
+        userPrompt: 'ارسم لي برج إيفل في باريس وقت الغروب بأسلوب فيكتور فني متقن',
+        requestedModel: 'deepseek-v4-flash',
+        deepSearch: true,
+      };
+
+      const result = DynamicParameterTuner.tune(request);
+      expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+      expect(result.calibrationDirective).toContain('بروتوكول الاستعانة ببيانات البحث البصري');
+      expect(result.calibrationDirective).toContain('Strict Zero-Thinking & Direct Code Output');
+    });
+
+    // 19. Flicker Prevention: SvgStudioCard Mounting Condition Verification
+    await harness.it('should mount SVG card ONLY when complete </svg> tag is present, preventing streaming parse-loop flickering', () => {
+      const evaluateMountDecision = (lang: string, rawCode: string, isStreaming: boolean): 'mount' | 'suppress' | 'standard_code' => {
+        const hasCompleteSvg = rawCode.includes('<svg') && rawCode.includes('</svg>');
+        const isSvgBlock = (lang === 'svg' && (hasCompleteSvg || !isStreaming)) ||
+          ((lang === 'xml' || lang === 'html' || lang === 'markup' || !lang || lang === 'code') && hasCompleteSvg);
+
+        if (isSvgBlock && hasCompleteSvg) {
+          return 'mount';
+        }
+        if ((lang === 'svg' || (rawCode.includes('<svg') && !hasCompleteSvg)) && isStreaming) {
+          return 'suppress';
+        }
+        return 'standard_code';
+      };
+
+      // Incomplete streaming chunk 1 (opening tag only) -> MUST suppress to avoid flicker
+      const chunk1 = '<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">\n  <rect width="800"';
+      expect(evaluateMountDecision('svg', chunk1, true)).toBe('suppress');
+
+      // Incomplete streaming chunk 2 (halfway paths) -> MUST suppress to avoid flicker
+      const chunk2 = chunk1 + ' height="600" fill="#000"/>\n  <circle cx="400" cy="300" r="50"';
+      expect(evaluateMountDecision('svg', chunk2, true)).toBe('suppress');
+
+      // Complete closing tag arrives in stream -> MUST mount stably
+      const chunkFinal = chunk2 + ' fill="#38bdf8"/>\n</svg>';
+      expect(evaluateMountDecision('svg', chunkFinal, true)).toBe('mount');
+
+      // Streaming finished and complete -> MUST mount
+      expect(evaluateMountDecision('svg', chunkFinal, false)).toBe('mount');
+    });
+
+    // 20. Title "لوحة التعديل" & Absence of "جاهز للتصدير" Badge
+    await harness.it('should verify title defaults to "لوحة التعديل" and badge "جاهز للتصدير" is completely removed', async () => {
+      const fs = await import('fs');
+      const cardSource = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/SvgStudioCard.tsx', 'utf-8');
+
+      // Title must default to "لوحة التعديل"
+      expect(cardSource).toContain("title = 'لوحة التعديل'");
+      expect(cardSource).not.toContain("لوحة الفيكتور الذكية");
+
+      // "جاهز للتصدير" badge must be completely absent from UI markup
+      expect(cardSource).not.toContain("جاهز للتصدير");
+      expect(cardSource).not.toContain("جاهز للتصدير");
+    });
+
   });
 }
