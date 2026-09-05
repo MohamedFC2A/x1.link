@@ -12,8 +12,6 @@
  * ============================================================================
  */
 
-export * from './cyberSecurityArchitecture';
-
 export type DAGStage = 'DISSECT' | 'PRUNE' | 'VERIFY' | 'LOCK' | 'SYNTHESIZE';
 
 export interface DAGNode {
