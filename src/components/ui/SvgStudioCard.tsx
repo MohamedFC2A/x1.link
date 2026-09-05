@@ -27,7 +27,7 @@ export interface SvgStudioCardProps {
 }
 
 export type ExportQuality = '2K' | '4K';
-export type ExportFormat = 'png' | 'jpg';
+export type ExportFormat = 'png' | 'jpg' | 'svg';
 
 interface SvgMetrics {
   width: number;
@@ -201,7 +201,7 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
   const [exportFormat, setExportFormat] = useState<ExportFormat>('png');
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
-  const [copiedPng, setCopiedPng] = useState<boolean>(false);
+  const [copiedImage, setCopiedImage] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
   // Extract and normalize SVG
@@ -227,7 +227,7 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
   // High-Resolution & Flawless Raster Converter Engine (2K & 4K | PNG & JPG)
   // ───────────────────────────────────────────────────────────────────────────
   const generateRasterBlob = useCallback(
-    async (quality: ExportQuality, format: ExportFormat): Promise<Blob> => {
+    async (quality: ExportQuality, format: 'png' | 'jpg'): Promise<Blob> => {
       return new Promise((resolve, reject) => {
         try {
           const parser = new DOMParser();
@@ -333,19 +333,20 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
   const handleDownloadRaster = async () => {
     try {
       setIsExporting(true);
-      const blob = await generateRasterBlob(exportQuality, exportFormat);
+      const targetFmt = exportFormat === 'jpg' ? 'jpg' : 'png';
+      const blob = await generateRasterBlob(exportQuality, targetFmt);
       const url = URL.createObjectURL(blob);
 
       const a = document.createElement('a');
       a.href = url;
       const timestamp = new Date().toISOString().slice(0, 10);
-      a.download = `matany-design-${timestamp}-${exportQuality}.${exportFormat}`;
+      a.download = `matany-design-${timestamp}-${exportQuality}.${targetFmt}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
 
       setTimeout(() => URL.revokeObjectURL(url), 2000);
-      setDownloadSuccess(`تم تنزيل صورة ${exportFormat.toUpperCase()} بدقة (${exportQuality}) بنجاح!`);
+      setDownloadSuccess(`تم تنزيل صورة ${targetFmt.toUpperCase()} بدقة (${exportQuality}) بنجاح!`);
       setTimeout(() => setDownloadSuccess(null), 3000);
     } catch (err: any) {
       console.error('[SVG Studio] Error downloading image:', err);
@@ -355,8 +356,8 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
     }
   };
 
-  // Direct PNG Copy to Clipboard
-  const handleCopyPngToClipboard = async () => {
+  // Direct Image Copy to Clipboard (PNG)
+  const handleCopyImageToClipboard = async () => {
     try {
       if (!navigator.clipboard || !(window as any).ClipboardItem) {
         throw new Error('متصفحك لا يدعم نسخ الصور مباشرة إلى الحافظة');
@@ -366,10 +367,10 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
       await navigator.clipboard.write([
         new (window as any).ClipboardItem({ 'image/png': pngBlob })
       ]);
-      setCopiedPng(true);
-      setTimeout(() => setCopiedPng(false), 2500);
+      setCopiedImage(true);
+      setTimeout(() => setCopiedImage(false), 2500);
     } catch (err: any) {
-      console.error('[SVG Studio] Error copying PNG:', err);
+      console.error('[SVG Studio] Error copying image:', err);
       alert(err?.message || 'تعذر نسخ الصورة إلى الحافظة مباشرة.');
     } finally {
       setIsExporting(false);
@@ -403,6 +404,24 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
+  // Primary Download Dispatcher
+  const handlePrimaryDownload = async () => {
+    if (exportFormat === 'svg') {
+      handleDownloadSvg();
+    } else {
+      await handleDownloadRaster();
+    }
+  };
+
+  // Secondary Copy Dispatcher
+  const handleSecondaryCopy = async () => {
+    if (exportFormat === 'svg') {
+      handleCopyCode();
+    } else {
+      await handleCopyImageToClipboard();
+    }
+  };
+
   // Handle escape key to close fullscreen
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -420,40 +439,40 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
   return (
     <div
       className={cn(
-        "my-4 rounded-2xl border border-white/[0.08] bg-[#090b10]/95 backdrop-blur-xl overflow-hidden shadow-2xl transition-all duration-200 select-none",
+        "my-3 sm:my-4 rounded-2xl border border-white/[0.08] bg-[#090b11]/95 backdrop-blur-xl overflow-hidden shadow-2xl transition-all duration-200 select-none",
         isFullscreen && "fixed inset-0 z-[150] m-0 rounded-none bg-black/95 backdrop-blur-2xl flex flex-col",
         className
       )}
       dir="rtl"
     >
-      {/* ── 1. Header Toolbar ────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.08]">
+      {/* ── 1. Header Toolbar (Single Line, Mobile-Optimized) ────────────── */}
+      <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/[0.03] border-b border-white/[0.08]">
         {/* Title & Vector Dimensions */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="size-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0 shadow-sm">
-            <Sparkles className="size-4 text-cyan-400" />
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="size-7 sm:size-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0 shadow-sm">
+            <Sparkles className="size-3.5 sm:size-4 text-cyan-400" />
           </div>
           <div className="flex flex-col min-w-0">
             <span className="text-xs sm:text-sm font-sans font-bold text-white tracking-wide truncate">
               {title}
             </span>
             {metrics.isValid && (
-              <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400">
-                <span>{metrics.width}×{metrics.height}px</span>
+              <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-mono text-zinc-400">
+                <span>{metrics.width}×{metrics.height}</span>
                 <span>•</span>
                 <span>{metrics.aspectRatio}</span>
-                <span>•</span>
-                <span>{(metrics.sizeBytes / 1024).toFixed(1)} KB</span>
+                <span className="hidden xs:inline">•</span>
+                <span className="hidden xs:inline">{(metrics.sizeBytes / 1024).toFixed(1)} KB</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Action Controls, Tab Switcher & Zoom */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {/* Zoom Controls (Active in Preview Tab) */}
+        {/* Action Controls, Tab Switcher & Fullscreen */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Zoom Controls (Desktop / Tablet only to prevent mobile clutter) */}
           {activeTab === 'preview' && (
-            <div className="flex items-center gap-0.5 bg-white/[0.04] p-0.5 rounded-xl border border-white/[0.08]">
+            <div className="hidden sm:flex items-center gap-0.5 bg-white/[0.04] p-0.5 rounded-xl border border-white/[0.08]">
               <button
                 type="button"
                 onClick={handleZoomOut}
@@ -462,7 +481,7 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
               >
                 <ZoomOut className="size-3.5" />
               </button>
-              <span className="font-mono text-[11px] text-zinc-300 px-1.5 min-w-[38px] text-center">
+              <span className="font-mono text-[11px] text-zinc-300 px-1.5 min-w-[36px] text-center">
                 {Math.round(zoomLevel * 100)}%
               </span>
               <button
@@ -490,9 +509,9 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
               type="button"
               onClick={() => setActiveTab('preview')}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                "flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                 activeTab === 'preview'
-                  ? "bg-white/[0.08] text-white border border-white/[0.12] shadow-sm"
+                  ? "bg-white/[0.1] text-white shadow-sm"
                   : "text-zinc-400 hover:text-white"
               )}
             >
@@ -503,9 +522,9 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
               type="button"
               onClick={() => setActiveTab('code')}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                "flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                 activeTab === 'code'
-                  ? "bg-white/[0.08] text-white border border-white/[0.12] shadow-sm"
+                  ? "bg-white/[0.1] text-white shadow-sm"
                   : "text-zinc-400 hover:text-white"
               )}
             >
@@ -521,37 +540,39 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
             className="p-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white border border-white/[0.08] transition-colors cursor-pointer"
             title={isFullscreen ? "تصغير النافذة" : "تكبير ملء الشاشة"}
           >
-            {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+            {isFullscreen ? <Minimize2 className="size-3.5 sm:size-4" /> : <Maximize2 className="size-3.5 sm:size-4" />}
           </button>
         </div>
       </div>
 
-      {/* ── 2. Main Stage / Content Area ─────────────────────────────────── */}
+      {/* ── 2. Main Stage / Content Area (Proportional & Responsive) ──────── */}
       <div
         className={cn(
-          "relative overflow-hidden flex items-center justify-center min-h-[320px] sm:min-h-[400px] transition-colors",
-          isFullscreen ? "flex-1" : "max-h-[70vh]",
-          activeTab === 'preview' ? "svg-checkerboard-bg" : "bg-[#06080d]"
+          "relative overflow-hidden flex items-center justify-center transition-all duration-200",
+          isFullscreen 
+            ? "flex-1 min-h-0" 
+            : "h-[250px] xs:h-[280px] sm:h-[360px] md:h-[420px] max-h-[55vh]",
+          activeTab === 'preview' ? "svg-checkerboard-bg" : "bg-[#05070b]"
         )}
       >
         {activeTab === 'preview' ? (
           isCurrentlyStreamingPartial ? (
-            <div className="flex flex-col items-center justify-center gap-3 p-8 text-center animate-pulse">
-              <div className="size-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shadow-lg">
-                <Sparkles className="size-6 text-cyan-400 animate-spin" />
+            <div className="flex flex-col items-center justify-center gap-3 p-6 text-center animate-pulse">
+              <div className="size-11 sm:size-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shadow-lg shadow-cyan-950/20">
+                <Sparkles className="size-5 sm:size-6 text-cyan-400 animate-spin" />
               </div>
-              <div className="text-sm font-sans font-bold text-white">
-                جاري رسم وتوليد متجهات الـ SVG الفائقة...
+              <div className="text-xs sm:text-sm font-sans font-bold text-white">
+                جاري رسم وتوليد متجهات الفيكتور بدقة...
               </div>
-              <div className="text-xs text-zinc-400 font-sans max-w-sm">
-                يتم بناء كود الفيكتور الرياضي والتدرجات الآن؛ ستظهر المعاينة بدقة متناهية فور اكتمال التوليد.
+              <div className="text-[11px] sm:text-xs text-zinc-400 font-sans max-w-xs">
+                يتم بناء شفرة التصميم والأشكال المتجهة والتدرجات؛ ستظهر المعاينة بدقة فائقة فور اكتمال التوليد.
               </div>
             </div>
           ) : metrics.error ? (
             <div className="flex flex-col items-center justify-center gap-2.5 p-6 text-center text-amber-400">
-              <AlertCircle className="size-8 text-amber-400" />
-              <div className="text-sm font-bold font-sans">تنبيه بنية الـ SVG</div>
-              <div className="text-xs text-zinc-400 max-w-md font-mono">{metrics.error}</div>
+              <AlertCircle className="size-7 text-amber-400" />
+              <div className="text-xs sm:text-sm font-bold font-sans">تنبيه في بنية الـ SVG</div>
+              <div className="text-[11px] text-zinc-400 max-w-md font-mono">{metrics.error}</div>
               <button
                 type="button"
                 onClick={() => setActiveTab('code')}
@@ -562,19 +583,19 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
             </div>
           ) : (
             <div
-              className="w-full h-full flex items-center justify-center p-4 sm:p-8 overflow-auto select-none transition-transform duration-100 ease-out"
+              className="w-full h-full flex items-center justify-center p-3 sm:p-6 overflow-hidden select-none"
               style={{
                 cursor: zoomLevel > 1 ? 'grab' : 'default'
               }}
             >
               <div
-                className="transition-transform duration-150 ease-out flex items-center justify-center"
+                className="transition-transform duration-150 ease-out flex items-center justify-center max-w-full max-h-full"
                 style={{
                   transform: `scale(${zoomLevel})`,
-                  maxWidth: '100%',
-                  maxHeight: isFullscreen ? '85vh' : '440px',
                   width: `${metrics.width}px`,
-                  height: `${metrics.height}px`
+                  height: `${metrics.height}px`,
+                  maxWidth: '100%',
+                  maxHeight: '100%'
                 }}
                 dangerouslySetInnerHTML={{ __html: normalizedSvg }}
               />
@@ -582,7 +603,17 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
           )
         ) : (
           /* Code View */
-          <div className="w-full h-full max-h-[500px] overflow-auto p-4 font-mono text-xs text-left" dir="ltr">
+          <div className="w-full h-full overflow-auto p-3 sm:p-4 font-mono text-xs text-left" dir="ltr">
+            <div className="flex items-center justify-end pb-2 mb-2 border-b border-white/[0.06]">
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 hover:text-white text-[11px] font-mono transition-colors cursor-pointer"
+              >
+                {copiedCode ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
+                <span>{copiedCode ? 'Copied' : 'Copy SVG XML'}</span>
+              </button>
+            </div>
             <pre className="text-zinc-200 text-xs leading-relaxed selection:bg-cyan-500/30">
               <code dangerouslySetInnerHTML={{ __html: highlightedCodeHtml }} />
             </pre>
@@ -590,124 +621,102 @@ export const SvgStudioCard: React.FC<SvgStudioCardProps> = ({
         )}
       </div>
 
-      {/* ── 3. High-Performance Action Footer ────────────────────────────── */}
-      <div className="px-3 sm:px-4 py-3 bg-white/[0.02] border-t border-white/[0.08] flex flex-wrap items-center justify-between gap-3">
-        {/* Left: Quality (2K / 4K) & Format (PNG / JPG) Selectors */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Resolution Selector: 2K vs 4K */}
-          <div className="flex items-center gap-1 bg-white/[0.04] p-1 rounded-xl border border-white/[0.08]">
-            <span className="text-[11px] font-sans text-zinc-400 px-1.5">الدقة:</span>
-            {(['2K', '4K'] as ExportQuality[]).map((q) => (
-              <button
-                key={q}
-                type="button"
-                onClick={() => setExportQuality(q)}
-                className={cn(
-                  "px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer",
-                  exportQuality === q
-                    ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm"
-                    : "text-zinc-400 hover:text-white"
-                )}
-                title={q === '2K' ? 'دقة 2K فائقة (2048px)' : 'دقة 4K فائقة الوضوح (3840px)'}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-
-          {/* Format Selector: PNG vs JPG */}
-          <div className="flex items-center gap-1 bg-white/[0.04] p-1 rounded-xl border border-white/[0.08]">
-            <span className="text-[11px] font-sans text-zinc-400 px-1.5">الصيغة:</span>
-            {(['png', 'jpg'] as ExportFormat[]).map((fmt) => (
+      {/* ── 3. Unified Action Footer Dock (Clean, Organized, Mobile-First) ── */}
+      <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-[#0a0d14]/95 border-t border-white/[0.08] flex flex-col gap-2 sm:gap-2.5">
+        {/* Row 1: Unified Config Dock (Format & Quality) */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          {/* Format Selector: PNG | JPG | SVG */}
+          <div className="flex items-center gap-1 bg-white/[0.03] p-0.5 sm:p-1 rounded-xl border border-white/[0.07]">
+            <span className="text-[10px] sm:text-[11px] font-sans font-medium text-zinc-400 px-1">الصيغة:</span>
+            {(['png', 'jpg', 'svg'] as const).map((fmt) => (
               <button
                 key={fmt}
                 type="button"
                 onClick={() => setExportFormat(fmt)}
                 className={cn(
-                  "px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold uppercase transition-all cursor-pointer",
+                  "px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-mono font-bold uppercase transition-all cursor-pointer",
                   exportFormat === fmt
-                    ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]"
                 )}
-                title={fmt === 'png' ? 'صيغة PNG مع شفافية تامة' : 'صيغة JPG عالية الجودة'}
               >
                 {fmt}
               </button>
             ))}
           </div>
+
+          {/* Resolution Selector: 2K vs 4K (Shown for Raster PNG/JPG) */}
+          {exportFormat !== 'svg' ? (
+            <div className="flex items-center gap-1 bg-white/[0.03] p-0.5 sm:p-1 rounded-xl border border-white/[0.07]">
+              <span className="text-[10px] sm:text-[11px] font-sans font-medium text-zinc-400 px-1">الدقة:</span>
+              {(['2K', '4K'] as ExportQuality[]).map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => setExportQuality(q)}
+                  className={cn(
+                    "px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-mono font-bold transition-all cursor-pointer",
+                    exportQuality === q
+                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]"
+                  )}
+                  title={q === '2K' ? 'دقة 2K فائقة (2048px)' : 'دقة 4K فائقة الوضوح (3840px)'}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[11px] font-sans text-zinc-400 bg-white/[0.02] px-2.5 py-1 rounded-xl border border-white/[0.05]">
+              <span className="size-1.5 rounded-full bg-cyan-400"></span>
+              <span>فيكتور هندسي نقي</span>
+            </div>
+          )}
         </div>
 
-        {/* Right: Download & Copy Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Main Download Button */}
+        {/* Row 2: Streamlined 2-Button Action Bar (100% Mobile Responsive) */}
+        <div className="flex items-center gap-2">
+          {/* Primary Download Button */}
           <button
             type="button"
-            onClick={handleDownloadRaster}
+            onClick={handlePrimaryDownload}
             disabled={isExporting || !metrics.isValid}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-sans font-bold shadow-md shadow-cyan-950/40 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-cyan-600/90 via-sky-600/90 to-blue-600/90 hover:from-cyan-500 hover:to-blue-500 text-white text-xs sm:text-sm font-sans font-bold shadow-lg shadow-cyan-950/30 border border-cyan-400/25 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isExporting ? (
               <>
-                <Sparkles className="size-3.5 animate-spin text-white" />
-                <span>جاري المعالجة...</span>
+                <Sparkles className="size-3.5 sm:size-4 animate-spin text-cyan-200" />
+                <span>جاري معالجة الصورة...</span>
               </>
             ) : (
               <>
-                <ImageIcon className="size-3.5" />
-                <span>تنزيل {exportFormat.toUpperCase()} ({exportQuality})</span>
+                <Download className="size-3.5 sm:size-4 text-cyan-100" />
+                <span>
+                  {exportFormat === 'svg'
+                    ? 'تنزيل ملف SVG'
+                    : `تنزيل ${exportFormat.toUpperCase()} (${exportQuality})`}
+                </span>
               </>
             )}
           </button>
 
-          {/* Copy PNG Image to Clipboard */}
+          {/* Secondary Action: Copy Image or Copy Code */}
           <button
             type="button"
-            onClick={handleCopyPngToClipboard}
+            onClick={handleSecondaryCopy}
             disabled={isExporting || !metrics.isValid}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 hover:text-white border border-white/[0.08] text-xs font-sans font-semibold transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-            title="نسخ الصورة كـ PNG مباشرة إلى الحافظة"
+            className="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] text-zinc-200 hover:text-white border border-white/[0.1] text-xs sm:text-sm font-sans font-semibold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 shrink-0"
+            title={exportFormat === 'svg' ? "نسخ كود الـ SVG" : "نسخ الصورة كـ PNG مباشرة إلى الحافظة"}
           >
-            {copiedPng ? (
+            {(exportFormat === 'svg' ? copiedCode : copiedImage) ? (
               <>
-                <Check className="size-3.5 text-emerald-400" />
-                <span className="text-emerald-400">تم نسخ الصورة</span>
+                <Check className="size-3.5 sm:size-4 text-emerald-400" />
+                <span className="text-emerald-400 font-bold">تم النسخ</span>
               </>
             ) : (
               <>
-                <Copy className="size-3.5 text-zinc-300" />
-                <span>نسخ كـ PNG</span>
-              </>
-            )}
-          </button>
-
-          {/* Download SVG File */}
-          <button
-            type="button"
-            onClick={handleDownloadSvg}
-            disabled={!metrics.isValid}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 hover:text-white border border-white/[0.08] text-xs font-sans font-semibold transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-            title="تنزيل كود الفيكتور بصيغة ملف .svg"
-          >
-            <Download className="size-3.5 text-zinc-300" />
-            <span>تنزيل SVG</span>
-          </button>
-
-          {/* Copy Code */}
-          <button
-            type="button"
-            onClick={handleCopyCode}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-zinc-300 hover:text-white border border-white/[0.06] text-xs font-sans font-medium transition-all cursor-pointer active:scale-95"
-            title="نسخ كود الـ XML/SVG"
-          >
-            {copiedCode ? (
-              <>
-                <Check className="size-3.5 text-emerald-400" />
-                <span className="text-emerald-400">تم نسخ الكود</span>
-              </>
-            ) : (
-              <>
-                <FileCode className="size-3.5" />
-                <span>نسخ الكود</span>
+                <Copy className="size-3.5 sm:size-4 text-zinc-300" />
+                <span>{exportFormat === 'svg' ? 'نسخ الكود' : 'نسخ الصورة'}</span>
               </>
             )}
           </button>

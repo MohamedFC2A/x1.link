@@ -1317,6 +1317,16 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       raw = raw.replace(/(<svg[\s\S]*?<\/svg>)/gi, '\n\n```svg\n$1\n```\n\n');
     }
 
+    // 7.d. Strip trivial leading chatter/preamble before SVG block to keep the Studio Card clean
+    if (raw.includes('```svg') || raw.includes('<svg')) {
+      const svgPos = raw.indexOf('```svg') !== -1 ? raw.indexOf('```svg') : raw.indexOf('<svg');
+      const leadingText = raw.substring(0, svgPos).trim();
+      // If leading text is short conversational filler (< 120 chars, e.g. "دعني اكتب الكود بعناية." or "إليك التصميم:"), strip it
+      if (leadingText.length > 0 && leadingText.length < 120 && !leadingText.includes('\n\n')) {
+        raw = raw.substring(svgPos).trim();
+      }
+    }
+
     return {
       displayContent: raw,
       effectiveReasoning: foundReasoning
@@ -1373,8 +1383,15 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     if (activeFeatures.some(f => f.id === 'svg_studio')) return true;
     const pLower = (previousUserPrompt || '').toLowerCase();
     if (/(?:svg|فيكتور|متجهات|vector)/i.test(pLower)) return true;
+    if (/(?:عايز|اريد|أريد|بدي|محتاج|سويلي|اعملي|طلعلي|انشئ|أنشئ|ولد|صمم|ارسم|هات|جهز|رسم)\s+(?:لي\s+)?(?:صورة|رسمة|تصميم|لوحة|شكل|رمز)/i.test(pLower)) return true;
+    if (/(?:صورة|رسمة|لوحة)\s+(?:لـ|للـ|عن|فيها|تعبر\s+عن|جميلة|فنية|كرتونية|واقعية|احترافية|بسيطة|طبيعية)/i.test(pLower)) return true;
+    if (/(?:ارسم|صمم|اعمل|سوي|طلع|هات)\s+(?:لي\s+)?(?:قطة|كلب|[أا]سد|طائر|عصفور|حيوان|شجرة|زهور|ورد|سيارة|طبيعة|منظر|[أا]شكال|شمس|غروب|شروق|قمر|بحر|فضاء|كوكب|رجل|شخص|وجه|بنت|طفل|بيت|مدينة|سفينة|طائرة|طبيعة\s*صامتة)/i.test(pLower)) return true;
+    if (/(?:ارسم|ارسمي)\s+(?:لي\s+)?(?:\S+\s+){0,4}(?:في\s+الطبيعة|في\s+الغابة|في\s+البحر|في\s+الفضاء|في\s+السماء)/i.test(pLower)) return true;
     if (/(?:تصميم|صمم|ارسم|رسم|اعمل|سوي|ولد|توليد|انشئ|أنشئ|ابني|صنع|draw|design|create|generate)\s+(?:لي\s+)?(?:صورة\s+)?(?:لوجو|شعار|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower)) return true;
     if (/(?:لوجو|شعار|ايقونة|أيقونة)\s+(?:احترافي|حديث|فكتور|بصري|مبتكر|لـ|للـ|عن|بسيط|متقن)/i.test(pLower)) return true;
+    if (/(?:ارسم|صمم)\s+(?:لي\s+)?(?:رسمة|صورة\s+فيكتور|شكل\s+هندسي|رسم\s+شعاعي)/i.test(pLower)) return true;
+    if (/\b(?:image\s+of|picture\s+of|drawing\s+of|illustration\s+of|draw\s+me|generate\s+an?\s+image|create\s+an?\s+image|paint\s+me|make\s+a\s+picture)\b/i.test(pLower)) return true;
+    if (/\bdraw\s+(?:me\s+)?(?:a|an|the)\b/i.test(pLower)) return true;
     if (message.content && (message.content.includes('<svg') || message.content.includes('```svg'))) return true;
     if (message.reasoning && (message.reasoning.includes('<svg') || message.reasoning.includes('```svg'))) return true;
     return false;

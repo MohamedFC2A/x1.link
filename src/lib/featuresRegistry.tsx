@@ -1098,9 +1098,18 @@ export function routeFeatureIntent(
       /(?:تصميم|صمم|ارسم|رسم|رسمة|شعار|لوجو|ايقونة|أيقونة|أيقونات|فيكتور|متجهات|صورة|كود|انشئ|أنشئ|اعمل|سوي|ولد|توليد|إنفوجرافيك|انفوجرافيك|رمز|شارة|طابع|زخرفة|تعديل|عدل|غير|بدل|design|logo|icon|art|vector|graphic|draw|create|generate|illustration|emblem|badge|diagram|format|png|jpg)/i.test(pLower)
     ) || /(?:فيكتور|متجهات|vector\s*graphics?|vector\s*art|vector\s*illustration)/i.test(pLower) ||
     /\b(?:draw|create|generate|design)\s+(?:an?\s+)?(?:svg|vector)/i.test(pLower) ||
+    /(?:عايز|اريد|أريد|بدي|محتاج|سويلي|اعملي|طلعلي|انشئ|أنشئ|ولد|صمم|ارسم|هات|جهز|رسم)\s+(?:لي\s+)?(?:صورة|رسمة|تصميم|لوحة|شكل|رمز)/i.test(pLower) ||
+    /(?:صورة|رسمة|لوحة)\s+(?:لـ|للـ|عن|فيها|تعبر\s+عن|جميلة|فنية|كرتونية|واقعية|احترافية|بسيطة|طبيعية)/i.test(pLower) ||
+    /(?:ارسم|صمم|اعمل|سوي|طلع|هات)\s+(?:لي\s+)?(?:قطة|كلب|[أا]سد|طائر|عصفور|حيوان|شجرة|زهور|ورد|سيارة|طبيعة|منظر|[أا]شكال|شمس|غروب|شروق|قمر|بحر|فضاء|كوكب|رجل|شخص|وجه|بنت|طفل|بيت|مدينة|سفينة|طائرة|طبيعة\s*صامتة)/i.test(pLower) ||
+    /(?:ارسم|ارسمي)\s+(?:لي\s+)?(?:\S+\s+){0,4}(?:في\s+الطبيعة|في\s+الغابة|في\s+البحر|في\s+الفضاء|في\s+السماء)/i.test(pLower) ||
     /(?:تصميم|صمم|ارسم|رسم|اعمل|سوي|ولد|توليد|انشئ|أنشئ|ابني|صنع|draw|design|create|generate)\s+(?:لي\s+)?(?:صورة\s+)?(?:لوجو|شعار|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower) ||
     /(?:لوجو|شعار|ايقونة|أيقونة)\s+(?:احترافي|حديث|فكتور|بصري|مبتكر|لـ|للـ|عن|بسيط|متقن)/i.test(pLower) ||
     /(?:ارسم|صمم)\s+(?:لي\s+)?(?:رسمة|صورة\s+فيكتور|شكل\s+هندسي|رسم\s+شعاعي)/i.test(pLower) ||
+    /(?:شخصية\s*كرتونية|كاريكاتير|بورتريه|أفاتار|avatar|character\s*design)/i.test(pLower) ||
+    /(?:رسم|تصميم)\s+(?:بياني|توضيحي|هندسي|معماري|انسيابي|مخطط|خريطة|diagram|chart|flowchart|infographic)/i.test(pLower) ||
+    /\b(?:image\s+of|picture\s+of|drawing\s+of|illustration\s+of|draw\s+me|generate\s+an?\s+image|create\s+an?\s+image|paint\s+me|make\s+a\s+picture)\b/i.test(pLower) ||
+    /\bdraw\s+(?:me\s+)?(?:a|an|the)\b/i.test(pLower) ||
+    /\b(?:vector|svg)\s+(?:art|graphic|illustration|logo|icon|design)\b/i.test(pLower) ||
     /(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول|ضع|خليه|خلها|اجعله|اجعلها|سوه|سوها)\s+(?:لي\s+)?(?:الخلفية|خلفية|لون|الوان|ألوان|الألوان|الالوان|الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|العنصر|الرمز|الكتابة|ذهبي|فضي|أبيض|ابيض|أسود|اسود|أحمر|احمر|أزرق|ازرق|أخضر|اخضر|شفاف|شفافة|نيون|داكن|مضيء|أغمق|أفتح)/i.test(pLower) ||
     /\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:background|color|colors|logo|icon|svg|vector|style|design)\b/i.test(pLower);
 

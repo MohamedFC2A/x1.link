@@ -289,5 +289,81 @@ export async function runSvgStudioTests(harness: TestHarness) {
       }
     });
 
+    // 14. Colloquial Arabic/Egyptian Image Requests Detection
+    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN for natural colloquial Arabic image requests', () => {
+      const colloquialPrompts = [
+        'عايز صورة قطة لطيفة بألوان متناسقة',
+        'اعملي صورة شمس مشرقة مع تدرج لوني أصفر وبرتقالي',
+        'ارسم لي اسد مهيب في الطبيعة',
+        'طلعلي صورة سيارة رياضية حديثة',
+        'بدي صورة كرتونية لطائر صغير',
+        'محتاج صورة تعبر عن النجاح والتفوق',
+        'سويلي صورة منظر طبيعي للبحر وقت الغروب'
+      ];
+
+      for (const prompt of colloquialPrompts) {
+        const request: DynamicTuningRequest = {
+          userPrompt: prompt,
+          requestedModel: 'deepseek-v4-flash',
+        };
+        const result = DynamicParameterTuner.tune(request);
+        expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+        expect(result.hyperparameters.thinking_mode).toBe('disabled');
+        expect(result.calibrationDirective).toContain('Strict Zero-Thinking & Direct Code Output');
+        expect(result.calibrationDirective).toContain('Intelligent Visual Image Generation');
+
+        // Frontend feature registry check
+        const plan = routeFeatureIntent('svg_studio', prompt, '', '', {});
+        expect(plan.confidence).toBeGreaterThanOrEqual(0.95);
+        expect(plan.shouldRenderWidget).toBe(true);
+      }
+    });
+
+    // 15. Colloquial English Image & Drawing Requests Detection
+    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN for colloquial English drawing and image requests', () => {
+      const englishPrompts = [
+        'draw me a picture of a soaring eagle with dramatic lighting',
+        'generate an image of a cybernetic neon city',
+        'draw a cat sitting on a windowsill'
+      ];
+
+      for (const prompt of englishPrompts) {
+        const request: DynamicTuningRequest = {
+          userPrompt: prompt,
+          requestedModel: 'deepseek-v4-pro',
+        };
+        const result = DynamicParameterTuner.tune(request);
+        expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+        expect(result.hyperparameters.thinking_mode).toBe('disabled');
+
+        const plan = routeFeatureIntent('svg_studio', prompt, '', '', {});
+        expect(plan.confidence).toBeGreaterThanOrEqual(0.95);
+      }
+    });
+
+    // 16. ChatMessage Preamble Stripping Logic Verification
+    await harness.it('should strip trivial leading conversational preamble before SVG code block', () => {
+      const stripPreamble = (raw: string): string => {
+        if (raw.includes('```svg') || raw.includes('<svg')) {
+          const svgPos = raw.indexOf('```svg') !== -1 ? raw.indexOf('```svg') : raw.indexOf('<svg');
+          const leadingText = raw.substring(0, svgPos).trim();
+          if (leadingText.length > 0 && leadingText.length < 120 && !leadingText.includes('\n\n')) {
+            return raw.substring(svgPos).trim();
+          }
+        }
+        return raw;
+      };
+
+      const messyResponse1 = 'دعني اكتب الكود بعناية.\n```svg\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><circle cx="400" cy="300" r="100"/></svg>\n```';
+      const clean1 = stripPreamble(messyResponse1);
+      expect(clean1.startsWith('```svg')).toBe(true);
+      expect(clean1).not.toContain('دعني اكتب الكود بعناية.');
+
+      const messyResponse2 = 'إليك التصميم المطلوب:\n```svg\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500"><rect width="500" height="500"/></svg>\n```';
+      const clean2 = stripPreamble(messyResponse2);
+      expect(clean2.startsWith('```svg')).toBe(true);
+      expect(clean2).not.toContain('إليك التصميم المطلوب:');
+    });
+
   });
 }
