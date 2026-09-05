@@ -20,6 +20,7 @@ import { runCyberSecurityArchitectureTests } from './cyberSecurityArchitecture.t
 import { runDynamicParameterTunerTests } from './dynamicParameterTuner.test';
 import { runSvgStudioTests } from './svgStudio.test';
 import { runUltraAndFlashModelsTests } from './ultraAndFlashModels.test';
+import { runDeepSeekAlgorithmsTests } from './deepseekAlgorithms.test';
 
 export async function runAllUnitTests(): Promise<boolean> {
   const harness = new TestHarness();
@@ -44,6 +45,7 @@ export async function runAllUnitTests(): Promise<boolean> {
   await runDynamicParameterTunerTests(harness);
   await runSvgStudioTests(harness);
   await runUltraAndFlashModelsTests(harness);
+  await runDeepSeekAlgorithmsTests(harness);
 
   const passed = harness.printSummary('UNIT TEST SUITE SUMMARY');
   return passed;

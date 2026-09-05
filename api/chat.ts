@@ -1755,7 +1755,14 @@ export default async function handler(req: Request): Promise<Response> {
   console.log(`[DYNAMIC-TUNER Edge] ✓ User Intent Detected: ${dynamicTuning.detectedIntent} (${dynamicTuning.complexityLevel}) | Target Family: ${dynamicTuning.targetModelFamily} | Tuned Hyperparameters: temp=${dynamicTuning.hyperparameters.temperature}, top_p=${dynamicTuning.hyperparameters.top_p}, freq_pen=${dynamicTuning.hyperparameters.frequency_penalty}, pres_pen=${dynamicTuning.hyperparameters.presence_penalty}, max_tokens=${dynamicTuning.hyperparameters.max_tokens}`);
 
   const timeDetectContext = getTimeDetectPromptBlock();
-  let activeSystemPrompt = `${baseSystemPrompt}\n\n${timeDetectContext}\n\n${dynamicTuning.calibrationDirective}${effectiveMemoryPrompt ? `\n\n${effectiveMemoryPrompt}` : ''}`;
+  let activeSystemPrompt = DynamicParameterTuner.buildKVCacheOptimizedSystemPrompt(
+    baseSystemPrompt,
+    dynamicTuning.calibrationDirective,
+    {
+      timeDetectPrompt: timeDetectContext,
+      memoryPrompt: effectiveMemoryPrompt
+    }
+  );
 
   let processedMessages = cleanedMessages;
 
@@ -1977,6 +1984,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   const basePayload: any = {
     messages: formattedMessages,
+    user_id: body?.userId || body?.deviceId || body?.chatId || 'matany-user-session',
     temperature: dynamicTuning.hyperparameters.temperature,
     top_p: dynamicTuning.hyperparameters.top_p,
     frequency_penalty: dynamicTuning.hyperparameters.frequency_penalty,
@@ -2426,6 +2434,13 @@ export default async function handler(req: Request): Promise<Response> {
                   const jsonStr = trimmed.replace(/^data:\s*/, '');
                   try {
                     const parsed = JSON.parse(jsonStr);
+                    if (parsed.usage) {
+                      const hitTokens = parsed.usage.prompt_cache_hit_tokens || parsed.usage.prompt_tokens_details?.cached_tokens || 0;
+                      const missTokens = parsed.usage.prompt_cache_miss_tokens || (parsed.usage.prompt_tokens ? Math.max(0, parsed.usage.prompt_tokens - hitTokens) : 0);
+                      const totalPromptTokens = parsed.usage.prompt_tokens || (hitTokens + missTokens);
+                      const hitRatio = totalPromptTokens > 0 ? ((hitTokens / totalPromptTokens) * 100).toFixed(1) : '0';
+                      console.log(`[DEEPSEEK KV-CACHE TELEMETRY Edge] Prompt: ${totalPromptTokens} tokens | Cache Hit: ${hitTokens} tokens (${hitRatio}%) | Cache Miss: ${missTokens} tokens | Completion: ${parsed.usage.completion_tokens || 0} tokens`);
+                    }
                     const delta = parsed.choices?.[0]?.delta;
                     if (delta?.reasoning_content) {
                       fullServerReasoning += delta.reasoning_content;

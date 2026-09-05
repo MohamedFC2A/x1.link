@@ -56,6 +56,10 @@ export interface TunedHyperparameters {
   max_tokens: number;
   stop?: string[];
   stream: boolean;
+  // Official DeepSeek API Architecture (https://api-docs.deepseek.com/guides/thinking_mode)
+  reasoning_effort?: 'low' | 'high' | 'max';
+  thinking_mode?: 'enabled' | 'disabled';
+  stream_options?: { include_usage: boolean };
 }
 
 export interface DynamicTuningRequest {
@@ -68,6 +72,7 @@ export interface DynamicTuningRequest {
   hasVideoOrAudio?: boolean;
   hasZipOrCodeFiles?: boolean;
   explicitTemperature?: number;
+  userId?: string;
 }
 
 export interface DynamicTuningResult {
@@ -87,6 +92,8 @@ export interface DynamicTuningResult {
     frequencyPenalty: number;
     presencePenalty: number;
     maxTokens: number;
+    reasoningEffort?: 'low' | 'high' | 'max';
+    thinkingMode?: 'enabled' | 'disabled';
     timestamp: number;
   };
 }
@@ -144,7 +151,7 @@ const EXPLICIT_CREATIVE_FRAMING = [
 ];
 
 const GREETING_PATTERNS = [
-  /^(مرحبا|اهلا|اهلاً|صباح\s*الخير|مساء\s*الخير|سلام\s*عليكم|السلام\s*عليكم|هاي|ازيك|عامل\s*ايه|كيف\s*حالك|hello|hi|hey|good\s+morning|good\s+evening)\s*[.!؟?]?$/i
+  /^(مرحبا|اهلا|اهلاً|صباح\s*الخير|مساء\s*الخير|سلام\s*عليكم|السلام\s*عليكم|هاي|ازيك|عامل\s*ايه|كيف\s*حالك|hello|hi|hey|good\s+morning|good\s+evening)([\s,،]+(كيف\s*حالك|عامل\s*ايه|ازيك|اليوم|يا\s*(?:غالي|صديقي|بطل)|how\s+are\s+you|today|there))*\s*[.!؟?]?$/i
 ];
 
 export class DynamicParameterTuner {
@@ -340,7 +347,20 @@ export class DynamicParameterTuner {
       };
     }
 
-    // 8. Code Engineering & Architecture Check (with conversation history support)
+    // 8. Mathematical & Deductive Logic Check (with conversation history support - prioritized before code engineering)
+    const matchesMath = MATH_DEDUCTIVE_LOGIC_PATTERNS.some(p => p.test(text)) ||
+      (isFollowUpPrompt && MATH_DEDUCTIVE_LOGIC_PATTERNS.some(p => p.test(historyText)));
+    if (matchesMath) {
+      return {
+        intent: 'MATHEMATICAL_AND_DEDUCTIVE_LOGIC',
+        confidence: 0.96,
+        complexity: 'DEEP_ANALYTICAL',
+        hallucinationRisk: 'EXTREME',
+        rationale: 'Formal deductive logic puzzle, mathematical derivation, or theoretical physics constraint.'
+      };
+    }
+
+    // 9. Code Engineering & Architecture Check (with conversation history support)
     const matchesCode = CODE_ENGINEERING_PATTERNS.some(p => p.test(text)) ||
       (isFollowUpPrompt && CODE_ENGINEERING_PATTERNS.some(p => p.test(historyText)));
     if (matchesCode) {
@@ -355,20 +375,7 @@ export class DynamicParameterTuner {
       };
     }
 
-    // 8. Mathematical & Deductive Logic Check (with conversation history support)
-    const matchesMath = MATH_DEDUCTIVE_LOGIC_PATTERNS.some(p => p.test(text)) ||
-      (isFollowUpPrompt && MATH_DEDUCTIVE_LOGIC_PATTERNS.some(p => p.test(historyText)));
-    if (matchesMath) {
-      return {
-        intent: 'MATHEMATICAL_AND_DEDUCTIVE_LOGIC',
-        confidence: 0.96,
-        complexity: 'DEEP_ANALYTICAL',
-        hallucinationRisk: 'EXTREME',
-        rationale: 'Formal deductive logic puzzle, mathematical derivation, or theoretical physics constraint.'
-      };
-    }
-
-    // 9. Scientific & Academic Research Check (with conversation history support)
+    // 10. Scientific & Academic Research Check (with conversation history support)
     const matchesScience = SCIENTIFIC_RESEARCH_PATTERNS.some(p => p.test(text)) ||
       (isFollowUpPrompt && SCIENTIFIC_RESEARCH_PATTERNS.some(p => p.test(historyText)));
     if (matchesScience) {
@@ -381,7 +388,7 @@ export class DynamicParameterTuner {
       };
     }
 
-    // 10. Creative Literary Check
+    // 11. Creative Literary Check
     if (CREATIVE_LITERARY_PATTERNS.some(p => p.test(text))) {
       return {
         intent: 'CREATIVE_LITERARY_AND_BRAINSTORMING',
@@ -392,8 +399,10 @@ export class DynamicParameterTuner {
       };
     }
 
-    // 11. Deep Search or Realtime Grounding Check
-    if (request.deepSearch || /(سعر|أخبار|اليوم|الان|2026|حالياً|طقس|مباراة)/i.test(text)) {
+    // 12. Deep Search or Realtime Grounding Check
+    const hasFactualTrigger = /(سعر|أخبار|اسعار|مؤتمر|طقس|مباراة|احداث|حدث|نتائج)/i.test(text) ||
+      (/(اليوم|الان|2026|حالياً)/i.test(text) && !/(كيف\s*حالك|عامل\s*ايه|ازيك|صباح|مساء)/i.test(text));
+    if (request.deepSearch || hasFactualTrigger) {
       return {
         intent: 'FACTUAL_SEARCH_AND_REALTIME_GROUNDING',
         confidence: 0.92,
@@ -608,6 +617,37 @@ export class DynamicParameterTuner {
         break;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // DEEPSEEK OFFICIAL THINKING MODE & EFFORT CALIBRATION
+    // (Extracted from https://api-docs.deepseek.com/guides/thinking_mode)
+    // ─────────────────────────────────────────────────────────────────────────
+    let thinking_mode: 'enabled' | 'disabled' = 'enabled';
+    let reasoning_effort: 'low' | 'high' | 'max' = 'high';
+
+    if (intent === 'SVG_VECTOR_STUDIO_AND_DESIGN') {
+      // SVG Studio strictly enforces direct code output; disabling thinking mode
+      // saves thousands of tokens and delivers instantaneous vector rendering.
+      thinking_mode = 'disabled';
+      reasoning_effort = 'low';
+    } else if (complexity === 'LIGHT' || intent === 'GENERAL_CONVERSATION_AND_QUICK_QA') {
+      // Light queries / greetings: minimal reasoning effort for sub-second TTFT and peak token economy
+      thinking_mode = 'enabled';
+      reasoning_effort = 'low';
+    } else if (
+      modelFamily === 'deepseek-reasoner' ||
+      complexity === 'EXHAUSTIVE_ARCHITECTURAL' ||
+      intent === 'CYBERSECURITY_AND_EXPLOIT_AUDITING' ||
+      intent === 'MATHEMATICAL_AND_DEDUCTIVE_LOGIC'
+    ) {
+      // Deep deductive chains: maximal reasoning effort for exhaustive audits & mathematical rigor
+      thinking_mode = 'enabled';
+      reasoning_effort = 'max';
+    } else {
+      // Standard tasks: optimal high reasoning effort
+      thinking_mode = 'enabled';
+      reasoning_effort = 'high';
+    }
+
     // Apply explicit temperature override if specified within safe limits
     if (typeof overrides?.explicitTemperature === 'number' && !isNaN(overrides.explicitTemperature)) {
       temperature = Math.max(0.0, Math.min(1.5, overrides.explicitTemperature));
@@ -621,6 +661,9 @@ export class DynamicParameterTuner {
       max_tokens,
       stop: stop.length > 0 ? stop : undefined,
       stream: true,
+      reasoning_effort,
+      thinking_mode,
+      stream_options: { include_usage: true }
     };
   }
 
@@ -764,6 +807,8 @@ export class DynamicParameterTuner {
         frequencyPenalty: hyperparameters.frequency_penalty,
         presencePenalty: hyperparameters.presence_penalty,
         maxTokens: hyperparameters.max_tokens,
+        reasoningEffort: hyperparameters.reasoning_effort,
+        thinkingMode: hyperparameters.thinking_mode,
         timestamp: Date.now()
       }
     };
@@ -772,6 +817,12 @@ export class DynamicParameterTuner {
   /**
    * Helper: Takes a candidate gateway payload and surgically injects the tuned parameters
    * tailored to that candidate's specific model family.
+   *
+   * Implements official DeepSeek API specs (https://api-docs.deepseek.com):
+   * 1. KVCache & Scheduling Isolation via user_id
+   * 2. Stream Usage Telemetry via stream_options: { include_usage: true }
+   * 3. Thinking Mode & Reasoning Effort Control (low, high, max)
+   * 4. Strict Sampling Parameter Sanitization
    */
   public static tuneGatewayPayload(
     candidateModel: string,
@@ -792,13 +843,70 @@ export class DynamicParameterTuner {
       ...(basePayload && typeof basePayload.stream === 'boolean' ? { stream: basePayload.stream } : {}),
     };
 
-    // DeepSeek Reasoner does not accept custom temperature/top_p on official deepseek API
-    if (candidateFamily === 'deepseek-reasoner') {
-      delete payload.temperature;
-      delete payload.top_p;
-      delete payload.frequency_penalty;
-      delete payload.presence_penalty;
+    const isDeepSeekFamily =
+      candidateFamily === 'deepseek-pro' ||
+      candidateFamily === 'deepseek-flash' ||
+      candidateFamily === 'deepseek-reasoner' ||
+      candidateFamily === 'deepseek-chat' ||
+      candidateFamily === 'deepseek-vision' ||
+      candidateModel.toLowerCase().includes('deepseek');
+
+    if (isDeepSeekFamily) {
+      // 1. KVCache Isolation & Scheduling Isolation (regex ^[a-zA-Z0-9\-_]+$, max 512 chars)
+      const rawUserId = String(basePayload?.user_id || tuningResult?.telemetry?.model || 'matany-client');
+      const sanitizedUserId = rawUserId.replace(/[^a-zA-Z0-9\-_]/g, '').slice(0, 128) || 'matany-user';
+      payload.user_id = sanitizedUserId;
+
+      // 2. stream_options for KV-cache hit/miss token usage telemetry
+      if (payload.stream !== false) {
+        payload.stream_options = { include_usage: true };
+      }
+
+      // 3. Thinking Mode & Reasoning Effort
+      const thinkingMode = candidateParams.thinking_mode || 'enabled';
+      const reasoningEffort = candidateParams.reasoning_effort || 'high';
+
+      payload.extra_body = {
+        ...(payload.extra_body || {}),
+        user_id: sanitizedUserId,
+        thinking: { type: thinkingMode }
+      };
+
+      if (candidateFamily === 'deepseek-reasoner') {
+        // DeepSeek Reasoner strictly forbids temperature, top_p, frequency_penalty, presence_penalty
+        delete payload.temperature;
+        delete payload.top_p;
+        delete payload.frequency_penalty;
+        delete payload.presence_penalty;
+        payload.reasoning_effort = reasoningEffort;
+        payload.extra_body.reasoning_effort = reasoningEffort;
+      } else if (thinkingMode === 'disabled') {
+        // Thinking disabled (e.g. SVG Studio instant vector output)
+        delete payload.reasoning_effort;
+        delete payload.extra_body.reasoning_effort;
+        payload.temperature = candidateParams.temperature;
+        payload.top_p = candidateParams.top_p;
+        if (candidateParams.frequency_penalty > 0) {
+          payload.frequency_penalty = candidateParams.frequency_penalty;
+        }
+        if (candidateParams.presence_penalty > 0) {
+          payload.presence_penalty = candidateParams.presence_penalty;
+        }
+      } else {
+        // Standard DeepSeek models with thinking capability
+        payload.reasoning_effort = reasoningEffort;
+        payload.extra_body.reasoning_effort = reasoningEffort;
+        payload.temperature = candidateParams.temperature;
+        payload.top_p = candidateParams.top_p;
+        if (candidateParams.frequency_penalty > 0) {
+          payload.frequency_penalty = candidateParams.frequency_penalty;
+        }
+        if (candidateParams.presence_penalty > 0) {
+          payload.presence_penalty = candidateParams.presence_penalty;
+        }
+      }
     } else {
+      // Non-DeepSeek Models (e.g., Muse Spark, Magnum)
       payload.temperature = candidateParams.temperature;
       payload.top_p = candidateParams.top_p;
       if (candidateParams.frequency_penalty > 0) {
@@ -814,5 +922,87 @@ export class DynamicParameterTuner {
     }
 
     return payload;
+  }
+
+  /**
+   * Assembles a KV-Cache Prefix-Preserved System Prompt.
+   * DeepSeek matches prefixes character-for-character starting at index 0.
+   * To achieve >90% KV cache hit rate ($0.014/1M vs $0.44/1M tokens, 96.8% savings):
+   * - Static system base prompt + calibration directive are strictly anchored at the top.
+   * - Dynamic volatile context (real-time timestamps, transient user memory) is placed AFTER the static prefix.
+   */
+  public static buildKVCacheOptimizedSystemPrompt(
+    baseSystemPrompt: string,
+    calibrationDirective: string,
+    dynamicContext?: { timeDetectPrompt?: string; memoryPrompt?: string; guidance?: string }
+  ): string {
+    const staticPrefix = `${baseSystemPrompt.trim()}\n\n${calibrationDirective.trim()}`;
+    const dynamicSections: string[] = [];
+
+    if (dynamicContext?.guidance) {
+      dynamicSections.push(dynamicContext.guidance.trim());
+    }
+    if (dynamicContext?.timeDetectPrompt) {
+      dynamicSections.push(`[DYNAMIC TEMPORAL CONTEXT]:\n${dynamicContext.timeDetectPrompt.trim()}`);
+    }
+    if (dynamicContext?.memoryPrompt) {
+      dynamicSections.push(`[DYNAMIC USER MEMORY]:\n${dynamicContext.memoryPrompt.trim()}`);
+    }
+
+    if (dynamicSections.length === 0) {
+      return staticPrefix;
+    }
+    return `${staticPrefix}\n\n${dynamicSections.join('\n\n')}`;
+  }
+
+  /**
+   * Cleans conversation messages for optimal DeepSeek Multi-Round Token Economy.
+   * Per official DeepSeek documentation (https://api-docs.deepseek.com/guides/multi_round_chat):
+   * - Past assistant reasoning tags (<think>...</think>) are stripped.
+   * - Unused reasoning_content fields are omitted to save thousands of input tokens per turn.
+   * - Preserves multimodal frames for vision requests.
+   */
+  public static cleanConversationHistoryForKVCache(
+    messages: Array<{ role: string; content: any; reasoning_content?: any }>,
+    options?: { isMediaSpark?: boolean; isVision?: boolean; hasMultimodal?: boolean }
+  ): Array<{ role: string; content: any }> {
+    return messages.map((m, idx) => {
+      const isLatestTurn = idx === messages.length - 1;
+
+      // Preserve multimodal content array if multimodal frames exist
+      if (Array.isArray(m.content) && (options?.isMediaSpark || options?.isVision || options?.hasMultimodal)) {
+        return {
+          role: m.role || 'user',
+          content: m.content
+        };
+      }
+
+      let contentStr = '';
+      if (typeof m.content === 'string') {
+        contentStr = m.content.trim();
+      } else if (Array.isArray(m.content)) {
+        contentStr = m.content.map((c: any) => c.text || '').join(' ').trim();
+      } else {
+        contentStr = JSON.stringify(m.content || '');
+      }
+
+      // Clean out any thinking tags from past assistant history to avoid token waste & model corruption
+      if (m.role === 'assistant') {
+        contentStr = contentStr
+          .replace(/<think>[\s\S]*?<\/think>/gi, '')
+          .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
+          .replace(/```(?:thought|think|thinking|reasoning)[\s\S]*?```/gi, '')
+          .trim();
+      }
+
+      if (!isLatestTurn && contentStr.length > 12000) {
+        contentStr = `${contentStr.slice(0, 6000)}\n\n[... تم إيجاز جزء من السياق القديم الممتد للحفاظ على أعلى سرعة واستجابة ...]\n\n${contentStr.slice(-4000)}`;
+      }
+
+      return {
+        role: m.role || 'user',
+        content: contentStr || 'متابعة'
+      };
+    });
   }
 }
