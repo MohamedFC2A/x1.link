@@ -1333,6 +1333,27 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     };
   }, [message.content, message.reasoning, message.isThinking]);
 
+  // Stable first-class SVG extraction (completely independent of ReactMarkdown AST)
+  const extractedSvgData = useMemo(() => {
+    if (!displayContent) return null;
+    const svgStart = displayContent.indexOf('<svg');
+    if (svgStart === -1) return null;
+    const svgEnd = displayContent.lastIndexOf('</svg>');
+    if (svgEnd === -1) return null;
+    return displayContent.substring(svgStart, svgEnd + 6).trim();
+  }, [displayContent]);
+
+  // Clean markdown content excluding the SVG code block to prevent ReactMarkdown layout thrashing
+  const displayContentWithoutSvg = useMemo(() => {
+    if (!displayContent) return '';
+    return displayContent
+      .replace(/```(?:svg|xml|html|markup)?\s*<svg[\s\S]*?<\/svg>\s*```/gi, '')
+      .replace(/<svg[\s\S]*?<\/svg>/gi, '')
+      .replace(/```(?:svg|xml|html|markup)?\s*<svg[\s\S]*$/gi, '') // during active stream
+      .replace(/<svg[\s\S]*$/gi, '') // during active stream
+      .trim();
+  }, [displayContent]);
+
   const hasReasoning = Boolean(effectiveReasoning && effectiveReasoning.trim().length > 0);
   const isThinking = Boolean(message.isThinking);
 
@@ -1659,7 +1680,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       <div className="w-full rounded-2xl p-3.5 sm:p-6 text-right transition-all duration-300 bg-[#0a0b0e]/70 backdrop-blur-md border border-white/[0.07] hover:border-white/[0.12] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] text-zinc-200 overflow-hidden break-words">
         {isSvgStudioActive ? (
           // SVG Studio Mode: Clean single-line indicator during creation, completely remove thinking button during and after
-          (isThinking || isStreaming) && !displayContent.includes('</svg>') ? (
+          (isThinking || isStreaming) && !extractedSvgData ? (
             <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
               <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
               <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
@@ -1680,7 +1701,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           )
         )}
 
-        {isStreaming && !message.content && !hasReasoning && !isThinking ? (
+        {isStreaming && !message.content && !hasReasoning && !isThinking && !isSvgStudioActive ? (
           <div className="flex items-center gap-2 py-1.5 select-none w-full max-w-full" dir="rtl">
             <div className="inline-flex min-h-8 py-1.5 px-3 max-w-full items-center gap-2.5 rounded-2xl time-detect-glass flex-wrap">
               <ThinkingOrb
@@ -1806,223 +1827,220 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 <DownloadDetectCard url={detectedMediaUrl} />
               </div>
             )}
-            <div className="prose prose-invert max-w-none text-[#E2E8F0] text-sm sm:text-base leading-relaxed break-words font-sans">
-              <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeKatex]}
-              components={{
-                a: ({ href, children }: any) => {
-                  const isTel = href?.startsWith('tel:');
-                  const isMailto = href?.startsWith('mailto:');
-                  return (
-                    <bdi className="inline-flex items-center align-middle mx-1">
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (isMailto) {
-                            setConfirmEmail(href.replace('mailto:', ''));
-                          } else if (isTel) {
-                            setConfirmPhone(href.replace('tel:', ''));
-                          } else if (href) {
-                            setConfirmUrl(href);
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            if (isMailto) {
-                              setConfirmEmail(href.replace('mailto:', ''));
-                            } else if (isTel) {
-                              setConfirmPhone(href.replace('tel:', ''));
-                            } else if (href) {
-                              setConfirmUrl(href);
-                            }
-                          }
-                        }}
-                        className={cn(
-                          "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-150 select-none cursor-pointer group/link",
-                          isMailto ? "bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 border border-sky-500/30 group/email" :
-                          isTel ? "bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 group/phone" :
-                          "bg-white/[0.06] text-zinc-200 hover:bg-white/[0.12] hover:text-white border border-white/[0.1]"
-                        )}
-                        title={href}
-                      >
-                        {isMailto ? (
-                          <Mail className="size-3 text-sky-400 group-hover/email:text-sky-300 shrink-0" />
-                        ) : isTel ? (
-                          <PhoneCall className="size-3 text-emerald-400 group-hover/phone:text-emerald-300 shrink-0" />
-                        ) : (
-                          <Globe className="size-3 text-zinc-400 group-hover/link:text-zinc-200 shrink-0" />
-                        )}
-                        <span className="break-all dir-ltr underline underline-offset-2 text-zinc-200 group-hover/link:text-white font-mono">{children}</span>
-                        {!isTel && !isMailto && (
-                          <ExternalLink className="size-2.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0" />
-                        )}
-                      </span>
-                    </bdi>
-                  );
-                },
-                p: ({ children }) => {
-                  const fullText = getChildText(children);
-                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl, { setConfirmUrl, setConfirmPhone, setConfirmEmail });
-                  if (customBadge) {
-                    return customBadge;
-                  }
+            {/* Stable first-class SVG Vector Studio Card mounted directly outside ReactMarkdown */}
+            {extractedSvgData && (
+              <div className="w-full my-3">
+                <SvgStudioCard
+                  key={`svg-card-${message.id || 'current'}`}
+                  svgCode={extractedSvgData}
+                  isStreaming={isStreaming}
+                />
+              </div>
+            )}
 
-                  // Suppress empty paragraphs that were generated by stripped badges
-                  if (!fullText.trim()) return null;
-                  return (
-                    <p className="mb-3 last:mb-0 leading-relaxed text-[#E2E8F0]">
-                      {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
-                    </p>
-                  );
-                },
-                h1: ({ children }) => {
-                  const fullText = getChildText(children);
-                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl, { setConfirmUrl, setConfirmPhone, setConfirmEmail });
-                  if (customBadge) {
-                    return customBadge;
-                  }
-                  return (
-                    <h1 className="text-lg sm:text-2xl font-bold text-white my-3 sm:my-4 border-b border-white/[0.08] pb-2 tracking-tight">
-                      {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
-                    </h1>
-                  );
-                },
-                h2: ({ children }) => {
-                  const fullText = getChildText(children);
-                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl, { setConfirmUrl, setConfirmPhone, setConfirmEmail });
-                  if (customBadge) {
-                    return customBadge;
-                  }
-                  return (
-                    <h2 className="text-base sm:text-xl font-semibold text-white my-2.5 sm:my-3 tracking-tight">
-                      {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
-                    </h2>
-                  );
-                },
-                h3: ({ children }) => {
-                  const fullText = getChildText(children);
-                  const customBadge = parseCustomBadges(fullText, detectedMediaUrl, { setConfirmUrl, setConfirmPhone, setConfirmEmail });
-                  if (customBadge) {
-                    return customBadge;
-                  }
-                  return (
-                    <h3 className="text-sm sm:text-lg font-semibold text-white my-2 sm:my-2.5">
-                      {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
-                    </h3>
-                  );
-                },
-                li: ({ children }) => (
-                  <li className="my-1 leading-relaxed text-[#E2E8F0]">
-                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
-                  </li>
-                ),
-                ul: ({ children }) => <ul className="list-disc list-inside space-y-1.5 my-2.5 text-zinc-300 pr-1 sm:pr-2">{children}</ul>,
-                ol: ({ children }) => <ol className="list-decimal list-inside space-y-1.5 my-2.5 text-zinc-300 pr-1 sm:pr-2">{children}</ol>,
-                blockquote: ({ children }) => (
-                  <blockquote className="border-r-2 border-white/20 bg-white/[0.02] pr-3 py-2 my-2.5 text-sm text-zinc-300 rounded-r-lg">
-                    {children}
-                  </blockquote>
-                ),
-                table: ({ children }) => (
-                  <div className="my-5 overflow-x-auto rounded-xl border border-white/[0.1] bg-[#07080b] shadow-[0_16px_40px_rgba(0,0,0,0.7)] backdrop-blur-2xl">
-                    <table className="w-full min-w-[620px] text-xs sm:text-sm text-right border-collapse select-text" dir="rtl">
-                      {children}
-                    </table>
-                  </div>
-                ),
-                thead: ({ children }) => (
-                  <thead className="bg-[#0e1117] border-b border-white/[0.12] select-none">
-                    {children}
-                  </thead>
-                ),
-                tbody: ({ children }) => (
-                  <tbody className="divide-y divide-white/[0.05]">
-                    {children}
-                  </tbody>
-                ),
-                tr: ({ children }) => (
-                  <tr className="transition-colors duration-150 hover:bg-white/[0.025] odd:bg-transparent even:bg-white/[0.01]">
-                    {children}
-                  </tr>
-                ),
-                th: ({ children }) => (
-                  <th className="px-4 py-3.5 text-zinc-100 font-bold text-xs sm:text-sm tracking-tight border-l border-white/[0.07] last:border-l-0 text-right">
-                    <span className="font-sans inline-block">
-                      {children}
-                    </span>
-                  </th>
-                ),
-                td: ({ children }) => (
-                  <td className="px-4 py-3.5 text-zinc-300 font-normal text-xs sm:text-sm leading-relaxed border-l border-white/[0.05] last:border-l-0 align-top break-words">
-                    {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
-                  </td>
-                ),
-                code: ({ inline, className, children, ...props }: any) => {
-                  const match = /language-(\w+)/.exec(className || '');
-                  const lang = match ? match[1].toLowerCase() : '';
-                  const isInline = inline !== undefined ? inline : (!match && !String(children).includes('\n'));
+            {Boolean(displayContentWithoutSvg && displayContentWithoutSvg.trim().length > 0) && (
+              <div className="prose prose-invert max-w-none text-[#E2E8F0] text-sm sm:text-base leading-relaxed break-words font-sans">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={{
+                    a: ({ href, children }: any) => {
+                      const isTel = href?.startsWith('tel:');
+                      const isMailto = href?.startsWith('mailto:');
+                      return (
+                        <bdi className="inline-flex items-center align-middle mx-1">
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (isMailto) {
+                                setConfirmEmail(href.replace('mailto:', ''));
+                              } else if (isTel) {
+                                setConfirmPhone(href.replace('tel:', ''));
+                              } else if (href) {
+                                setConfirmUrl(href);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                if (isMailto) {
+                                  setConfirmEmail(href.replace('mailto:', ''));
+                                } else if (isTel) {
+                                  setConfirmPhone(href.replace('tel:', ''));
+                                } else if (href) {
+                                  setConfirmUrl(href);
+                                }
+                              }
+                            }}
+                            className={cn(
+                              "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-150 select-none cursor-pointer group/link",
+                              isMailto ? "bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 border border-sky-500/30 group/email" :
+                              isTel ? "bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 group/phone" :
+                              "bg-white/[0.06] text-zinc-200 hover:bg-white/[0.12] hover:text-white border border-white/[0.1]"
+                            )}
+                            title={href}
+                          >
+                            {isMailto ? (
+                              <Mail className="size-3 text-sky-400 group-hover/email:text-sky-300 shrink-0" />
+                            ) : isTel ? (
+                              <PhoneCall className="size-3 text-emerald-400 group-hover/phone:text-emerald-300 shrink-0" />
+                            ) : (
+                              <Globe className="size-3 text-zinc-400 group-hover/link:text-zinc-200 shrink-0" />
+                            )}
+                            <span className="break-all dir-ltr underline underline-offset-2 text-zinc-200 group-hover/link:text-white font-mono">{children}</span>
+                            {!isTel && !isMailto && (
+                              <ExternalLink className="size-2.5 text-zinc-400 group-hover/link:text-zinc-200 shrink-0" />
+                            )}
+                          </span>
+                        </bdi>
+                      );
+                    },
+                    p: ({ children }) => {
+                      const fullText = getChildText(children);
+                      const customBadge = parseCustomBadges(fullText, detectedMediaUrl, { setConfirmUrl, setConfirmPhone, setConfirmEmail });
+                      if (customBadge) {
+                        return customBadge;
+                      }
 
-                  const isPromptLang = ['prompt', 'prompts', 'ai-prompt', 'prompt-ai'].includes(lang);
-                  const isAdLang = ['ad', 'ads', 'advertisement', 'copy', 'marketing'].includes(lang);
-                  const isCoderLang = ['coder', 'ai-coder', 'system', 'system-prompt', 'instructions'].includes(lang);
-                  const isScriptLang = ['script', 'scenario', 'hook'].includes(lang);
-                  const isThoughtLang = ['thought', 'think', 'thinking', 'reasoning'].includes(lang);
+                      // Suppress empty paragraphs that were generated by stripped badges
+                      if (!fullText.trim()) return null;
+                      return (
+                        <p className="mb-3 last:mb-0 leading-relaxed text-[#E2E8F0]">
+                          {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
+                        </p>
+                      );
+                    },
+                    h1: ({ children }) => {
+                      const fullText = getChildText(children);
+                      const customBadge = parseCustomBadges(fullText, detectedMediaUrl, { setConfirmUrl, setConfirmPhone, setConfirmEmail });
+                      if (customBadge) {
+                        return customBadge;
+                      }
+                      return (
+                        <h1 className="text-lg sm:text-2xl font-bold text-white my-3 sm:my-4 border-b border-white/[0.08] pb-2 tracking-tight">
+                          {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
+                        </h1>
+                      );
+                    },
+                    h2: ({ children }) => {
+                      const fullText = getChildText(children);
+                      const customBadge = parseCustomBadges(fullText, detectedMediaUrl, { setConfirmUrl, setConfirmPhone, setConfirmEmail });
+                      if (customBadge) {
+                        return customBadge;
+                      }
+                      return (
+                        <h2 className="text-base sm:text-xl font-semibold text-white my-2.5 sm:my-3 tracking-tight">
+                          {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
+                        </h2>
+                      );
+                    },
+                    h3: ({ children }) => {
+                      const fullText = getChildText(children);
+                      const customBadge = parseCustomBadges(fullText, detectedMediaUrl, { setConfirmUrl, setConfirmPhone, setConfirmEmail });
+                      if (customBadge) {
+                        return customBadge;
+                      }
+                      return (
+                        <h3 className="text-sm sm:text-lg font-semibold text-white my-2 sm:my-2.5">
+                          {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
+                        </h3>
+                      );
+                    },
+                    li: ({ children }) => (
+                      <li className="my-1 leading-relaxed text-[#E2E8F0]">
+                        {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
+                      </li>
+                    ),
+                    ul: ({ children }) => <ul className="list-disc list-inside space-y-1.5 my-2.5 text-zinc-300 pr-1 sm:pr-2">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal list-inside space-y-1.5 my-2.5 text-zinc-300 pr-1 sm:pr-2">{children}</ol>,
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-r-2 border-white/20 bg-white/[0.02] pr-3 py-2 my-2.5 text-sm text-zinc-300 rounded-r-lg">
+                        {children}
+                      </blockquote>
+                    ),
+                    table: ({ children }) => (
+                      <div className="my-5 overflow-x-auto rounded-xl border border-white/[0.1] bg-[#07080b] shadow-[0_16px_40px_rgba(0,0,0,0.7)] backdrop-blur-2xl">
+                        <table className="w-full min-w-[620px] text-xs sm:text-sm text-right border-collapse select-text" dir="rtl">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    thead: ({ children }) => (
+                      <thead className="bg-[#0e1117] border-b border-white/[0.12] select-none">
+                        {children}
+                      </thead>
+                    ),
+                    tbody: ({ children }) => (
+                      <tbody className="divide-y divide-white/[0.05]">
+                        {children}
+                      </tbody>
+                    ),
+                    tr: ({ children }) => (
+                      <tr className="transition-colors duration-150 hover:bg-white/[0.025] odd:bg-transparent even:bg-white/[0.01]">
+                        {children}
+                      </tr>
+                    ),
+                    th: ({ children }) => (
+                      <th className="px-4 py-3.5 text-zinc-100 font-bold text-xs sm:text-sm tracking-tight border-l border-white/[0.07] last:border-l-0 text-right">
+                        <span className="font-sans inline-block">
+                          {children}
+                        </span>
+                      </th>
+                    ),
+                    td: ({ children }) => (
+                      <td className="px-4 py-3.5 text-zinc-300 font-normal text-xs sm:text-sm leading-relaxed border-l border-white/[0.05] last:border-l-0 align-top break-words">
+                        {React.Children.map(children, (child) => typeof child === 'string' ? renderSmartContentWithLinksAndPhones(child, setConfirmUrl, setConfirmPhone, setConfirmEmail) : child)}
+                      </td>
+                    ),
+                    code: ({ inline, className, children, ...props }: any) => {
+                      const match = /language-(\w+)/.exec(className || '');
+                      const lang = match ? match[1].toLowerCase() : '';
+                      const isInline = inline !== undefined ? inline : (!match && !String(children).includes('\n'));
 
-                  if (!isInline && isThoughtLang) {
-                    return null;
-                  }
+                      const isPromptLang = ['prompt', 'prompts', 'ai-prompt', 'prompt-ai'].includes(lang);
+                      const isAdLang = ['ad', 'ads', 'advertisement', 'copy', 'marketing'].includes(lang);
+                      const isCoderLang = ['coder', 'ai-coder', 'system', 'system-prompt', 'instructions'].includes(lang);
+                      const isScriptLang = ['script', 'scenario', 'hook'].includes(lang);
+                      const isThoughtLang = ['thought', 'think', 'thinking', 'reasoning'].includes(lang);
 
-                  if (!isInline && (isPromptLang || isAdLang || isCoderLang || isScriptLang)) {
-                    const type = isAdLang ? 'ad' : isCoderLang ? 'coder' : isScriptLang ? 'script' : 'prompt';
-                    return <PromptCard text={String(children).replace(/\n$/, '')} type={type} />;
-                  }
+                      if (!isInline && isThoughtLang) {
+                        return null;
+                      }
 
-                  const rawCodeString = String(children).replace(/\n$/, '');
-                  const hasCompleteSvg = rawCodeString.includes('<svg') && rawCodeString.includes('</svg>');
-                  const isSvgBlock = !isInline && (
-                    (lang === 'svg' && (hasCompleteSvg || !isStreaming)) ||
-                    ((lang === 'xml' || lang === 'html' || lang === 'markup' || !lang || lang === 'code') && hasCompleteSvg)
-                  );
+                      if (!isInline && (isPromptLang || isAdLang || isCoderLang || isScriptLang)) {
+                        const type = isAdLang ? 'ad' : isCoderLang ? 'coder' : isScriptLang ? 'script' : 'prompt';
+                        return <PromptCard text={String(children).replace(/\n$/, '')} type={type} />;
+                      }
 
-                  if (isSvgBlock && hasCompleteSvg) {
-                    return (
-                      <SvgStudioCard
-                        key={`svg-card-${message.id || 'current'}`}
-                        svgCode={rawCodeString}
-                        isStreaming={isStreaming}
-                      />
-                    );
-                  }
+                      const rawCodeString = String(children).replace(/\n$/, '');
 
-                  // While SVG code is streaming and hasn't closed yet, suppress partial code output
-                  // to prevent parsererror thrashing and repeated screen flicker.
-                  // The single-line indicator above cleanly informs the user of progress.
-                  if (!isInline && (lang === 'svg' || (rawCodeString.includes('<svg') && !hasCompleteSvg)) && isStreaming) {
-                    return null;
-                  }
+                      // Suppress any SVG blocks inside markdown completely, since it is rendered cleanly above
+                      if (!isInline && (lang === 'svg' || rawCodeString.includes('<svg'))) {
+                        return null;
+                      }
 
-                  return !isInline ? (
-                    <CodeBlock className={className} language={match ? match[1] : 'code'}>
-                      {children}
-                    </CodeBlock>
-                  ) : (
-                    <code dir="ltr" className="inline text-zinc-200 font-mono text-[11.5px] px-1 py-0.5 rounded bg-white/[0.05] border border-white/[0.06] select-text" {...props}>{children}</code>
-                  );
-                }
-              }}
-            >
-              {sanitizeMarkdownDisplay((displayContent || '')
-                .replace(/\[\s*(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?BADGE:[^\]]*\]/gi, '')
-                .replace(/(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?BADGE:[^\n]*/gi, '')
-                .trim())}
-            </ReactMarkdown>
+                      return !isInline ? (
+                        <CodeBlock className={className} language={match ? match[1] : 'code'}>
+                          {children}
+                        </CodeBlock>
+                      ) : (
+                        <code dir="ltr" className="inline text-zinc-200 font-mono text-[11.5px] px-1 py-0.5 rounded bg-white/[0.05] border border-white/[0.06] select-text" {...props}>{children}</code>
+                      );
+                    }
+                  }}
+                >
+                  {sanitizeMarkdownDisplay((displayContentWithoutSvg || '')
+                    .replace(/\[\s*(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?BADGE:[^\]]*\]/gi, '')
+                    .replace(/(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?BADGE:[^\n]*/gi, '')
+                    .trim())}
+                </ReactMarkdown>
+              </div>
+            )}
 
-            {isStreaming && !isThinking && Boolean(displayContent && displayContent.trim().length > 0) && (
+            {isStreaming && !isThinking && !isSvgStudioActive && Boolean(displayContentWithoutSvg && displayContentWithoutSvg.trim().length > 0) && (
               <span className="inline-block w-1.5 h-4 bg-zinc-300 animate-pulse mr-1 align-middle rounded-full" />
             )}
 
@@ -2032,9 +2050,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 <span>تم إيقاف التوليد بواسطتك</span>
               </div>
             )}
-          </div>
-        </>
-      )}
+          </>
+        )}
 
         {message.content && !isStreaming && (
           <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-zinc-800/60 flex items-center justify-end text-xs text-zinc-500">

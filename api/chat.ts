@@ -1806,11 +1806,17 @@ export default async function handler(req: Request): Promise<Response> {
 
     if (dynamicTuning.detectedIntent === 'SVG_VECTOR_STUDIO_AND_DESIGN') {
       const imageToSvgGuidance = `
-[توجيه تحويل الصور المرفقة إلى فيكتور والتعديل البصري الشامل — FATHOM VISION TO EDITABLE SVG DIRECTIVE]:
-- افحص الصورة المرفقة واستوعب كافة معالمها، أشكالها، تفاصيلها الهندسية، ألوانها وتدرجاتها.
-- أعد بناء وتحويل محتوى الصورة إلى كود SVG نقي، متكامل، غني بالطبقات (layered)، ومغلق هندسياً.
-- نفذ أي طلب تعديل محدد من قبل المستخدم (مثل إضافة عناصر، حذف عناصر، تغيير الألوان أو الخلفية، تعديل الأشكال والوجوه، إدخال نصوص) بدقة فائقة وبشكل فوري داخل كود الـ SVG.
-- يُحظر تماماً كتابة أي تفكير أو نصوص قبل أو بعد الكود؛ ابدأ وأخرج فوراً الكود النقي داخل \`\`\`svg ... \`\`\` ليتم عرضه وتحميله كـ 2K / 4K مباشرة.`;
+[توجيه تحويل وتعديل الصور المرفقة بدقة فائقة مع الحفاظ الصارم على هوية وهيكل الصورة — FATHOM HIGH-FIDELITY VISION-TO-SVG PRESERVATION DIRECTIVE]:
+1. [الحفاظ الصارم والمطلق على هوية وهيكل وموضوع الصورة الأصلية بنسبة 100% - STRICT SUBJECT GEOMETRY & IDENTITY PRESERVATION]:
+   - افحص واستوعب الصورة المرفقة بيكسل ببيكسل عبر Fathom Vision: تعرّف على موضوع الصورة بدقة، نسب الأشكال الهندسية (Proportions)، حدود العناصر والتفاصيل (Silhouettes & Contours)، الوضعية (Pose)، الملامح الأساسية، والتكوين العام (Composition).
+   - يُحظر تماماً وبشكل قاطع تغيير شكل الكائن أو الشخصية أو الشعار أو الكيان الأصلي، أو استبداله برسمة بديلة تختلف عن الصورة المرفقة، أو إنتاج رسمة خيالية عشوائية لا علاقة لها بالصورة المرفوعة.
+   - مهمتك الأساسية: إعادة إنتاج وتجسيد نفس الكائن/الصورة الأصلية تماماً كمتجهات هندسية نقية وفائقة الدقة (Layered Vector Paths).
+2. [التعديل الانتقائي الدقيق والواعي حسب طلب المستخدم - SURGICAL SELECTIVE MODIFICATIONS]:
+   - نفّذ التعديل المطلوب من المستخدم فقط وحصراً (مثل: تغيير لون الخلفية، إضافة عنصر محدد، حذف تفصيل، تعديل تدرج لوني معين، إدخال نص أو توهج).
+   - احتفظ بـ 100% من باقي عناصر الصورة وشكلها الأصلي وأبعادها دون أي مساس أو تشويه.
+3. [المواصفات الفيكتورية والتصدير المباشر]:
+   - ابنِ كود SVG نقي متكامل، متعدد الطبقات (<g>), يتضمن viewBox متناسق مع أبعاد الصورة، تدرجات احترافية (<defs>), وظلال ناعمة.
+   - يُحظر تماماً كتابة أي تفكير أو نصوص أو مقدمات قبل أو بعد الكود؛ ابدأ فوراً وأخرج كود الـ SVG النقي المكتمل داخل \`\`\`svg ... \`\`\` ليتم عرضه في لوحة التعديل وتصديره كـ 2K و 4K مباشرة.`;
       activeSystemPrompt += `\n\n${imageToSvgGuidance}`;
     } else {
       const visionGuidance = `
@@ -2015,8 +2021,43 @@ export default async function handler(req: Request): Promise<Response> {
   // Candidate Gateways with Resilient Failover Loop and Dynamic Parameter Tuning
   const candidateGateways: Array<{ name: string; url: string; headers: Record<string, string>; payload: any }> = [];
 
-  // 1. Multimodal Media & Video/Audio Engine
-  if (isMediaSpark && OPENROUTER_API_KEY) {
+  // 1. Multimodal Optical Vision Engine (Priority 1 whenever images are attached or vision is requested)
+  if (hasMultimodal || isVision) {
+    if (OPENROUTER_API_KEY) {
+      candidateGateways.push({
+        name: 'OpenRouter Meta Muse Spark 1.2 Contributor Vision (High-Fidelity Multimodal)',
+        url: `${OPENROUTER_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
+        },
+        payload: DynamicParameterTuner.tuneGatewayPayload('meta/muse-spark-1.2-contributor', basePayload, dynamicTuning)
+      });
+    }
+
+    if (DEEPSEEK_API_KEY) {
+      candidateGateways.push({
+        name: 'DeepSeek Direct Vision (deepseek-v4-flash-vision-exp @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash-vision-exp', basePayload, dynamicTuning)
+      });
+      candidateGateways.push({
+        name: 'DeepSeek Direct Flash (deepseek-v4-flash @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash', basePayload, dynamicTuning)
+      });
+    }
+  } else if (isMediaSpark && OPENROUTER_API_KEY) {
     candidateGateways.push({
       name: 'OpenRouter Meta Muse Spark 1.2 Contributor Multimodal',
       url: `${OPENROUTER_BASE_URL}/chat/completions`,
@@ -2216,42 +2257,6 @@ export default async function handler(req: Request): Promise<Response> {
           'X-Title': 'Matany AI',
         },
         payload: DynamicParameterTuner.tuneGatewayPayload('deepseek/deepseek-v4-pro', basePayload, dynamicTuning)
-      });
-    }
-  } else if (isVision || hasMultimodal) {
-    // 4. Optical Vision Engine
-    if (DEEPSEEK_API_KEY) {
-      candidateGateways.push({
-        name: 'DeepSeek Direct Vision (deepseek-v4-flash-vision-exp @ api.deepseek.com)',
-        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        },
-        payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash-vision-exp', basePayload, dynamicTuning)
-      });
-      candidateGateways.push({
-        name: 'DeepSeek Direct Flash (deepseek-v4-flash @ api.deepseek.com)',
-        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        },
-        payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash', basePayload, dynamicTuning)
-      });
-    }
-
-    if (OPENROUTER_API_KEY) {
-      candidateGateways.push({
-        name: 'OpenRouter Meta Muse Spark 1.2 Contributor Vision',
-        url: `${OPENROUTER_BASE_URL}/chat/completions`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://matany.one',
-          'X-Title': 'Matany AI',
-        },
-        payload: DynamicParameterTuner.tuneGatewayPayload('meta/muse-spark-1.2-contributor', basePayload, dynamicTuning)
       });
     }
   } else {

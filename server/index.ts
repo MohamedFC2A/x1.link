@@ -2280,9 +2280,24 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
     const isForensicsExplicitlyRequested = isForensicAnalysisRequested(userPromptForForensics);
 
-    console.log(`[X1-PIPELINE] Multimodal image detected. Fast native multimodal routing activated (forensics: ${isForensicsExplicitlyRequested})...`);
+    console.log(`[X1-PIPELINE] Multimodal image detected. Fast native multimodal routing activated (forensics: ${isForensicsExplicitlyRequested}, intent: ${dynamicTuning.detectedIntent})...`);
 
-    const visionGuidance = `
+    if (dynamicTuning.detectedIntent === 'SVG_VECTOR_STUDIO_AND_DESIGN') {
+      const imageToSvgGuidance = `
+[توجيه تحويل وتعديل الصور المرفقة بدقة فائقة مع الحفاظ الصارم على هوية وهيكل الصورة — FATHOM HIGH-FIDELITY VISION-TO-SVG PRESERVATION DIRECTIVE]:
+1. [الحفاظ الصارم والمطلق على هوية وهيكل وموضوع الصورة الأصلية بنسبة 100% - STRICT SUBJECT GEOMETRY & IDENTITY PRESERVATION]:
+   - افحص واستوعب الصورة المرفقة بيكسل ببيكسل عبر Fathom Vision: تعرّف على موضوع الصورة بدقة، نسب الأشكال الهندسية (Proportions)، حدود العناصر والتفاصيل (Silhouettes & Contours)، الوضعية (Pose)، الملامح الأساسية، والتكوين العام (Composition).
+   - يُحظر تماماً وبشكل قاطع تغيير شكل الكائن أو الشخصية أو الشعار أو الكيان الأصلي، أو استبداله برسمة بديلة تختلف عن الصورة المرفقة، أو إنتاج رسمة خيالية عشوائية لا علاقة لها بالصورة المرفوعة.
+   - مهمتك الأساسية: إعادة إنتاج وتجسيد نفس الكائن/الصورة الأصلية تماماً كمتجهات هندسية نقية وفائقة الدقة (Layered Vector Paths).
+2. [التعديل الانتقائي الدقيق والواعي حسب طلب المستخدم - SURGICAL SELECTIVE MODIFICATIONS]:
+   - نفّذ التعديل المطلوب من المستخدم فقط وحصراً (مثل: تغيير لون الخلفية، إضافة عنصر محدد، حذف تفصيل، تعديل تدرج لوني معين، إدخال نص أو توهج).
+   - احتفظ بـ 100% من باقي عناصر الصورة وشكلها الأصلي وأبعادها دون أي مساس أو تشويه.
+3. [المواصفات الفيكتورية والتصدير المباشر]:
+   - ابنِ كود SVG نقي متكامل، متعدد الطبقات (<g>), يتضمن viewBox متناسق مع أبعاد الصورة، تدرجات احترافية (<defs>), وظلال ناعمة.
+   - يُحظر تماماً كتابة أي تفكير أو نصوص أو مقدمات قبل أو بعد الكود؛ ابدأ فوراً وأخرج كود الـ SVG النقي المكتمل داخل \`\`\`svg ... \`\`\` ليتم عرضه في لوحة التعديل وتصديره كـ 2K و 4K مباشرة.`;
+      activeSystemPrompt += `\n\n${imageToSvgGuidance}`;
+    } else {
+      const visionGuidance = `
 [توجيه الإدراك البصري وفحص المستندات والواجهات والصور المرفقة — FATHOM CAM UNIVERSAL MULTIMODAL DIRECTIVE]:
 1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى:
    - افحص واسترجع كافة الصور، لقطات الشاشة (Screenshots)، الجداول، واجهات المستخدم (UI/UX)، المستندات، والتصاميم المرفقة في هذه المحادثة (سواء أُرفقت في هذه الرسالة أو في الرسائل السابقة أعلاه) عبر محرك المسح البصري الميكروي Fathom Cam.
@@ -2293,7 +2308,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 2. بعد إغلاق وسم </think>، قدّم إجابتك باللغة العربية الفصحى بشكل منظم، قاطع، مباشر، وعميق يجيب بدقة تامة على استفسار المستخدم مستنداً إلى التفاصيل البصرية المرئية عبر Fathom Cam دون أي تردد أو اعتذار.
 ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية أو استخدام كود بلوك thought للإجابة.`;
 
-    activeSystemPrompt += `\n\n${visionGuidance}`;
+      activeSystemPrompt += `\n\n${visionGuidance}`;
+    }
   }
 
   // Stage 2: Universal Multi-Link Intelligence Matrix
@@ -2475,8 +2491,43 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     // Fast Intelligent Gateway Selection & Resilient Multi-Provider Fallback with Dynamic Parameter Tuning:
     const gateCandidates: Array<{ name: string; url: string; headers: Record<string, string>; payload: any }> = [];
 
-    // Candidate 1: Multimodal Media & Video/Audio Engine (Powered by Meta Muse Spark 1.2 Contributor)
-    if (isMediaSpark && OPENROUTER_API_KEY) {
+    // Priority 1: Multimodal Optical Vision Engine (Active whenever user attaches images or requests vision)
+    if (hasMultimodal || isVision) {
+      if (OPENROUTER_API_KEY) {
+        gateCandidates.push({
+          name: 'OpenRouter Meta Muse Spark 1.2 Contributor Vision (High-Fidelity Multimodal)',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: DynamicParameterTuner.tuneGatewayPayload('meta/muse-spark-1.2-contributor', basePayload, dynamicTuning)
+        });
+      }
+
+      if (DEEPSEEK_API_KEY) {
+        gateCandidates.push({
+          name: 'DeepSeek Direct Vision (deepseek-v4-flash-vision-exp @ api.deepseek.com)',
+          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+          },
+          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash-vision-exp', basePayload, dynamicTuning)
+        });
+        gateCandidates.push({
+          name: 'DeepSeek Direct Flash (deepseek-v4-flash @ api.deepseek.com)',
+          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+          },
+          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash', basePayload, dynamicTuning)
+        });
+      }
+    } else if (isMediaSpark && OPENROUTER_API_KEY) {
       gateCandidates.push({
         name: 'OpenRouter Meta Muse Spark 1.2 Contributor (Fathom Spark Multimodal)',
         url: `${OPENROUTER_BASE_URL}/chat/completions`,
@@ -2676,42 +2727,6 @@ app.post('/api/chat', async (req: Request, res: Response) => {
             'X-Title': 'Matany AI',
           },
           payload: DynamicParameterTuner.tuneGatewayPayload('deepseek/deepseek-v4-pro', basePayload, dynamicTuning)
-        });
-      }
-    } else if (isVision || hasMultimodal) {
-      // Candidate 4: Multimodal Optical Vision Engine
-      if (DEEPSEEK_API_KEY) {
-        gateCandidates.push({
-          name: 'DeepSeek Direct Vision (deepseek-v4-flash-vision-exp @ api.deepseek.com)',
-          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-          },
-          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash-vision-exp', basePayload, dynamicTuning)
-        });
-        gateCandidates.push({
-          name: 'DeepSeek Direct Flash (deepseek-v4-flash @ api.deepseek.com)',
-          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-          },
-          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash', basePayload, dynamicTuning)
-        });
-      }
-
-      if (OPENROUTER_API_KEY) {
-        gateCandidates.push({
-          name: 'OpenRouter Meta Muse Spark 1.2 Contributor Vision',
-          url: `${OPENROUTER_BASE_URL}/chat/completions`,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'HTTP-Referer': 'https://matany.one',
-            'X-Title': 'Matany AI',
-          },
-          payload: DynamicParameterTuner.tuneGatewayPayload('meta/muse-spark-1.2-contributor', basePayload, dynamicTuning)
         });
       }
     } else {

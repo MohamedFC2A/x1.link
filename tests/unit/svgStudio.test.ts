@@ -454,5 +454,36 @@ export async function runSvgStudioTests(harness: TestHarness) {
       expect(cardSource).not.toContain("جاهز للتصدير");
     });
 
+    // 21. Strict 100% Geometry and Identity Preservation Directive for Uploaded Images
+    await harness.it('should mandate strict 100% geometry and subject preservation when editing uploaded images', () => {
+      const request: DynamicTuningRequest = {
+        userPrompt: 'عدل الصورة دي وخلي الخلفية زرقاء',
+        hasMultimodalImages: true,
+        requestedModel: 'deepseek-v4-flash-cyber-2.6',
+      };
+
+      const result = DynamicParameterTuner.tune(request);
+      expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+      expect(result.calibrationDirective).toContain('الحفاظ الصارم والمطلق على هوية وهيكل وموضوع الصورة الأصلية بنسبة 100%');
+      expect(result.calibrationDirective).toContain('Strict Original Geometry & Subject Preservation');
+      expect(result.calibrationDirective).toContain('التعديل الانتقائي الدقيق');
+    });
+
+    // 22. Elimination of ReactMarkdown DOM Thrashing & Stable Top-Level Mounting
+    await harness.it('should verify ChatMessage mounts SvgStudioCard directly outside ReactMarkdown to eliminate flicker', async () => {
+      const fs = await import('fs');
+      const chatMessageSource = fs.readFileSync('c:/Best Projects/Matany/src/components/ChatMessage.tsx', 'utf-8');
+
+      // Verify SvgStudioCard is rendered top-level from extractedSvgData
+      expect(chatMessageSource).toContain('extractedSvgData && (');
+      expect(chatMessageSource).toContain('<SvgStudioCard');
+
+      // Verify SVG code blocks are suppressed inside ReactMarkdown to prevent unmount loops
+      expect(chatMessageSource).toContain("lang === 'svg' || rawCodeString.includes('<svg')");
+
+      // Verify ThinkingOrb is suppressed during isSvgStudioActive
+      expect(chatMessageSource).toContain('!isSvgStudioActive');
+    });
+
   });
 }
