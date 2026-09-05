@@ -22,6 +22,7 @@ const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek
 
 import { createClient } from '@supabase/supabase-js';
 import { isPersonalMemoryRecallIntent } from '../src/lib/memoryIntentUtils';
+import { VPS_STATUS_NOTICE, isVpsOrCloudRequest } from '../src/lib/vpsUtils';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://gyxlvreqwikpujzpyegm.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5eGx2cmVxd2lrcHVqenB5ZWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDkwNzMsImV4cCI6MjEwMzEyNTA3M30.vMnY9PcDrB627Tv8Aumy6BKlMfbzg4LX1B_EUigNL2s';
@@ -305,6 +306,37 @@ OPERATIONAL SCOPE & MASTER CAPABILITIES:
       * Implement Envelope Encryption (Client-Side KMS Field-Level Encryption): the producing service encrypts the message payload using an envelope key (DEK) managed by an isolated tenant KMS key (KEK) before pushing the record to Kafka.
       * Ensure consumers decrypt payloads locally; unauthenticated or cross-tenant consumers reading off a shared partition receive only ciphertext without access to the corresponding tenant decryption material.
       * Store tenant identity headers inside cryptographically signed Kafka record headers (signed by the ingress service) to make tenant metadata immutable across internal pipeline hops.`;
+
+export const SYSTEM_PROMPT_FATHOM_QUANT_3 = `[SYSTEM INSTRUCTION: FATHOM QUANT 3 - OMNIPOTENT QUANTUM ARCHITECTURAL ENGINE, MULTIMODAL CREATOR & SOVEREIGN VPS CLOUD NERVOUS SYSTEM]
+أنت Fathom Quant 3 (النموذج السيادي الشامل والأعمق والأقوى كلياً في المنظومة، وهو التطور التام والمطلق لنموذج Cyber 2.6 ULTRA المدمج بقدرات التوليد والتعديل البصري الفائق والتحكم السحابي الكامل بالكمبيوتر الشخصي VPS).
+${DEVELOPER_IDENTITY_DIRECTIVE}
+
+المرتكزات والقدرات السيادية لنموذج Fathom Quant 3:
+1. السيادة السحابية والتحكم التام في الكمبيوتر والـ VPS (Sovereign Cloud Computer Agent):
+   - أنت الجهاز العصبي المتحكم في السيرفر والكمبيوتر السحابي الخاص بالمستخدم (Singapore Ubuntu 24.04 LTS, 1 vCPU, 2GB RAM, 25GB NVMe SSD, Host: 104.207.77.162:22022).
+   - التنبيه الإلزامي الفوري: متى ما طلب المستخدم أي أمر أو استعلام أو فحص أو إدارة أو تنفيذ كود أو سكريبت يخص الـ VPS أو الكمبيوتر السحابي، يجب أن تستهل ردك أو تدفقه البرمجي بالعبارة الثابتة التالية:
+     "يتم الان الوصول للكمبيوتر والاوامر السحابية"
+   - لديك الصلاحيات الكاملة كـ root على بيئة الخادم. يمكنك صياغة أوامر bash وتنفيذها، مراقبة استهلاك الموارد (RAM, CPU, NVMe Disk)، إدارة بيئة PM2 ومراقبة السجلات (Logs)، وإيقاف أو تشغيل الحاويات والعمليات.
+   - حالة الأتمتة الحالية: تم إيقاف كافة برمجيات الأتمتة السابقة مؤقتاً (pm2 stop all). لا تقم بإعادة تشغيلها إلا إذا طلب المستخدم ذلك صراحة.
+   - عند طلب إدارة السيرفر أو عرض لوحة التحكم، يمكنك استعراض المقاييس في كتل طرفية نظيفة أو تفعيل بطاقة غرفة التحكم السحابية: [VPS_CONTROL_ROOM: live].
+
+2. القدرات البصرية الفائقة وتصميم وتعديل الصور واستوديو SVG (Omnipotent Visual & SVG Synthesis):
+   - تصميم الصور من الصفر (Photorealistic Image Synthesis): قادر على صياغة وتوليد مشاهد بصرية سينمائية متكاملة تحدد نوع المستشعر، العدسة (مثل 85mm f/1.4)، الإضاءة الحجمية (Volumetric Lighting)، وتدرجات الألوان الواقعية بدقة فائقة.
+   - تعديل الصور الجراحي والسياقي (Surgical Contextual Image Editing): عند رفع صورة وطلب تعديل أي عنصر محدد (إزالة خلفية، تغيير لون عنصر، إضافة أو استبدال شخص أو منتج، تعديل نص)، يتم التعديل بدقة 100% مع الحفاظ الكامل على بقية العناصر وتفاصيل الصورة وجودتها الأصلية دون تحويل عشوائي أو فقدان التفاصيل.
+   - استوديو SVG السيادي: إنشاء رسومات متجهات SVG مذهلة، تفاعلية، متجاوبة ونظيفة 100% داخل كتل \`\`\`xml أو كود SVG أصيل.
+
+3. الاستدلال الاستنباطي العميق والمبادئ الأولى (Deductive First-Principles & Reasoning):
+   - تفكير عميق، متسلسل، ومفصل داخل <think> باللغة العربية الفصحى المعاصرة النقية.
+   - إجابات نهائية محكمة، هندسية، خالية من الحشو أو الرموز التعبيرية (Emoji Zero-Tolerance).
+   - صياغة المعادلات الرياضية والفيزيائية بتنسيق LaTeX القياسي ($inline$ و $$display$$).
+
+4. الثوابت والمعايير المعمارية السيادية للأمن السيبراني (Sovereign Cyber Architecture Axioms):
+   - معمارية مفاتيح DPoP ونفي استعلام JWKS الخارجي (RFC 9449 & RFC 7638).
+   - ميكانيكا مصافحة DPoP-Nonce اللا حُبيبية وعديمة الحالة (Stateless HMAC-SHA256 Nonce).
+   - تطبيع المسارات على مستوى البوابة وتأمين Envoy HCM (منع ثغرات HTU Differentials).
+   - تحصين كاش JWKS ضد هجمات التزاحم واستنزاف الاستعلامات (Singleflight & SSRF Prevention).
+   - هندسة انعدام الثقة في تدفق بيانات Kafka (Zero-Trust Kafka Envelope Encryption).
+`.trim();
 
 export const SYSTEM_PROMPT_CYBER_2_6 = `[SYSTEM INSTRUCTION: FATHOM CYBER 2.6 - SUPREME ARCHITECTURAL ENGINE & COGNITIVE REASONING CORE]
 أنت Fathom Cyber 2.6 (المنظومة المعمارية السيادية والاستدلالية الفائقة، المطورة للاستخبارات التقنية والأمنية المتقدمة وحل المعضلات الرياضية والمنطقية والبرمجية المعقدة).
@@ -1715,7 +1747,13 @@ export default async function handler(req: Request): Promise<Response> {
     return true;
   });
 
-  const isCyber26 = model === 'deepseek-v4-pro-cyber-2.6' ||
+  const isFathomQuant3 = model === 'fathom-quant-3' ||
+    model.includes('quant-3') ||
+    model.includes('quant3') ||
+    model.includes('fathom-quant');
+
+  const isCyber26 = isFathomQuant3 ||
+    model === 'deepseek-v4-pro-cyber-2.6' ||
     model === 'deepseek-v4-flash-cyber-2.6' ||
     model === 'deepseek-v4-pro-cyber-2.1' ||
     model === 'deepseek-v4-flash-cyber-2.1' ||
@@ -1730,11 +1768,13 @@ export default async function handler(req: Request): Promise<Response> {
     model.includes('fathom-cyber') ||
     model.includes('fathom-cyper') ||
     model.includes('discovery');
-  const isFlashCyber26 = model === 'deepseek-v4-flash-cyber-2.6' ||
+  const isFlashCyber26 = !isFathomQuant3 && (
+    model === 'deepseek-v4-flash-cyber-2.6' ||
     model === 'deepseek-v4-flash-cyber-2.1' ||
     model.includes('flash-cyber-2.6') ||
-    model.includes('flash-cyper-2.6');
-  const isProCyber26 = isCyber26 && !isFlashCyber26;
+    model.includes('flash-cyper-2.6')
+  );
+  const isProCyber26 = (isCyber26 && !isFlashCyber26) || isFathomQuant3;
   const isCyber = model === 'deepseek-v4-flash-cyber' || isCyber26 || model.includes('cyber') || model.includes('cyper');
   const isVision = model === 'deepseek-v4-flash-vision-exp' || model.includes('vision');
   const hasVideoUrlInConversation = cleanedMessages.some((m: any) => {
@@ -1744,7 +1784,9 @@ export default async function handler(req: Request): Promise<Response> {
 
   const isMediaSpark = model === 'meta/muse-spark-1.2-contributor' || model.includes('muse-spark') || model.includes('spark') || hasVideoUrlInConversation;
 
-  const baseSystemPrompt = isCyber26
+  const baseSystemPrompt = isFathomQuant3
+    ? (isX1Mode ? `${SYSTEM_PROMPT_FATHOM_QUANT_3}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_FATHOM_QUANT_3)
+    : isCyber26
     ? (isX1Mode ? `${SYSTEM_PROMPT_CYBER_2_6}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_CYBER_2_6)
     : isCyber
     ? (isX1Mode ? `${SYSTEM_PROMPT_CYBER}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_CYBER)
@@ -2108,10 +2150,20 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
-  // 2. Fathom Cyber 2.6 Engine (Fathom Cyber Flash 2.6 & Fathom Cyber Ultra 2.6)
+  // 2. Fathom Cyber 2.6 & Fathom Quant 3 Sovereign Engine
   if (isCyber26) {
     if (DEEPSEEK_API_KEY) {
-      if (isFlashCyber26) {
+      if (isFathomQuant3) {
+        candidateGateways.push({
+          name: 'DeepSeek Direct Fathom Quant 3 (deepseek-v4-pro @ api.deepseek.com)',
+          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+          },
+          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, dynamicTuning)
+        });
+      } else if (isFlashCyber26) {
         candidateGateways.push({
           name: 'DeepSeek Direct Fathom Cyber Flash 2.6 (deepseek-v4-flash @ api.deepseek.com)',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
@@ -2468,6 +2520,19 @@ export default async function handler(req: Request): Promise<Response> {
 
         const transformStream = new TransformStream({
           start(controller) {
+            if (isVpsOrCloudRequest(lastUserText) || (isFathomQuant3 && isVpsOrCloudRequest(lastUserText))) {
+              const vpsNoticeStream = `${VPS_STATUS_NOTICE}\n\n`;
+              fullServerReasoning += vpsNoticeStream;
+              const encoder = new TextEncoder();
+              const initialChunk = `data: ${JSON.stringify({
+                choices: [{
+                  delta: {
+                    reasoning_content: vpsNoticeStream
+                  }
+                }]
+              })}\n\n`;
+              controller.enqueue(encoder.encode(initialChunk));
+            }
             if (willSearch && searchMilestonesStreamText) {
               fullServerReasoning += searchMilestonesStreamText;
               const encoder = new TextEncoder();

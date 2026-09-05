@@ -24,6 +24,8 @@ import { runUltraAndFlashModelsTests } from './ultraAndFlashModels.test';
 import { runDeepSeekAlgorithmsTests } from './deepseekAlgorithms.test';
 import { runSocialVideoSparkTests } from './socialVideoSpark.test';
 import { runEmptyPromptImageTests } from './emptyPromptImage.test';
+import { runFathomQuant3Tests } from './fathomQuant3.test';
+import { runVpsControlTests } from './vpsControl.test';
 
 export async function runAllUnitTests(): Promise<boolean> {
   const harness = new TestHarness();
@@ -52,6 +54,8 @@ export async function runAllUnitTests(): Promise<boolean> {
   await runDeepSeekAlgorithmsTests(harness);
   await runSocialVideoSparkTests(harness);
   await runEmptyPromptImageTests(harness);
+  await runFathomQuant3Tests(harness);
+  await runVpsControlTests(harness);
 
   const passed = harness.printSummary('UNIT TEST SUITE SUMMARY');
   return passed;

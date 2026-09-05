@@ -23,7 +23,8 @@ import { DownloadDetectCard } from './ui/DownloadDetectCard';
 import { DownloadButton } from './ui/DownloadButton';
 import { SvgStudioCard } from './ui/SvgStudioCard';
 import { NeuralImageCard, type NeuralImageData } from './ui/NeuralImageCard';
-import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon, DownloadDetectIcon, SvgStudioIcon, NeuralImageStudioIcon, FathomSparkIcon } from '@/lib/featuresRegistry';
+import { VpsControlRoomCard } from './ui/VpsControlRoomCard';
+import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon, DownloadDetectIcon, SvgStudioIcon, NeuralImageStudioIcon, FathomSparkIcon, VpsControlRoomIcon } from '@/lib/featuresRegistry';
 
 const YouTubeIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -1454,6 +1455,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       .replace(/```(?:neural-image|neural_image|image-studio|image_studio)\s*\{[\s\S]*?\}\s*```/gi, '')
       .replace(/```(?:neural-image|neural_image|image-studio|image_studio)\s*\{[\s\S]*$/gi, '') // during streaming
       .replace(/\[NEURAL-IMAGE-STUDIO:[^\]]+\]/gi, '')
+      .replace(/\[VPS_CONTROL_ROOM(?::\s*[^\]]+)?\]/gi, '')
       .trim();
   }, [displayContentWithoutSvg]);
 
@@ -1499,6 +1501,18 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     if (message.reasoning && (message.reasoning.includes('<svg') || message.reasoning.includes('```svg'))) return true;
     return false;
   }, [activeFeatures, previousUserPrompt, message.content, message.reasoning, isNeuralImageStudioActive]);
+
+  const isVpsActive = useMemo(() => {
+    if (Boolean(message.vpsTelemetry || message.vpsExecution)) return true;
+    if (activeFeatures.some(f => f.id === 'vps_control_room')) return true;
+    const pLower = (previousUserPrompt || '').toLowerCase();
+    const cLower = (message.content || '').toLowerCase();
+    const rLower = (message.reasoning || '').toLowerCase();
+    if (cLower.includes('يتم الان الوصول للكمبيوتر والاوامر السحابية') || rLower.includes('يتم الان الوصول للكمبيوتر والاوامر السحابية')) return true;
+    if (cLower.includes('vps_control_room') || cLower.includes('[vps_control') || cLower.includes('104.207.77.162')) return true;
+    if (message.model === 'fathom-quant-3' && /(?:vps|104\.207\.77\.162|سيرفر|السيرفر|الخادم|خادم|كمبيوتر\s*سحابي|اوامر\s*سحابية|pm2|طرفية|terminal|ssh|upstore)/i.test(pLower)) return true;
+    return false;
+  }, [message.vpsTelemetry, message.vpsExecution, activeFeatures, previousUserPrompt, message.content, message.reasoning, message.model]);
 
   const detectedMediaUrl = useMemo(() => {
     if (!hasDownloadDetect) return null;
@@ -1713,6 +1727,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
 
   // Assistant Message
   const isCyber = Boolean(
+    message.model === 'fathom-quant-3' ||
     message.model === 'deepseek-v4-flash-cyber' ||
     message.model === 'deepseek-v4-pro-cyber-2.6' ||
     message.model === 'deepseek-v4-flash-cyber-2.6' ||
@@ -1733,6 +1748,12 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     >
       <div className="flex items-center justify-between w-full mb-1.5 px-1 text-xs text-zinc-400 select-none">
         <div className="flex items-center gap-1.5 font-sans font-medium flex-wrap">
+          {message.model === 'fathom-quant-3' && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-cyan-950/70 text-cyan-300 border border-cyan-400/50 shadow-[0_0_12px_rgba(34,211,238,0.3)] select-none">
+              <Sparkles className="w-3 h-3 text-cyan-300 animate-pulse" />
+              <span>FATHOM QUANT 3 ⚡</span>
+            </span>
+          )}
           {message.isX1 && (
             <span className="text-[10px] font-mono font-bold text-rose-400/90 tracking-wide px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20">
               X1 MAX
@@ -1787,16 +1808,29 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             </div>
           ) : null
         ) : (
-          (hasReasoning || isThinking) && (
-            <ChatReasoning
-              reasoningText={effectiveReasoning}
-              isThinking={isThinking}
-              isStreaming={isStreaming}
-              isX1={message.isX1}
-              isTimeIntent={isTimeIntent}
-              activeFeatures={activeFeatures}
-            />
-          )
+          <>
+            {isVpsActive && (isThinking || isStreaming) && !displayContent && (
+              <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-200 select-none w-fit shadow-inner animate-in fade-in" dir="rtl">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+                </span>
+                <span className="text-xs sm:text-sm font-sans font-bold text-cyan-200">
+                  ⚡ يتم الان الوصول للكمبيوتر والاوامر السحابية...
+                </span>
+              </div>
+            )}
+            {(hasReasoning || isThinking) && (
+              <ChatReasoning
+                reasoningText={effectiveReasoning}
+                isThinking={isThinking}
+                isStreaming={isStreaming}
+                isX1={message.isX1}
+                isTimeIntent={isTimeIntent}
+                activeFeatures={activeFeatures}
+              />
+            )}
+          </>
         )}
 
         {isStreaming && !message.content && !hasReasoning && !isThinking && !isSvgStudioActive && !isNeuralImageStudioActive ? (
@@ -1952,6 +1986,16 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   key={`svg-card-${message.id || 'current'}`}
                   svgCode={extractedSvgData}
                   isStreaming={isStreaming}
+                />
+              </div>
+            )}
+
+            {/* Stable first-class VPS Cloud Computer Control Room Card */}
+            {(isVpsActive || message.vpsTelemetry || message.vpsExecution || message.content?.includes('VPS_CONTROL_ROOM') || message.content?.includes('يتم الان الوصول للكمبيوتر والاوامر السحابية')) && (
+              <div className="w-full my-3">
+                <VpsControlRoomCard
+                  key={`vps-card-${message.id || 'current'}`}
+                  initialTelemetry={message.vpsTelemetry || null}
                 />
               </div>
             )}

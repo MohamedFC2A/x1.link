@@ -2,7 +2,7 @@ import React from 'react';
 import { Sparkles, ShieldCheck, Database, BrainCircuit, Clock, Flame, Zap } from 'lucide-react';
 import { cn } from './utils';
 
-export type FeatureIntentType = 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | 'download_detect' | 'fathom_cam' | 'fathom_spark' | 'fathom_search' | 'svg_studio' | 'neural_image_studio';
+export type FeatureIntentType = 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | 'download_detect' | 'fathom_cam' | 'fathom_spark' | 'fathom_search' | 'svg_studio' | 'neural_image_studio' | 'vps_control_room';
 
 export type IntentCategory = 'actionable' | 'informational' | 'none';
 
@@ -350,6 +350,35 @@ export const NeuralImageStudioIcon: React.FC<{ className?: string; size?: number
     <path d="m14 14 1-1a2 2 0 0 1 2.828 0L21 16" />
     <path d="M19 8V5h-3" />
     <path d="m21 3-5 5" />
+  </svg>
+);
+
+export const VpsControlRoomIcon: React.FC<{ className?: string; size?: number }> = ({
+  className = "w-4 h-4",
+  size = 16
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="url(#vps-control-room-grad)"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn("inline-block shrink-0", className)}
+  >
+    <defs>
+      <linearGradient id="vps-control-room-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#22d3ee" />
+        <stop offset="50%" stopColor="#06b6d4" />
+        <stop offset="100%" stopColor="#6366f1" />
+      </linearGradient>
+    </defs>
+    <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+    <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+    <line x1="6" x2="6.01" y1="6" y2="6" />
+    <line x1="6" x2="6.01" y1="18" y2="18" />
   </svg>
 );
 
@@ -731,6 +760,37 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
         summary: 'المعالجة الفوتوغرافية العصبية وتعديل الصور الجراحي بنسبة مطابقة 100%',
         details: 'تم إجراء التعديل العصبي النقطي الجراحي (Inpainting / Background Removal / 4K Super-Resolution) مع الحفاظ الكامل على ملامح وتفاصيل الصورة الأصلية',
         statusPill: 'NEURAL INPAINTING & 4K STUDIO',
+        confidence: 0.99,
+        category: 'actionable'
+      };
+    }
+  },
+
+  // ── 11. VPS Control Room (Sovereign Cloud Computer Agent & Root Terminal)
+  vps_control_room: {
+    id: 'vps_control_room',
+    name: 'VPS Control Room',
+    nameAr: 'غرفة التحكم بالكمبيوتر السحابي VPS',
+    badgeLabel: 'VPS CONTROL ROOM',
+    textClassName: 'text-cyan-300 font-bold',
+    glassClassName: 'bg-cyan-950/70 border border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]',
+    badgeClassName: 'bg-cyan-950/70 text-cyan-300 border border-cyan-400/40',
+    accentColor: '#22d3ee',
+    borderHoverColor: 'border-cyan-400/50',
+    icon: VpsControlRoomIcon,
+    detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
+      const plan = routeFeatureIntent('vps_control_room', prompt, reasoning, content, context);
+      return plan.confidence >= 0.6;
+    },
+    extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
+      return {
+        id: 'vps_control_room',
+        name: 'VPS Control Room',
+        nameAr: 'غرفة التحكم بالكمبيوتر السحابي VPS',
+        badgeLabel: 'VPS CONTROL ROOM',
+        summary: 'غرفة التحكم في الكمبيوتر السحابي (Root Terminal & Telemetry)',
+        details: 'الوصول المباشر للخادم السحابي في سنغافورة (104.207.77.162:22022) مع مراقبة الموارد وإدارة العمليات',
+        statusPill: 'CLOUD COMPUTER ROOT ACCESS',
         confidence: 0.99,
         category: 'actionable'
       };
@@ -1264,6 +1324,28 @@ export function routeFeatureIntent(
     return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No Neural Image Studio intent.' };
   }
 
+  // 11. VPS Control Room & Sovereign Cloud Computer Intent
+  if (featureId === 'vps_control_room') {
+    const hasVpsNotice = cLower.includes('يتم الان الوصول للكمبيوتر والاوامر السحابية') || rLower.includes('يتم الان الوصول للكمبيوتر والاوامر السحابية');
+    const hasVpsTag = cLower.includes('vps_control_room') || cLower.includes('[vps-control') || cLower.includes('vps control room') || cLower.includes('104.207.77.162');
+    const isVpsPrompt = /(?:vps|104\.207\.77\.162|سيرفر|السيرفر|الخادم|خادم|كمبيوتر\s*سحابي|الكمبيوتر\s*السحابي|اوامر\s*سحابية|الاوامر\s*السحابية|غرفة\s*تحكم|غرفة\s*التحكم|pm2|أوامر\s*لينكس|اوامر\s*لينكس|طرفية|terminal|ubuntu|ssh|upstore)/i.test(pLower);
+    const isContextVps = Boolean(context?.hasVps || context?.isVpsActive || context?.hasVpsTelemetry || context?.model === 'fathom-quant-3' && isVpsPrompt);
+
+    if (hasVpsNotice || hasVpsTag || isVpsPrompt || isContextVps) {
+      return {
+        featureId,
+        confidence: 1.0,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: {},
+        reason: 'VPS Control Room cloud computer agent or command execution active.'
+      };
+    }
+
+    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No VPS Control Room intent.' };
+  }
+
   return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Unknown feature.' };
 }
 
@@ -1277,7 +1359,7 @@ export function detectIntentsMulti(
   content: string = '',
   context: any = {}
 ): MultiIntentPlan {
-  const featureIds: FeatureIntentType[] = ['fathom_search', 'download_detect', 'neural_image_studio', 'svg_studio', 'fathom_spark', 'fathom_cam', 'ai_detect', 'metadata_detect', 'memory_detect', 'time_detect'];
+  const featureIds: FeatureIntentType[] = ['vps_control_room', 'fathom_search', 'download_detect', 'neural_image_studio', 'svg_studio', 'fathom_spark', 'fathom_cam', 'ai_detect', 'metadata_detect', 'memory_detect', 'time_detect'];
   
   const plans: Record<FeatureIntentType, FeatureActivationPlan> = {} as any;
   const activeFeatures: DetectedFeatureData[] = [];
@@ -1304,8 +1386,9 @@ export function detectIntentsMulti(
     }
   });
 
-  // Pipeline Execution Order: Download/Extraction -> Neural Image Studio -> SVG Studio -> Fathom Cam Vision -> AI Forensics -> Metadata Headers -> Memory Context -> Time/Widgets
+  // Pipeline Execution Order: VPS Control Room -> Download/Extraction -> Neural Image Studio -> SVG Studio -> Fathom Cam Vision -> AI Forensics -> Metadata Headers -> Memory Context -> Time/Widgets
   const executionPipelineOrder: FeatureIntentType[] = [];
+  if (plans.vps_control_room?.confidence >= 0.6) executionPipelineOrder.push('vps_control_room');
   if (plans.download_detect.confidence >= 0.6) executionPipelineOrder.push('download_detect');
   if (plans.neural_image_studio?.confidence >= 0.6) executionPipelineOrder.push('neural_image_studio');
   if (plans.svg_studio?.confidence >= 0.6) executionPipelineOrder.push('svg_studio');

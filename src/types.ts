@@ -1,4 +1,5 @@
 export type ModelType = 
+  | 'fathom-quant-3'
   | 'deepseek-v4-flash' 
   | 'deepseek-v4-flash-vision-exp' 
   | 'deepseek-v4-flash-cyber' 
@@ -49,6 +50,8 @@ export interface ChatMessageItem {
   discoveryStage?: 'anomaly' | 'hypothesis' | 'prover' | 'axiom_integrated';
   isStopped?: boolean;
   stoppedReason?: string;
+  vpsTelemetry?: VpsTelemetryData;
+  vpsExecution?: VpsExecutionResult;
 }
 
 export interface WebAuthnVerificationResult {
@@ -220,4 +223,51 @@ export interface ChatGraphEdge {
   confidence: number;
   metadata: Record<string, any>;
   created_at: string;
+}
+
+export interface VpsProcessInfo {
+  id: number;
+  name: string;
+  status: 'online' | 'stopped' | 'errored' | 'launching' | string;
+  cpu: string;
+  memory: string;
+  uptime: string;
+  restarts: number;
+  pid: number;
+  user: string;
+}
+
+export interface VpsTelemetryData {
+  host: string;
+  sshPort: number;
+  connected: boolean;
+  timestamp: string;
+  osInfo: string;
+  uptimeFormatted: string;
+  cpuUsagePercent: number;
+  cpuModel?: string;
+  cpuCores?: number;
+  ramTotalMb: number;
+  ramUsedMb: number;
+  ramFreeMb: number;
+  ramUsagePercent: number;
+  diskTotalGb: number;
+  diskUsedGb: number;
+  diskFreeGb: number;
+  diskUsagePercent: number;
+  processes: VpsProcessInfo[];
+  listeningPorts?: string[];
+  automationStatus?: 'paused' | 'running' | 'stopped' | 'partially_running';
+  statusNotice?: string; // 'يتم الان الوصول للكمبيوتر والاوامر السحابية'
+}
+
+export interface VpsExecutionResult {
+  command: string;
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  executionTimeMs: number;
+  executedAt: string;
+  success: boolean;
+  statusNotice?: string;
 }

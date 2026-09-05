@@ -130,11 +130,11 @@ export const App: React.FC = () => {
   const [cloudChats, setCloudChats] = useState<SupabaseChat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
 
-  // Model & Chat State (Persistent Smart Preferred Base Model: Fathom 1.1, Fathom Cyber Flash 2.6 or Fathom Cyber Ultra 2.6)
+  // Model & Chat State (Persistent Smart Preferred Base Model: Fathom Quant 3, Fathom 1.1, Fathom Cyber Flash 2.6 or Fathom Cyber Ultra 2.6)
   const [preferredBaseModel, setPreferredBaseModel] = useState<ModelType>(() => {
     try {
       const saved = localStorage.getItem('matany_preferred_base_model');
-      if (saved === 'deepseek-v4-pro-cyber-2.6' || saved === 'deepseek-v4-flash-cyber-2.6' || saved === 'deepseek-v4-pro-cyber-2.1' || saved === 'deepseek-v4-flash-cyber-2.1' || saved === 'deepseek-v4-flash-cyber' || saved === 'deepseek-v4-flash') {
+      if (saved === 'fathom-quant-3' || saved === 'deepseek-v4-pro-cyber-2.6' || saved === 'deepseek-v4-flash-cyber-2.6' || saved === 'deepseek-v4-pro-cyber-2.1' || saved === 'deepseek-v4-flash-cyber-2.1' || saved === 'deepseek-v4-flash-cyber' || saved === 'deepseek-v4-flash') {
         return saved as ModelType;
       }
     } catch (e) {}
@@ -145,7 +145,7 @@ export const App: React.FC = () => {
 
   const handleSelectModel = (model: ModelType) => {
     setActiveModel(model);
-    if (model === 'deepseek-v4-flash' || model === 'deepseek-v4-flash-cyber' || model === 'deepseek-v4-pro-cyber-2.6' || model === 'deepseek-v4-flash-cyber-2.6' || model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') {
+    if (model === 'fathom-quant-3' || model === 'deepseek-v4-flash' || model === 'deepseek-v4-flash-cyber' || model === 'deepseek-v4-pro-cyber-2.6' || model === 'deepseek-v4-flash-cyber-2.6' || model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') {
       setPreferredBaseModel(model);
       try {
         localStorage.setItem('matany_preferred_base_model', model);
@@ -466,7 +466,7 @@ export const App: React.FC = () => {
 
     const limitCheck = checkPlanLimit(currentPlanId, {
       isVision: uniqueImagesDataUrls.length > 0,
-      isCyber: meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.6' || meta?.model === 'deepseek-v4-flash-cyber-2.6' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
+      isCyber: meta?.model === 'fathom-quant-3' || meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.6' || meta?.model === 'deepseek-v4-flash-cyber-2.6' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
       isCyberUrlScan: isActualCyberUrlScan,
     });
 
@@ -761,7 +761,7 @@ export const App: React.FC = () => {
           reasoningText: fullAssistantReasoning,
           hasImages: uniqueImagesDataUrls.length > 0,
           imagesCount: uniqueImagesDataUrls.length,
-          isCyberScan: !!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.6' || meta?.model === 'deepseek-v4-flash-cyber-2.6' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
+          isCyberScan: !!resolvedTargetUrl || meta?.model === 'fathom-quant-3' || meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.6' || meta?.model === 'deepseek-v4-flash-cyber-2.6' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
           userId,
           currentPlanId,
         });
@@ -881,7 +881,7 @@ export const App: React.FC = () => {
           reasoningText: effectiveFinalReasoning,
           hasImages: uniqueImagesDataUrls.length > 0,
           imagesCount: uniqueImagesDataUrls.length,
-          isCyberScan: !!resolvedTargetUrl || meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.6' || meta?.model === 'deepseek-v4-flash-cyber-2.6' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
+          isCyberScan: !!resolvedTargetUrl || meta?.model === 'fathom-quant-3' || meta?.model === 'deepseek-v4-flash-cyber' || meta?.model === 'deepseek-v4-pro-cyber-2.6' || meta?.model === 'deepseek-v4-flash-cyber-2.6' || meta?.model === 'deepseek-v4-pro-cyber-2.1' || meta?.model === 'deepseek-v4-flash-cyber-2.1',
           userId: currentUserId,
           currentPlanId: currentPlanId || 'free',
         });
@@ -1227,7 +1227,9 @@ export const App: React.FC = () => {
                       activeModel={activeModel}
                       onSelectModel={handleSelectModel}
                       placeholder={
-                        activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-flash-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1'
+                        activeModel === 'fathom-quant-3'
+                          ? "اسأل Fathom Quant 3، صمم أو عدل صوراً، أو تحكم بالسيرفر السحابي VPS..."
+                          : activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-flash-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1'
                           ? "اطرح لغزاً، مسألة معقدة، أو افحص أمنياً..."
                           : activeModel === 'deepseek-v4-flash-cyber'
                           ? "أدخل رابط الهدف أو اسأل أمنياً..."

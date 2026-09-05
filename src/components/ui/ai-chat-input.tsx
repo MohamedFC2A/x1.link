@@ -275,11 +275,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     const effectiveModel: ModelType = internalModel;
 
     const isVisionMode = hasAttachments && !hasNonImageMedia;
-    const isCyber26Mode = internalModel === 'deepseek-v4-pro-cyber-2.6' || internalModel === 'deepseek-v4-flash-cyber-2.6' || internalModel === 'deepseek-v4-pro-cyber-2.1' || internalModel === 'deepseek-v4-flash-cyber-2.1';
+    const isQuant3Mode = internalModel === 'fathom-quant-3';
+    const isCyber26Mode = isQuant3Mode || internalModel === 'deepseek-v4-pro-cyber-2.6' || internalModel === 'deepseek-v4-flash-cyber-2.6' || internalModel === 'deepseek-v4-pro-cyber-2.1' || internalModel === 'deepseek-v4-flash-cyber-2.1';
     const isCyberMode = isCyber26Mode;
     const isMediaMode = hasNonImageMedia;
 
-    const activeModelDisplayName = internalModel === 'deepseek-v4-flash-cyber-2.6'
+    const activeModelDisplayName = internalModel === 'fathom-quant-3'
+      ? "Fathom Quant 3"
+      : internalModel === 'deepseek-v4-flash-cyber-2.6'
       ? "Fathom Cyber Flash 2.6"
       : internalModel === 'deepseek-v4-pro-cyber-2.6'
       ? "Fathom Cyber Ultra 2.6"
@@ -950,6 +953,52 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               </div>
 
               <div className="space-y-1">
+                {/* Model 0: Fathom Quant 3 (Flagship Premier Sovereign Model) */}
+                {(() => {
+                  const isSelected = internalModel === 'fathom-quant-3';
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInternalModel('fathom-quant-3');
+                        onSelectModel?.('fathom-quant-3');
+                        setIsModelMenuOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group relative overflow-hidden",
+                        isSelected
+                          ? "bg-cyan-500/[0.12] text-white font-bold border-cyan-400/40 shadow-lg shadow-cyan-500/10"
+                          : "bg-cyan-950/20 hover:bg-cyan-500/[0.08] text-zinc-200 border-cyan-500/20 hover:border-cyan-400/30"
+                      )}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className={cn(
+                          "size-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                          isSelected
+                            ? "bg-gradient-to-br from-cyan-500/30 to-indigo-500/30 border border-cyan-400/50 text-cyan-300 shadow-md"
+                            : "bg-cyan-500/15 border border-cyan-500/25 text-cyan-400 group-hover:bg-cyan-500/25"
+                        )}>
+                          <Sparkles className="w-4 h-4 text-cyan-300 animate-pulse" />
+                        </div>
+                        <div className="min-w-0 flex-1 text-right">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-black text-xs text-white">Fathom Quant 3</span>
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-gradient-to-r from-cyan-500/30 to-purple-500/30 text-cyan-300 border border-cyan-400/30">
+                                الاقوى والأعمق ⚡
+                              </span>
+                            </div>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-cyan-300 shrink-0" />}
+                          </div>
+                          <div className="text-[11px] text-zinc-300 font-normal leading-relaxed mt-0.5 group-hover:text-white transition-colors">
+                            تصميم وتعديل الصور بدقة خارقة، استوديو SVG، واستدلال عميق مع تحكم كامل بالكمبيوتر السحابي VPS
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()}
+
                 {/* Model 1: Fathom 1.1 */}
                 {(() => {
                   const isSelected = internalModel === 'deepseek-v4-flash' && !hasAttachments;

@@ -142,8 +142,8 @@ const NEURAL_IMAGE_PATTERNS = [
 ];
 
 const NEURAL_IMAGE_GENERATION_PATTERNS = [
-  /(?:صورة\s+واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|صورة\s+طبيعية|صورة\s+احترافية|صورة\s+شخصية|بورتريه\s+فوتوغرافي|صورة\s+منتج|ولد\s+لي\s+صورة|انشئ\s+لي\s+صورة\s+واقعية|اعملي\s+صورة\s+واقعية|صورة\s+كاميرا)/i,
-  /\b(?:photorealistic|realistic\s+photo|dslr\s+shot|hyperrealistic\s+photo|realistic\s+portrait|professional\s+photo)\b/i
+  /(?:صورة\s+(?:فائقة\s+)?واقعية|صورة\s+فائقة\s+الواقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|صورة\s+طبيعية|صورة\s+احترافية|صورة\s+شخصية|بورتريه\s+فوتوغرافي|صورة\s+منتج|ولد\s+لي\s+صورة|انشئ\s+لي\s+صورة|اعملي\s+صورة\s+واقعية|صورة\s+كاميرا|صورة\s+سينمائية|صورة\s+(?:من\s+)?الصفر)/i,
+  /\b(?:photorealistic|photorealism|realistic\s+photo|dslr\s+shot|hyperrealistic\s+photo|hyperrealistic|realistic\s+portrait|professional\s+photo|cinematic\s+photo)\b/i
 ];
 
 const SVG_DESIGN_PATTERNS = [
@@ -215,6 +215,7 @@ export class DynamicParameterTuner {
     }
 
     if (
+      m.includes('quant') ||
       m.includes('pro-cyber') ||
       m.includes('pro-cyper') ||
       m.includes('cyber-ultra') ||
@@ -225,7 +226,8 @@ export class DynamicParameterTuner {
       m === 'deepseek-v4-pro' ||
       m === 'deepseek/deepseek-v4-pro' ||
       m === 'fathom-cyber-2.6' ||
-      m === 'fathom-cyber-2.1'
+      m === 'fathom-cyber-2.1' ||
+      m === 'fathom-quant-3'
     ) {
       return 'deepseek-pro';
     }
@@ -427,7 +429,7 @@ export class DynamicParameterTuner {
       };
     }
 
-    // 6.b. Cyber Ultra Neural Image Studio & Photorealistic Generation Check (prioritized for realistic photo creation)
+    // 6.b. Cyber Ultra & Fathom Quant Neural Image Studio & Photorealistic Generation Check
     const matchesNeuralGen = NEURAL_IMAGE_GENERATION_PATTERNS.some(p => p.test(text)) ||
       (isFollowUpPrompt && NEURAL_IMAGE_GENERATION_PATTERNS.some(p => p.test(historyText)));
     if (matchesNeuralGen && !/(?:svg|فيكتور|متجهات|vector)/i.test(text)) {
@@ -436,7 +438,7 @@ export class DynamicParameterTuner {
         confidence: 0.98,
         complexity: 'EXHAUSTIVE_ARCHITECTURAL',
         hallucinationRisk: 'LOW',
-        rationale: 'Cyber Ultra Sovereign Neural Image Studio: photorealistic raster photo generation requested.'
+        rationale: 'Cyber Ultra / Fathom Quant Sovereign Neural Image Studio: photorealistic raster photo generation requested.'
       };
     }
 
