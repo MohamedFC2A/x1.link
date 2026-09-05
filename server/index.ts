@@ -1342,6 +1342,10 @@ async function extractVisualContext(
             })
           );
 
+          const userDirective = userQuestion
+            ? `الإجابة المباشرة عن طلب وسؤال المستخدم: "${userQuestion}"`
+            : `[فهم سياقي تلقائي للصورة — AUTONOMOUS CONTEXTUAL IMAGE PERCEPTION]: لم يكتب المستخدم نصاً مرافقاً؛ استوعب الصورة تلقائياً من سياق المحادثة أو قدم فهماً شاملاً ومباشراً لما تحتويه (حل المسألة، توضيح لقطة الشاشة أو الخطأ البرمجي، قراءة المستند، أو وصف المشهد بدقة) دون أي اصطناع لنصوص لم يطلبها المستخدم.`;
+
           const systemPromptText = isForensics
             ? `[نظام الإدراك البصري الفائق والتحليل الجنائي المتقدم — deepseek-v4-flash-vision-exp]:
 تم رفع عدد (${imgObjs.length}) صور من قبل المستخدم. قم بتحليل كل صورة على حدة وترقيمها بدقة استثنائية باللغة العربية:
@@ -1355,13 +1359,13 @@ async function extractVisualContext(
 - النتيجة القطعية: حدد بوضوح قاطع [AI_VERDICT: AI-Generated] أو [AI_VERDICT: Authentic Camera Photograph] بنسبة مئوية مع سرد الأدلة.
 
 2. استخراج النصوص الكامل والفهرسة المنفصلة (Full OCR): لكل صورة، استخرج كافة النصوص والكلمات والأرقام والتواريخ بدقة 100%.
-3. الإجابة المباشرة عن طلب المستخدم: "${userQuestion || 'حلل هذه الصور وافحص أصالتها بدقة.'}".`
+3. ${userDirective}.`
             : `[نظام الإدراك البصري الفائق وقراءة المحتوى — deepseek-v4-flash-vision-exp]:
 تم رفع عدد (${imgObjs.length}) لقطات/صور من قبل المستخدم. قم بتحليل المحتوى واستيعاب كافة المعطيات بدقة استثنائية باللغة العربية:
 
 1. استيعاب المشهد والعناصر البصرية: قم بوصف دقيق ومفصل لكافة العناصر والأشخاص والأماكن والرسومات والتفاصيل الظاهرة.
 2. استخراج النصوص الكامل (Full OCR): استخرج بدقة 100% كافة النصوص والكلمات والأرقام والملصقات والأسئلة المكتوبة على الشاشة.
-3. الإجابة المباشرة والذكية عن سؤال واستفسار المستخدم: "${userQuestion || 'حلل هذه اللقطات واستخرج كافة تفاصيلها بدقة.'}".`;
+3. ${userDirective}.`;
 
           const contentParts: any[] = [
             {
@@ -1397,7 +1401,7 @@ async function extractVisualContext(
     }
 
     const dynamicTuning = DynamicParameterTuner.tune({
-      userPrompt: userQuestion || 'فحص وتحليل النصوص والواجهات والمستندات في الصورة المرفقة بدقة بصرية متناهية',
+      userPrompt: userQuestion || 'استيعاب وفهم سياقي تلقائي لمحتوى الصور المرفقة',
       requestedModel: 'meta/muse-spark-1.2-contributor',
       hasMultimodalImages: true,
     });
@@ -1575,22 +1579,27 @@ async function processSingleLinkIntelligence(
       const videoDuration = ('durationSeconds' in ytResult && ytResult.durationSeconds) ? ytResult.durationSeconds : 300;
       const keyframes = ytVideoId ? extractYouTubeKeyframes(ytVideoId, videoDuration) : [];
 
-      let visionResult: VideoVisionResult | null = null;
-      if (keyframes.length > 0 && DEEPSEEK_API_KEY) {
-        visionResult = await performVideoVisionPerception(
-          ytVideoId || 'youtube_video',
-          'youtube',
-          keyframes,
-          {
-            title: ('title' in ytResult && ytResult.title) ? ytResult.title : undefined,
-            creator: ('channelName' in ytResult && ytResult.channelName) ? ytResult.channelName : undefined,
-            userPrompt,
-          },
-          DEEPSEEK_API_KEY,
-          DEEPSEEK_BASE_URL,
-          signal
-        );
-      }
+      const visionPromise = (keyframes.length > 0 && DEEPSEEK_API_KEY)
+        ? performVideoVisionPerception(
+            ytVideoId || 'youtube_video',
+            'youtube',
+            keyframes,
+            {
+              title: ('title' in ytResult && ytResult.title) ? ytResult.title : undefined,
+              creator: ('channelName' in ytResult && ytResult.channelName) ? ytResult.channelName : undefined,
+              userPrompt,
+            },
+            DEEPSEEK_API_KEY,
+            DEEPSEEK_BASE_URL,
+            signal
+          )
+        : Promise.resolve(null);
+
+      // Race vision against 8000ms so transcript & metadata are never blocked or discarded
+      const visionResult = await Promise.race([
+        visionPromise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000))
+      ]);
 
       // If spoken words are short or prompt asks for claim verification, attach live search grounding
       let searchGroundingBlock = '';
@@ -1644,12 +1653,16 @@ async function processSingleLinkIntelligence(
         summaryBlock: masterBlock
       };
     } catch (err: any) {
+      const fallbackVideoId = extractYouTubeVideoId(url);
+      const fallbackBlock = fallbackVideoId
+        ? `[استخبارات فيديو يوتيوب - معرّف الفيديو: ${fallbackVideoId}]:\n• الرابط: ${url}\n• التوجيه: استند إلى سياق سؤال المستخدم وعنوان/موضوع الفيديو لتقديم إجابة وافية ومفصلة ودقيقة.`
+        : `[فيديو يوتيوب: ${url}]`;
       return {
         index,
         url,
         category: 'youtube',
         platformLabel: 'فيديو يوتيوب (YouTube)',
-        summaryBlock: `[فيديو يوتيوب: ${url}]`
+        summaryBlock: fallbackBlock
       };
     }
   }
@@ -1665,7 +1678,7 @@ async function processSingleLinkIntelligence(
         : [];
 
       if (keyframes.length > 0 && DEEPSEEK_API_KEY && 'author' in ttResult) {
-        visionResult = await performVideoVisionPerception(
+        const visionPromise = performVideoVisionPerception(
           ttResult.videoId,
           'tiktok',
           keyframes,
@@ -1678,6 +1691,10 @@ async function processSingleLinkIntelligence(
           DEEPSEEK_BASE_URL,
           signal
         );
+        visionResult = await Promise.race([
+          visionPromise,
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000))
+        ]);
       }
 
       let profileContext = '';
@@ -1739,7 +1756,7 @@ async function processSingleLinkIntelligence(
         url,
         category: 'tiktok',
         platformLabel: 'فيديو تيك توك (TikTok)',
-        summaryBlock: `[تعذر فحص تيك توك: ${err?.message || 'خطأ'}]`
+        summaryBlock: `[استخبارات فيديو تيك توك: ${url}]:\n• استند إلى سياق سؤال المستخدم وموضوع المقطع لتقديم إجابة كاملة ودقيقة.`
       };
     }
   }
@@ -1785,7 +1802,7 @@ async function processSingleLinkIntelligence(
               : []);
 
         if (keyframes.length > 0 && DEEPSEEK_API_KEY && 'author' in socialResult) {
-          videoVision = await performVideoVisionPerception(
+          const visionPromise = performVideoVisionPerception(
             socialResult.videoId || 'social_video',
             socialInfo.platform,
             keyframes,
@@ -1798,6 +1815,10 @@ async function processSingleLinkIntelligence(
             DEEPSEEK_BASE_URL,
             signal
           );
+          videoVision = await Promise.race([
+            visionPromise,
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000))
+          ]);
         }
 
         summaryBlock = ('canonicalUrl' in socialResult)
@@ -1851,7 +1872,7 @@ async function processSingleLinkIntelligence(
         url,
         category: 'social_media',
         platformLabel: `منصة ${socialInfo?.platform || 'التواصل الاجتماعي'}`,
-        summaryBlock: `[تعذر فحص المنصة: ${err?.message || 'خطأ'}]`
+        summaryBlock: `[استخبارات فيديو منصة ${socialInfo?.platform || 'التواصل الاجتماعي'}: ${url}]:\n• استند إلى سياق سؤال المستخدم وموضوع المقطع لتقديم إجابة كاملة ومفصلة.`
       };
     }
   }
@@ -2176,7 +2197,12 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   const isProCyber26 = isCyber26 && !isFlashCyber26;
   const isCyber = model === 'deepseek-v4-flash-cyber' || isCyber26 || model.includes('cyber') || model.includes('cyper');
   const isVision = model === 'deepseek-v4-flash-vision-exp' || model.includes('vision');
-  const isMediaSpark = model === 'meta/muse-spark-1.2-contributor' || model.includes('muse-spark') || model.includes('spark');
+  const hasVideoUrlInConversation = cleanedMessages.some((m: any) => {
+    const text = typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '');
+    return /(?:youtube\.com|youtu\.be|yt\.be|tiktok\.com|douyin\.com|instagram\.com\/(?:reel|p|tv)|instagr\.am|fb\.watch|facebook\.com\/(?:watch|reel|.*\/videos)|twitter\.com\/.*\/status|x\.com\/.*\/status|\.mp4|\.webm|\.m4a|\.mp3|\.wav)/i.test(text);
+  }) || Boolean(explicitTargetUrl && /(?:youtube\.com|youtu\.be|yt\.be|tiktok\.com|douyin\.com|instagram\.com|instagr\.am|fb\.watch|facebook\.com|twitter\.com|x\.com|\.mp4|\.webm)/i.test(explicitTargetUrl));
+
+  const isMediaSpark = model === 'meta/muse-spark-1.2-contributor' || model.includes('muse-spark') || model.includes('spark') || hasVideoUrlInConversation;
 
   const baseSystemPrompt = isCyber26
     ? (isX1Mode ? `${SYSTEM_PROMPT_CYBER_2_6}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_CYBER_2_6)
@@ -2249,12 +2275,16 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     const mediaAndCodeGuidance = `
 [توجيه استيعاب وفحص الأكواد والمستندات والوسائط — FATHOM SPARK INTELLIGENCE DIRECTIVE]:
 1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى:
-   - أنت تعمل عبر محرك Fathom Spark المتخصص في استيعاب وتفكيك الأكواد البرمجية، الأرشيفات المضغوطة (ZIP)، المستندات، ملفات الصوت، وإطارات الفيديو.
+   - أنت تعمل عبر محرك Fathom Spark المتخصص في استيعاب وتفكيك الأكواد البرمجية، الأرشيفات المضغوطة (ZIP)، المستندات، ملفات الصوت، وإطارات وسائط الفيديو.
    - افحص واستوعب بدقة كافة محتويات الملفات والأكواد المفكوكة وشجرة المجلدات المرفقة، وتتبّع بنية الدوال والملفات والإعدادات.
    - إذا طلب المستخدم مقارنة بين نسختين (مثل قبل/بعد أو أرشيفين مضغوطين):
      * قارن بدقة بين ملفات النسختين سطراً بسطر، واستخرج الاختلافات الفعلية في الأكواد، البنية المعمارية، الدوال المضافة أو المعدلة، التبعيات، وأسلوب التنفيذ.
      * حدد بدقة أين وقع التغيير، ولماذا، وما هي الفروقات التقنية الملموسة.
    - إذا تضمن السياق فيديو أو صوتاً: استوعب سياق حديث المتحدث ومضمون كلامه وفكرته الأساسية، وحلل الطرح من منظور علمي وتطبيقي دقيق.
+   - [ضابط تفكير صارم لفيديوهات وروابط السوشيال ميديا وFathom Spark]:
+     * عند معالجة روابط وفيديوهات (YouTube, TikTok, Instagram, Facebook, X/Twitter)، اجعل تفكيرك داخل <think> سريعاً وموجزاً للغاية (لا يتجاوز سطرين أو ثلاثة أسطر فقط باللغة العربية الفصحى).
+     * يُحظر تماماً حصر الإجابة أو التحليل أو تفاصيل محتوى الفيديو داخل وسم <think>.
+     * أغلق وسم </think> فوراً، وابدأ فوراً بتقديم الإجابة الشاملة، والتحليل المفصل، وما قيل صوتياً وما ظهر بصرياً في صلب الرد الخارجي للمستخدم بأسلوب غني وواضح ومنظم في نقاط وجداول وعناوين واضحة.
 2. بعد إغلاق وسم </think>، قدّم إجابتك باللغة العربية الفصحى بشكل هندسي محكم، منظم، قاطع، مباشر، وعميق:
    - عند المقارنة، اعرض جدول مقارنة احترافي ومفصل يوضح كل ملف، ما تغير فيه بدقة، وتفاصيل الإضافات والتحسينات الفعلية، مع شرح وافٍ ومبني 100% على الأكواد المستخرجة دون اختلاق أو تعميم غامض.
    - أجب بدقة وحسم واستند إلى المعطيات المستخرجة عبر محرك Fathom Spark.
@@ -2305,6 +2335,10 @@ app.post('/api/chat', async (req: Request, res: Response) => {
    - إذا سأل المستخدم سؤالاً استكمالياً أو متابعة (مثل "اسم الواجهه اي يعني برضو" أو "الجدول مكتوب فيه ايه" أو "القرار الصحيح ايه"):
      * حلل محتوى الصورة السابقة بدقة هندسية ومفاهيمية، وحدد نوع الواجهة بدقة (مثل واجهة سوق رقمي Digital Marketplace UI، صفحة تسجيل، جدول تنسيق، لوحة تحكم، إلخ) وقدم التسميات العلمية والتطبيقية المعيارية لها.
    - إذا طلب المستخدم فحص هل الصورة حقيقية أم ذكاء اصطناعي، افحص ملمس البشرة والمسام والإضاءة وانعكاسات الضوء وقدم تقريراً فاحصاً للأدلة البصرية.
+   - إذا رُفعت الصورة بدون نص مرافق من المستخدم (Autonomous Contextual Image Perception):
+     * استوعب الصورة تلقائياً وبشكل بديهي وذكي من سياق المحادثة الممتدة؛ إذا كان هناك حوار سابق، اربط الصورة مباشرة بما كنتم تتناقشون حوله.
+     * إذا كانت الصورة تحتوي على مسألة أو سؤال أو لقطة شاشة لخطأ برمجي أو واجهة مستخدم، قدم الحل المباشر أو التحليل المعياري فوراً دون أن تسأل المستخدم ماذا يريد ودون اختلاق أن المستخدم طلب فحصاً روتينياً.
+     * قدم تحليلاً دقيقاً ومباشراً للمحتوى دون مقدمات مفرطة أو افتعال نصوص وهمية.
 2. بعد إغلاق وسم </think>، قدّم إجابتك باللغة العربية الفصحى بشكل منظم، قاطع، مباشر، وعميق يجيب بدقة تامة على استفسار المستخدم مستنداً إلى التفاصيل البصرية المرئية عبر Fathom Cam دون أي تردد أو اعتذار.
 ممنوع منعاً باتاً كتابة أي تفكير باللغة الإنجليزية أو استخدام كود بلوك thought للإجابة.`;
 
@@ -2326,19 +2360,21 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   let searchMilestonesStreamText = '';
 
   if (allExtractedUrls.length > 0) {
-    console.log(`[MULTI-LINK ENGINE] Discovered (${allExtractedUrls.length}) target URLs. Initiating parallel intelligence...`);
-    const linkPromises = allExtractedUrls.map((url, idx) => {
+    console.log(`[MULTI-LINK ENGINE] Discovered (${allExtractedUrls.length}) target URLs. Initiating fast parallel forensic intelligence...`);
+    const linkPromises = allExtractedUrls.slice(0, 5).map((url, idx) => {
+      const isVideoLink = containsYouTubeUrl(url) || isTikTokUrl(url) || Boolean(extractSocialUrlFromText(url));
+      const timeoutMs = isVideoLink ? 18000 : 10000;
       const singlePromise = processSingleLinkIntelligence(url, idx, rawUserContent, deepSearch, isCyber, upstreamAbortController.signal);
       const timeoutPromise = new Promise<ProcessedLinkData>((resolve) => {
         setTimeout(() => {
           resolve({
             index: idx,
             url,
-            category: 'web_site',
-            platformLabel: 'استطلاع فوري',
+            category: isVideoLink ? 'social_media' : 'web_site',
+            platformLabel: isVideoLink ? 'استخبارات الفيديو السريعة' : 'استطلاع فوري',
             summaryBlock: `[استطلاع الرابط: ${url}]`
           });
-        }, 25000);
+        }, timeoutMs);
       });
       return Promise.race([singlePromise, timeoutPromise]);
     });

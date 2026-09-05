@@ -22,6 +22,8 @@ import { runSvgStudioTests } from './svgStudio.test';
 import { runNeuralImageStudioTests } from './neuralImageStudio.test';
 import { runUltraAndFlashModelsTests } from './ultraAndFlashModels.test';
 import { runDeepSeekAlgorithmsTests } from './deepseekAlgorithms.test';
+import { runSocialVideoSparkTests } from './socialVideoSpark.test';
+import { runEmptyPromptImageTests } from './emptyPromptImage.test';
 
 export async function runAllUnitTests(): Promise<boolean> {
   const harness = new TestHarness();
@@ -48,6 +50,8 @@ export async function runAllUnitTests(): Promise<boolean> {
   await runNeuralImageStudioTests(harness);
   await runUltraAndFlashModelsTests(harness);
   await runDeepSeekAlgorithmsTests(harness);
+  await runSocialVideoSparkTests(harness);
+  await runEmptyPromptImageTests(harness);
 
   const passed = harness.printSummary('UNIT TEST SUITE SUMMARY');
   return passed;

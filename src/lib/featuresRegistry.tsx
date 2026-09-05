@@ -1107,14 +1107,34 @@ export function routeFeatureIntent(
     return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No Fathom Cam vision intent.' };
   }
 
-  // 7. Fathom Spark Media, Code, Zip & Document Intent
+  // 7. Fathom Spark Media, Video, Code, Zip & Document Intent
   if (featureId === 'fathom_spark') {
-    const hasSparkBadge = cLower.includes('fathom spark') || cLower.includes('fathom-spark') || cLower.includes('[fathom spark]') || cLower.includes('muse-spark');
-    const isContextTriggered = Boolean(context?.hasNonImageMedia || context?.hasDocs || context?.hasZip || context?.hasSpark || context?.hasMediaAttachments || context?.hasVideo || context?.hasAudio);
-    const hasSparkReasoning = (rLower.includes('fathom spark') || rLower.includes('fathom_spark') || rLower.includes('تفكيك وسائط') || rLower.includes('تفريغ الصوت') || rLower.includes('أرشيف مضغوط')) && isContextTriggered;
-    const isSparkPrompt = /(?:كود|أكواد|مستند|مستندات|صوتيات|أرشيف|مضغوط|zip|tar|script|compare|مقارنة|النسخة|قبل|بعد)/i.test(pLower) && isContextTriggered;
+    const hasSparkBadge = cLower.includes('fathom spark') || cLower.includes('fathom-spark') || cLower.includes('[fathom spark]') || cLower.includes('muse-spark') || cLower.includes('استخبارات الفيديو');
+    const isVideoUrlInText = /(?:youtube\.com|youtu\.be|yt\.be|tiktok\.com|douyin\.com|instagram\.com\/(?:reel|p|tv)|instagr\.am|fb\.watch|facebook\.com\/(?:watch|reel|.*\/videos)|twitter\.com\/.*\/status|x\.com\/.*\/status|\.mp4|\.webm|\.m4a|\.mp3|\.wav)/i.test(`${pLower} ${cLower}`);
+    const isContextTriggered = Boolean(
+      context?.hasNonImageMedia ||
+      context?.hasDocs ||
+      context?.hasZip ||
+      context?.hasSpark ||
+      context?.hasMediaAttachments ||
+      context?.hasVideo ||
+      context?.hasAudio ||
+      context?.hasFathomSpark ||
+      isVideoUrlInText
+    );
+    const hasSparkReasoning = (
+      rLower.includes('fathom spark') ||
+      rLower.includes('fathom_spark') ||
+      rLower.includes('تفكيك وسائط') ||
+      rLower.includes('تفريغ الصوت') ||
+      rLower.includes('أرشيف مضغوط') ||
+      rLower.includes('استخبارات الفيديو') ||
+      rLower.includes('فحص الفيديو') ||
+      rLower.includes('مقطع الفيديو')
+    );
+    const isSparkPrompt = /(?:كود|أكواد|مستند|مستندات|صوتيات|أرشيف|مضغوط|zip|tar|script|compare|مقارنة|النسخة|قبل|بعد|فيديو|مقطع|ريلز|تيك\s*توك|يوتيوب|شورتس|تفريغ|video|audio)/i.test(pLower);
 
-    if (hasSparkBadge || isContextTriggered || (hasSparkReasoning && isSparkPrompt)) {
+    if (hasSparkBadge || isVideoUrlInText || isContextTriggered || hasSparkReasoning || (isSparkPrompt && (isContextTriggered || rLower.length > 0))) {
       return {
         featureId,
         confidence: 1.0,
@@ -1122,7 +1142,7 @@ export function routeFeatureIntent(
         shouldRenderWidget: true,
         shouldInjectContext: true,
         extractedParams: {},
-        reason: 'Fathom Spark code, archive, document, or media context active.'
+        reason: 'Fathom Spark code, archive, document, or video/media intelligence active.'
       };
     }
 

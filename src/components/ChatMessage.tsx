@@ -23,7 +23,7 @@ import { DownloadDetectCard } from './ui/DownloadDetectCard';
 import { DownloadButton } from './ui/DownloadButton';
 import { SvgStudioCard } from './ui/SvgStudioCard';
 import { NeuralImageCard, type NeuralImageData } from './ui/NeuralImageCard';
-import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon, DownloadDetectIcon, SvgStudioIcon, NeuralImageStudioIcon } from '@/lib/featuresRegistry';
+import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon, DownloadDetectIcon, SvgStudioIcon, NeuralImageStudioIcon, FathomSparkIcon } from '@/lib/featuresRegistry';
 
 const YouTubeIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -1365,6 +1365,11 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     (Array.isArray(message.content) && message.content.some((c: any) => c.type === 'image_url' || c.image_url))
   );
 
+  const hasVideoLinks = useMemo(() => {
+    const combined = `${previousUserPrompt || ''} ${message.content || ''} ${message.reasoning || ''}`;
+    return /(?:youtube\.com|youtu\.be|yt\.be|tiktok\.com|douyin\.com|instagram\.com\/(?:reel|p|tv)|instagr\.am|fb\.watch|facebook\.com\/(?:watch|reel|.*\/videos)|twitter\.com\/.*\/status|x\.com\/.*\/status|\.mp4|\.webm|\.m4a|\.mp3|\.wav)/i.test(combined);
+  }, [previousUserPrompt, message.content, message.reasoning]);
+
   const hasFilesAttached = Boolean(
     (message as any).hasMedia ||
     (message as any).hasFiles ||
@@ -1383,11 +1388,12 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       isMemoryDetectTriggered: (message as any).isMemoryDetectTriggered,
       memoryDetectSummary: (message as any).memoryDetectSummary,
       hasSearchGrounding: Boolean(message.reasoning?.includes('Fathom Search') || message.reasoning?.includes('الاستعلام الشبكي') || (message as any).hasSearch || (message as any).deepSearch),
-      hasFathomCam: hasImagesInChat && !hasFilesAttached,
-      hasFathomSpark: hasFilesAttached || /(?:zip|rar|tar|gz|كود|أكواد|مستند|فيديو|صوت|spark|ملفات|ملف)/i.test(previousUserPrompt),
-      hasNonImageMedia: hasFilesAttached,
+      hasFathomCam: hasImagesInChat && !hasFilesAttached && !hasVideoLinks,
+      hasFathomSpark: hasFilesAttached || hasVideoLinks || /(?:zip|rar|tar|gz|كود|أكواد|مستند|فيديو|مقطع|صوت|spark|ملفات|ملف)/i.test(previousUserPrompt),
+      hasNonImageMedia: hasFilesAttached || hasVideoLinks,
+      hasVideo: hasVideoLinks || Boolean((message as any).hasVideo),
       hasZip: Boolean(message.content?.includes('.zip') || previousUserPrompt?.includes('.zip') || message.reasoning?.includes('.zip')),
-      hasSpark: hasFilesAttached,
+      hasSpark: hasFilesAttached || hasVideoLinks,
       hasImagesInHistory: hasImagesInChat,
       hasImages: Boolean(message.image || (message as any).imagePreview),
     }
@@ -1746,6 +1752,13 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           {message.model === 'deepseek-v4-flash' && (
             <span className="text-[10px] font-mono font-bold text-zinc-300/90 tracking-wide px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.08]">
               Fathom 1.1
+            </span>
+          )}
+
+          {(activeFeatures.some(f => f.id === 'fathom_spark') || isMedia || hasVideoLinks) && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-violet-950/70 text-violet-300 border border-violet-400/40 shadow-[0_0_12px_rgba(167,139,250,0.25)] select-none">
+              <FathomSparkIcon size={11} />
+              <span>FATHOM SPARK</span>
             </span>
           )}
         </div>

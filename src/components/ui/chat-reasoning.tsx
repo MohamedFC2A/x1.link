@@ -610,12 +610,15 @@ export default function ChatReasoning({
   }, [activeFeatures, fullText]);
 
   const isFathomSparkActive = useMemo(() => {
-    if (isFathomSearchActive && !activeFeatures.some(f => f.id === 'fathom_spark')) {
+    if (activeFeatures.some(f => f.id === 'fathom_spark')) {
+      return true;
+    }
+    if (isFathomSearchActive && !/(?:youtube|tiktok|video|reels|watch|استخبارات\s*الفيديو|تفريغ\s*الصوت)/i.test(fullText)) {
       return false;
     }
     return (
       activeFeatures.some(f => f.id === 'fathom_spark' || f.id === 'download_detect') ||
-      /(?:\[?FATHOM\s*SPARK\]?|Fathom\s*Spark|فاثوم\s*سبارك|استيعاب\s*وتفكيك\s*الأكواد|تفكيك\s*الملفات\s*المرفقة|تفريغ\s*التسجيل\s*الصوتي|videoVision|أرشيف\s*مضغوط|محتوى\s*الكود|\.zip|\.rar|\.tar|\.gz|ZIP\s*archive)/i.test(fullText)
+      /(?:\[?FATHOM\s*SPARK\]?|Fathom\s*Spark|فاثوم\s*سبارك|استيعاب\s*وتفكيك\s*الأكواد|تفكيك\s*الملفات\s*المرفقة|تفريغ\s*التسجيل\s*الصوتي|videoVision|استخبارات\s*الفيديو|فحص\s*الفيديو|أرشيف\s*مضغوط|محتوى\s*الكود|\.zip|\.rar|\.tar|\.gz|ZIP\s*archive|youtube\.com|youtu\.be|tiktok\.com|instagram\.com\/reel|fb\.watch)/i.test(fullText)
     );
   }, [activeFeatures, fullText, isFathomSearchActive]);
 

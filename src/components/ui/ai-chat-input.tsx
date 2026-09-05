@@ -640,9 +640,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         const urlsSection = allUrlsToSubmit.join('\n');
         formattedContent = effectivePrompt ? `${urlsSection}\n\n${effectivePrompt}` : urlsSection;
       } else if (!effectivePrompt && hasAttachments) {
-        formattedContent = hasNonImageMedia
-          ? "قم بتحليل واستيعاب كافة المعطيات والملفات والأكواد المرفقة بدقة تامة."
-          : "حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.";
+        // Keep empty when user explicitly uploaded media without typing text; understand contextually
+        formattedContent = "";
       }
 
       const targetModel = hasNonImageMedia

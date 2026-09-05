@@ -424,9 +424,8 @@ export const App: React.FC = () => {
         const names = attachedMediaList.map(m => `"${m.name}" (${m.type})`).join('، ');
         effectivePrompt = `قم بتحليل واستيعاب المعطيات والبيانات الواردة في المرفقات التالية بالتفصيل: ${names}`;
       } else if (uniqueImagesDataUrls.length > 0) {
-        effectivePrompt = uniqueImagesDataUrls.length > 1
-          ? `حلل هذه الـ ${uniqueImagesDataUrls.length} لقطات/صور بصرية وقارن بينها واستخرج كافة التفاصيل والمعلومات بدقة.`
-          : 'حلل هذه الصورة واستخرج كافة التفاصيل والمعلومات الواردة فيها بدقة.';
+        // Zero synthetic text injection: keep prompt empty for autonomous contextual understanding
+        effectivePrompt = '';
       }
     }
 
@@ -511,14 +510,14 @@ export const App: React.FC = () => {
 
     const userCleanDisplayContent = text.trim() || (
       uniqueImagesDataUrls.length > 0
-        ? 'تحليل وفحص الصور المرفقة'
+        ? '' // Zero synthetic text: keep completely empty so user bubble displays clean image only
         : (attachedMediaList.length > 0
             ? (attachedMediaList[0].type === 'audio'
                 ? 'استماع وتحليل المقطع الصوتي المرفق'
                 : attachedMediaList[0].type === 'video'
                   ? 'تحليل وفحص الفيديو المرفق'
                   : 'فحص وتحليل المستند المرفق')
-            : effectivePrompt)
+            : (effectivePrompt || ''))
     );
 
     const userMessage: ChatMessageItem = {
@@ -554,7 +553,8 @@ export const App: React.FC = () => {
     const userId = user ? user.id : null;
 
     if (!targetChatId) {
-      targetChatId = await createCloudChat(userId, userCleanDisplayContent, chosenModel, isX1Active);
+      const chatInitialTitle = userCleanDisplayContent || (uniqueImagesDataUrls.length > 0 ? 'صورة مرفقة' : 'محادثة جديدة');
+      targetChatId = await createCloudChat(userId, chatInitialTitle, chosenModel, isX1Active);
       if (targetChatId) {
         setCurrentChatId(targetChatId);
         updateActiveChatUrlAndStorage(targetChatId);
@@ -565,12 +565,12 @@ export const App: React.FC = () => {
       saveCloudMessage(targetChatId, userId, userMessage);
     }
 
-    // For LLM reasoning, inject effectivePrompt with attachments context
+    // For LLM reasoning, pass userMessage cleanly without fake text
     const messagesForEngine = [
       ...messages,
       {
         ...userMessage,
-        content: effectivePrompt || userCleanDisplayContent
+        content: userCleanDisplayContent || effectivePrompt || ''
       }
     ];
 
