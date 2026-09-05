@@ -28,6 +28,9 @@ export async function runVpsControlTests(harness: TestHarness): Promise<void> {
         'نفذ أمر uptime عبر ssh',
         'ما هو استهلاك المعالج cpu في الخادم؟',
         'أوقف الأتمتة في السيرفر الآن',
+        'شغل سكريبت فحص الثغرات على الخادم',
+        'افحص المنافذ المفتوحة في الـ VPS',
+        'جرب بايلود sql injection في بيئة السيرفر',
       ];
 
       for (const query of positiveQueries) {
@@ -36,13 +39,17 @@ export async function runVpsControlTests(harness: TestHarness): Promise<void> {
       }
     });
 
-    await harness.it('VPS Intent: does not trigger on unrelated general knowledge or coding questions', () => {
+    await harness.it('VPS Intent: does not trigger on unrelated general knowledge, coding questions, or Windows CMD inquiries', () => {
       const negativeQueries = [
         'ما هي عاصمة أستراليا؟',
         'اكتب لي دالة في بايثون لحساب الأعداد الأولية',
         'صمم لي شعار متجاوب بتنسيق SVG',
         'ما هي فوائد الشاي الأخضر للصحة؟',
         'اشرح لي النظرية النسبية العامة لأينشتاين',
+        'ماهو امر تنظيف ملفات الجهاز في CMD وما نتيجة تشغيله جرب',
+        'ما هو أمر تنظيف ملفات الجهاز في cmd',
+        'شرح أمر sfc /scannow في ويندوز',
+        'كيف افتح موجه الأوامر cmd',
       ];
 
       for (const query of negativeQueries) {

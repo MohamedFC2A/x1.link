@@ -39,6 +39,7 @@ import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 import { SmartTooltip } from "@/components/ui/SmartTooltip";
 import { PlatformLogo } from "@/components/ui/PlatformLogo";
 import { ImageForensicsModal } from "@/components/ui/ImageForensicsModal";
+import { Quant3PerfectionIcon } from "./Quant3PerfectionIcon";
 
 // ----------------------------------------------------------------------
 // Types
@@ -967,31 +968,26 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       className={cn(
                         "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group relative overflow-hidden",
                         isSelected
-                          ? "bg-cyan-500/[0.12] text-white font-bold border-cyan-400/40 shadow-lg shadow-cyan-500/10"
-                          : "bg-cyan-950/20 hover:bg-cyan-500/[0.08] text-zinc-200 border-cyan-500/20 hover:border-cyan-400/30"
+                          ? "bg-white/[0.08] text-white font-bold border-white/[0.18]"
+                          : "bg-white/[0.02] hover:bg-white/[0.05] text-zinc-300 border-white/[0.06] hover:border-white/[0.12]"
                       )}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className={cn(
                           "size-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
                           isSelected
-                            ? "bg-gradient-to-br from-cyan-500/30 to-indigo-500/30 border border-cyan-400/50 text-cyan-300 shadow-md"
-                            : "bg-cyan-500/15 border border-cyan-500/25 text-cyan-400 group-hover:bg-cyan-500/25"
+                            ? "bg-white/[0.1] border border-white/20 text-zinc-100"
+                            : "bg-white/[0.04] border border-white/[0.08] text-zinc-400 group-hover:text-zinc-200"
                         )}>
-                          <Sparkles className="w-4 h-4 text-cyan-300 animate-pulse" />
+                          <Quant3PerfectionIcon size={18} className="text-zinc-200" />
                         </div>
                         <div className="min-w-0 flex-1 text-right">
                           <div className="flex items-center justify-between gap-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-black text-xs text-white">Fathom Quant 3</span>
-                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-gradient-to-r from-cyan-500/30 to-purple-500/30 text-cyan-300 border border-cyan-400/30">
-                                الاقوى والأعمق ⚡
-                              </span>
-                            </div>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-cyan-300 shrink-0" />}
+                            <span className="font-bold text-xs text-white">Fathom Quant 3</span>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
                           </div>
-                          <div className="text-[11px] text-zinc-300 font-normal leading-relaxed mt-0.5 group-hover:text-white transition-colors">
-                            تصميم وتعديل الصور بدقة خارقة، استوديو SVG، واستدلال عميق مع تحكم كامل بالكمبيوتر السحابي VPS
+                          <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5 group-hover:text-zinc-300 transition-colors">
+                            تصميم وتعديل الصور بدقة خارقة، استوديو SVG، واستدلال عميق مع تحكم بالكمبيوتر السحابي VPS
                           </div>
                         </div>
                       </div>

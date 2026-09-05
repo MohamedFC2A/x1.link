@@ -34,7 +34,7 @@ export async function runFathomQuant3Tests(harness: TestHarness): Promise<void> 
     await harness.it('Fathom Quant 3: prompt contains sovereign identity and inheritance from Cyber 2.6 Ultra', () => {
       expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('FATHOM QUANT 3');
       expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('Cyber 2.6 ULTRA');
-      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('النموذج السيادي الشامل والأعمق والأقوى كلياً في المنظومة');
+      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('النموذج السيادي المتكامل والشامل');
     });
 
     await harness.it('Fathom Quant 3: prompt strictly enforces VPS mandatory status notice', () => {

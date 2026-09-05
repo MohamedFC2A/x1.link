@@ -24,6 +24,8 @@ import { DownloadButton } from './ui/DownloadButton';
 import { SvgStudioCard } from './ui/SvgStudioCard';
 import { NeuralImageCard, type NeuralImageData } from './ui/NeuralImageCard';
 import { VpsControlRoomCard } from './ui/VpsControlRoomCard';
+import { Quant3PerfectionIcon } from './ui/Quant3PerfectionIcon';
+import { isVpsOrCloudRequest } from '@/lib/vpsUtils';
 import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon, DownloadDetectIcon, SvgStudioIcon, NeuralImageStudioIcon, FathomSparkIcon, VpsControlRoomIcon } from '@/lib/featuresRegistry';
 
 const YouTubeIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -1504,15 +1506,14 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
 
   const isVpsActive = useMemo(() => {
     if (Boolean(message.vpsTelemetry || message.vpsExecution)) return true;
-    if (activeFeatures.some(f => f.id === 'vps_control_room')) return true;
-    const pLower = (previousUserPrompt || '').toLowerCase();
     const cLower = (message.content || '').toLowerCase();
-    const rLower = (message.reasoning || '').toLowerCase();
-    if (cLower.includes('يتم الان الوصول للكمبيوتر والاوامر السحابية') || rLower.includes('يتم الان الوصول للكمبيوتر والاوامر السحابية')) return true;
-    if (cLower.includes('vps_control_room') || cLower.includes('[vps_control') || cLower.includes('104.207.77.162')) return true;
-    if (message.model === 'fathom-quant-3' && /(?:vps|104\.207\.77\.162|سيرفر|السيرفر|الخادم|خادم|كمبيوتر\s*سحابي|اوامر\s*سحابية|pm2|طرفية|terminal|ssh|upstore)/i.test(pLower)) return true;
+    const isVpsPrompt = isVpsOrCloudRequest(previousUserPrompt || '');
+
+    if (cLower.includes('[vps_control_room: live]') || cLower.includes('[vps_control_room: execution]')) return true;
+    if (isVpsPrompt && activeFeatures.some(f => f.id === 'vps_control_room')) return true;
+    if (isVpsPrompt && cLower.includes('104.207.77.162')) return true;
     return false;
-  }, [message.vpsTelemetry, message.vpsExecution, activeFeatures, previousUserPrompt, message.content, message.reasoning, message.model]);
+  }, [message.vpsTelemetry, message.vpsExecution, activeFeatures, previousUserPrompt, message.content]);
 
   const detectedMediaUrl = useMemo(() => {
     if (!hasDownloadDetect) return null;
@@ -1749,9 +1750,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       <div className="flex items-center justify-between w-full mb-1.5 px-1 text-xs text-zinc-400 select-none">
         <div className="flex items-center gap-1.5 font-sans font-medium flex-wrap">
           {message.model === 'fathom-quant-3' && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-cyan-950/70 text-cyan-300 border border-cyan-400/50 shadow-[0_0_12px_rgba(34,211,238,0.3)] select-none">
-              <Sparkles className="w-3 h-3 text-cyan-300 animate-pulse" />
-              <span>FATHOM QUANT 3 ⚡</span>
+            <span className="inline-flex items-center gap-1.5 text-[10.5px] font-mono font-medium px-2 py-0.5 rounded bg-white/[0.04] text-zinc-200 border border-white/[0.09] select-none">
+              <Quant3PerfectionIcon size={12} className="text-zinc-300" />
+              <span>Quant 3</span>
             </span>
           )}
           {message.isX1 && (
@@ -1776,8 +1777,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             </span>
           )}
 
-          {(activeFeatures.some(f => f.id === 'fathom_spark') || isMedia || hasVideoLinks) && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-violet-950/70 text-violet-300 border border-violet-400/40 shadow-[0_0_12px_rgba(167,139,250,0.25)] select-none">
+          {(isMedia || hasVideoLinks || (message.model === 'meta/muse-spark-1.2-contributor')) && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded bg-violet-500/10 text-violet-300 border border-violet-500/20 select-none">
               <FathomSparkIcon size={11} />
               <span>FATHOM SPARK</span>
             </span>
@@ -1990,8 +1991,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               </div>
             )}
 
-            {/* Stable first-class VPS Cloud Computer Control Room Card */}
-            {(isVpsActive || message.vpsTelemetry || message.vpsExecution || message.content?.includes('VPS_CONTROL_ROOM') || message.content?.includes('يتم الان الوصول للكمبيوتر والاوامر السحابية')) && (
+            {/* Stable first-class VPS Cyber Operations & Execution Sandbox Card */}
+            {(isVpsActive || Boolean(message.vpsTelemetry || message.vpsExecution)) && (
               <div className="w-full my-3">
                 <VpsControlRoomCard
                   key={`vps-card-${message.id || 'current'}`}

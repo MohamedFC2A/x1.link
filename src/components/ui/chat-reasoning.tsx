@@ -649,7 +649,7 @@ export default function ChatReasoning({
   }, [activeFeatures, fullText]);
 
   const visibleHeaderFeatures = useMemo(() => {
-    return activeFeatures.filter(f => f.id !== 'fathom_cam' && f.id !== 'fathom_spark' && f.id !== 'fathom_search' && f.id !== 'svg_studio');
+    return activeFeatures.filter(f => f.id !== 'fathom_cam' && f.id !== 'fathom_spark' && f.id !== 'fathom_search' && f.id !== 'svg_studio' && f.id !== 'vps_control_room');
   }, [activeFeatures]);
 
   if (!fullText && !isThinking) return null;

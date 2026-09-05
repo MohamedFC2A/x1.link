@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, ShieldCheck, Database, BrainCircuit, Clock, Flame, Zap } from 'lucide-react';
 import { cn } from './utils';
+import { isVpsOrCloudRequest } from './vpsUtils';
 
 export type FeatureIntentType = 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | 'download_detect' | 'fathom_cam' | 'fathom_spark' | 'fathom_search' | 'svg_studio' | 'neural_image_studio' | 'vps_control_room';
 
@@ -772,11 +773,11 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
     name: 'VPS Control Room',
     nameAr: 'غرفة التحكم بالكمبيوتر السحابي VPS',
     badgeLabel: 'VPS CONTROL ROOM',
-    textClassName: 'text-cyan-300 font-bold',
-    glassClassName: 'bg-cyan-950/70 border border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]',
-    badgeClassName: 'bg-cyan-950/70 text-cyan-300 border border-cyan-400/40',
-    accentColor: '#22d3ee',
-    borderHoverColor: 'border-cyan-400/50',
+    textClassName: 'text-zinc-200 font-bold',
+    glassClassName: 'bg-zinc-900/80 border border-white/10 text-zinc-200',
+    badgeClassName: 'bg-zinc-900/80 text-zinc-300 border border-white/10',
+    accentColor: '#38bdf8',
+    borderHoverColor: 'border-white/20',
     icon: VpsControlRoomIcon,
     detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
       const plan = routeFeatureIntent('vps_control_room', prompt, reasoning, content, context);
@@ -1187,14 +1188,14 @@ export function routeFeatureIntent(
       rLower.includes('fathom_spark') ||
       rLower.includes('تفكيك وسائط') ||
       rLower.includes('تفريغ الصوت') ||
-      rLower.includes('أرشيف مضغوط') ||
       rLower.includes('استخبارات الفيديو') ||
       rLower.includes('فحص الفيديو') ||
       rLower.includes('مقطع الفيديو')
     );
-    const isSparkPrompt = /(?:كود|أكواد|مستند|مستندات|صوتيات|أرشيف|مضغوط|zip|tar|script|compare|مقارنة|النسخة|قبل|بعد|فيديو|مقطع|ريلز|تيك\s*توك|يوتيوب|شورتس|تفريغ|video|audio)/i.test(pLower);
+    const isSparkModel = context?.model === 'meta/muse-spark-1.2-contributor';
 
-    if (hasSparkBadge || isVideoUrlInText || isContextTriggered || hasSparkReasoning || (isSparkPrompt && (isContextTriggered || rLower.length > 0))) {
+    // Strictly require real media or zip/audio/video attachments; never fire on plain text reasoning
+    if (hasSparkBadge || isVideoUrlInText || isContextTriggered || isSparkModel || (hasSparkReasoning && (isVideoUrlInText || isContextTriggered))) {
       return {
         featureId,
         confidence: 1.0,
@@ -1326,17 +1327,17 @@ export function routeFeatureIntent(
 
   // 11. VPS Control Room & Sovereign Cloud Computer Intent
   if (featureId === 'vps_control_room') {
-    const hasVpsNotice = cLower.includes('يتم الان الوصول للكمبيوتر والاوامر السحابية') || rLower.includes('يتم الان الوصول للكمبيوتر والاوامر السحابية');
-    const hasVpsTag = cLower.includes('vps_control_room') || cLower.includes('[vps-control') || cLower.includes('vps control room') || cLower.includes('104.207.77.162');
-    const isVpsPrompt = /(?:vps|104\.207\.77\.162|سيرفر|السيرفر|الخادم|خادم|كمبيوتر\s*سحابي|الكمبيوتر\s*السحابي|اوامر\s*سحابية|الاوامر\s*السحابية|غرفة\s*تحكم|غرفة\s*التحكم|pm2|أوامر\s*لينكس|اوامر\s*لينكس|طرفية|terminal|ubuntu|ssh|upstore)/i.test(pLower);
-    const isContextVps = Boolean(context?.hasVps || context?.isVpsActive || context?.hasVpsTelemetry || context?.model === 'fathom-quant-3' && isVpsPrompt);
+    const isVpsPrompt = isVpsOrCloudRequest(prompt);
+    const hasVpsTag = cLower.includes('[vps_control_room: live]') || cLower.includes('[vps-control') || cLower.includes('104.207.77.162');
+    const hasExplicitVpsNotice = (cLower.includes('يتم الان الوصول للكمبيوتر والاوامر السحابية') || rLower.includes('يتم الان الوصول للكمبيوتر والاوامر السحابية')) && isVpsPrompt;
+    const isContextVps = Boolean(context?.hasVps || context?.isVpsActive || context?.hasVpsTelemetry || (context?.model === 'fathom-quant-3' && isVpsPrompt));
 
-    if (hasVpsNotice || hasVpsTag || isVpsPrompt || isContextVps) {
+    if (hasExplicitVpsNotice || hasVpsTag || isVpsPrompt || isContextVps) {
       return {
         featureId,
         confidence: 1.0,
         category: 'actionable',
-        shouldRenderWidget: true,
+        shouldRenderWidget: false, // Do not pollute accordion header with badges
         shouldInjectContext: true,
         extractedParams: {},
         reason: 'VPS Control Room cloud computer agent or command execution active.'
