@@ -110,6 +110,7 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
     await harness.it('should strictly enforce Cyber Ultra exclusivity for neural photo manipulation', () => {
       expect(DynamicParameterTuner.isCyberUltraModel('deepseek-v4-pro-cyber-2.6')).toBe(true);
       expect(DynamicParameterTuner.isCyberUltraModel('fathom-cyber-2.6')).toBe(true);
+      expect(DynamicParameterTuner.isCyberUltraModel('fathom-quant-3')).toBe(true);
       expect(DynamicParameterTuner.isCyberUltraModel('deepseek-v4-pro-cyber-2.1')).toBe(true);
       expect(DynamicParameterTuner.isCyberUltraModel('deepseek-v4-flash')).toBe(false);
       expect(DynamicParameterTuner.isCyberUltraModel('meta/muse-spark-1.2-contributor')).toBe(false);

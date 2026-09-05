@@ -1292,22 +1292,23 @@ export function routeFeatureIntent(
   if (featureId === 'neural_image_studio') {
     const hasNeuralBadge = cLower.includes('neural image') || cLower.includes('neural-image') || cLower.includes('[neural-image') || cLower.includes('cyber ultra neural');
     const hasNeuralBlock = cLower.includes('```neural-image') || (cLower.includes('"operation"') && (cLower.includes('"fidelityScore"') || cLower.includes('"resolution"')));
-    const hasNeuralReasoning = rLower.includes('neural image') || rLower.includes('معالجة عصبية') || rLower.includes('تعديل الصور') || rLower.includes('cyber ultra') || rLower.includes('inpainting');
+    const hasNeuralReasoning = rLower.includes('neural image') || rLower.includes('معالجة عصبية') || rLower.includes('تعديل الصور') || rLower.includes('cyber ultra') || rLower.includes('quant 3') || rLower.includes('fathom quant') || rLower.includes('inpainting');
 
     const hasImageMentionForNeural = hasImages || Boolean(context?.hasImagesInHistory) || /(?:في\s+الصورة|الصورة\s+المرفقة|الصورة\s+دي|الصورة\s+هذه|الصورة|صورتين|الصورتين|photo|image)/i.test(pLower);
-    const isPhotoEditPrompt = hasImageMentionForNeural && (
+    const isPhotoEditPrompt = (hasImageMentionForNeural || /(?:وجه|ملامح|شخص|بشرة|بشره|عينين|عيون|يد|أصابع|اصابع|retouch)/i.test(pLower)) && (
       /(?:غير|عدل|بدل|لون)\s+(?:لي\s+)?(?:لون\s+)?(?:القميص|البنطلون|الفستان|السيارة|العربية|الشعر|العين|العينين|الحذاء|الجاكيت|التيشيرت|المنتج|العنصر|الكائن|الكوب|العلبة|الخلفية|الباب|الجدار|اللون|الشيء|حاجة|حاجه)/i.test(pLower) ||
       /(?:احذف|شيل|ازالة|إزالة|عزل|اعزل|غير|بدل)\s+(?:لي\s+)?(?:الخلفية|خلفية\s+الصورة|الباكجراوند)/i.test(pLower) ||
       /(?:اضف|أضف|ادمج|حط|ركب|اجمع)\s+(?:لي\s+)?(?:شخصين|الشخصين|الصورتين|شخص\s+تاني|مع\s+بعض|جنب\s+بعض|صورة\s+شخص|وجه|ملامح)/i.test(pLower) ||
       /(?:تحسين|حسن|وضح|توضيح|علي|علّي|ارفع|زوّد|تكبير|زيادة)\s+(?:لي\s+)?(?:جودة\s+الصورة|دقة\s+الصورة|الملامح|الجودة|الدقة|ريزوليوشن|resolution|clarity|upscale|enhance|2k|4k)/i.test(pLower) ||
+      /(?:معالجة\s+الوجه|تعديل\s+الوجه|تعديل\s+الشخص|معالجة\s+البشر|تعديل\s+البشر|اصلاح\s+الملامح|تعديل\s+الملامح|تعديل\s+الجسم|تصحيح\s+اليد|تصحيح\s+الاصابع|تنقية\s+البشرة|مسام\s+البشرة|skin\s+retouch|face\s+retouch|portrait\s+enhancement)/i.test(pLower) ||
       /(?:صورة\s+منتج|عدل\s+المنتج|تعديل\s+صورة\s+المنتج|غير\s+صورة\s+المنتج|mockup|product\s+photo)/i.test(pLower) ||
       /(?:غير|عدل|بدل|استبدل|احذف|امسح)\s+(?:لي\s+)?(?:النص|الكلام|الكتابة|النصوص|الكلمة|الجملة)\s+(?:في\s+الصورة|المكتوب|المكتوبة)/i.test(pLower) ||
       /(?:عدل\s+على\s+الصورة|تعديل\s+الصورة|ظبط\s+الصورة|معالجة\s+الصورة|عدل\s+الصورة|edit\s+photo|modify\s+image|inpaint|recolor|upscale|remove\s+background)/i.test(pLower)
     );
 
     const isPhotoGenPrompt = !pLower.includes('svg') && !pLower.includes('فيكتور') && (
-      /(?:صورة\s+واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|صورة\s+طبيعية|صورة\s+احترافية|صورة\s+شخصية|بورتريه\s+فوتوغرافي|صورة\s+منتج|ولد\s+لي\s+صورة\s+واقعية|انشئ\s+لي\s+صورة\s+واقعية)/i.test(pLower) ||
-      /\b(?:photorealistic|realistic\s+photo|dslr\s+shot|hyperrealistic\s+photo)\b/i.test(pLower)
+      /(?:صورة\s+(?:فائقة\s+)?واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|صورة\s+طبيعية|صورة\s+احترافية|صورة\s+شخصية|بورتريه|صورة\s+شخص|صورة\s+بشر|صورة\s+رجل|صورة\s+بنت|صورة\s+طفل|صورة\s+منتج|ولد\s+لي\s+صورة|انشئ\s+لي\s+صورة|اعملي\s+صورة|صمم\s+لي\s+صورة\s+واقعية)/i.test(pLower) ||
+      /\b(?:photorealistic|realistic\s+photo|dslr\s+shot|hyperrealistic|realistic\s+portrait|realistic\s+human|realistic\s+person)\b/i.test(pLower)
     );
 
     if (hasNeuralBadge || hasNeuralBlock || isPhotoEditPrompt || isPhotoGenPrompt || hasNeuralReasoning) {

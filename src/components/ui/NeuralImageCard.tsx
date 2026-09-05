@@ -17,13 +17,14 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
-  Info
+  Info,
+  User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NeuralImageStudioIcon } from '@/lib/featuresRegistry';
 
 export interface NeuralImageData {
-  operation?: 'recolor' | 'remove_background' | 'enhance_4k' | 'composite' | 'product_edit' | 'text_edit' | 'generate' | string;
+  operation?: 'recolor' | 'remove_background' | 'enhance_4k' | 'composite' | 'product_edit' | 'text_edit' | 'generate' | 'portrait_generation' | 'human_edit' | string;
   title?: string;
   description?: string;
   originalImage?: string;
@@ -51,7 +52,15 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
 }) => {
   // Resolve images
   const originalSrc = data.originalImage || fallbackOriginalImage || null;
-  const processedSrc = data.processedImage || data.imageUrl || originalSrc || '';
+  const processedSrc = useMemo(() => {
+    if (data.processedImage) return data.processedImage;
+    if (data.imageUrl) return data.imageUrl;
+    if (data.prompt) {
+      const cleanPrompt = encodeURIComponent(data.prompt.trim());
+      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true`;
+    }
+    return originalSrc || '';
+  }, [data.processedImage, data.imageUrl, data.prompt, originalSrc]);
 
   // Local interactive states
   const [sliderPosition, setSliderPosition] = useState<number>(50);
@@ -65,6 +74,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   const [activeFilter, setActiveFilter] = useState<'none' | 'enhanced' | 'bg_removed' | 'recolored'>('none');
   const [recolorHue, setRecolorHue] = useState<number>(0);
   const [showRecolorControl, setShowRecolorControl] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const activeProcessedSrc = processedSrc;
@@ -72,6 +82,12 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   // Operation translation & badges
   const operationMeta = useMemo(() => {
     const op = (data.operation || '').toLowerCase();
+    if (op.includes('portrait') || op.includes('human_gen') || op.includes('face_gen')) {
+      return { label: 'توليد بورتريه فوتوغرافي واقعي', icon: User, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/30' };
+    }
+    if (op.includes('human_edit') || op.includes('anatomy') || op.includes('retouch')) {
+      return { label: 'معالجة وتعديل بشري جراحي', icon: Sparkles, color: 'text-teal-400', bg: 'bg-teal-500/10 border-teal-500/30' };
+    }
     if (op.includes('recolor') || op.includes('color')) {
       return { label: 'تغيير لون انتقائي', icon: Sliders, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' };
     }
@@ -381,16 +397,31 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         {/* Single Processed View */}
         {(!hasDualImages || viewMode === 'processed') && (
           <div className="relative w-full h-full flex items-center justify-center p-2">
-            <img
-              src={activeProcessedSrc}
-              alt={data.title || "صورة معدلة عصبياً"}
-              className={cn(
-                "max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-all duration-200",
-                activeFilter === 'enhanced' && "contrast-[1.08] saturate-[1.1] brightness-[1.02]",
-                activeFilter === 'recolored' && recolorHue !== 0 && `hue-rotate-[${recolorHue}deg]`
-              )}
-              style={activeFilter === 'recolored' && recolorHue !== 0 ? { filter: `hue-rotate(${recolorHue}deg) saturate(1.15)` } : undefined}
-            />
+            {loadError ? (
+              <div className="flex flex-col items-center justify-center p-6 text-center gap-3 text-zinc-400">
+                <span className="text-sm font-sans">جاري مزامنة الصورة أو تعذر العرض مؤقتاً</span>
+                <button
+                  type="button"
+                  onClick={() => setLoadError(false)}
+                  className="px-3.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white text-xs flex items-center gap-1.5 transition font-sans"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>إعادة المحاولة</span>
+                </button>
+              </div>
+            ) : (
+              <img
+                src={activeProcessedSrc}
+                alt={data.title || "صورة معدلة عصبياً"}
+                onError={() => setLoadError(true)}
+                className={cn(
+                  "max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-all duration-200",
+                  activeFilter === 'enhanced' && "contrast-[1.08] saturate-[1.1] brightness-[1.02]",
+                  activeFilter === 'recolored' && recolorHue !== 0 && `hue-rotate-[${recolorHue}deg]`
+                )}
+                style={activeFilter === 'recolored' && recolorHue !== 0 ? { filter: `hue-rotate(${recolorHue}deg) saturate(1.15)` } : undefined}
+              />
+            )}
             <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-cyan-500/30 text-[10px] font-mono text-cyan-200 font-bold shadow-lg">
               معالجة عصبية 100%
             </div>

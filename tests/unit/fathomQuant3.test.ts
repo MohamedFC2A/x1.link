@@ -52,9 +52,19 @@ export async function runFathomQuant3Tests(harness: TestHarness): Promise<void> 
 
     await harness.it('Fathom Quant 3: prompt contains Photorealistic Synthesis and Surgical Contextual Image Editing', () => {
       expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('Photorealistic Image Synthesis');
-      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('Surgical Contextual Image Editing');
+      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('Surgical Contextual Image & Human Inpainting');
       expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('استوديو SVG السيادي');
       expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('100%');
+    });
+
+    await harness.it('Fathom Quant 3: prompt strictly enforces Flawless Human Anatomy and 100% Likeness Preservation', () => {
+      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('Flawless Human Anatomy & Photorealistic Faces');
+      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('Hands & Fingers Precision');
+      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('Skin Micro-Pores');
+      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('Subsurface Scattering');
+      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('100% Subject Identity & Likeness Preservation');
+      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('Hasselblad H6D-100c');
+      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('85mm');
     });
 
     await harness.it('Fathom Quant 3: prompt enforces Sovereign Cyber Architecture Axioms (RFC 9449, Kafka Zero-Trust)', () => {
@@ -67,6 +77,12 @@ export async function runFathomQuant3Tests(harness: TestHarness): Promise<void> 
     });
 
     // ─── 3. Dynamic Tuning for Visual and SVG Tasks under Fathom Quant 3 ──────
+    await harness.it('Fathom Quant 3: qualifies as a Cyber Ultra model in DynamicParameterTuner', () => {
+      expect(DynamicParameterTuner.isCyberUltraModel('fathom-quant-3')).toBe(true);
+      expect(DynamicParameterTuner.isCyberUltraModel('FATHOM-QUANT-3')).toBe(true);
+      expect(DynamicParameterTuner.isCyberUltraModel('fathom-quant')).toBe(true);
+    });
+
     await harness.it('Fathom Quant 3: tunes parameters for photorealistic image prompts', () => {
       const result = DynamicParameterTuner.tune({
         userPrompt: 'صمم لي صورة فائقة الواقعية من الصفر لرجل فضاء على كوكب المريخ بدقة سينمائية',
@@ -76,6 +92,18 @@ export async function runFathomQuant3Tests(harness: TestHarness): Promise<void> 
       expect(result.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
       expect(result.hyperparameters.temperature).toBeGreaterThanOrEqual(0.3);
       expect(result.hyperparameters.max_tokens).toBe(32768);
+    });
+
+    await harness.it('Fathom Quant 3: tunes parameters for human portrait generation', () => {
+      const result = DynamicParameterTuner.tune({
+        userPrompt: 'انشئ لي بورتريه فوتوغرافي واقعي لشخص في الاستوديو مع إضاءة سينمائية ومسام بشرة حقيقية',
+        requestedModel: 'fathom-quant-3',
+      });
+
+      expect(result.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
+      expect(result.calibrationDirective).toContain('Flawless Human Anatomy');
+      expect(result.calibrationDirective).toContain('photorealistic skin micro-pores');
+      expect(result.hyperparameters.temperature).toBeGreaterThanOrEqual(0.3);
     });
 
     await harness.it('Fathom Quant 3: tunes parameters for surgical contextual image editing', () => {

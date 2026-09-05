@@ -1413,6 +1413,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       try {
         const parsed = JSON.parse(neuralBlockMatch[1]);
         if (parsed && typeof parsed === 'object') {
+          if (!parsed.imageUrl && !parsed.processedImage && parsed.prompt) {
+            parsed.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=1024&height=1024&model=flux&nologo=true&enhance=true`;
+          }
           return parsed;
         }
       } catch {
