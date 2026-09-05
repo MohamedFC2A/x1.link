@@ -19,6 +19,7 @@ import { runChatReasoningMilestonesTests } from './chatReasoningMilestones.test'
 import { runCyberSecurityArchitectureTests } from './cyberSecurityArchitecture.test';
 import { runDynamicParameterTunerTests } from './dynamicParameterTuner.test';
 import { runSvgStudioTests } from './svgStudio.test';
+import { runUltraAndFlashModelsTests } from './ultraAndFlashModels.test';
 
 export async function runAllUnitTests(): Promise<boolean> {
   const harness = new TestHarness();
@@ -42,6 +43,7 @@ export async function runAllUnitTests(): Promise<boolean> {
   await runCyberSecurityArchitectureTests(harness);
   await runDynamicParameterTunerTests(harness);
   await runSvgStudioTests(harness);
+  await runUltraAndFlashModelsTests(harness);
 
   const passed = harness.printSummary('UNIT TEST SUITE SUMMARY');
   return passed;

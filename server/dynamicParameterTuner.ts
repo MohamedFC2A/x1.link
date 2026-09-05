@@ -542,20 +542,33 @@ export class DynamicParameterTuner {
     // ─────────────────────────────────────────────────────────────────────────
     switch (modelFamily) {
       case 'deepseek-pro':
-        if (complexity === 'EXHAUSTIVE_ARCHITECTURAL') {
+        // Ultra Sovereign Reasoning Engine: deep deductive logic, high precision, zero hallucination
+        if (complexity === 'EXHAUSTIVE_ARCHITECTURAL' || intent === 'CYBERSECURITY_AND_EXPLOIT_AUDITING') {
           max_tokens = 32768;
+        }
+        if (intent === 'MATHEMATICAL_AND_DEDUCTIVE_LOGIC') {
+          temperature = 0.10;
+          top_p = 0.90;
+          frequency_penalty = 0.0;
         }
         break;
 
       case 'deepseek-flash':
-        // Ultra-low latency engine: max tokens capped at 16384 for stability
-        max_tokens = Math.min(max_tokens, 16384);
-        // Slight dampening on temperature to prevent speed-induced hallucinations in non-creative modes
+        // Flash Ultra-Velocity Engine: Sub-second TTFT, peak token efficiency, high signal-to-noise ratio
+        if (complexity === 'LIGHT') {
+          max_tokens = 4096;
+        } else if (complexity === 'STANDARD') {
+          max_tokens = 8192;
+        } else {
+          max_tokens = Math.min(max_tokens, 16384);
+        }
+        // Dampen temperature to prevent speed-induced hallucinations and ensure compact output
         if (intent !== 'CREATIVE_LITERARY_AND_BRAINSTORMING' && intent !== 'UNINHIBITED_PERSONA_X1') {
           temperature = Math.min(temperature, 0.70);
         } else {
           temperature = Math.min(temperature, 0.85);
         }
+        frequency_penalty = Math.max(frequency_penalty, 0.04);
         break;
 
       case 'deepseek-reasoner':
@@ -697,7 +710,11 @@ export class DynamicParameterTuner {
 • نمط الإجابة والمسار: [${target.ar}] (${target.mode})
 • التوجيه الصارم:
   ${target.directive}
-• ضوابط الإخراج الصارمة: فكّر أولاً بعمق وهدوء باللغة العربية داخل وسم <think>...</think> لتنظيم وتفكيك المعطيات منطقياً، ثم بعد إغلاق الوسم قدّم إجابتك فوراً بصلب الموضوع باللغة العربية الفصحى المعاصرة بدون أي مقدمات تكرارية أو رموز تعبيرية (Emojis).
+• ضوابط الإخراج وكفاءة التوكنس (Token Economy & Zero Preamble):
+  1. فكّر أولاً بعمق وهدوء باللغة العربية داخل وسم <think>...</think> لتنظيم وتفكيك المعطيات منطقياً.
+  2. بعد إغلاق الوسم </think>، قدّم إجابتك فوراً بصلب الموضوع باللغة العربية الفصحى المعاصرة.
+  3. حظر مطلق لأي مقدمات استهلاكية أو عبارات مجاملة (مثل "أهلاً بك"، "حسناً"، "بالتأكيد"، "يسعدني"). ابدأ مباشرة بالإجابة أو الكود أو الجدول المطلوب لتحقيق أقصى كثافة معلوماتية لكل توكن.
+  4. حظر مطلق لاستخدام أي إيموجي (No Unicode Emojis).
 `.trim();
   }
 
