@@ -1297,6 +1297,26 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       }
     }
 
+    // 7.b. Resilient SVG Recovery: If raw does not contain <svg, but foundReasoning contains an SVG block, extract it
+    const rawHasSvg = raw.includes('<svg') && (raw.includes('</svg>') || message.isThinking);
+    if (!rawHasSvg && foundReasoning.includes('<svg')) {
+      const svgCodeMatch = /```(?:svg|xml|html)?\s*(<svg[\s\S]*?(?:<\/svg>|$))/i.exec(foundReasoning) ||
+        /(<svg[\s\S]*?(?:<\/svg>|$))/i.exec(foundReasoning);
+      if (svgCodeMatch) {
+        const extractedSvg = svgCodeMatch[1].trim();
+        const formattedBlock = extractedSvg.startsWith('```')
+          ? extractedSvg
+          : `\`\`\`svg\n${extractedSvg}${extractedSvg.includes('</svg>') ? '' : '\n</svg>'}\n\`\`\``;
+        raw = raw ? `${raw}\n\n${formattedBlock}` : formattedBlock;
+        foundReasoning = foundReasoning.replace(svgCodeMatch[0], '').trim();
+      }
+    }
+
+    // 7.c. Auto-wrap raw un-fenced <svg ... </svg> in raw content to ensure SvgStudioCard is activated
+    if (raw.includes('<svg') && !raw.includes('```svg') && !raw.includes('```xml') && !raw.includes('```html')) {
+      raw = raw.replace(/(<svg[\s\S]*?<\/svg>)/gi, '\n\n```svg\n$1\n```\n\n');
+    }
+
     return {
       displayContent: raw,
       effectiveReasoning: foundReasoning
@@ -1348,6 +1368,17 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const isAiDetectIntent = activeFeatures.some(f => f.id === 'ai_detect');
   const isTimeIntent = activeFeatures.some(f => f.id === 'time_detect');
   const hasDownloadDetect = activeFeatures.some(f => f.id === 'download_detect');
+
+  const isSvgStudioActive = useMemo(() => {
+    if (activeFeatures.some(f => f.id === 'svg_studio')) return true;
+    const pLower = (previousUserPrompt || '').toLowerCase();
+    if (/(?:svg|فيكتور|متجهات|vector)/i.test(pLower)) return true;
+    if (/(?:تصميم|صمم|ارسم|رسم|اعمل|سوي|ولد|توليد|انشئ|أنشئ|ابني|صنع|draw|design|create|generate)\s+(?:لي\s+)?(?:صورة\s+)?(?:لوجو|شعار|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower)) return true;
+    if (/(?:لوجو|شعار|ايقونة|أيقونة)\s+(?:احترافي|حديث|فكتور|بصري|مبتكر|لـ|للـ|عن|بسيط|متقن)/i.test(pLower)) return true;
+    if (message.content && (message.content.includes('<svg') || message.content.includes('```svg'))) return true;
+    if (message.reasoning && (message.reasoning.includes('<svg') || message.reasoning.includes('```svg'))) return true;
+    return false;
+  }, [activeFeatures, previousUserPrompt, message.content, message.reasoning]);
 
   const detectedMediaUrl = useMemo(() => {
     if (!hasDownloadDetect) return null;
@@ -1608,15 +1639,27 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       </div>
 
       <div className="w-full rounded-2xl p-3.5 sm:p-6 text-right transition-all duration-300 bg-[#0a0b0e]/70 backdrop-blur-md border border-white/[0.07] hover:border-white/[0.12] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] text-zinc-200 overflow-hidden break-words">
-        {(hasReasoning || isThinking) && (
-          <ChatReasoning
-            reasoningText={effectiveReasoning}
-            isThinking={isThinking}
-            isStreaming={isStreaming}
-            isX1={message.isX1}
-            isTimeIntent={isTimeIntent}
-            activeFeatures={activeFeatures}
-          />
+        {isSvgStudioActive ? (
+          // SVG Studio Mode: Clean single-line indicator during creation, completely remove thinking button during and after
+          (isThinking || isStreaming) && !displayContent.includes('</svg>') ? (
+            <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
+              <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+              <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
+                جاري انشاء صورة ذو رسومات شعاعية ......
+              </span>
+            </div>
+          ) : null
+        ) : (
+          (hasReasoning || isThinking) && (
+            <ChatReasoning
+              reasoningText={effectiveReasoning}
+              isThinking={isThinking}
+              isStreaming={isStreaming}
+              isX1={message.isX1}
+              isTimeIntent={isTimeIntent}
+              activeFeatures={activeFeatures}
+            />
+          )
         )}
 
         {isStreaming && !message.content && !hasReasoning && !isThinking ? (
@@ -1715,6 +1758,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   "جاري الاستطلاع الأمني وتدقيق الهدف والبحث الحي..."
                 ) : message.isX1 ? (
                   "جاري تحرير المحرك العصبي واستدعاء الرد..."
+                ) : isSvgStudioActive ? (
+                  "جاري انشاء صورة ذو رسومات شعاعية ......"
                 ) : (
                   "جاري توليد الاستجابة اللغوية الفصحى..."
                 )}

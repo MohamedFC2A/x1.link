@@ -641,8 +641,12 @@ export default function ChatReasoning({
   const camMilestone = useMemo(() => milestones.find(m => m.specialType === 'cam'), [milestones]);
   const sparkMilestone = useMemo(() => milestones.find(m => m.specialType === 'spark'), [milestones]);
 
+  const isSvgStudioActive = useMemo(() => {
+    return activeFeatures.some(f => f.id === 'svg_studio') || /(?:<svg|```svg)/i.test(fullText);
+  }, [activeFeatures, fullText]);
+
   const visibleHeaderFeatures = useMemo(() => {
-    return activeFeatures.filter(f => f.id !== 'fathom_cam' && f.id !== 'fathom_spark' && f.id !== 'fathom_search');
+    return activeFeatures.filter(f => f.id !== 'fathom_cam' && f.id !== 'fathom_spark' && f.id !== 'fathom_search' && f.id !== 'svg_studio');
   }, [activeFeatures]);
 
   if (!fullText && !isThinking) return null;
@@ -665,7 +669,10 @@ export default function ChatReasoning({
             : "border-white/[0.07] bg-[#07080a]/60 hover:border-white/[0.12] shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
         )}
       >
-        <AccordionTrigger className="text-[11.5px] sm:text-xs font-medium text-zinc-300 hover:text-white hover:no-underline py-2 sm:py-2.5 w-full flex items-center justify-between cursor-pointer group">
+        <AccordionTrigger
+          hideChevron={isSvgStudioActive}
+          className="text-[11.5px] sm:text-xs font-medium text-zinc-300 hover:text-white hover:no-underline py-2 sm:py-2.5 w-full flex items-center justify-between cursor-pointer group"
+        >
           <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
             <div className="flex items-center justify-center size-4.5 sm:size-5 shrink-0">
               {isThinking ? (
@@ -683,7 +690,9 @@ export default function ChatReasoning({
 
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <span className="font-mono text-[11px] sm:text-xs text-zinc-200 font-semibold tracking-tight">
-                {isThinking ? (
+                {isSvgStudioActive ? (
+                  "جاري انشاء صورة ذو رسومات شعاعية ......"
+                ) : isThinking ? (
                   <span className="inline-flex items-center gap-1">
                     <span>جاري التفكير والتحليل المنطقي</span>
                     <AnimatedDots className="bg-zinc-300" />

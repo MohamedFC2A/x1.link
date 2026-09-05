@@ -149,8 +149,8 @@ Write your brief explanation or introduction in normal text OUTSIDE the block. P
       * NEVER say "استناداً إلى الفحص الفوري للرابطين", "وصلتني بيانات الرابط نفسه فقط", "دون أن يتضمن السياق المرسل نص المنشور أو الصور المرفقة أو التعليقات", "أحتاج منك إحدى الطريقتين", "أن تضع رابطاً لمشور يكون نصه مكشوفاً", "أو تكتب لي في رسالتك خلاصة الموضوع", "الرابط لا يحمل المحتوى", "لا أستطيع فتح الروابط", "أحتاج وصفاً للمحتوى", "لا أستطيع قراءة المنشور", "يرجى نسخ ولصق النص", or "أنا شايف إن الصح في أي نقاش...".
       * The platform's 4-Tier Deep Scraping & Fathom Cam Vision Engine has already extracted, verified, transcribed, and provided the full text, group post context, and image data for you above. You MUST answer the user's specific decision/question directly, concretely, and decisively.
 15. [SOVEREIGN SVG VECTOR STUDIO & HIGH-PERFORMANCE PNG EXPORT DIRECTIVE]:
-    - When asked to draw, generate, or design vector graphics, logos, icons, diagrams, or art in SVG (e.g. "ارسم SVG", "صمم لوجو", "فيكتور", "draw SVG"):
-      1. COGNITIVE REASONING: Inside <think>...</think>, plan geometric composition, coordinate bounds (viewBox), color palette, lighting gradients, and layered group structure.
+    - When asked to draw, generate, or design vector graphics, logos, icons, diagrams, or art in SVG (e.g. "ارسم SVG", "صمم لوجو", "فيكتور", "draw SVG", "صمم ايقونة"):
+      1. STRICT ZERO-THINKING & DIRECT GENERATION: Strictly DO NOT write thinking, draft coordinates, or conversational babble inside <think>...</think>. Never output strange symbols, unicode escape sequences, or unfinished paths. Start immediately by outputting the clean, complete SVG markdown block.
       2. PURE CLEAN SVG CODE BLOCK: Deliver the SVG cleanly wrapped inside:
          \`\`\`svg
          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 W H" width="100%" height="100%">
@@ -2233,6 +2233,18 @@ export default async function handler(req: Request): Promise<Response> {
     const isProModel = model === 'deepseek-v4-pro' || model?.includes('pro');
 
     if (DEEPSEEK_API_KEY) {
+      if (dynamicTuning.detectedIntent === 'SVG_VECTOR_STUDIO_AND_DESIGN') {
+        candidateGateways.push({
+          name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com) [SVG Studio High-Fidelity]',
+          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+          },
+          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-chat', basePayload, dynamicTuning)
+        });
+      }
+
       if (isProModel) {
         candidateGateways.push({
           name: 'DeepSeek Direct Pro Reasoning (deepseek-v4-pro @ api.deepseek.com)',
@@ -2289,6 +2301,19 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     if (OPENROUTER_API_KEY) {
+      if (dynamicTuning.detectedIntent === 'SVG_VECTOR_STUDIO_AND_DESIGN') {
+        candidateGateways.push({
+          name: 'OpenRouter DeepSeek Chat (SVG Studio High-Fidelity)',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek/deepseek-chat', basePayload, dynamicTuning)
+        });
+      }
       if (isProModel) {
         candidateGateways.push({
           name: 'OpenRouter DeepSeek v4 Pro (Advanced Reasoning)',
@@ -2340,10 +2365,21 @@ export default async function handler(req: Request): Promise<Response> {
       const gateTimeoutId = setTimeout(() => gateAbortController.abort(), 12000);
       let resp: Response;
       try {
+        const effectivePayload = { ...gate.payload };
+        if (gate.url.includes('api.deepseek.com')) {
+          if (effectivePayload.model === 'deepseek-v4-flash' || effectivePayload.model === 'deepseek-v4-pro') {
+            effectivePayload.model = 'deepseek-chat';
+          }
+        } else if (gate.url.includes('openrouter.ai')) {
+          if (effectivePayload.model === 'deepseek/deepseek-v4-flash' || effectivePayload.model === 'deepseek/deepseek-v4-pro') {
+            effectivePayload.model = 'deepseek/deepseek-chat';
+          }
+        }
+
         resp = await fetch(gate.url, {
           method: 'POST',
           headers: gate.headers,
-          body: JSON.stringify(gate.payload),
+          body: JSON.stringify(effectivePayload),
           signal: gateAbortController.signal,
         });
       } finally {

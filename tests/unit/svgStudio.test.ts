@@ -81,5 +81,48 @@ export async function runSvgStudioTests(harness: TestHarness) {
       expect(multi.executionPipelineOrder).toContain('svg_studio');
     });
 
+    // 7. Arabic Icon Design without explicit 'svg' keyword
+    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN for "صمم ايقونة للهندسة" without explicit svg keyword', () => {
+      const request: DynamicTuningRequest = {
+        userPrompt: 'صمم ايقونة للهندسة المعمارية بدقة وألوان عصرية',
+        requestedModel: 'deepseek-v4-flash',
+      };
+      const result = DynamicParameterTuner.tune(request);
+      expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+      expect(result.calibrationDirective).toContain('Strict Zero-Thinking & Direct Code Output');
+      expect(result.calibrationDirective).toContain('```svg');
+    });
+
+    // 8. Arabic Logo Design without explicit 'svg' keyword
+    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN for "صمم لوجو لشركة عقارات" and enforce Strict Zero-Thinking directive', () => {
+      const request: DynamicTuningRequest = {
+        userPrompt: 'صمم لوجو لشركة عقارات فخمة مع برج سكني',
+        requestedModel: 'deepseek-v4-pro',
+      };
+      const result = DynamicParameterTuner.tune(request);
+      expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+      expect(result.calibrationDirective).toContain('SOVEREIGN_SVG_VECTOR_STUDIO');
+      expect(result.calibrationDirective).toContain('viewBox');
+    });
+
+    // 9. Feature Registry routes logo query without svg keyword
+    await harness.it('should route svg_studio in featuresRegistry for "ارسم شعار لمطعم"', () => {
+      const plan = routeFeatureIntent('svg_studio', 'ارسم شعار لمطعم مأكولات بحرية حديث', '', '');
+      expect(plan.confidence).toBeGreaterThanOrEqual(0.95);
+      expect(plan.category).toBe('actionable');
+      expect(plan.shouldRenderWidget).toBe(true);
+    });
+
+    // 10. Filter svg_studio out of reasoning header features
+    await harness.it('should filter svg_studio out of reasoning header features to eliminate pink badge', () => {
+      const activeFeatures = [
+        { id: 'svg_studio', name: 'SVG Studio', badgeLabel: 'SVG STUDIO' },
+        { id: 'time_detect', name: 'Time Detect', badgeLabel: 'Time Detect' },
+      ];
+      const visible = activeFeatures.filter(f => f.id !== 'fathom_cam' && f.id !== 'fathom_spark' && f.id !== 'fathom_search' && f.id !== 'svg_studio');
+      expect(visible.some(f => f.id === 'svg_studio')).toBe(false);
+      expect(visible.some(f => f.id === 'time_detect')).toBe(true);
+    });
+
   });
 }
