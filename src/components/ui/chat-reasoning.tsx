@@ -585,7 +585,7 @@ export default function ChatReasoning({
   className,
 }: ChatReasoningProps) {
   // Closed by default; expands and collapses purely upon user click
-  const [value, setValue] = useState<string | undefined>(defaultValue);
+  const [value, setValue] = useState<string>(defaultValue || "");
   const [openStepIds, setOpenStepIds] = useState<Record<string, boolean>>({});
 
   const userToggledRef = useRef<Record<string, boolean>>({});
@@ -652,7 +652,7 @@ export default function ChatReasoning({
       type="single"
       collapsible
       value={value}
-      onValueChange={(val) => setValue(val || undefined)}
+      onValueChange={(val) => setValue(val || "")}
       className={cn("w-full mb-3", className)}
       dir="rtl"
     >

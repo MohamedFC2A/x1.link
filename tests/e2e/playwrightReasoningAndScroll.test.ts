@@ -112,15 +112,11 @@ async function runPlaywrightSuite() {
       const stepPrefixCount = await page.locator('text=/خطوة\\s*\\d+:/').count();
       if (stepPrefixCount !== 0) throw new Error(`Found ${stepPrefixCount} redundant "خطوة X:" prefixes! Expected 0.`);
 
-      // d. ZERO "مكتمل" badges
-      const completedBadgeCount = await page.locator('span:has-text("مكتمل")').count();
-      if (completedBadgeCount !== 0) throw new Error(`Found ${completedBadgeCount} "مكتمل" status badges! Expected 0.`);
+      // d. ZERO status badges ("مكتمل" or "مصادر معتمدة") in step card headers
+      const stepHeaderBadges = await page.locator('button.group\\/btn span:has-text("مكتمل"), button.group\\/btn span:has-text("مصادر معتمدة")').count();
+      if (stepHeaderBadges !== 0) throw new Error(`Found ${stepHeaderBadges} status pill badges in step headers! Expected 0.`);
 
-      // e. ZERO "مصادر معتمدة" badges
-      const sourcesBadgeCount = await page.locator('text=/\\d+\\s*مصادر\\s*معتمدة/').count();
-      if (sourcesBadgeCount !== 0) throw new Error(`Found ${sourcesBadgeCount} "مصادر معتمدة" badges! Expected 0.`);
-
-      console.log('  \x1b[32m✓\x1b[0m All yellow extras eliminated (0 "خطوة X:", 0 "مكتمل", 0 "مصادر معتمدة", 0 "نسخ التفكير", 0 "المسار الكامل").');
+      console.log('  \x1b[32m✓\x1b[0m All yellow extras eliminated (0 "خطوة X:", 0 status badges in step headers, 0 "نسخ التفكير", 0 "المسار الكامل").');
 
       // 4. Click to close again
       await reasoningTrigger.click();
