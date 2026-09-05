@@ -1607,7 +1607,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         <span className="text-[11px] font-mono text-zinc-400 font-medium tracking-wide shrink-0" dir="ltr">{normalizeDisplayTimestamp(message.timestamp)}</span>
       </div>
 
-      <div className="w-full rounded-2xl p-5 sm:p-6 text-right transition-all duration-300 bg-[#0a0b0e]/70 backdrop-blur-md border border-white/[0.07] hover:border-white/[0.12] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] text-zinc-200 overflow-hidden break-words">
+      <div className="w-full rounded-2xl p-3.5 sm:p-6 text-right transition-all duration-300 bg-[#0a0b0e]/70 backdrop-blur-md border border-white/[0.07] hover:border-white/[0.12] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] text-zinc-200 overflow-hidden break-words">
         {(hasReasoning || isThinking) && (
           <ChatReasoning
             reasoningText={effectiveReasoning}
@@ -1616,7 +1616,6 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             isX1={message.isX1}
             isTimeIntent={isTimeIntent}
             activeFeatures={activeFeatures}
-            defaultValue="reasoning"
           />
         )}
 

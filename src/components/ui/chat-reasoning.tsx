@@ -584,7 +584,8 @@ export default function ChatReasoning({
   defaultValue,
   className,
 }: ChatReasoningProps) {
-  const [value, setValue] = useState<string | undefined>(defaultValue ?? "reasoning");
+  // Closed by default; expands and collapses purely upon user click
+  const [value, setValue] = useState<string | undefined>(defaultValue);
   const [openStepIds, setOpenStepIds] = useState<Record<string, boolean>>({});
 
   const userToggledRef = useRef<Record<string, boolean>>({});
@@ -598,12 +599,6 @@ export default function ChatReasoning({
       [stepId]: !prev[stepId],
     }));
   };
-
-  useEffect(() => {
-    if (isThinking) {
-      setValue("reasoning");
-    }
-  }, [isThinking]);
 
   const fullText = reasoningText || partsInAccordion.map(p => p.text || '').filter(Boolean).join('\n\n');
 
@@ -642,59 +637,9 @@ export default function ChatReasoning({
   // Stable milestones for roadmap stepper
   const visibleMilestones = milestones;
 
-  // Auto-expand the active in-progress step during thinking without overriding user toggles
-  useEffect(() => {
-    if (isThinking) {
-      const activeMilestone = visibleMilestones.find(m => m.status === 'in-progress') || visibleMilestones[0];
-      if (activeMilestone && activeMilestone.id !== lastActiveIdRef.current) {
-        lastActiveIdRef.current = activeMilestone.id;
-        setOpenStepIds(prev => {
-          const nextState: Record<string, boolean> = { ...prev };
-          if (!userToggledRef.current[activeMilestone.id]) {
-            nextState[activeMilestone.id] = true;
-          }
-          // Collapse completed previous steps unless user explicitly toggled them
-          visibleMilestones.forEach(m => {
-            if (m.id !== activeMilestone.id && m.status === 'completed' && !userToggledRef.current[m.id]) {
-              nextState[m.id] = false;
-            }
-          });
-          return nextState;
-        });
-      }
-    }
-  }, [isThinking, visibleMilestones]);
-
   const searchMilestone = useMemo(() => milestones.find(m => m.specialType === 'search'), [milestones]);
   const camMilestone = useMemo(() => milestones.find(m => m.specialType === 'cam'), [milestones]);
   const sparkMilestone = useMemo(() => milestones.find(m => m.specialType === 'spark'), [milestones]);
-
-  const cleanThinkingText = useMemo(() => {
-    if (!fullText) return '';
-    let cleaned = fullText
-      .replace(/<think>/gi, '')
-      .replace(/<\/think>/gi, '')
-      .replace(/<\|(?:begin_of_thought|thought|think)\|>/gi, '')
-      .replace(/<\|(?:end_of_thought|\/thought|\/think)\|>/gi, '')
-      .replace(/```(?:thought|think|thinking|reasoning)\s*\n?/gi, '')
-      .replace(/```$/gi, '')
-      .trim();
-
-    const isPromptLeak = (str: string) => {
-      return /(?:DEVELOPER_IDENTITY|SYSTEM_PROMPT|النظام\s*يقول|حظر\s*مطلق|قاعدة\s*الاستجابة|تعليمات\s*الهوية|قواعد\s*النظام|المطور\s*الأساسي|Mohamed\s*Ahmed\s*Matany|MatanyLabs|Context-Proportional\s*Attribution|Strict\s*Exclusivity|Identity\s*vs\s*Conversations)/i.test(str);
-    };
-
-    // Strip raw bracket injections, search milestone metadata, and citations
-    cleaned = cleaned
-      .replace(/🔍\s*\[استعلام حي وتدقيق المصادر[^\]]*\]\s*/gi, '')
-      .replace(/\[LIVE\s*WEB\s*INTELLIGENCE\][^\n]*\n?/gi, '')
-      .replace(/(?:-?\s*\[?(?:الاستعلام\s*الشبكي|Fathom\s*Search|Serper\s*AI)\]?|•\s*المصدر\s*\[\d+\])[^\n]*(\n|$)/gi, '')
-      .trim();
-
-    const lines = cleaned.split('\n').filter(l => !isPromptLeak(l));
-    return lines.join('\n').trim();
-  }, [fullText]);
-
 
   const visibleHeaderFeatures = useMemo(() => {
     return activeFeatures.filter(f => f.id !== 'fathom_cam' && f.id !== 'fathom_spark' && f.id !== 'fathom_search');
@@ -707,37 +652,37 @@ export default function ChatReasoning({
       type="single"
       collapsible
       value={value}
-      onValueChange={setValue}
+      onValueChange={(val) => setValue(val || undefined)}
       className={cn("w-full mb-3", className)}
       dir="rtl"
     >
       <AccordionItem
         value="reasoning"
         className={cn(
-          "w-full border rounded-2xl px-3.5 sm:px-4 py-1 transition-all duration-300 backdrop-blur-md",
+          "w-full border rounded-2xl px-2.5 sm:px-4 py-0.5 sm:py-1 transition-all duration-300 backdrop-blur-md",
           isThinking
             ? "border-white/[0.12] bg-[#07080a]/80 shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
             : "border-white/[0.07] bg-[#07080a]/60 hover:border-white/[0.12] shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
         )}
       >
-        <AccordionTrigger className="text-xs font-medium text-zinc-300 hover:text-white hover:no-underline py-2 w-full flex items-center justify-between cursor-pointer group">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="flex items-center justify-center size-5 shrink-0">
+        <AccordionTrigger className="text-[11.5px] sm:text-xs font-medium text-zinc-300 hover:text-white hover:no-underline py-2 sm:py-2.5 w-full flex items-center justify-between cursor-pointer group">
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+            <div className="flex items-center justify-center size-4.5 sm:size-5 shrink-0">
               {isThinking ? (
-                <ThinkingOrb state={isFathomSearchActive ? "searching" : "solving"} size={18} theme="dark" speed={1.4} />
+                <ThinkingOrb state={isFathomSearchActive ? "searching" : "solving"} size={16} theme="dark" speed={1.4} />
               ) : isX1 ? (
-                <div className="flex items-center justify-center size-5 rounded-md border bg-white/[0.04] border-white/[0.08] text-zinc-300">
-                  <Cpu className="size-3 text-zinc-300" />
+                <div className="flex items-center justify-center size-4.5 sm:size-5 rounded-md border bg-white/[0.04] border-white/[0.08] text-zinc-300">
+                  <Cpu className="size-2.5 sm:size-3 text-zinc-300" />
                 </div>
               ) : (
-                <div className="flex items-center justify-center size-5 rounded-md border bg-white/[0.04] border-white/[0.08] text-zinc-300">
-                  <Brain className="size-3 text-zinc-300" />
+                <div className="flex items-center justify-center size-4.5 sm:size-5 rounded-md border bg-white/[0.04] border-white/[0.08] text-zinc-300">
+                  <Brain className="size-2.5 sm:size-3 text-zinc-300" />
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-xs text-zinc-200 font-semibold tracking-tight">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span className="font-mono text-[11px] sm:text-xs text-zinc-200 font-semibold tracking-tight">
                 {isThinking ? (
                   <span className="inline-flex items-center gap-1">
                     <span>جاري التفكير والتحليل المنطقي</span>
@@ -756,11 +701,11 @@ export default function ChatReasoning({
                   <span
                     key={feat.id}
                     className={cn(
-                      "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full select-none transition-all text-[11px] font-sans font-bold tracking-wide",
+                      "inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full select-none transition-all text-[9.5px] sm:text-[10.5px] font-sans font-bold tracking-wide",
                       def?.glassClassName || "time-detect-glass"
                     )}
                   >
-                    <IconComponent size={12} />
+                    <IconComponent size={10} />
                     <span className={def?.textClassName || "time-detect-text"}>
                       {feat.badgeLabel}
                     </span>
@@ -769,9 +714,9 @@ export default function ChatReasoning({
               })}
 
               {!visibleHeaderFeatures.length && isTimeIntent && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full time-detect-glass select-none transition-all">
-                  <TimeDetectIcon size={12} />
-                  <span className="time-detect-text text-[11px] font-sans font-bold tracking-wide">
+                <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full time-detect-glass select-none transition-all">
+                  <TimeDetectIcon size={10} />
+                  <span className="time-detect-text text-[9.5px] sm:text-[10.5px] font-sans font-bold tracking-wide">
                     Time Detect
                   </span>
                 </span>
@@ -780,18 +725,18 @@ export default function ChatReasoning({
           </div>
         </AccordionTrigger>
 
-        <AccordionContent className="p-0 pt-2 pb-3 border-t border-white/[0.06]">
-          <div className="pt-2 px-1 text-right space-y-3">
+        <AccordionContent className="p-0 pt-1.5 pb-2.5 sm:pt-2 sm:pb-3 border-t border-white/[0.06]">
+          <div className="pt-1.5 sm:pt-2 px-0 sm:px-1 text-right space-y-2 sm:space-y-2">
             {/* Steps Header Bar */}
-            <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] text-xs font-mono select-none">
-              <div className="flex items-center gap-2 text-zinc-300 text-[11px]">
-                <ListOrdered className="size-3.5 text-indigo-400" />
+            <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-white/[0.06] text-[10.5px] sm:text-xs font-mono select-none">
+              <div className="flex items-center gap-1.5 text-zinc-300 text-[10.5px] sm:text-[11px]">
+                <ListOrdered className="size-3 sm:size-3.5 text-indigo-400" />
                 <span className="font-semibold tracking-tight">خطوات الاستدلال والتفكير المنطقي</span>
               </div>
             </div>
 
             {/* Steps View: Vertical Stepper Timeline with Integrated Search, Cam, Spark & Reasoning */}
-            <div className="relative pr-6 space-y-2.5">
+            <div className="relative pr-4 sm:pr-6 space-y-2 sm:space-y-2.5">
                 {visibleMilestones.map((m, idx) => {
                   const isSearch = m.specialType === 'search';
                   const isCam = m.specialType === 'cam';
@@ -805,13 +750,13 @@ export default function ChatReasoning({
                     <div key={stepKey} className="relative group">
                       {/* Vertical connecting line between this node and next node only */}
                       {idx < visibleMilestones.length - 1 && (
-                        <div className="absolute -right-[15px] top-[32px] bottom-[-22px] w-[2px] bg-white/[0.08] pointer-events-none" />
+                        <div className="absolute -right-[9px] sm:-right-[15px] top-[26px] sm:top-[32px] bottom-[-16px] sm:bottom-[-22px] w-[1.5px] sm:w-[2px] bg-white/[0.08] pointer-events-none" />
                       )}
 
                       {/* Timeline Node */}
                       <div
                         className={cn(
-                          "absolute -right-6 top-3 size-5 rounded-full flex items-center justify-center text-[10px] font-bold border transition-all z-10",
+                          "absolute -right-4 sm:-right-6 top-2.5 sm:top-3 size-4 sm:size-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-bold border transition-all z-10",
                           isInProgress
                             ? "bg-indigo-950/90 border-indigo-400 text-indigo-200 shadow-[0_0_10px_rgba(99,102,241,0.4)]"
                             : isCompleted
@@ -820,13 +765,13 @@ export default function ChatReasoning({
                         )}
                       >
                         {isSearch ? (
-                          <Search className="size-2.5 text-zinc-300 stroke-[2]" />
+                          <Search className="size-2 sm:size-2.5 text-zinc-300 stroke-[2]" />
                         ) : isCam ? (
-                          <Camera className="size-2.5 text-emerald-400 stroke-[2]" />
+                          <Camera className="size-2 sm:size-2.5 text-emerald-400 stroke-[2]" />
                         ) : isSpark ? (
-                          <Sparkles className="size-2.5 text-purple-400 stroke-[2]" />
+                          <Sparkles className="size-2 sm:size-2.5 text-purple-400 stroke-[2]" />
                         ) : isCompleted ? (
-                          <Check className="size-2.5 text-emerald-400 stroke-[2.5]" />
+                          <Check className="size-2 sm:size-2.5 text-emerald-400 stroke-[2.5]" />
                         ) : isInProgress ? (
                           <RadarDot color="bg-indigo-400" ringColor="bg-indigo-400" />
                         ) : (
@@ -847,50 +792,32 @@ export default function ChatReasoning({
                         <button
                           type="button"
                           onClick={() => toggleStep(stepKey)}
-                          className="w-full p-2.5 sm:p-3 text-right flex items-center justify-between gap-2.5 cursor-pointer select-none group/btn transition-colors hover:bg-white/[0.02]"
+                          className="w-full p-2 sm:p-2.5 text-right flex items-center justify-between gap-2 cursor-pointer select-none group/btn transition-colors hover:bg-white/[0.02]"
                           aria-expanded={isExpanded}
                         >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <div className="size-5 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-zinc-400 shrink-0">
+                          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+                            <div className="size-4.5 sm:size-5 min-w-[18px] sm:min-w-[20px] rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-zinc-400 shrink-0">
                               {isSearch ? (
-                                <Globe className="size-3 text-zinc-300 stroke-[2]" />
+                                <Globe className="size-2.5 sm:size-3 text-zinc-300 stroke-[2]" />
                               ) : isCam ? (
-                                <Camera className="size-3 text-emerald-400 stroke-[2]" />
+                                <Camera className="size-2.5 sm:size-3 text-emerald-400 stroke-[2]" />
                               ) : isSpark ? (
-                                <Sparkles className="size-3 text-purple-400 stroke-[2]" />
+                                <Sparkles className="size-2.5 sm:size-3 text-purple-400 stroke-[2]" />
                               ) : (
-                                <span className="text-[10px] font-bold text-zinc-400">{idx + 1}</span>
+                                <span className="text-[9px] sm:text-[10px] font-bold text-zinc-400">{idx + 1}</span>
                               )}
                             </div>
-                            <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 min-w-0">
-                              <span className="text-zinc-500 text-[11px] font-normal shrink-0">خطوة {idx + 1}:</span>
-                              <span className="truncate">{renderMilestoneTitle(m.title)}</span>
+                            <span className="text-[11px] sm:text-xs font-medium sm:font-semibold text-zinc-200 leading-snug break-words">
+                              {renderMilestoneTitle(m.title)}
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-2 shrink-0">
-                            {isSearch ? (
-                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.06] text-zinc-300 border border-white/[0.1] font-medium">
-                                {isInProgress ? "جاري استرجاع المصادر..." : `${m.sourcesCount || 3} مصادر معتمدة`}
-                              </span>
-                            ) : isInProgress ? (
-                              <span className="text-[10px] text-indigo-400 flex items-center gap-1.5 font-medium bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
-                                <span className="size-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                                <span>قيد المعالجة</span>
-                                <AnimatedDots className="bg-indigo-400" />
-                              </span>
-                            ) : m.status === 'pending' ? (
-                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.03] text-zinc-500 border border-white/[0.05] font-normal">
-                                قيد الانتظار
-                              </span>
-                            ) : (
-                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.04] text-zinc-400 border border-white/[0.06] font-normal">
-                                مكتمل
-                              </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isInProgress && (
+                              <span className="size-1.5 rounded-full bg-indigo-400 animate-pulse" />
                             )}
-
-                            <div className="size-5 rounded-md flex items-center justify-center text-zinc-400 group-hover/btn:text-zinc-200 transition-colors">
-                              <ChevronDown className={cn("size-3.5 transition-transform duration-200", isExpanded && "rotate-180")} />
+                            <div className="size-4 sm:size-5 rounded-md flex items-center justify-center text-zinc-400 group-hover/btn:text-zinc-200 transition-colors">
+                              <ChevronDown className={cn("size-3 sm:size-3.5 transition-transform duration-200", isExpanded && "rotate-180")} />
                             </div>
                           </div>
                         </button>
@@ -898,22 +825,22 @@ export default function ChatReasoning({
                         {/* Collapsible Details Body */}
                         <div
                           className={cn(
-                            "px-3 pb-3 sm:px-3.5 sm:pb-3.5 pt-0 transition-all duration-200 select-text",
+                            "px-2.5 pb-2.5 sm:px-3 sm:pb-3 pt-0 transition-all duration-200 select-text",
                             isExpanded ? "block" : "hidden"
                           )}
                         >
-                          <div className="pt-2 border-t border-white/[0.05] space-y-2 text-xs font-mono">
+                          <div className="pt-1.5 sm:pt-2 border-t border-white/[0.05] space-y-1.5 sm:space-y-2 text-xs font-mono">
                             {isSearch ? (
                               <>
                                 {m.searchQuery && (
-                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[11px] text-zinc-300 font-mono">
-                                    <Search className="size-3 text-zinc-400 shrink-0" />
+                                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-[10px] sm:text-[10.5px] text-zinc-300 font-mono">
+                                    <Search className="size-2.5 sm:size-3 text-zinc-400 shrink-0" />
                                     <span>البحث: &quot;{m.searchQuery}&quot;</span>
                                   </div>
                                 )}
 
                                 {m.details && (
-                                  <div className="text-[11px] text-zinc-300/90 leading-relaxed max-h-48 overflow-y-auto custom-scrollbar whitespace-pre-wrap select-text p-2.5 rounded-lg bg-black/40 border border-white/[0.06]">
+                                  <div className="text-[10.5px] sm:text-[11px] text-zinc-300/90 leading-relaxed max-h-36 sm:max-h-48 overflow-y-auto custom-scrollbar whitespace-pre-wrap select-text p-2 rounded-lg bg-black/40 border border-white/[0.06]">
                                     {m.details}
                                   </div>
                                 )}
@@ -924,25 +851,25 @@ export default function ChatReasoning({
                                   <div
                                     ref={isInProgress ? activeStepDetailsRef : undefined}
                                     dir="auto"
-                                    className="text-[11.5px] text-zinc-300/90 whitespace-pre-wrap select-text leading-relaxed font-mono max-h-48 overflow-y-auto custom-scrollbar"
+                                    className="text-[10.5px] sm:text-[11.5px] text-zinc-300/90 whitespace-pre-wrap select-text leading-relaxed font-mono max-h-36 sm:max-h-48 overflow-y-auto custom-scrollbar"
                                   >
                                     {m.details}
                                     {isInProgress && isThinking && (
-                                      <span className="inline-block w-1.5 h-3.5 bg-indigo-400 align-middle mr-1.5 animate-pulse rounded-xs" />
+                                      <span className="inline-block w-1.5 h-3 bg-indigo-400 align-middle mr-1 animate-pulse rounded-xs" />
                                     )}
                                   </div>
                                 ) : isInProgress ? (
-                                  <div className="text-[11px] text-zinc-400 italic flex items-center gap-2 font-mono">
+                                  <div className="text-[10.5px] sm:text-[11px] text-zinc-400 italic flex items-center gap-1.5 font-mono">
                                     <span className="size-1.5 rounded-full bg-indigo-400 animate-pulse" />
                                     <span>جاري معالجة وصياغة هذه الخطوة</span>
                                     <AnimatedDots className="bg-indigo-400" />
                                   </div>
                                 ) : m.status === 'pending' ? (
-                                  <div dir="auto" className="text-[11.5px] text-zinc-500/80 italic select-none font-mono">
+                                  <div dir="auto" className="text-[10.5px] sm:text-[11px] text-zinc-500/80 italic select-none font-mono">
                                     في انتظار استكمال المراحل السابقة لبدء المعالجة...
                                   </div>
                                 ) : (
-                                  <div dir="auto" className="text-[11.5px] text-zinc-300/90 whitespace-pre-wrap select-text leading-relaxed font-mono">
+                                  <div dir="auto" className="text-[10.5px] sm:text-[11px] text-zinc-300/90 whitespace-pre-wrap select-text leading-relaxed font-mono">
                                     تم استكمال معالجة هذه المرحلة وتدقيق كافة معطياتها بنجاح.
                                   </div>
                                 )}
