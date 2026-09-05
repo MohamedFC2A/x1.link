@@ -15,6 +15,7 @@ export type UserIntentCategory =
   | 'CYBERSECURITY_AND_EXPLOIT_AUDITING'
   | 'CODE_ENGINEERING_AND_ARCHITECTURE'
   | 'SVG_VECTOR_STUDIO_AND_DESIGN'
+  | 'NEURAL_IMAGE_STUDIO_AND_PROCESSING'
   | 'MATHEMATICAL_AND_DEDUCTIVE_LOGIC'
   | 'SCIENTIFIC_AND_ACADEMIC_RESEARCH'
   | 'FACTUAL_SEARCH_AND_REALTIME_GROUNDING'
@@ -110,6 +111,39 @@ const CYBER_PATTERNS = [
 const CODE_ENGINEERING_PATTERNS = [
   /(كود|برمجة|دالة|كلاس|class|function|async|await|typescript|javascript|python|rust|golang|c\+\+|react|vue|node\.js|express|api|rest|graphql|database|sql|nosql|schema|docker|kubernetes|refactor|إعادة\s*هيكلة|تصحيح\s*خطأ|debug|syntax|ast|ring\s*buffer|lock-free|concurrency|multithreading|خوارزمية|algorithm|data\s*structure|مصفوفة|شجرة|tree|graph|git|pull\s*request|سكريبت|script|frontend|backend)/i,
   /\b(code|function|interface|refactor|debugging|typescript|python|rust|c\+\+|algorithms?|data\s+structures?|lock-free|ring\s+buffer|concurrency|deadlock|memory\s+leak|compiler|ast|sql\s+schema|unit\s+tests?|e2e\s+tests?)\b/i
+];
+
+const NEURAL_IMAGE_PATTERNS = [
+  // 1. Inpainting / Object Recoloring
+  /(?:غير|عدل|بدل|لون|صبغ|غيرلي|بدلي)\s+(?:لي\s+)?(?:لون\s+)?(?:القميص|البنطلون|الفستان|السيارة|العربية|الشعر|العين|العينين|الحذاء|الجاكيت|التيشيرت|المنتج|العنصر|الكائن|الكوب|العلبة|الخلفية|الباب|الجدار|اللون|الملابس|البدلة)/i,
+  /\b(?:recolor|change\s+the\s+color\s+of|dye|paint\s+the)\b/i,
+
+  // 2. Background Removal & Replacement
+  /(?:احذف|شيل|ازالة|إزالة|عزل|اعزل|غير|بدل|تفريغ|فرغ)\s+(?:لي\s+)?(?:الخلفية|خلفية\s+الصورة|الباكجراوند)/i,
+  /\b(?:remove\s+background|bg\s+remove|cutout|transparent\s+background|replace\s+background)\b/i,
+
+  // 3. Person & Element Compositing (Combining people while preserving facial geometry)
+  /(?:اضف|أضف|ادمج|حط|ركب|اجمع|دمج)\s+(?:لي\s+)?(?:شخصين|الشخصين|الصورتين|شخص\s+تاني|مع\s+بعض|جنب\s+بعض|صورة\s+شخص|وجه|ملامح|صورتي|الصورة\s+دي\s+مع)/i,
+  /\b(?:composite|combine\s+two\s+people|merge\s+photos|add\s+person|place\s+next\s+to)\b/i,
+
+  // 4. Super-Resolution & 2K/4K Quality Enhancement
+  /(?:تحسين|حسن|وضح|توضيح|علي|علّي|ارفع|زوّد|تكبير|زيادة|فلترة)\s+(?:لي\s+)?(?:جودة\s+الصورة|دقة\s+الصورة|الملامح|الجودة|الدقة|ريزوليوشن|resolution|clarity|upscale|enhance|2k|4k|hd|uhd)/i,
+  /\b(?:upscale|super\s*resolution|enhance\s+(?:image|photo|quality)|make\s+4k|make\s+2k|sharpen\s+image)\b/i,
+
+  // 5. Product Mockup & Commercial Photo Editing
+  /(?:صورة\s+منتج|عدل\s+المنتج|تعديل\s+صورة\s+المنتج|غير\s+صورة\s+المنتج|صورة\s+المنتج|علبة\s+المنتج|منتجات|mockup|product\s+photo|product\s+shot|e-commerce\s+photo)/i,
+
+  // 6. Text Editing & Inpainting inside images
+  /(?:غير|عدل|بدل|استبدل|احذف|امسح|عدلي|غيرلي)\s+(?:لي\s+)?(?:النص|الكلام|الكتابة|النصوص|الكلمة|الجملة)\s+(?:في\s+الصورة|المكتوب|المكتوبة|اللي\s+في\s+الصورة)/i,
+  /\b(?:edit\s+text\s+in\s+image|replace\s+text|change\s+text\s+in\s+photo|inpaint\s+text)\b/i,
+
+  // 7. General Photographic Manipulation on attached image
+  /(?:عدل\s+على\s+الصورة|تعديل\s+الصورة|ظبط\s+الصورة|معالجة\s+الصورة|فلتر\s+للصورة|edit\s+this\s+photo|modify\s+this\s+image|inpaint)/i
+];
+
+const NEURAL_IMAGE_GENERATION_PATTERNS = [
+  /(?:صورة\s+واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|صورة\s+طبيعية|صورة\s+احترافية|صورة\s+شخصية|بورتريه\s+فوتوغرافي|صورة\s+منتج|ولد\s+لي\s+صورة|انشئ\s+لي\s+صورة\s+واقعية|اعملي\s+صورة\s+واقعية|صورة\s+كاميرا)/i,
+  /\b(?:photorealistic|realistic\s+photo|dslr\s+shot|hyperrealistic\s+photo|realistic\s+portrait|professional\s+photo)\b/i
 ];
 
 const SVG_DESIGN_PATTERNS = [
@@ -230,6 +264,25 @@ export class DynamicParameterTuner {
   }
 
   /**
+   * Evaluates if a model qualifies as a Cyber Ultra flagship model (deepseek-v4-pro-cyber-2.6, fathom-cyber-2.6, etc.)
+   */
+  public static isCyberUltraModel(modelName: string): boolean {
+    const m = (modelName || '').toLowerCase().trim();
+    return (
+      m.includes('pro-cyber') ||
+      m.includes('pro-cyper') ||
+      m.includes('cyber-ultra') ||
+      m.includes('cyber-2.6-ultra') ||
+      m === 'deepseek-v4-pro-cyber-2.6' ||
+      m === 'deepseek-v4-pro-cyber-2.1' ||
+      m === 'fathom-cyber-2.6' ||
+      m === 'fathom-cyber-2.1' ||
+      m === 'deepseek-v4-pro' ||
+      m === 'deepseek/deepseek-v4-pro'
+    );
+  }
+
+  /**
    * Analyzes user request text, history and metadata to detect intent, complexity and hallucination risk.
    */
   public static detectIntentAndComplexity(request: DynamicTuningRequest): {
@@ -268,21 +321,36 @@ export class DynamicParameterTuner {
     }
 
     if (hasImages) {
-      // Priority Check: Image-to-SVG Vectorization, Editing, or Visual Reconstruction
-      const isImageToSvgRequest = (
-        /(?:svg|فيكتور|متجهات|vector|vectorize|شعار|لوجو|ايقونة|أيقونة|رسم|تصميم|صورة|لوحة)/i.test(text) &&
+      // 1. Explicit Vectorization to SVG Check (strictly requires explicit vector/svg keywords or tags)
+      const isExplicitImageToSvgRequest = (
+        /(?:svg|فيكتور|متجهات|vector|vectorize)/i.test(text) &&
         /(?:حول|تحويل|عدل|تعديل|غير|تغيير|بدل|تبديل|ادخل|أدخل|اضف|أضف|احذف|شيل|ارسم|صمم|اعمل|سوي|طلع|هات|convert|vectorize|transform|edit|modify|recreate|draw)/i.test(text)
       ) ||
-      /(?:عدل|تعديل|غير|تغيير|بدل|تبديل|ادخل|أدخل|اضف|أضف|احذف|شيل|حول|تحويل|لون|الوان|ألوان|خلفية|الخلفية|edit|modify|change|recolor|add|remove)/i.test(text) ||
-      SVG_DESIGN_PATTERNS.some(p => p.test(text));
+      /<svg[\s\S]*?<\/svg>/i.test(text) ||
+      /```svg/i.test(text) ||
+      /(?:حول|تحويل)\s+(?:الصورة|اللوجو|الشعار)?\s*(?:دي|المرفقة|هذه)?\s*(?:لـ|إلى)?\s*(?:svg|فيكتور|متجهات)/i.test(text);
 
-      if (isImageToSvgRequest) {
+      if (isExplicitImageToSvgRequest) {
         return {
           intent: 'SVG_VECTOR_STUDIO_AND_DESIGN',
           confidence: 0.99,
           complexity: 'EXHAUSTIVE_ARCHITECTURAL',
           hallucinationRisk: 'HIGH',
-          rationale: 'Uploaded image vectorization, reconstruction, and design editing request to SVG Studio.'
+          rationale: 'Explicit uploaded image vectorization to SVG Studio requested.'
+        };
+      }
+
+      // 2. Cyber Ultra Sovereign Neural Image Studio & Processing (Inpainting, Recoloring, Background Removal, 4K Upscale, Compositing, Product/Text Edit)
+      const isNeuralImageEditRequest = NEURAL_IMAGE_PATTERNS.some(p => p.test(text)) ||
+        /(?:عدل|تعديل|غير|تغيير|بدل|تبديل|ادخل|أدخل|اضف|أضف|احذف|شيل)\s+(?:لي\s+)?(?:في\s+الصورة|على\s+الصورة|بالصورة|فيها|الصورة\s+المرفقة|الصورة\s+دي)/i.test(text);
+
+      if (isNeuralImageEditRequest) {
+        return {
+          intent: 'NEURAL_IMAGE_STUDIO_AND_PROCESSING',
+          confidence: 0.99,
+          complexity: 'EXHAUSTIVE_ARCHITECTURAL',
+          hallucinationRisk: 'LOW',
+          rationale: 'Cyber Ultra Sovereign Neural Image Studio: raster photo editing, inpainting, recoloring, background removal, or 4K super-resolution.'
         };
       }
 
@@ -356,6 +424,19 @@ export class DynamicParameterTuner {
         complexity: isExhaustive ? 'EXHAUSTIVE_ARCHITECTURAL' : 'DEEP_ANALYTICAL',
         hallucinationRisk: 'EXTREME',
         rationale: 'Cybersecurity vulnerability audit, exploit engineering, or zero-trust architecture requested.'
+      };
+    }
+
+    // 6.b. Cyber Ultra Neural Image Studio & Photorealistic Generation Check (prioritized for realistic photo creation)
+    const matchesNeuralGen = NEURAL_IMAGE_GENERATION_PATTERNS.some(p => p.test(text)) ||
+      (isFollowUpPrompt && NEURAL_IMAGE_GENERATION_PATTERNS.some(p => p.test(historyText)));
+    if (matchesNeuralGen && !/(?:svg|فيكتور|متجهات|vector)/i.test(text)) {
+      return {
+        intent: 'NEURAL_IMAGE_STUDIO_AND_PROCESSING',
+        confidence: 0.98,
+        complexity: 'EXHAUSTIVE_ARCHITECTURAL',
+        hallucinationRisk: 'LOW',
+        rationale: 'Cyber Ultra Sovereign Neural Image Studio: photorealistic raster photo generation requested.'
       };
     }
 
@@ -497,6 +578,15 @@ export class DynamicParameterTuner {
         frequency_penalty = 0.0;
         presence_penalty = 0.0;
         max_tokens = 24576;
+        break;
+
+      case 'NEURAL_IMAGE_STUDIO_AND_PROCESSING':
+        // High-fidelity raster photo manipulation, surgical inpainting and super-resolution
+        temperature = 0.35;
+        top_p = 0.95;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
+        max_tokens = 16384;
         break;
 
       case 'MATHEMATICAL_AND_DEDUCTIVE_LOGIC':
@@ -702,8 +792,11 @@ export class DynamicParameterTuner {
     intent: UserIntentCategory,
     complexity: TaskComplexity,
     params: TunedHyperparameters,
-    modelFamily: ModelFamily
+    modelFamily: ModelFamily,
+    requestedModel?: string
   ): string {
+    const isUltra = (requestedModel && this.isCyberUltraModel(requestedModel)) || modelFamily === 'deepseek-pro';
+
     const intentLabelMap: Record<UserIntentCategory, { ar: string; mode: string; directive: string }> = {
       CYBERSECURITY_AND_EXPLOIT_AUDITING: {
         ar: 'التدقيق الأمني السيبراني وهندسة الثغرات والاختراق الأخلاقي',
@@ -731,6 +824,17 @@ export class DynamicParameterTuner {
           'ب) [التعديل الانتقائي الدقيق والواعي]: طبّق فقط وحصراً التعديل الجزئي أو الإضافة أو الحذف أو تغيير الألوان/الخلفية الذي طلبه المستخدم حرفياً، مع بقاء كافة عناصر وتفاصيل الصورة الأصلية سليمة ومطابقة 100%. ' +
           'ج) أخرج كود الـ SVG النقي المكتمل والطبقي فوراً داخل ```svg دون أي تفكير أو كلام تمهيدي. ' +
           '9) بروتوكول الاستعانة ببيانات البحث البصري (Visual Search Grounding): إذا استُخدم البحث الحي لجلب مراجع بصرية أو تفاصيل لكيان واقعي (معلم، شخصية، شعار، سيارة، منتج)، استخلص الألوان والأبعاد والسمات البصرية الأصيلة من نتائج البحث وصغها مباشرة داخل كود الـ SVG لإنشاء عمل فني وصورة بصرية تحاكي الواقع وتفوقه إتقاناً وجودة، مع حظر طباعة أي نصوص بحثية أو اقتباسات أو رموز خارج كود الـ SVG.'
+      },
+      NEURAL_IMAGE_STUDIO_AND_PROCESSING: {
+        ar: 'استوديو المعالجة العصبية وتعديل الصور الفائق (Cyber Ultra Sovereign Inpainting & Photo Studio)',
+        mode: 'CYBER_ULTRA_NEURAL_IMAGE_STUDIO',
+        directive: isUltra
+          ? 'أنت المعماري والمهندس السيادي لمعالجة وتعديل وتوليد الصور عصبياً وفوتوغرافياً بدقة بصرية متناهية ومطابقة 100% (Cyber Ultra Neural Inpainting Architect): ' +
+            '1) [الحظر الصارم والقطعي لتحويل الصور الفوتوغرافية إلى SVG]: يُحظر تماماً وبشكل قاطع تحويل الصور المرفوعة أو صور الأشخاص والمنتجات أو الصور الفوتوغرافية إلى كود SVG أو متجهات بدائية تفقد الصورة تفاصيلها وملمسها الطبيعي وواقعيتها. معالجة وتعديل الصور الفوتوغرافية تتم حصراً وبنسبة 100% عبر المعالجة العصبية النقطية (Raster Inpainting & Neural Photo Processing). ' +
+            '2) [الحفاظ الصارم بنسبة 100% على العناصر غير المعدلة - 100% Identity, Texture, and Face Preservation]: عند طلب أي تعديل على صورة مرفقة (مثل: تغيير لون شيء معين، عزل أو تغيير الخلفية، إضافة شخصين مع بعض، تحسين الجودة والدقة إلى 2K/4K، تعديل صورة منتج، أو استبدال نص في الصورة)، يجب الحفاظ الصارم بنسبة 100% على ملامح الوجه، تفاصيل البشرة والمسام، الإضاءة الطبيعية، وزوايا المنظور دون أي تشويه أو استبدال عشوائي للكائن الأصلي. ' +
+            '3) [التعديل الانتقائي الجراحي الدقيق]: طبّق فقط وحصراً ما طلبه المستخدم حرفياً (تغيير لون القميص دون تغيير الشخص، تغيير الخلفية دون تغيير الكائن، دمج الشخصين بنفس الإضاءة والملامح، تحسين الدقة الفائقة إلى 2K/4K، استبدال النص مع مطابقة نوع الخط والإضاءة الأصلية). ' +
+            '4) [بروتوكول تسليم وتوليد المعالجة العصبية - Neural Deliverable Block]: بعد التفكير التحليلي، قدّم تحليلك وشرحك الفصيح باللغة العربية، واختم بتسليم بلوك المعالجة العصبية المتكامل داخل ```neural-image\\n{\\n  "operation": "<recolor|remove_background|enhance_4k|composite|product_edit|text_edit|generate>",\\n  "title": "<عنوان وصفي للمعالجة>",\\n  "description": "<شرح التعديل المنفذ بدقة 100%>",\\n  "prompt": "<الوصف البصري الإنجليزي فائق الدقة للتعديل أو التوليد بالكامل>",\\n  "fidelityScore": "100%",\\n  "resolution": "4K"\\n}\\n``` لتقوم واجهة لوحة التعديل بعرضها فوراً مع أدوات التحميل الفوري 4K، شريط المقارنة قبل/بعد، وأدوات العزل والتعديل التفاعلية.'
+          : 'منظومة المعالجة والتوليد العصبي فائق الدقة للصور (Cyber Ultra Neural Image Studio) وحفظ التفاصيل الفوتوغرافية بنسبة 100% مخصصة حصرياً لطرازات سايبر الترا الفائقة (Fathom Cyber Ultra 2.6 / deepseek-v4-pro-cyber-2.6). وضّح للمستخدم برقي واحترافية أن هذه الإمكانيات الجراحية المتقدمة تتطلب تفعيل نموذج Fathom Cyber Ultra 2.6، وقدّم له تحليلاً نظرياً دقيقاً لكيفية معالجة طلبه دون تحويل الصورة إلى SVG.'
       },
       MATHEMATICAL_AND_DEDUCTIVE_LOGIC: {
         ar: 'الاستدلال الاستنباطي الرياضي والفيزيائي والمنطق الصارم',
@@ -819,7 +923,8 @@ export class DynamicParameterTuner {
       intent,
       complexity,
       hyperparameters,
-      modelFamily
+      modelFamily,
+      request.requestedModel
     );
 
     return {

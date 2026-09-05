@@ -19,6 +19,7 @@ import { runChatReasoningMilestonesTests } from './chatReasoningMilestones.test'
 import { runCyberSecurityArchitectureTests } from './cyberSecurityArchitecture.test';
 import { runDynamicParameterTunerTests } from './dynamicParameterTuner.test';
 import { runSvgStudioTests } from './svgStudio.test';
+import { runNeuralImageStudioTests } from './neuralImageStudio.test';
 import { runUltraAndFlashModelsTests } from './ultraAndFlashModels.test';
 import { runDeepSeekAlgorithmsTests } from './deepseekAlgorithms.test';
 
@@ -44,6 +45,7 @@ export async function runAllUnitTests(): Promise<boolean> {
   await runCyberSecurityArchitectureTests(harness);
   await runDynamicParameterTunerTests(harness);
   await runSvgStudioTests(harness);
+  await runNeuralImageStudioTests(harness);
   await runUltraAndFlashModelsTests(harness);
   await runDeepSeekAlgorithmsTests(harness);
 

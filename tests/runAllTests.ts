@@ -19,6 +19,7 @@ import { runChatReasoningMilestonesTests } from './unit/chatReasoningMilestones.
 import { runCyberSecurityArchitectureTests } from './unit/cyberSecurityArchitecture.test';
 import { runDynamicParameterTunerTests } from './unit/dynamicParameterTuner.test';
 import { runSvgStudioTests } from './unit/svgStudio.test';
+import { runNeuralImageStudioTests } from './unit/neuralImageStudio.test';
 import { runUltraAndFlashModelsTests } from './unit/ultraAndFlashModels.test';
 import { runDeepSeekAlgorithmsTests } from './unit/deepseekAlgorithms.test';
 import { runMultiSourceSearchIntegrationTests } from './integration/multiSourceSearch.test';
@@ -53,6 +54,7 @@ async function runMasterTestSuite() {
   await runCyberSecurityArchitectureTests(harness);
   await runDynamicParameterTunerTests(harness);
   await runSvgStudioTests(harness);
+  await runNeuralImageStudioTests(harness);
   await runUltraAndFlashModelsTests(harness);
   await runDeepSeekAlgorithmsTests(harness);
 

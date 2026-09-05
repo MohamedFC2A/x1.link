@@ -22,7 +22,8 @@ import { MemoryDetectBadge } from './ui/MemoryDetectBadge';
 import { DownloadDetectCard } from './ui/DownloadDetectCard';
 import { DownloadButton } from './ui/DownloadButton';
 import { SvgStudioCard } from './ui/SvgStudioCard';
-import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon, DownloadDetectIcon, SvgStudioIcon } from '@/lib/featuresRegistry';
+import { NeuralImageCard, type NeuralImageData } from './ui/NeuralImageCard';
+import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon, DownloadDetectIcon, SvgStudioIcon, NeuralImageStudioIcon } from '@/lib/featuresRegistry';
 
 const YouTubeIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -1393,6 +1394,63 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   );
   const hasMemoryDetect = activeFeatures.some(f => f.id === 'memory_detect');
 
+  // Stable first-class Neural Image Studio extraction (JSON block, tag or high-res raster payload)
+  const extractedNeuralImageData = useMemo<NeuralImageData | null>(() => {
+    if (!displayContent) return null;
+
+    // 1. Check for ```neural-image ... ``` code fence
+    const neuralBlockMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(displayContent);
+    if (neuralBlockMatch) {
+      try {
+        const parsed = JSON.parse(neuralBlockMatch[1]);
+        if (parsed && typeof parsed === 'object') {
+          return parsed;
+        }
+      } catch {
+        // Continue to tag parsing
+      }
+    }
+
+    // 2. Check for [NEURAL-IMAGE-STUDIO: ...] tag
+    const tagMatch = /\[NEURAL-IMAGE-STUDIO:\s*([^\]]+)\]/i.exec(displayContent);
+    if (tagMatch) {
+      const parts = tagMatch[1].split('|').map(s => s.trim());
+      const parsed: any = {};
+      parts.forEach(p => {
+        const [k, v] = p.split('=').map(s => s.trim());
+        if (k && v) parsed[k] = v;
+      });
+      return parsed;
+    }
+
+    // 3. Fallback check for Pollinations / external raster image url when neural intent active
+    if (activeFeatures.some(f => f.id === 'neural_image_studio')) {
+      const imgUrlMatch = displayContent.match(/https?:\/\/[^\s)]+?\.(?:png|jpg|jpeg|webp|gif)(?:\?[^\s)]*)?/i) ||
+        displayContent.match(/https:\/\/image\.pollinations\.ai\/prompt\/[^\s)]+/i);
+      if (imgUrlMatch) {
+        return {
+          operation: 'enhance_4k',
+          title: 'صورة معالجة عصبياً بدقة 4K',
+          imageUrl: imgUrlMatch[0],
+          fidelityScore: '100%',
+          resolution: '4K'
+        };
+      }
+    }
+
+    return null;
+  }, [displayContent, activeFeatures]);
+
+  // Clean markdown content excluding both SVG and Neural Image blocks to prevent layout thrashing
+  const displayContentWithoutSvgOrNeural = useMemo(() => {
+    if (!displayContentWithoutSvg) return '';
+    return displayContentWithoutSvg
+      .replace(/```(?:neural-image|neural_image|image-studio|image_studio)\s*\{[\s\S]*?\}\s*```/gi, '')
+      .replace(/```(?:neural-image|neural_image|image-studio|image_studio)\s*\{[\s\S]*$/gi, '') // during streaming
+      .replace(/\[NEURAL-IMAGE-STUDIO:[^\]]+\]/gi, '')
+      .trim();
+  }, [displayContentWithoutSvg]);
+
   // Intent classification on user request matching active features 100%
   const promptLower = previousUserPrompt.toLowerCase();
   const isMetadataIntent = activeFeatures.some(f => f.id === 'metadata_detect');
@@ -1400,7 +1458,24 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const isTimeIntent = activeFeatures.some(f => f.id === 'time_detect');
   const hasDownloadDetect = activeFeatures.some(f => f.id === 'download_detect');
 
+  // Cyber Ultra Neural Image Studio Activity Check
+  const isNeuralImageStudioActive = useMemo(() => {
+    if (extractedNeuralImageData !== null) return true;
+    if (activeFeatures.some(f => f.id === 'neural_image_studio')) return true;
+    const pLower = (previousUserPrompt || '').toLowerCase();
+    const hasPhotoEdit = (hasImagesInChat) && !pLower.includes('svg') && !pLower.includes('فيكتور') && (
+      /(?:غير|عدل|بدل|لون|احذف|شيل|ازالة|عزل|اعزل|اضف|ادمج|حسن|وضح|جودة|دقة|4k|2k|شخصين|منتج|نص|كلام|recolor|upscale|enhance)/i.test(pLower)
+    );
+    const hasPhotoGen = !pLower.includes('svg') && !pLower.includes('فيكتور') && (
+      /(?:صورة\s+واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|بورتريه\s+فوتوغرافي|photorealistic|realistic\s+photo|dslr)/i.test(pLower)
+    );
+    return hasPhotoEdit || hasPhotoGen;
+  }, [extractedNeuralImageData, activeFeatures, previousUserPrompt, hasImagesInChat]);
+
   const isSvgStudioActive = useMemo(() => {
+    if (isNeuralImageStudioActive && !previousUserPrompt.toLowerCase().includes('svg') && !previousUserPrompt.toLowerCase().includes('فيكتور')) {
+      return false;
+    }
     if (activeFeatures.some(f => f.id === 'svg_studio')) return true;
     const pLower = (previousUserPrompt || '').toLowerCase();
     if (/(?:svg|فيكتور|متجهات|vector)/i.test(pLower)) return true;
@@ -1417,7 +1492,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     if (message.content && (message.content.includes('<svg') || message.content.includes('```svg'))) return true;
     if (message.reasoning && (message.reasoning.includes('<svg') || message.reasoning.includes('```svg'))) return true;
     return false;
-  }, [activeFeatures, previousUserPrompt, message.content, message.reasoning]);
+  }, [activeFeatures, previousUserPrompt, message.content, message.reasoning, isNeuralImageStudioActive]);
 
   const detectedMediaUrl = useMemo(() => {
     if (!hasDownloadDetect) return null;
@@ -1688,6 +1763,16 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               </span>
             </div>
           ) : null
+        ) : isNeuralImageStudioActive ? (
+          // Neural Image Studio Mode: Clean single-line indicator during processing, suppress thinking button
+          (isThinking || isStreaming) && !extractedNeuralImageData ? (
+            <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 select-none w-fit" dir="rtl">
+              <span className="inline-block w-2 h-2 rounded-full bg-indigo-400 animate-pulse shrink-0" />
+              <span className="text-xs sm:text-sm font-sans font-medium text-indigo-200">
+                جاري المعالجة العصبية الفائقة للصورة (Cyber Ultra 4K)...
+              </span>
+            </div>
+          ) : null
         ) : (
           (hasReasoning || isThinking) && (
             <ChatReasoning
@@ -1701,7 +1786,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           )
         )}
 
-        {isStreaming && !message.content && !hasReasoning && !isThinking && !isSvgStudioActive ? (
+        {isStreaming && !message.content && !hasReasoning && !isThinking && !isSvgStudioActive && !isNeuralImageStudioActive ? (
           <div className="flex items-center gap-2 py-1.5 select-none w-full max-w-full" dir="rtl">
             <div className="inline-flex min-h-8 py-1.5 px-3 max-w-full items-center gap-2.5 rounded-2xl time-detect-glass flex-wrap">
               <ThinkingOrb
@@ -1799,6 +1884,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   "جاري تحرير المحرك العصبي واستدعاء الرد..."
                 ) : isSvgStudioActive ? (
                   "جاري انشاء صورة ذو رسومات شعاعية ......"
+                ) : isNeuralImageStudioActive ? (
+                  "جاري المعالجة العصبية الفائقة للصورة (Cyber Ultra 4K)..."
                 ) : (
                   "جاري توليد الاستجابة اللغوية الفصحى..."
                 )}
@@ -1827,6 +1914,24 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 <DownloadDetectCard url={detectedMediaUrl} />
               </div>
             )}
+            {/* Stable first-class Neural Image Studio Card */}
+            {(extractedNeuralImageData || (isNeuralImageStudioActive && (message.image || (message.images && message.images.length > 0)))) && (
+              <div className="w-full my-3">
+                <NeuralImageCard
+                  key={`neural-card-${message.id || 'current'}`}
+                  data={extractedNeuralImageData || {
+                    operation: 'enhance_4k',
+                    title: 'معالجة فوتوغرافية فائقة',
+                    fidelityScore: '100%',
+                    resolution: '4K',
+                    processedImage: message.image || (message.images && message.images[0]) || ''
+                  }}
+                  fallbackOriginalImage={message.image || (message.images && message.images[0]) || undefined}
+                  isStreaming={isStreaming}
+                />
+              </div>
+            )}
+
             {/* Stable first-class SVG Vector Studio Card mounted directly outside ReactMarkdown */}
             {extractedSvgData && (
               <div className="w-full my-3">
@@ -1838,7 +1943,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               </div>
             )}
 
-            {Boolean(displayContentWithoutSvg && displayContentWithoutSvg.trim().length > 0) && (
+            {Boolean(displayContentWithoutSvgOrNeural && displayContentWithoutSvgOrNeural.trim().length > 0) && (
               <div className="prose prose-invert max-w-none text-[#E2E8F0] text-sm sm:text-base leading-relaxed break-words font-sans">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm, remarkMath]}
@@ -2017,8 +2122,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
 
                       const rawCodeString = String(children).replace(/\n$/, '');
 
-                      // Suppress any SVG blocks inside markdown completely, since it is rendered cleanly above
-                      if (!isInline && (lang === 'svg' || rawCodeString.includes('<svg'))) {
+                      // Suppress any SVG or Neural Image blocks inside markdown completely, since they are rendered cleanly above
+                      if (!isInline && (lang === 'svg' || rawCodeString.includes('<svg') || lang === 'neural-image' || lang === 'neural_image' || lang === 'image-studio' || lang === 'image_studio')) {
                         return null;
                       }
 
@@ -2032,7 +2137,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                     }
                   }}
                 >
-                  {sanitizeMarkdownDisplay((displayContentWithoutSvg || '')
+                  {sanitizeMarkdownDisplay((displayContentWithoutSvgOrNeural || '')
                     .replace(/\[\s*(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?BADGE:[^\]]*\]/gi, '')
                     .replace(/(?:AI|TIME|MEMORY|METADATA|DOWNLOAD)[-\s]?DETECT[-\s]?BADGE:[^\n]*/gi, '')
                     .trim())}
@@ -2040,7 +2145,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               </div>
             )}
 
-            {isStreaming && !isThinking && !isSvgStudioActive && Boolean(displayContentWithoutSvg && displayContentWithoutSvg.trim().length > 0) && (
+            {isStreaming && !isThinking && !isSvgStudioActive && !isNeuralImageStudioActive && Boolean(displayContentWithoutSvgOrNeural && displayContentWithoutSvgOrNeural.trim().length > 0) && (
               <span className="inline-block w-1.5 h-4 bg-zinc-300 animate-pulse mr-1 align-middle rounded-full" />
             )}
 

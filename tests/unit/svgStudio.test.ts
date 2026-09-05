@@ -457,7 +457,7 @@ export async function runSvgStudioTests(harness: TestHarness) {
     // 21. Strict 100% Geometry and Identity Preservation Directive for Uploaded Images
     await harness.it('should mandate strict 100% geometry and subject preservation when editing uploaded images', () => {
       const request: DynamicTuningRequest = {
-        userPrompt: 'عدل الصورة دي وخلي الخلفية زرقاء',
+        userPrompt: 'حول الصورة دي لـ SVG فيكتور وعدل الخلفية',
         hasMultimodalImages: true,
         requestedModel: 'deepseek-v4-flash-cyber-2.6',
       };

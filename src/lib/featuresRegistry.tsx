@@ -2,7 +2,7 @@ import React from 'react';
 import { Sparkles, ShieldCheck, Database, BrainCircuit, Clock, Flame, Zap } from 'lucide-react';
 import { cn } from './utils';
 
-export type FeatureIntentType = 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | 'download_detect' | 'fathom_cam' | 'fathom_spark' | 'fathom_search' | 'svg_studio';
+export type FeatureIntentType = 'time_detect' | 'ai_detect' | 'metadata_detect' | 'memory_detect' | 'download_detect' | 'fathom_cam' | 'fathom_spark' | 'fathom_search' | 'svg_studio' | 'neural_image_studio';
 
 export type IntentCategory = 'actionable' | 'informational' | 'none';
 
@@ -318,6 +318,38 @@ export const SvgStudioIcon: React.FC<{ className?: string; size?: number }> = ({
       </linearGradient>
     </defs>
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
+export const NeuralImageStudioIcon: React.FC<{ className?: string; size?: number }> = ({
+  className,
+  size = 14
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="url(#neural-image-studio-grad)"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn("inline-block shrink-0", className)}
+  >
+    <defs>
+      <linearGradient id="neural-image-studio-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#06b6d4" />
+        <stop offset="35%" stopColor="#3b82f6" />
+        <stop offset="70%" stopColor="#8b5cf6" />
+        <stop offset="100%" stopColor="#d946ef" />
+      </linearGradient>
+    </defs>
+    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+    <circle cx="9" cy="9" r="2" />
+    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+    <path d="m14 14 1-1a2 2 0 0 1 2.828 0L21 16" />
+    <path d="M19 8V5h-3" />
+    <path d="m21 3-5 5" />
   </svg>
 );
 
@@ -668,6 +700,37 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
         summary: 'محرك تصميم الفيكتور وتوليد رسومات SVG فائقة الجودة والدقة',
         details: 'تم إنشاء كود SVG نقي ومتكامل مع إمكانية التنزيل الفوري بصيغة PNG عالية الدقة (1x, 2x, 4x)',
         statusPill: 'VECTOR ENGINE & PNG EXPORT',
+        confidence: 0.99,
+        category: 'actionable'
+      };
+    }
+  },
+
+  // ── 10. Neural Image Studio (Cyber Ultra Sovereign Inpainting, Editing & 4K Super-Resolution)
+  neural_image_studio: {
+    id: 'neural_image_studio',
+    name: 'Neural Image Studio',
+    nameAr: 'استوديو المعالجة والتوليد العصبي للصور (سايبر الترا)',
+    badgeLabel: 'CYBER ULTRA NEURAL IMAGE',
+    textClassName: 'text-cyan-400 font-bold',
+    glassClassName: 'bg-cyan-950/70 border border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]',
+    badgeClassName: 'bg-cyan-950/70 text-cyan-300 border border-cyan-400/40',
+    accentColor: '#06b6d4',
+    borderHoverColor: 'border-cyan-400/50',
+    icon: NeuralImageStudioIcon,
+    detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
+      const plan = routeFeatureIntent('neural_image_studio', prompt, reasoning, content, context);
+      return plan.confidence >= 0.6;
+    },
+    extractFeatureData: (prompt = '', reasoning = '', content = '', context = {}) => {
+      return {
+        id: 'neural_image_studio',
+        name: 'Neural Image Studio',
+        nameAr: 'استوديو المعالجة والتوليد العصبي للصور (سايبر الترا)',
+        badgeLabel: 'CYBER ULTRA NEURAL IMAGE',
+        summary: 'المعالجة الفوتوغرافية العصبية وتعديل الصور الجراحي بنسبة مطابقة 100%',
+        details: 'تم إجراء التعديل العصبي النقطي الجراحي (Inpainting / Background Removal / 4K Super-Resolution) مع الحفاظ الكامل على ملامح وتفاصيل الصورة الأصلية',
+        statusPill: 'NEURAL INPAINTING & 4K STUDIO',
         confidence: 0.99,
         category: 'actionable'
       };
@@ -1116,6 +1179,19 @@ export function routeFeatureIntent(
     const isImageToSvgPrompt = (hasImages || Boolean(context?.hasImagesInHistory)) &&
       /(?:حول|تحويل|فيكتور|متجهات|عدل|تعديل|غير|أضف|ادخل|احذف|ارسم|صمم|شكل|تشكيل|svg|vector|vectorize|convert\s+to\s+svg)/i.test(pLower);
 
+    // Strict Check: Photo editing or photorealistic prompts without SVG/vector keywords are NOT SVG Studio
+    const hasImageMention = hasImages || Boolean(context?.hasImagesInHistory) || /(?:في\s+الصورة|الصورة\s+المرفقة|الصورة\s+دي|الصورة\s+هذه|الصورة|صورتين|الصورتين|photo|image)/i.test(pLower);
+    const isPhotoEditQuery = hasImageMention && !pLower.includes('svg') && !pLower.includes('فيكتور') && (
+      /(?:لون|القميص|البنطلون|السيارة|العربية|الشعر|العين|خلفية|الخلفية|شخصين|جودة|دقة|وضح|تكبير|منتج|نص|كلام|بشرة|البشرة|recolor|upscale|enhance|4k|2k)/i.test(pLower)
+    );
+    const isRealisticPhotoQuery = !pLower.includes('svg') && !pLower.includes('فيكتور') && (
+      /(?:صورة\s+واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|بورتريه\s+فوتوغرافي|photorealistic|realistic\s+photo|dslr)/i.test(pLower)
+    );
+
+    if (isPhotoEditQuery || isRealisticPhotoQuery) {
+      return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Suppressed: Raster photo editing belongs to Neural Image Studio.' };
+    }
+
     if (hasSvgBadge || hasSvgCode || isSvgPrompt || hasSvgReasoning || isImageToSvgPrompt) {
       return {
         featureId,
@@ -1131,6 +1207,43 @@ export function routeFeatureIntent(
     return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No SVG Studio intent.' };
   }
 
+  // 10. Cyber Ultra Sovereign Neural Image Studio & Photo Processing Intent
+  if (featureId === 'neural_image_studio') {
+    const hasNeuralBadge = cLower.includes('neural image') || cLower.includes('neural-image') || cLower.includes('[neural-image') || cLower.includes('cyber ultra neural');
+    const hasNeuralBlock = cLower.includes('```neural-image') || (cLower.includes('"operation"') && (cLower.includes('"fidelityScore"') || cLower.includes('"resolution"')));
+    const hasNeuralReasoning = rLower.includes('neural image') || rLower.includes('معالجة عصبية') || rLower.includes('تعديل الصور') || rLower.includes('cyber ultra') || rLower.includes('inpainting');
+
+    const hasImageMentionForNeural = hasImages || Boolean(context?.hasImagesInHistory) || /(?:في\s+الصورة|الصورة\s+المرفقة|الصورة\s+دي|الصورة\s+هذه|الصورة|صورتين|الصورتين|photo|image)/i.test(pLower);
+    const isPhotoEditPrompt = hasImageMentionForNeural && (
+      /(?:غير|عدل|بدل|لون)\s+(?:لي\s+)?(?:لون\s+)?(?:القميص|البنطلون|الفستان|السيارة|العربية|الشعر|العين|العينين|الحذاء|الجاكيت|التيشيرت|المنتج|العنصر|الكائن|الكوب|العلبة|الخلفية|الباب|الجدار|اللون|الشيء|حاجة|حاجه)/i.test(pLower) ||
+      /(?:احذف|شيل|ازالة|إزالة|عزل|اعزل|غير|بدل)\s+(?:لي\s+)?(?:الخلفية|خلفية\s+الصورة|الباكجراوند)/i.test(pLower) ||
+      /(?:اضف|أضف|ادمج|حط|ركب|اجمع)\s+(?:لي\s+)?(?:شخصين|الشخصين|الصورتين|شخص\s+تاني|مع\s+بعض|جنب\s+بعض|صورة\s+شخص|وجه|ملامح)/i.test(pLower) ||
+      /(?:تحسين|حسن|وضح|توضيح|علي|علّي|ارفع|زوّد|تكبير|زيادة)\s+(?:لي\s+)?(?:جودة\s+الصورة|دقة\s+الصورة|الملامح|الجودة|الدقة|ريزوليوشن|resolution|clarity|upscale|enhance|2k|4k)/i.test(pLower) ||
+      /(?:صورة\s+منتج|عدل\s+المنتج|تعديل\s+صورة\s+المنتج|غير\s+صورة\s+المنتج|mockup|product\s+photo)/i.test(pLower) ||
+      /(?:غير|عدل|بدل|استبدل|احذف|امسح)\s+(?:لي\s+)?(?:النص|الكلام|الكتابة|النصوص|الكلمة|الجملة)\s+(?:في\s+الصورة|المكتوب|المكتوبة)/i.test(pLower) ||
+      /(?:عدل\s+على\s+الصورة|تعديل\s+الصورة|ظبط\s+الصورة|معالجة\s+الصورة|عدل\s+الصورة|edit\s+photo|modify\s+image|inpaint|recolor|upscale|remove\s+background)/i.test(pLower)
+    );
+
+    const isPhotoGenPrompt = !pLower.includes('svg') && !pLower.includes('فيكتور') && (
+      /(?:صورة\s+واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|صورة\s+طبيعية|صورة\s+احترافية|صورة\s+شخصية|بورتريه\s+فوتوغرافي|صورة\s+منتج|ولد\s+لي\s+صورة\s+واقعية|انشئ\s+لي\s+صورة\s+واقعية)/i.test(pLower) ||
+      /\b(?:photorealistic|realistic\s+photo|dslr\s+shot|hyperrealistic\s+photo)\b/i.test(pLower)
+    );
+
+    if (hasNeuralBadge || hasNeuralBlock || isPhotoEditPrompt || isPhotoGenPrompt || hasNeuralReasoning) {
+      return {
+        featureId,
+        confidence: 1.0,
+        category: 'actionable',
+        shouldRenderWidget: true,
+        shouldInjectContext: true,
+        extractedParams: { hasAttachedImage: hasImages },
+        reason: 'Cyber Ultra Sovereign Neural Image Studio: photo inpainting, editing, background removal, or 4K super-resolution active.'
+      };
+    }
+
+    return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No Neural Image Studio intent.' };
+  }
+
   return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Unknown feature.' };
 }
 
@@ -1144,7 +1257,7 @@ export function detectIntentsMulti(
   content: string = '',
   context: any = {}
 ): MultiIntentPlan {
-  const featureIds: FeatureIntentType[] = ['fathom_search', 'download_detect', 'svg_studio', 'fathom_spark', 'fathom_cam', 'ai_detect', 'metadata_detect', 'memory_detect', 'time_detect'];
+  const featureIds: FeatureIntentType[] = ['fathom_search', 'download_detect', 'neural_image_studio', 'svg_studio', 'fathom_spark', 'fathom_cam', 'ai_detect', 'metadata_detect', 'memory_detect', 'time_detect'];
   
   const plans: Record<FeatureIntentType, FeatureActivationPlan> = {} as any;
   const activeFeatures: DetectedFeatureData[] = [];
@@ -1171,9 +1284,10 @@ export function detectIntentsMulti(
     }
   });
 
-  // Pipeline Execution Order: Download/Extraction -> SVG Studio -> Fathom Cam Vision -> AI Forensics -> Metadata Headers -> Memory Context -> Time/Widgets
+  // Pipeline Execution Order: Download/Extraction -> Neural Image Studio -> SVG Studio -> Fathom Cam Vision -> AI Forensics -> Metadata Headers -> Memory Context -> Time/Widgets
   const executionPipelineOrder: FeatureIntentType[] = [];
   if (plans.download_detect.confidence >= 0.6) executionPipelineOrder.push('download_detect');
+  if (plans.neural_image_studio?.confidence >= 0.6) executionPipelineOrder.push('neural_image_studio');
   if (plans.svg_studio?.confidence >= 0.6) executionPipelineOrder.push('svg_studio');
   if (plans.fathom_cam.confidence >= 0.6) executionPipelineOrder.push('fathom_cam');
   if (plans.ai_detect.confidence >= 0.6) executionPipelineOrder.push('ai_detect');
