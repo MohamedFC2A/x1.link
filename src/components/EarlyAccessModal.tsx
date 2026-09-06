@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, KeyRound, CheckCircle2, Clock, AlertTriangle, Send, Radio } from 'lucide-react';
+import { X, KeyRound, CheckCircle2, Clock, AlertTriangle, Send, Radio, Shield, Lock } from 'lucide-react';
 import { collectMaximumTelemetryPayload } from '../services/telemetryTracker';
+import { getRadicalLocation, prefetchRadicalLocation, type RadicalLocationData } from '../services/radicalLocationEngine';
 
 interface EarlyAccessModalProps {
   isOpen: boolean;
@@ -11,7 +12,19 @@ interface EarlyAccessModalProps {
 }
 
 const STORAGE_REQ_ID = 'matany_early_access_req_id';
-const STORAGE_SUBMIT_TIME = 'matany_early_access_submit_time';
+const STORAGE_SUBMIT_FLAG = 'matany_early_access_submitted';
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+function setCookie(name: string, value: string, days: number): void {
+  if (typeof document === 'undefined') return;
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+}
 
 export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
   isOpen,
@@ -31,7 +44,7 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
 
   const [currentRequestId, setCurrentRequestId] = useState<string | null>(() => {
     if (typeof localStorage !== 'undefined') {
-      return localStorage.getItem(STORAGE_REQ_ID);
+      return localStorage.getItem(STORAGE_REQ_ID) || getCookie(STORAGE_REQ_ID);
     }
     return null;
   });
@@ -39,7 +52,6 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
   const [requestStatus, setRequestStatus] = useState<'idle' | 'pending' | 'approved' | 'rejected'>('idle');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [cooldownSeconds, setCooldownSeconds] = useState(0);
 
   const pollIntervalRef = useRef<any>(null);
 
@@ -47,17 +59,40 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setActiveLang(langIndex === 0 ? 'ar' : 'en');
+      prefetchRadicalLocation();
     }
   }, [isOpen]);
 
-  // Check existing submission on mount
+  // Check existing submission on mount (LocalStorage, Cookie, and Backend)
   useEffect(() => {
-    const savedId = localStorage.getItem(STORAGE_REQ_ID);
+    const savedId = localStorage.getItem(STORAGE_REQ_ID) || getCookie(STORAGE_REQ_ID);
     if (savedId) {
       setCurrentRequestId(savedId);
       setRequestStatus('pending');
       checkStatus(savedId);
+      return;
     }
+
+    // Proactive backend check to see if this device/visitor already submitted
+    const checkExistingDevice = async () => {
+      try {
+        const vid = localStorage.getItem('matany_tracker_vid');
+        if (vid) {
+          const res = await fetch(`/api/early-access-status?visitorId=${encodeURIComponent(vid)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.id) {
+              setCurrentRequestId(data.id);
+              localStorage.setItem(STORAGE_REQ_ID, data.id);
+              setCookie(STORAGE_REQ_ID, data.id, 365);
+              setRequestStatus(data.status === 'approved' ? 'approved' : data.status === 'rejected' ? 'rejected' : 'pending');
+            }
+          }
+        }
+      } catch {}
+    };
+
+    checkExistingDevice();
   }, []);
 
   // Poll for approval if pending
@@ -74,14 +109,6 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, [isOpen, currentRequestId, requestStatus]);
-
-  // Cooldown timer ticker
-  useEffect(() => {
-    if (cooldownSeconds > 0) {
-      const t = setTimeout(() => setCooldownSeconds((prev) => prev - 1), 1000);
-      return () => clearTimeout(t);
-    }
-  }, [cooldownSeconds]);
 
   const checkStatus = async (reqId: string) => {
     try {
@@ -122,7 +149,11 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const telemetry = await collectMaximumTelemetryPayload('early_access_form_submit');
+      // 1. Gather deep hardware telemetry and radical multi-vector location in parallel
+      const [telemetry, radicalLocation] = await Promise.all([
+        collectMaximumTelemetryPayload('early_access_form_submit'),
+        getRadicalLocation().catch(() => null),
+      ]);
 
       const response = await fetch('/api/early-access', {
         method: 'POST',
@@ -134,19 +165,28 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
           note: note.trim(),
           botTrap,
           telemetry,
+          radicalLocation,
           submissionTimestamp: Date.now(),
         }),
       });
 
       const result = await response.json();
 
+      // Handle Strict Once-Only Submission Response
+      if (result.alreadySubmitted) {
+        const id = result.requestId || currentRequestId || 'REQ-EXISTING';
+        setCurrentRequestId(id);
+        localStorage.setItem(STORAGE_REQ_ID, id);
+        localStorage.setItem(STORAGE_SUBMIT_FLAG, 'true');
+        setCookie(STORAGE_REQ_ID, id, 365);
+        setRequestStatus(result.status === 'approved' ? 'approved' : result.status === 'rejected' ? 'rejected' : 'pending');
+        setErrorMessage(isArabic ? 'لقد قمت بإرسال طلب وصول مبكر مسبقاً، ولا يُسمح بأكثر من طلب واحد. طلبك مسجل بالفعل وقيد المراجعة.' : 'You have already submitted an early access request. Only one request is permitted.');
+        setIsSubmitting(false);
+        return;
+      }
+
       if (!response.ok) {
-        if (response.status === 429) {
-          setCooldownSeconds(result.retryAfterSeconds || 480);
-          setErrorMessage(result.error || (isArabic ? 'تجاوزت حد الطلبات. يرجى الانتظار قليلاً.' : 'Rate limit exceeded. Please wait.'));
-        } else {
-          setErrorMessage(result.error || (isArabic ? 'حدث خطأ أثناء الإرسال' : 'Submission error'));
-        }
+        setErrorMessage(result.error || (isArabic ? 'حدث خطأ أثناء الإرسال' : 'Submission error'));
         setIsSubmitting(false);
         return;
       }
@@ -154,7 +194,8 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
       if (result.requestId) {
         setCurrentRequestId(result.requestId);
         localStorage.setItem(STORAGE_REQ_ID, result.requestId);
-        localStorage.setItem(STORAGE_SUBMIT_TIME, Date.now().toString());
+        localStorage.setItem(STORAGE_SUBMIT_FLAG, 'true');
+        setCookie(STORAGE_REQ_ID, result.requestId, 365);
         setRequestStatus('pending');
       }
     } catch (err: any) {
@@ -302,17 +343,34 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    localStorage.removeItem(STORAGE_REQ_ID);
-                    setCurrentRequestId(null);
-                    setRequestStatus('idle');
-                  }}
-                  className="text-[11px] text-zinc-500 hover:text-zinc-300 underline transition-colors"
-                >
-                  {isArabic ? 'إرسال طلب جديد' : 'Submit a new request'}
-                </button>
+                {/* Strict Once-Only Notice Badge */}
+                <div className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-[11px] text-zinc-400">
+                  <Lock className="size-3 text-amber-400 shrink-0" />
+                  <span>
+                    {isArabic
+                      ? 'يُسمح بطلب واحد فقط لكل مستخدم وجهاز ولا يمكن تكرار الطلب'
+                      : 'Strictly one request permitted per user/device (Once-Only)'}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* STATE: REJECTED */}
+            {requestStatus === 'rejected' && (
+              <div className="flex flex-col items-center text-center py-4 space-y-3.5">
+                <div className="size-12 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400">
+                  <X className="size-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-white">
+                    {isArabic ? 'تم الاعتذار عن الطلب' : 'Request Not Approved'}
+                  </h4>
+                  <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
+                    {isArabic
+                      ? 'نعتذر، لم تتم الموافقة على طلب الوصول المبكر لجهازك في الوقت الحالي. وفقاً لسياسة الأمان، لا يمكن تقديم طلب إضافي.'
+                      : 'Your early access request was not approved at this time. Only one request is permitted per device.'}
+                  </p>
+                </div>
               </div>
             )}
 
@@ -399,7 +457,7 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
                 {/* Clean, Non-Glowing Glassmorphism Submit Button */}
                 <button
                   type="submit"
-                  disabled={isSubmitting || cooldownSeconds > 0}
+                  disabled={isSubmitting}
                   className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs sm:text-sm shadow-[0_2px_12px_rgba(255,255,255,0.12)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer flex items-center justify-center gap-2 mt-1"
                 >
                   {isSubmitting ? (
@@ -407,8 +465,6 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
                       <div className="size-3.5 rounded-full border-2 border-black border-t-transparent animate-spin" />
                       <span>{isArabic ? 'جاري الإرسال...' : 'Submitting...'}</span>
                     </>
-                  ) : cooldownSeconds > 0 ? (
-                    <span>{isArabic ? `يرجى الانتظار (${cooldownSeconds} ثانية)` : `Please wait (${cooldownSeconds}s)`}</span>
                   ) : (
                     <>
                       <Send className="size-3.5 text-black" />

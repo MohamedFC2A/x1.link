@@ -96,86 +96,112 @@ export default async function handler(req: Request) {
     const xForwardedFor = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
     const finalIp = cfIp || xRealIp || xForwardedFor || 'غير متاح';
 
-    // 4. Strong Intelligent Rate Limiting & Anti-Abuse
-    const ipHash = finalIp !== 'غير متاح' ? finalIp : (telemetry.masterFingerprintHash || 'anon_device');
+    // 4. Strict Once-Only Submission Verification (Check Supabase for ANY prior submission)
+    const clientVisitorId = telemetry.visitorId && telemetry.visitorId !== 'anon' ? String(telemetry.visitorId).trim() : '';
+    const clientMasterHash = telemetry.masterFingerprintHash && telemetry.masterFingerprintHash !== 'N/A' ? String(telemetry.masterFingerprintHash).trim() : '';
     
-    // Check Supabase rate limits
-    try {
-      const rlRes = await fetch(`${SUPABASE_URL}/rest/v1/early_access_rate_limits?ip_hash=eq.${encodeURIComponent(ipHash)}&select=*`, {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-      });
-
-      if (rlRes.ok) {
-        const rlData = await rlRes.json();
-        if (Array.isArray(rlData) && rlData.length > 0) {
-          const entry = rlData[0];
-          const lastReqTime = new Date(entry.last_request).getTime();
-          const elapsedMin = (Date.now() - lastReqTime) / 60000;
-
-          // If submitted less than 8 minutes ago, block to prevent spamming
-          if (elapsedMin < 8) {
-            const waitSeconds = Math.ceil((8 - elapsedMin) * 60);
-            return new Response(
-              JSON.stringify({
-                error: `يرجى الانتظار ${Math.ceil(waitSeconds / 60)} دقيقة قبل إرسال طلب جديد لحماية النظام من التكرار.`,
-                retryAfterSeconds: waitSeconds,
-              }),
-              { status: 429, headers: corsHeaders }
-            );
-          }
-
-          // Update rate limit timestamp
-          await fetch(`${SUPABASE_URL}/rest/v1/early_access_rate_limits?ip_hash=eq.${encodeURIComponent(ipHash)}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-              'Prefer': 'return=minimal',
-            },
-            body: JSON.stringify({
-              request_count: (entry.request_count || 1) + 1,
-              last_request: new Date().toISOString(),
-            }),
-          });
-        } else {
-          // Insert initial rate limit record
-          await fetch(`${SUPABASE_URL}/rest/v1/early_access_rate_limits`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-              'Prefer': 'return=minimal',
-            },
-            body: JSON.stringify({
-              ip_hash: ipHash,
-              request_count: 1,
-              last_request: new Date().toISOString(),
-            }),
-          });
-        }
-      }
-    } catch (rlErr) {
-      console.warn('[Rate Limit Warning]:', rlErr);
+    // Construct multi-vector duplicate check query
+    const duplicateOrFilters: string[] = [];
+    if (finalIp && finalIp !== 'غير متاح' && !finalIp.startsWith('127.') && finalIp !== '::1') {
+      duplicateOrFilters.push(`ip_address.eq.${encodeURIComponent(finalIp)}`);
+    }
+    if (cleanContact && cleanContact.length >= 4) {
+      duplicateOrFilters.push(`contact.ilike.*${encodeURIComponent(cleanContact)}*`);
+    }
+    if (clientMasterHash && clientMasterHash.length >= 6) {
+      duplicateOrFilters.push(`master_hash.eq.${encodeURIComponent(clientMasterHash)}`);
+    }
+    if (clientVisitorId && clientVisitorId.length >= 8) {
+      duplicateOrFilters.push(`visitor_id.eq.${encodeURIComponent(clientVisitorId)}`);
     }
 
-    // 5. Generate Secure Unique Request ID & Approval Secret
+    if (duplicateOrFilters.length > 0) {
+      try {
+        const checkRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/early_access_requests?or=(${duplicateOrFilters.join(',')})&select=id,status,name,created_at&limit=1`,
+          {
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+          }
+        );
+
+        if (checkRes.ok) {
+          const existingList = await checkRes.json();
+          if (Array.isArray(existingList) && existingList.length > 0) {
+            const existing = existingList[0];
+            return new Response(
+              JSON.stringify({
+                success: false,
+                alreadySubmitted: true,
+                requestId: existing.id,
+                status: existing.status || 'pending',
+                createdAt: existing.created_at,
+                error: 'لقد قمت بإرسال طلب وصول مبكر مسبقاً، ولا يُسمح بإرسال أكثر من طلب واحد على الإطلاق. طلبك مسجل بالفعل وقيد المراجعة من الرئيس التنفيذي.',
+              }),
+              { status: 200, headers: corsHeaders }
+            );
+          }
+        }
+      } catch (checkErr) {
+        console.warn('[Once-Only Check Warning]:', checkErr);
+      }
+    }
+
+    // 5. Radical Multi-Vector Location Intelligence Synthesis
+    const incomingLocation = body.radicalLocation || telemetry.radicalLocation || {};
+    
+    // Edge Geo Headers fallback
+    const edgeCity = req.headers.get('x-vercel-ip-city') ? decodeURIComponent(req.headers.get('x-vercel-ip-city')!) : undefined;
+    const edgeCountry = req.headers.get('x-vercel-ip-country') || req.headers.get('cf-ipcountry') || undefined;
+    const edgeLat = req.headers.get('x-vercel-ip-latitude');
+    const edgeLon = req.headers.get('x-vercel-ip-longitude');
+    const edgeTimezone = req.headers.get('x-vercel-ip-timezone');
+
+    // Synthesize final location values
+    let finalCountry = incomingLocation.country || edgeCountry || 'غير محدد';
+    let finalCity = incomingLocation.city || edgeCity || 'غير محدد';
+    let finalRegion = incomingLocation.region || '';
+    let finalIsp = incomingLocation.isp || incomingLocation.org || 'مقدم خدمة محلي';
+    let finalAsn = incomingLocation.asn || '';
+    let isVpn = !!incomingLocation.isVpn || !!incomingLocation.isProxy;
+    let flagEmoji = incomingLocation.flagEmoji || '🌐';
+    let finalLat = incomingLocation.latitude || (edgeLat ? parseFloat(edgeLat) : null);
+    let finalLon = incomingLocation.longitude || (edgeLon ? parseFloat(edgeLon) : null);
+    let locationConfidence = incomingLocation.confidence || (edgeLat ? 'Vercel Edge Geolocation' : 'IP Approximation');
+
+    // Server-side fallback lookup if coordinates are completely missing
+    if (!finalLat && finalIp && finalIp !== 'غير متاح' && !finalIp.startsWith('127.') && finalIp !== '::1') {
+      try {
+        const ipLookupRes = await fetch(`http://ip-api.com/json/${encodeURIComponent(finalIp)}?fields=status,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query`, {
+          signal: AbortSignal.timeout(2500)
+        });
+        if (ipLookupRes.ok) {
+          const ipData = await ipLookupRes.json();
+          if (ipData.status === 'success') {
+            finalCountry = ipData.country || finalCountry;
+            finalCity = ipData.city || finalCity;
+            finalRegion = ipData.regionName || finalRegion;
+            finalLat = ipData.lat;
+            finalLon = ipData.lon;
+            finalIsp = ipData.isp || ipData.org || finalIsp;
+            finalAsn = ipData.as || finalAsn;
+            isVpn = isVpn || !!ipData.proxy || !!ipData.hosting;
+            locationConfidence = 'Server Edge Triangulation (±2km)';
+          }
+        }
+      } catch {}
+    }
+
+    const mapsUrl = finalLat && finalLon ? `https://www.google.com/maps?q=${finalLat},${finalLon}` : undefined;
+    const satelliteUrl = finalLat && finalLon ? `https://www.google.com/maps/@${finalLat},${finalLon},16z/data=!3m1!1e3` : undefined;
+
+    // 6. Generate Secure Unique Request ID & Approval Secret
     const requestId = `REQ-${generateRandomHex(6)}`;
     const approvalSecret = `SEC-${generateRandomHex(16)}`;
 
-    // Edge Geo
-    const vercelCity = req.headers.get('x-vercel-ip-city') ? decodeURIComponent(req.headers.get('x-vercel-ip-city')!) : undefined;
-    const vercelCountry = req.headers.get('x-vercel-ip-country') || req.headers.get('cf-ipcountry') || 'غير محدد';
-    const vercelLat = req.headers.get('x-vercel-ip-latitude');
-    const vercelLon = req.headers.get('x-vercel-ip-longitude');
-
-    const mapsUrl = vercelLat && vercelLon ? `https://www.google.com/maps?q=${vercelLat},${vercelLon}` : undefined;
-
-    // 6. Persist to Supabase early_access_requests table
+    // 7. Persist to Supabase early_access_requests table
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/early_access_requests`, {
         method: 'POST',
@@ -188,20 +214,36 @@ export default async function handler(req: Request) {
         body: JSON.stringify({
           id: requestId,
           created_at: new Date().toISOString(),
-          visitor_id: telemetry.visitorId || 'anon',
+          visitor_id: clientVisitorId || 'anon',
           name: cleanName,
           contact: cleanContact,
           note: cleanNote,
           status: 'pending',
           ip_address: finalIp,
-          country: vercelCountry,
-          city: vercelCity || 'غير محدد',
+          country: finalCountry,
+          city: finalCity,
           device_model: `${telemetry.phoneBrand || ''} ${telemetry.phoneModel || ''}`.trim() || 'جهاز تصفح ذكي',
           os_info: `${telemetry.osName || ''} ${telemetry.osVersion || ''}`.trim(),
           browser_info: `${telemetry.browserName || ''} ${telemetry.browserVersion || ''}`.trim(),
           gpu_renderer: telemetry.gpuRenderer || 'غير متوفر',
-          master_hash: telemetry.masterFingerprintHash || 'N/A',
-          telemetry_payload: telemetry,
+          master_hash: clientMasterHash || 'N/A',
+          telemetry_payload: {
+            ...telemetry,
+            radicalLocation: {
+              ip: finalIp,
+              country: finalCountry,
+              region: finalRegion,
+              city: finalCity,
+              isp: finalIsp,
+              asn: finalAsn,
+              isVpn,
+              latitude: finalLat,
+              longitude: finalLon,
+              confidence: locationConfidence,
+              mapsUrl,
+              satelliteUrl,
+            },
+          },
           approval_secret: approvalSecret,
         }),
       });
@@ -209,15 +251,19 @@ export default async function handler(req: Request) {
       console.error('[Supabase Insert Request Error]:', dbErr);
     }
 
-    // 7. Format Telegram Notification Message for CEO Mohamed Matany
+    // 8. Format Telegram Executive Dossier for CEO Mohamed Matany
     const phoneInfo = `${escapeHtml(telemetry.phoneBrand || 'غير محدد')} ${escapeHtml(telemetry.phoneModel || 'Unknown')}`;
     const cpuRam = `${escapeHtml(telemetry.cpuCores || '?')} أنوية | ${escapeHtml(telemetry.ramGb || 'N/A')}`;
     const screenRes = `${escapeHtml(telemetry.physicalResolution || telemetry.cssResolution || 'غير متاح')} (${telemetry.refreshRateHz ? `${telemetry.refreshRateHz}Hz` : '60Hz'})`;
     const batteryInfo = escapeHtml(telemetry.batteryState || 'غير متاح');
-    const mapsLinkText = mapsUrl ? `<a href="${mapsUrl}">📍 موقع الجهاز على خرائط Google</a>` : 'غير متوفر';
+    const vpnStatus = isVpn
+      ? '⚠️ <b>تحذير: اتصال عبر شبكة افتراضية / بروكسي (VPN/Proxy Detected)</b>'
+      : '✅ <b>اتصال محلي مباشر وموثوق (No VPN Detected)</b>';
+
+    const locationSummary = `${flagEmoji} <b>${escapeHtml(finalCountry)}</b> - <b>${escapeHtml(finalRegion ? `${finalRegion}, ` : '')}${escapeHtml(finalCity)}</b>`;
 
     const telegramMessage = `
-👑 <b>[طلب وصول مبكر رسمي جديد - VIP SOVEREIGN ACCESS]</b>
+👑 <b>[طلب وصول مبكر رسمي - VIP SOVEREIGN ACCESS (مرة واحدة فقط)]</b>
 ━━━━━━━━━━━━━━━━━━━━━
 مرسل مباشرة إلى: <b>الرئيس التنفيذي والمطور CEO Mohamed Matany</b>
 
@@ -231,11 +277,13 @@ export default async function handler(req: Request) {
 🆔 <b>رقم الطلب المعتمد:</b> <code>${requestId}</code>
 ⏱️ <b>توقيت الطلب:</b> ${new Date().toLocaleString('ar-EG', { dateStyle: 'full', timeStyle: 'medium', hour12: true })}
 
-🌐 <b>الاستخبارات الجغرافية وموقع الاتصال (100% Extreme):</b>
-• الدولة والمدينة: <b>${escapeHtml(vercelCountry)} - ${escapeHtml(vercelCity || 'محلي')}</b>
+🌐 <b>الاستخبارات الجغرافية الدقيقة (Radical Location Intelligence):</b>
+• الموقع الجغرافي: ${locationSummary}
 • عنوان الآي بي (IP): <code>${escapeHtml(finalIp)}</code>
-• نوع وسرعة الشبكة: <b>${escapeHtml(telemetry.networkType || 'طبيعي')}</b>
-• خرائط جوجل الدقيقة: ${mapsLinkText}
+• مزود خدمة الإنترنت (ISP): <b>${escapeHtml(finalIsp)}</b> ${finalAsn ? `(<code>${escapeHtml(finalAsn)}</code>)` : ''}
+• فحص الأمان والشبكة: ${vpnStatus}
+• دقة ومصدر التحديد: <i>${escapeHtml(locationConfidence)}</i>
+${finalLat && finalLon ? `• الإحداثيات الدقيقة: <code>${finalLat}, ${finalLon}</code>` : ''}
 
 📱 <b>مواصفات العتاد والبصمة السيبرانية المحصودة:</b>
 • الطراز الدقيق: <b>${phoneInfo}</b>
@@ -245,26 +293,28 @@ export default async function handler(req: Request) {
 • قوة المعالجة: <b>${cpuRam}</b>
 • الشاشة والألوان: <b>${screenRes}</b> | <b>${escapeHtml(telemetry.colorGamut || 'sRGB')}</b>
 • البطارية: <b>${batteryInfo}</b>
-• البصمة السيبرانية الشاملة: <code>${escapeHtml(telemetry.masterFingerprintHash || 'N/A')}</code>
-• معرف الزائر: <code>${escapeHtml(telemetry.visitorId || 'N/A')}</code>
+• البصمة السيبرانية الموحدة: <code>${escapeHtml(clientMasterHash || 'N/A')}</code>
+• معرف الزائر: <code>${escapeHtml(clientVisitorId || 'N/A')}</code>
 ━━━━━━━━━━━━━━━━━━━━━
 ⚡ <b>إجراء الرئيس التنفيذي محمد مطعني المباشر (1-Tap Approval):</b>
-اضغط أدناه لقبول الطلب أو رفضه فورياً، وسيقوم النظام بفتح المنصة للعميل تلقائياً:
 `;
 
-    // 8. Build Inline Keyboard for 1-Tap CEO Approval in Telegram
+    // 9. Build Inline Keyboard for 1-Tap CEO Approval in Telegram
     const approveUrl = `https://matany.one/api/early-access-action?action=approve&id=${requestId}&secret=${approvalSecret}`;
     const rejectUrl = `https://matany.one/api/early-access-action?action=reject&id=${requestId}&secret=${approvalSecret}`;
 
     const inlineKeyboard: any[][] = [
       [
         { text: '✅ قبول ومنح الوصول الفوري (Approve)', url: approveUrl },
-        { text: '❌ رفض الطلب (Reject)', url: rejectUrl },
+        { text: '❌ رفض الطلب نهائياً (Reject)', url: rejectUrl },
       ],
     ];
 
     if (mapsUrl) {
-      inlineKeyboard.push([{ text: '📍 فتح إحداثيات العميل على الخريطة', url: mapsUrl }]);
+      inlineKeyboard.push([
+        { text: '📍 خرائط جوجل الدقيقة', url: mapsUrl },
+        { text: '🛰️ خريطة الأقمار الصناعية', url: satelliteUrl || mapsUrl },
+      ]);
     }
 
     // Dispatch to Telegram
