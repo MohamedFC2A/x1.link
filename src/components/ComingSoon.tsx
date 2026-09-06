@@ -122,12 +122,16 @@ export const ComingSoon: React.FC = () => {
   const [selectedEntity, setSelectedEntity] = useState<EcosystemEntity | null>(null);
   const [hoveredEntity, setHoveredEntity] = useState<EcosystemEntity | null>(null);
 
-  // Curved SVG Text Path Marquee References
+  // Curved SVG Text Path Marquee References & Seamless Infinite Engine
   const textPathRef = useRef<SVGTextPathElement>(null);
+  const cycle1Ref = useRef<SVGTSpanElement>(null);
   const offsetRef = useRef(0);
   const isPausedRef = useRef(false);
-  const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const singleCycleLengthRef = useRef(1750);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const lastXRef = useRef(0);
+  const dragMovedRef = useRef(false);
+  const singleCycleLengthRef = useRef(1800);
 
   // Alternates between Arabic and English every 3.2 seconds
   useEffect(() => {
@@ -137,31 +141,42 @@ export const ComingSoon: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Measure single cycle width dynamically with high precision
+  // Measure rendered single cycle length with subpixel precision
   useEffect(() => {
-    const measureEl = document.getElementById('fathom-measure-cycle');
-    if (measureEl && (measureEl as any).getComputedTextLength) {
-      const len = (measureEl as any).getComputedTextLength();
-      if (len > 300) {
-        singleCycleLengthRef.current = Math.ceil(len);
+    const measure = () => {
+      if (cycle1Ref.current && (cycle1Ref.current as any).getComputedTextLength) {
+        const len = (cycle1Ref.current as any).getComputedTextLength();
+        if (len > 300) {
+          singleCycleLengthRef.current = len;
+        }
       }
+    };
+    measure();
+    if (typeof document !== 'undefined' && (document as any).fonts) {
+      (document as any).fonts.ready.then(measure);
     }
   }, []);
 
-  // Continuous, 120Hz smooth, glitch-free scrolling along the exact curve
+  // Continuous, 120Hz smooth, mathematically glitch-free infinite scrolling
   useAnimationFrame((_, delta) => {
-    if (isPausedRef.current || !textPathRef.current) return;
-    offsetRef.current -= delta * 0.045;
+    if (isPausedRef.current || isDraggingRef.current || !textPathRef.current) return;
+    const clampedDelta = Math.min(delta, 34);
+    offsetRef.current -= clampedDelta * 0.045;
     const cycle = singleCycleLengthRef.current;
-    if (offsetRef.current <= -cycle) {
-      offsetRef.current += cycle;
+    if (cycle > 0) {
+      // Seamless mathematical modulo wrapping in both directions
+      if (offsetRef.current <= -cycle) {
+        offsetRef.current += cycle;
+      } else if (offsetRef.current > 0) {
+        offsetRef.current -= cycle;
+      }
     }
     textPathRef.current.setAttribute('startOffset', `${offsetRef.current}px`);
   });
 
   // Calculate entity currently passing through center of curved pod (x = 250)
   const getCurrentlyCenteredEntity = (): EcosystemEntity => {
-    const cycleLen = singleCycleLengthRef.current || 1750;
+    const cycleLen = singleCycleLengthRef.current || 1800;
     const normalizedPos = (((250 - offsetRef.current) % cycleLen) + cycleLen) % cycleLen;
     const itemWidth = cycleLen / ECOSYSTEM_ENTITIES.length;
     const index = Math.floor(normalizedPos / itemWidth) % ECOSYSTEM_ENTITIES.length;
@@ -192,30 +207,59 @@ export const ComingSoon: React.FC = () => {
     };
   }, []);
 
-  // Interaction handlers for entity click / long-press
+  // Interaction handlers for entity click / touch drag
   const handleEntityClick = (entity: EcosystemEntity, e: React.SyntheticEvent) => {
     e.stopPropagation();
     setSelectedEntity(entity);
   };
 
-  const handlePodPointerDown = () => {
+  const handlePointerDown = (e: React.PointerEvent) => {
     isPausedRef.current = true;
-    if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
-    longPressTimeoutRef.current = setTimeout(() => {
-      setSelectedEntity(getCurrentlyCenteredEntity());
-    }, 380);
+    isDraggingRef.current = true;
+    startXRef.current = e.clientX;
+    lastXRef.current = e.clientX;
+    dragMovedRef.current = false;
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
   };
 
-  const handlePodPointerUp = () => {
-    if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current || !textPathRef.current) return;
+    const deltaX = e.clientX - lastXRef.current;
+    lastXRef.current = e.clientX;
+    if (Math.abs(e.clientX - startXRef.current) > 5) {
+      dragMovedRef.current = true;
+    }
+    offsetRef.current += deltaX;
+    const cycle = singleCycleLengthRef.current;
+    if (cycle > 0) {
+      if (offsetRef.current <= -cycle) {
+        offsetRef.current += cycle;
+      } else if (offsetRef.current > 0) {
+        offsetRef.current -= cycle;
+      }
+    }
+    textPathRef.current.setAttribute('startOffset', `${offsetRef.current}px`);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+    isDraggingRef.current = false;
+    if (!dragMovedRef.current && !selectedEntity) {
+      setSelectedEntity(getCurrentlyCenteredEntity());
+    }
     if (!selectedEntity) {
       isPausedRef.current = false;
     }
   };
 
-  const handlePodClick = () => {
+  const handlePointerCancel = () => {
+    isDraggingRef.current = false;
     if (!selectedEntity) {
-      setSelectedEntity(getCurrentlyCenteredEntity());
+      isPausedRef.current = false;
     }
   };
 
@@ -224,21 +268,6 @@ export const ComingSoon: React.FC = () => {
       className="relative min-h-[100dvh] w-full bg-[#030306] text-white flex flex-col items-center justify-between overflow-hidden select-none px-4 py-8 sm:py-10"
       dir="ltr"
     >
-      {/* Hidden high-precision SVG text measurement element */}
-      <svg className="absolute opacity-0 pointer-events-none w-0 h-0" aria-hidden="true">
-        <text
-          id="fathom-measure-cycle"
-          fontSize="13"
-          fontWeight="800"
-          letterSpacing="0.05em"
-          style={{
-            fontFamily:
-              '"Space Grotesk", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
-          {ECOSYSTEM_ENTITIES.map((i) => `● ${i.name}   ✦   `).join('')}
-        </text>
-      </svg>
 
       {/* Dynamic Cyber Background Gradients */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -375,43 +404,6 @@ export const ComingSoon: React.FC = () => {
           />
         </div>
 
-        {/* Official Website Channels (Isolated Support & Official Labs TikTok) */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2 }}
-          className="flex flex-row items-center justify-center gap-3 sm:gap-4 mt-1"
-        >
-          {/* Official Support Email (support@matany.one) */}
-          <a
-            href="mailto:support@matany.one"
-            aria-label="Official Support: support@matany.one"
-            title="Official Support: support@matany.one"
-            className="group relative flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 border border-white/10 hover:border-cyan-400/40 backdrop-blur-xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
-          >
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <Headphones className="size-5 sm:size-6 text-zinc-300 group-hover:text-cyan-300 transition-colors flex-shrink-0" />
-          </a>
-
-          {/* Official Labs TikTok (@matany_labs) */}
-          <a
-            href="https://www.tiktok.com/@matany_labs"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Official TikTok: @matany_labs"
-            title="Official TikTok: @matany_labs"
-            className="group relative flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 border border-white/10 hover:border-cyan-400/40 backdrop-blur-xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
-          >
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <svg
-              className="size-5 sm:size-6 fill-zinc-300 group-hover:fill-cyan-300 transition-colors flex-shrink-0"
-              viewBox="0 0 24 24"
-            >
-              <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
-            </svg>
-          </a>
-        </motion.div>
-
         {/* Quick Horizontal Hover Tooltip Preview */}
         <div className="h-6 my-1.5 flex items-center justify-center">
           <AnimatePresence>
@@ -434,18 +426,19 @@ export const ComingSoon: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {/* Genuinely Curved Glassmorphism Pod with Curved Typography (SVG TextPath Marquee) */}
+        {/* Genuinely Curved Glassmorphism Pod with Curved Typography (Infinite Seamless SVG TextPath Engine) */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.35 }}
-          className="relative w-full max-w-[360px] sm:max-w-[480px] mx-auto h-[66px] sm:h-[72px] flex items-center justify-center select-none cursor-pointer"
-          onClick={handlePodClick}
-          onPointerDown={handlePodPointerDown}
-          onPointerUp={handlePodPointerUp}
+          className="relative w-full max-w-[360px] sm:max-w-[480px] mx-auto h-[66px] sm:h-[72px] flex items-center justify-center select-none cursor-grab active:cursor-grabbing touch-pan-y"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
           onMouseEnter={() => { isPausedRef.current = true; }}
           onMouseLeave={() => {
-            if (!selectedEntity) isPausedRef.current = false;
+            if (!selectedEntity && !isDraggingRef.current) isPausedRef.current = false;
             setHoveredEntity(null);
           }}
         >
@@ -462,23 +455,37 @@ export const ComingSoon: React.FC = () => {
           <div
             className="relative w-full h-full flex items-center overflow-hidden [clip-path:url(#curved-pod-clip)] bg-gradient-to-b from-[#0e111d]/90 via-[#070812]/90 to-[#030408]/90 backdrop-blur-2xl shadow-[0_12px_35px_rgba(0,0,0,0.8)]"
           >
-            {/* Left & Right gradient edge fade masks */}
-            <div className="absolute left-0 inset-y-0 w-12 sm:w-16 bg-gradient-to-r from-[#030306] to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 inset-y-0 w-12 sm:w-16 bg-gradient-to-l from-[#030306] to-transparent z-10 pointer-events-none" />
-
             {/* SVG Curved TextPath Marquee Engine */}
             <svg
               viewBox="0 0 500 68"
               preserveAspectRatio="xMidYMid meet"
-              className="w-full h-full overflow-visible pointer-events-auto"
+              className="w-full h-full overflow-hidden pointer-events-auto"
             >
               <defs>
-                {/* Centerline Arc Path */}
+                {/* Ultra-Extended Centerline Arc Path (No start/end boundary) */}
                 <path
                   id="marquee-arc-path"
-                  d="M -2500,38 Q -2250,6 -2000,38 Q -1750,6 -1500,38 Q -1250,6 -1000,38 Q -750,6 -500,38 Q -250,6 0,38 Q 250,6 500,38 Q 750,6 1000,38 Q 1250,6 1500,38 Q 1750,6 2000,38 Q 2250,6 2500,38 Q 2750,6 3000,38"
+                  d="M -5000,38 Q -4750,6 -4500,38 Q -4250,6 -4000,38 Q -3750,6 -3500,38 Q -3250,6 -3000,38 Q -2750,6 -2500,38 Q -2250,6 -2000,38 Q -1750,6 -1500,38 Q -1250,6 -1000,38 Q -750,6 -500,38 Q -250,6 0,38 Q 250,6 500,38 Q 750,6 1000,38 Q 1250,6 1500,38 Q 1750,6 2000,38 Q 2250,6 2500,38 Q 2750,6 3000,38 Q 3250,6 3500,38 Q 3750,6 4000,38 Q 4250,6 4500,38 Q 4750,6 5000,38"
                   fill="none"
                 />
+
+                {/* Mathematical Internal Pod Boundary Clipping */}
+                <clipPath id="inner-pod-clip">
+                  <path d="M 22,22 Q 250,6.5 478,22 C 490,26 490,48 478,52 Q 250,36.5 22,52 C 10,48 10,26 22,22 Z" />
+                </clipPath>
+
+                {/* Luxurious Edge Fade Gradient Mask to prevent text popping */}
+                <linearGradient id="pod-fade-grad" x1="0" y1="0" x2="500" y2="0" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="black" stopOpacity="0" />
+                  <stop offset="7%" stopColor="black" stopOpacity="0" />
+                  <stop offset="16%" stopColor="white" stopOpacity="1" />
+                  <stop offset="84%" stopColor="white" stopOpacity="1" />
+                  <stop offset="93%" stopColor="black" stopOpacity="0" />
+                  <stop offset="100%" stopColor="black" stopOpacity="0" />
+                </linearGradient>
+                <mask id="pod-fade-mask">
+                  <rect x="0" y="0" width="500" height="68" fill="url(#pod-fade-grad)" />
+                </mask>
 
                 {/* Individual Luminous Metallic/Neon Gradients for each Model */}
                 {/* 1. Fathom Ultra: Electric Cyan */}
@@ -572,94 +579,122 @@ export const ComingSoon: React.FC = () => {
                 </linearGradient>
               </defs>
 
-              {/* Distinctive, Spacious, Luminous Curved Typography */}
-              <text
-                dominantBaseline="central"
-                className="select-none font-bold tracking-wider"
-                style={{
-                  fontFamily:
-                    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                }}
-              >
-                <textPath
-                  href="#marquee-arc-path"
-                  ref={textPathRef}
-                  startOffset="0px"
-                  spacing="auto"
+              {/* Masked and Clipped Marquee Text Group */}
+              <g clipPath="url(#inner-pod-clip)" mask="url(#pod-fade-mask)">
+                <text
+                  dominantBaseline="central"
+                  className="select-none font-bold tracking-wider"
+                  style={{
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  }}
                 >
-                  {/* First cycle */}
-                  {ECOSYSTEM_ENTITIES.map((item) => (
-                    <tspan
-                      key={`c1-${item.id}`}
-                      data-entity-id={item.id}
-                      className="cursor-pointer transition-opacity hover:opacity-80"
-                      onClick={(e) => handleEntityClick(item, e)}
-                      onMouseEnter={() => setHoveredEntity(item)}
-                    >
-                      <tspan fill={item.dotColor} fontSize="11">● </tspan>
-                      <tspan
-                        fill={`url(#${item.gradientId})`}
-                        fontSize="14"
-                        fontWeight="800"
-                        letterSpacing="0.04em"
-                      >
-                        {item.name}
-                      </tspan>
-                      <tspan fill="rgba(255, 255, 255, 0.22)" fontSize="10">
-                        {'       ✦       '}
-                      </tspan>
+                  <textPath
+                    href="#marquee-arc-path"
+                    ref={textPathRef}
+                    startOffset="0px"
+                    spacing="auto"
+                  >
+                    {/* Primary Master Cycle 1 (Measured dynamically for exact modulo) */}
+                    <tspan ref={cycle1Ref} id="fathom-cycle-1">
+                      {ECOSYSTEM_ENTITIES.map((item) => (
+                        <tspan
+                          key={`c1-${item.id}`}
+                          data-entity-id={item.id}
+                          className="cursor-pointer transition-opacity hover:opacity-80"
+                          onClick={(e) => handleEntityClick(item, e)}
+                          onMouseEnter={() => setHoveredEntity(item)}
+                        >
+                          <tspan fill={item.dotColor} fontSize="11">● </tspan>
+                          <tspan
+                            fill={`url(#${item.gradientId})`}
+                            fontSize="14"
+                            fontWeight="800"
+                            letterSpacing="0.04em"
+                          >
+                            {item.name}
+                          </tspan>
+                          <tspan fill="rgba(255, 255, 255, 0.22)" fontSize="10">
+                            {'       ✦       '}
+                          </tspan>
+                        </tspan>
+                      ))}
                     </tspan>
-                  ))}
 
-                  {/* Duplicate cycle 2 for seamless infinite looping */}
-                  {ECOSYSTEM_ENTITIES.map((item) => (
-                    <tspan
-                      key={`c2-${item.id}`}
-                      data-entity-id={item.id}
-                      className="cursor-pointer transition-opacity hover:opacity-80"
-                      onClick={(e) => handleEntityClick(item, e)}
-                      onMouseEnter={() => setHoveredEntity(item)}
-                    >
-                      <tspan fill={item.dotColor} fontSize="11">● </tspan>
+                    {/* Cycle 2 (Identical seamless clone) */}
+                    {ECOSYSTEM_ENTITIES.map((item) => (
                       <tspan
-                        fill={`url(#${item.gradientId})`}
-                        fontSize="14"
-                        fontWeight="800"
-                        letterSpacing="0.04em"
+                        key={`c2-${item.id}`}
+                        data-entity-id={item.id}
+                        className="cursor-pointer transition-opacity hover:opacity-80"
+                        onClick={(e) => handleEntityClick(item, e)}
+                        onMouseEnter={() => setHoveredEntity(item)}
                       >
-                        {item.name}
+                        <tspan fill={item.dotColor} fontSize="11">● </tspan>
+                        <tspan
+                          fill={`url(#${item.gradientId})`}
+                          fontSize="14"
+                          fontWeight="800"
+                          letterSpacing="0.04em"
+                        >
+                          {item.name}
+                        </tspan>
+                        <tspan fill="rgba(255, 255, 255, 0.22)" fontSize="10">
+                          {'       ✦       '}
+                        </tspan>
                       </tspan>
-                      <tspan fill="rgba(255, 255, 255, 0.22)" fontSize="10">
-                        {'       ✦       '}
-                      </tspan>
-                    </tspan>
-                  ))}
+                    ))}
 
-                  {/* Duplicate cycle 3 for deep buffer */}
-                  {ECOSYSTEM_ENTITIES.map((item) => (
-                    <tspan
-                      key={`c3-${item.id}`}
-                      data-entity-id={item.id}
-                      className="cursor-pointer transition-opacity hover:opacity-80"
-                      onClick={(e) => handleEntityClick(item, e)}
-                      onMouseEnter={() => setHoveredEntity(item)}
-                    >
-                      <tspan fill={item.dotColor} fontSize="11">● </tspan>
+                    {/* Cycle 3 (Buffer clone) */}
+                    {ECOSYSTEM_ENTITIES.map((item) => (
                       <tspan
-                        fill={`url(#${item.gradientId})`}
-                        fontSize="14"
-                        fontWeight="800"
-                        letterSpacing="0.04em"
+                        key={`c3-${item.id}`}
+                        data-entity-id={item.id}
+                        className="cursor-pointer transition-opacity hover:opacity-80"
+                        onClick={(e) => handleEntityClick(item, e)}
+                        onMouseEnter={() => setHoveredEntity(item)}
                       >
-                        {item.name}
+                        <tspan fill={item.dotColor} fontSize="11">● </tspan>
+                        <tspan
+                          fill={`url(#${item.gradientId})`}
+                          fontSize="14"
+                          fontWeight="800"
+                          letterSpacing="0.04em"
+                        >
+                          {item.name}
+                        </tspan>
+                        <tspan fill="rgba(255, 255, 255, 0.22)" fontSize="10">
+                          {'       ✦       '}
+                        </tspan>
                       </tspan>
-                      <tspan fill="rgba(255, 255, 255, 0.22)" fontSize="10">
-                        {'       ✦       '}
+                    ))}
+
+                    {/* Cycle 4 (Extended continuous buffer) */}
+                    {ECOSYSTEM_ENTITIES.map((item) => (
+                      <tspan
+                        key={`c4-${item.id}`}
+                        data-entity-id={item.id}
+                        className="cursor-pointer transition-opacity hover:opacity-80"
+                        onClick={(e) => handleEntityClick(item, e)}
+                        onMouseEnter={() => setHoveredEntity(item)}
+                      >
+                        <tspan fill={item.dotColor} fontSize="11">● </tspan>
+                        <tspan
+                          fill={`url(#${item.gradientId})`}
+                          fontSize="14"
+                          fontWeight="800"
+                          letterSpacing="0.04em"
+                        >
+                          {item.name}
+                        </tspan>
+                        <tspan fill="rgba(255, 255, 255, 0.22)" fontSize="10">
+                          {'       ✦       '}
+                        </tspan>
                       </tspan>
-                    </tspan>
-                  ))}
-                </textPath>
-              </text>
+                    ))}
+                  </textPath>
+                </text>
+              </g>
             </svg>
           </div>
 
@@ -708,27 +743,56 @@ export const ComingSoon: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* Symmetrical & Balanced Footer with Developer Contact Isolation */}
+      {/* Symmetrical & Balanced Footer: Matany Labs Support Channels + Developer Direct Attribution */}
       <motion.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.9, delay: 0.45 }}
-        className="relative z-10 w-full flex flex-col items-center justify-center pt-6 pb-4 px-4"
+        className="relative z-10 w-full flex flex-col items-center justify-center pt-8 pb-4 px-4 gap-3 select-none"
       >
-        <div className="inline-flex items-center justify-center flex-wrap gap-2.5 sm:gap-3.5 px-4 sm:px-6 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
-          <span className="font-sans text-[11px] sm:text-[12px] text-zinc-300 font-medium select-text whitespace-nowrap">
-            Developed by <strong className="text-white font-semibold">Mohamed Matany</strong>
+        {/* Matany Labs Official Support & Platform Channels */}
+        <div className="inline-flex items-center justify-center flex-wrap gap-2.5 sm:gap-3 px-4 sm:px-5 py-2 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+          <span className="font-sans text-[11px] sm:text-[12px] text-zinc-300 font-semibold tracking-wide flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            Matany Labs Support:
           </span>
+          <a
+            href="mailto:support@matany.one"
+            aria-label="Official Support: support@matany.one"
+            title="support@matany.one"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-400/30 text-[11px] font-mono text-cyan-300 hover:text-white transition-all active:scale-95"
+          >
+            <Headphones className="size-3.5 flex-shrink-0" />
+            <span>support@matany.one</span>
+          </a>
+          <a
+            href="https://www.tiktok.com/@matany_labs"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Official TikTok: @matany_labs"
+            title="@matany_labs"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-[11px] font-mono text-zinc-200 hover:text-white transition-all active:scale-95"
+          >
+            <svg className="size-3.5 fill-current flex-shrink-0" viewBox="0 0 24 24">
+              <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
+            </svg>
+            <span>@matany_labs</span>
+          </a>
+        </div>
 
-          {/* Developer Personal Direct Contact Links (mo@matany.one & @mo_matany) */}
+        {/* Developer Attribution & Personal Direct Line */}
+        <div className="inline-flex items-center justify-center flex-wrap gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-1.5 rounded-full bg-white/[0.02] border border-white/[0.06] backdrop-blur-md">
+          <span className="font-sans text-[11px] text-zinc-400 font-normal select-text whitespace-nowrap">
+            Developed by <strong className="text-white font-medium">Mohamed Matany</strong>
+          </span>
           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
             <a
               href="mailto:mo@matany.one"
               aria-label="Direct Email: mo@matany.one"
-              title="Direct Email: mo@matany.one"
+              title="mo@matany.one"
               className="p-1 rounded-full text-zinc-400 hover:text-white transition-colors"
             >
-              <Mail className="size-3.5" />
+              <Mail className="size-3" />
             </a>
             <span className="text-zinc-600 text-[10px]">|</span>
             <a
@@ -736,18 +800,17 @@ export const ComingSoon: React.FC = () => {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Personal TikTok: @mo_matany"
-              title="Personal TikTok: @mo_matany"
+              title="@mo_matany"
               className="p-1 rounded-full text-zinc-400 hover:text-white transition-colors"
             >
-              <svg className="size-3.5 fill-current" viewBox="0 0 24 24">
+              <svg className="size-3 fill-current" viewBox="0 0 24 24">
                 <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
               </svg>
             </a>
           </div>
-
-          <span className="text-cyan-400/60 text-[10px]">✦</span>
-          <span className="font-sans text-[11px] sm:text-[12px] text-zinc-400 font-medium select-text whitespace-nowrap">
-            Built by <strong className="text-zinc-200 font-semibold">Matany Labs</strong>
+          <span className="text-cyan-400/50 text-[10px]">✦</span>
+          <span className="font-sans text-[11px] text-zinc-400 font-normal select-text whitespace-nowrap">
+            Built by <strong className="text-zinc-300 font-medium">Matany Labs</strong>
           </span>
         </div>
       </motion.footer>
