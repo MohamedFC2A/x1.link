@@ -124,6 +124,9 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
   const BASE_START_OFFSET = PATH_PRE_LENGTH - 200;
   const textPathRef = useRef<SVGTextPathElement>(null);
   const cycle1Ref = useRef<SVGTSpanElement>(null);
+  const podContainerRef = useRef<HTMLDivElement>(null);
+  const entitySegmentsRef = useRef<{ entity: EcosystemEntity; start: number; end: number }[]>([]);
+  const pointerStartRef = useRef<{ x: number; y: number; time: number }>({ x: 0, y: 0, time: 0 });
   const offsetRef = useRef(BASE_START_OFFSET);
   const isPausedRef = useRef(false);
   const isDraggingRef = useRef(false);
@@ -140,15 +143,50 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Measure rendered single cycle length with subpixel precision
+  // Measure rendered single cycle length and exact individual entity boundaries
   useEffect(() => {
     const measure = () => {
-      if (cycle1Ref.current && (cycle1Ref.current as any).getComputedTextLength) {
-        const len = (cycle1Ref.current as any).getComputedTextLength();
-        if (len > 300) {
-          singleCycleLengthRef.current = len;
-          if (!isDraggingRef.current && textPathRef.current) {
-            textPathRef.current.setAttribute('startOffset', `${offsetRef.current}px`);
+      if (cycle1Ref.current) {
+        const tspans = cycle1Ref.current.querySelectorAll('[data-entity-id]');
+        if (tspans && tspans.length > 0) {
+          let cumulative = 0;
+          const segments: { entity: EcosystemEntity; start: number; end: number }[] = [];
+          tspans.forEach((el) => {
+            const id = el.getAttribute('data-entity-id');
+            const entity = ECOSYSTEM_ENTITIES.find((item) => item.id === id);
+            let len = 0;
+            try {
+              len = (el as any).getComputedTextLength ? (el as any).getComputedTextLength() : 0;
+            } catch {}
+            if (len <= 0) {
+              len = 166.6;
+            }
+            if (entity) {
+              segments.push({
+                entity,
+                start: cumulative,
+                end: cumulative + len,
+              });
+              cumulative += len;
+            }
+          });
+          if (segments.length === ECOSYSTEM_ENTITIES.length && cumulative > 300) {
+            entitySegmentsRef.current = segments;
+            singleCycleLengthRef.current = cumulative;
+            if (!isDraggingRef.current && textPathRef.current) {
+              textPathRef.current.setAttribute('startOffset', `${offsetRef.current}px`);
+            }
+            return;
+          }
+        }
+
+        if ((cycle1Ref.current as any).getComputedTextLength) {
+          const len = (cycle1Ref.current as any).getComputedTextLength();
+          if (len > 300) {
+            singleCycleLengthRef.current = len;
+            if (!isDraggingRef.current && textPathRef.current) {
+              textPathRef.current.setAttribute('startOffset', `${offsetRef.current}px`);
+            }
           }
         }
       }
@@ -176,14 +214,46 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
     textPathRef.current.setAttribute('startOffset', `${offsetRef.current}px`);
   });
 
-  // Calculate entity currently passing through center of curved pod (x = 250)
-  const getCurrentlyCenteredEntity = (): EcosystemEntity => {
-    const cycleLen = singleCycleLengthRef.current || 1500;
-    const podCenterDist = PATH_PRE_LENGTH + 252.7;
-    const relPos = (((podCenterDist - offsetRef.current) % cycleLen) + cycleLen) % cycleLen;
-    const itemWidth = cycleLen / ECOSYSTEM_ENTITIES.length;
-    const index = Math.floor(relPos / itemWidth) % ECOSYSTEM_ENTITIES.length;
-    return ECOSYSTEM_ENTITIES[index] || ECOSYSTEM_ENTITIES[0];
+  // Calculate entity from exact viewport (X, Y) touch or click coordinates
+  const resolveEntityAtPoint = (clientX: number, clientY: number): EcosystemEntity => {
+    // 1. Check DOM hit via elementFromPoint
+    try {
+      const el = document.elementFromPoint(clientX, clientY);
+      const entityEl = el?.closest('[data-entity-id]');
+      if (entityEl) {
+        const id = entityEl.getAttribute('data-entity-id');
+        const found = ECOSYSTEM_ENTITIES.find((item) => item.id === id);
+        if (found) return found;
+      }
+    } catch {}
+
+    // 2. High-Precision Mathematical Arc-Length Coordinate Hit-Testing
+    const pod = podContainerRef.current;
+    if (pod) {
+      const rect = pod.getBoundingClientRect();
+      if (rect.width > 0) {
+        const relX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        const svgX = relX * 500;
+        // Along the path: M -3000,38 L 0,38 Q 250,6 500,38
+        const arcDistance = PATH_PRE_LENGTH + (svgX * 1.016);
+        const cycleLen = singleCycleLengthRef.current || 1500;
+        const posInCycle = (((arcDistance - offsetRef.current) % cycleLen) + cycleLen) % cycleLen;
+
+        if (entitySegmentsRef.current.length === ECOSYSTEM_ENTITIES.length) {
+          for (const seg of entitySegmentsRef.current) {
+            if (posInCycle >= seg.start && posInCycle < seg.end) {
+              return seg.entity;
+            }
+          }
+        }
+
+        const itemWidth = cycleLen / ECOSYSTEM_ENTITIES.length;
+        const index = Math.floor(posInCycle / itemWidth) % ECOSYSTEM_ENTITIES.length;
+        return ECOSYSTEM_ENTITIES[index] || ECOSYSTEM_ENTITIES[0];
+      }
+    }
+
+    return ECOSYSTEM_ENTITIES[0];
   };
 
   // Silent & Deep Telemetry Collection
@@ -214,6 +284,7 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
   const handleEntityClick = (entity: EcosystemEntity, e: React.SyntheticEvent) => {
     e.stopPropagation();
     setSelectedEntity(entity);
+    isPausedRef.current = true;
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -222,16 +293,14 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
     startXRef.current = e.clientX;
     lastXRef.current = e.clientX;
     dragMovedRef.current = false;
-    try {
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    } catch {}
+    pointerStartRef.current = { x: e.clientX, y: e.clientY, time: Date.now() };
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDraggingRef.current || !textPathRef.current) return;
     const deltaX = e.clientX - lastXRef.current;
     lastXRef.current = e.clientX;
-    if (Math.abs(e.clientX - startXRef.current) > 5) {
+    if (Math.hypot(e.clientX - pointerStartRef.current.x, e.clientY - pointerStartRef.current.y) > 10) {
       dragMovedRef.current = true;
     }
     offsetRef.current += deltaX;
@@ -247,13 +316,20 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {}
+    const elapsed = Date.now() - pointerStartRef.current.time;
+    const dist = Math.hypot(e.clientX - pointerStartRef.current.x, e.clientY - pointerStartRef.current.y);
     isDraggingRef.current = false;
-    if (!dragMovedRef.current && !selectedEntity) {
-      setSelectedEntity(getCurrentlyCenteredEntity());
+
+    // Precise Touch or Click Selection: if not dragged beyond micro-jitter threshold
+    if (!dragMovedRef.current && dist < 12 && elapsed < 450) {
+      const entity = resolveEntityAtPoint(e.clientX, e.clientY);
+      if (entity) {
+        setSelectedEntity(entity);
+        isPausedRef.current = true;
+        return;
+      }
     }
+
     if (!selectedEntity) {
       isPausedRef.current = false;
     }
@@ -439,10 +515,11 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
 
         {/* Genuinely Curved Glassmorphism Pod with Curved Typography (Infinite Seamless SVG TextPath Engine) */}
         <motion.div
+          ref={podContainerRef}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.35 }}
-          className="relative w-full max-w-[360px] sm:max-w-[480px] mx-auto h-[66px] sm:h-[72px] flex items-center justify-center select-none cursor-grab active:cursor-grabbing touch-pan-y"
+          className="relative w-full max-w-[360px] sm:max-w-[480px] mx-auto h-[66px] sm:h-[72px] flex items-center justify-center select-none cursor-pointer active:cursor-grabbing touch-pan-y"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
