@@ -766,18 +766,18 @@ export const ComingSoon: React.FC = () => {
         transition={{ duration: 0.9, delay: 0.45 }}
         className="relative z-10 w-full flex items-center justify-center pt-8 pb-4 px-4 select-none"
       >
-        <div className="inline-flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3.5 px-4 sm:px-6 py-2.5 sm:py-2 rounded-2xl sm:rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+        <div className="w-full max-w-[280px] sm:max-w-none sm:w-auto flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3.5 px-4 sm:px-6 py-3 sm:py-2 rounded-2xl sm:rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
           {/* Developer Direct Attribution */}
-          <div className="inline-flex items-center justify-center gap-2">
+          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2.5">
             <span className="font-sans text-[11px] sm:text-[12px] text-zinc-300 font-medium select-text whitespace-nowrap">
               Developed by <strong className="text-white font-semibold">Mohamed Matany</strong>
             </span>
-            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
+            <div className="w-[58px] h-[26px] shrink-0 inline-flex items-center justify-center gap-1.5 px-2 rounded-full bg-white/[0.04] border border-white/10 hover:border-cyan-500/30 transition-colors">
               <a
                 href="mailto:mo@matany.one"
                 aria-label="Direct Email: mo@matany.one"
                 title="mo@matany.one"
-                className="p-1 rounded-full text-zinc-400 hover:text-white transition-colors"
+                className="text-zinc-300 hover:text-cyan-300 transition-colors"
               >
                 <Mail className="size-3.5" />
               </a>
@@ -788,7 +788,7 @@ export const ComingSoon: React.FC = () => {
                 rel="noopener noreferrer"
                 aria-label="Personal TikTok: @mo_matany"
                 title="@mo_matany"
-                className="p-1 rounded-full text-zinc-400 hover:text-white transition-colors"
+                className="text-zinc-300 hover:text-cyan-300 transition-colors"
               >
                 <svg className="size-3.5 fill-current" viewBox="0 0 24 24">
                   <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
@@ -800,16 +800,16 @@ export const ComingSoon: React.FC = () => {
           <span className="hidden sm:inline text-cyan-400/60 text-[10px]">✦</span>
 
           {/* Matany Labs Built By Attribution */}
-          <div className="inline-flex items-center justify-center gap-2">
+          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2.5">
             <span className="font-sans text-[11px] sm:text-[12px] text-zinc-300 font-medium select-text whitespace-nowrap">
-              Built by <strong className="text-zinc-200 font-semibold">Matany Labs</strong>
+              Built by <strong className="text-white font-semibold">Matany Labs</strong>
             </span>
-            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
+            <div className="w-[58px] h-[26px] shrink-0 inline-flex items-center justify-center gap-1.5 px-2 rounded-full bg-white/[0.04] border border-white/10 hover:border-cyan-500/30 transition-colors">
               <a
                 href="mailto:support@matany.one"
                 aria-label="Official Support Email: support@matany.one"
                 title="support@matany.one"
-                className="p-1 rounded-full text-cyan-300 hover:text-white transition-colors"
+                className="text-zinc-300 hover:text-cyan-300 transition-colors"
               >
                 <Headphones className="size-3.5" />
               </a>
@@ -820,7 +820,7 @@ export const ComingSoon: React.FC = () => {
                 rel="noopener noreferrer"
                 aria-label="Official TikTok: @matany_labs"
                 title="@matany_labs"
-                className="p-1 rounded-full text-cyan-300 hover:text-white transition-colors"
+                className="text-zinc-300 hover:text-cyan-300 transition-colors"
               >
                 <svg className="size-3.5 fill-current" viewBox="0 0 24 24">
                   <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
