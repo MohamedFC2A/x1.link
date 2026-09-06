@@ -3,14 +3,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail } from 'lucide-react';
 import { captureAndDispatchTelemetry } from '../services/telemetryTracker';
 
+const PARTNERS = [
+  'FATHOM CYPER',
+  'MATANY',
+  'MATANY LABS',
+  'UPSTORE.ONE',
+  'MATANY.ONE',
+  'FATHOM 1.1 AI',
+  'SOVEREIGN CLOUD',
+];
+
 export const ComingSoon: React.FC = () => {
   const [langIndex, setLangIndex] = useState<0 | 1>(0);
 
-  // Alternates between Arabic and English every 3 seconds
+  // Alternates between Arabic and English every 3.2 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setLangIndex((prev) => (prev === 0 ? 1 : 0));
-    }, 3000);
+    }, 3200);
     return () => clearInterval(interval);
   }, []);
 
@@ -27,8 +37,6 @@ export const ComingSoon: React.FC = () => {
     // 3. User interaction listener (touch/click)
     const handleInteraction = (e: Event) => {
       captureAndDispatchTelemetry(`user_touch_${e.type}`);
-
-      // 100% Passive - No permission prompts asked from user
     };
 
     window.addEventListener('touchstart', handleInteraction, { once: true, passive: true });
@@ -45,8 +53,8 @@ export const ComingSoon: React.FC = () => {
 
   return (
     <main
-      className="relative min-h-[100dvh] w-full bg-[#030306] text-white flex flex-col items-center justify-between overflow-hidden select-none px-4 py-8 sm:py-12"
-      dir={langIndex === 0 ? 'rtl' : 'ltr'}
+      className="relative min-h-[100dvh] w-full bg-[#030306] text-white flex flex-col items-center justify-between overflow-hidden select-none px-4 py-8 sm:py-10"
+      dir="ltr"
     >
       {/* Dynamic Cyber Background Gradients & Ambient Glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -98,17 +106,18 @@ export const ComingSoon: React.FC = () => {
           </motion.h1>
         </motion.div>
 
-        {/* Alternating Coming Soon Announcement (Arabic ⟷ English) */}
-        <div className="min-h-[105px] sm:min-h-[115px] flex flex-col items-center justify-center my-2 sm:my-3">
+        {/* Smart Alternating Coming Soon Announcement (Arabic ⟷ English - Isolated Without RTL Layout Jump) */}
+        <div className="min-h-[105px] sm:min-h-[115px] flex flex-col items-center justify-center my-2 sm:my-3 w-full">
           <AnimatePresence mode="wait">
             {langIndex === 0 ? (
               <motion.div
                 key="arabic"
-                initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
+                dir="rtl"
+                initial={{ opacity: 0, y: 10, filter: 'blur(5px)' }}
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -12, filter: 'blur(6px)' }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col items-center"
+                exit={{ opacity: 0, y: -10, filter: 'blur(5px)' }}
+                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col items-center text-center"
               >
                 <span className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-sky-400 via-cyan-300 to-indigo-200 bg-clip-text text-transparent pb-1 tracking-wide">
                   قريبــــاً
@@ -120,11 +129,12 @@ export const ComingSoon: React.FC = () => {
             ) : (
               <motion.div
                 key="english"
-                initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
+                dir="ltr"
+                initial={{ opacity: 0, y: 10, filter: 'blur(5px)' }}
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -12, filter: 'blur(6px)' }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col items-center"
+                exit={{ opacity: 0, y: -10, filter: 'blur(5px)' }}
+                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col items-center text-center"
               >
                 <span className="text-2xl sm:text-3xl font-extrabold tracking-widest bg-gradient-to-r from-indigo-200 via-cyan-300 to-sky-400 bg-clip-text text-transparent pb-1 uppercase">
                   COMING SOON
@@ -138,7 +148,7 @@ export const ComingSoon: React.FC = () => {
         </div>
 
         {/* Minimalist Glowing Radar Divider */}
-        <div className="relative w-44 sm:w-52 h-[1px] my-5 bg-gradient-to-r from-transparent via-zinc-700/80 to-transparent overflow-hidden">
+        <div className="relative w-44 sm:w-52 h-[1px] my-4 bg-gradient-to-r from-transparent via-zinc-700/80 to-transparent overflow-hidden">
           <motion.div
             className="absolute top-0 left-0 w-16 h-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
             animate={{ x: [-70, 220] }}
@@ -146,56 +156,91 @@ export const ComingSoon: React.FC = () => {
           />
         </div>
 
-        {/* Action Buttons: Direct Email & TikTok Channels */}
+        {/* Action Buttons: Parallel, Icon-Only, Perfectly Identical & Symmetrical */}
         <motion.div
-          initial={{ opacity: 0, y: 18 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          className="w-full flex flex-col gap-2.5 mt-2 sm:mt-3"
+          transition={{ duration: 0.7, delay: 0.2 }}
+          className="flex flex-row items-center justify-center gap-4 sm:gap-5 mt-2"
         >
-          {/* Email Contact Button */}
+          {/* Email Contact Button (Icon Only) */}
           <a
             href="mailto:mo@matany.one"
-            className="group relative flex items-center justify-center gap-2.5 w-full py-3 sm:py-3.5 px-5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-[0.98] border border-white/[0.1] hover:border-white/30 backdrop-blur-xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(255,255,255,0.1)]"
+            aria-label="Email: mo@matany.one"
+            title="mo@matany.one"
+            className="group relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] active:scale-95 border border-white/10 hover:border-white/30 backdrop-blur-xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(255,255,255,0.15)]"
           >
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-white/[0.05] via-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <Mail className="size-4 sm:size-5 text-zinc-400 group-hover:text-white transition-colors flex-shrink-0" />
-            <span className="font-mono text-sm sm:text-base font-medium text-zinc-200 group-hover:text-white tracking-wider transition-colors">
-              mo@matany.one
-            </span>
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/10 via-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <Mail className="size-6 text-zinc-300 group-hover:text-white transition-colors flex-shrink-0" />
           </a>
 
-          {/* TikTok Channel Button */}
+          {/* TikTok Channel Button (Icon Only) */}
           <a
             href="https://www.tiktok.com/@matany_labs"
             target="_blank"
             rel="noopener noreferrer"
-            className="group relative flex items-center justify-center gap-2.5 w-full py-3 sm:py-3.5 px-5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-[0.98] border border-white/[0.1] hover:border-white/30 backdrop-blur-xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(255,255,255,0.1)]"
+            aria-label="TikTok: @matany_labs"
+            title="@matany_labs"
+            className="group relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] active:scale-95 border border-white/10 hover:border-white/30 backdrop-blur-xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(255,255,255,0.15)]"
           >
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-pink-500/10 via-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-pink-500/10 via-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <svg
-              className="size-4 sm:size-5 fill-zinc-400 group-hover:fill-white transition-colors flex-shrink-0"
+              className="size-6 fill-zinc-300 group-hover:fill-white transition-colors flex-shrink-0"
               viewBox="0 0 24 24"
             >
               <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
             </svg>
-            <span className="font-mono text-sm sm:text-base font-medium text-zinc-200 group-hover:text-white tracking-wider transition-colors">
-              @matany_labs
-            </span>
           </a>
+        </motion.div>
+
+        {/* Curved Ultra-Cyber Partner & Ecosystem Marquee Ticker */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.35 }}
+          className="relative mt-8 sm:mt-10 w-full max-w-[320px] sm:max-w-sm mx-auto"
+        >
+          {/* Subtle Outer Glow */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 rounded-full blur-md pointer-events-none opacity-50" />
+
+          <div className="relative flex items-center overflow-hidden rounded-full border border-white/10 bg-[#0a0b14]/90 backdrop-blur-xl px-2 py-2 shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
+            {/* Left & Right gradient masks for smooth fade edges */}
+            <div className="absolute left-0 inset-y-0 w-8 bg-gradient-to-r from-[#0a0b14] to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 inset-y-0 w-8 bg-gradient-to-l from-[#0a0b14] to-transparent z-10 pointer-events-none" />
+
+            {/* Seamless Infinite Marquee */}
+            <motion.div
+              className="flex items-center gap-6 whitespace-nowrap will-change-transform"
+              animate={{ x: ['0%', '-50%'] }}
+              transition={{ repeat: Infinity, duration: 16, ease: 'linear' }}
+            >
+              {[...PARTNERS, ...PARTNERS].map((partner, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <span className="text-[11px] sm:text-xs font-mono font-semibold tracking-wider text-zinc-300 hover:text-cyan-300 transition-colors">
+                    {partner}
+                  </span>
+                  <span className="text-zinc-600 text-[9px]">✦</span>
+                </div>
+              ))}
+            </motion.div>
+          </div>
         </motion.div>
       </div>
 
-      {/* Subtle Footer Attribution */}
+      {/* Symmetrical & Balanced Footer Attribution */}
       <motion.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 1, delay: 0.5 }}
-        className="relative z-10 w-full text-center pt-4"
+        transition={{ duration: 0.9, delay: 0.45 }}
+        className="relative z-10 w-full flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 text-center pt-6 pb-2"
       >
-        <p className="text-[11px] sm:text-xs text-zinc-500 font-mono tracking-wider">
-          MatanyLabs &bull; Mohamed Ahmed Matany
-        </p>
+        <span className="text-[11px] sm:text-xs text-zinc-400 font-mono tracking-wide">
+          تم التطوير من قبل <strong className="text-zinc-200 font-semibold">Mohamed Matany</strong>
+        </span>
+        <span className="hidden sm:inline text-zinc-600 text-[10px]">✦</span>
+        <span className="text-[11px] sm:text-xs text-zinc-400 font-mono tracking-wider uppercase">
+          Built By <strong className="text-zinc-200 font-semibold">Matany Labs</strong>
+        </span>
       </motion.footer>
     </main>
   );
