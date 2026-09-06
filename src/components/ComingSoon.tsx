@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Mail } from 'lucide-react';
 import { captureAndDispatchTelemetry } from '../services/telemetryTracker';
 
 export const ComingSoon: React.FC = () => {
@@ -44,101 +45,91 @@ export const ComingSoon: React.FC = () => {
 
   return (
     <main
-      className="relative min-h-screen w-full bg-[#030306] text-white flex flex-col items-center justify-center overflow-hidden select-none px-4"
+      className="relative min-h-[100dvh] w-full bg-[#030306] text-white flex flex-col items-center justify-between overflow-hidden select-none px-4 py-8 sm:py-12"
       dir={langIndex === 0 ? 'rtl' : 'ltr'}
     >
       {/* Dynamic Cyber Background Gradients & Ambient Glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Top radial ambient glow */}
-        <div className="absolute -top-[20%] left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-b from-cyan-500/10 via-indigo-600/10 to-transparent blur-[130px] rounded-full" />
+        <div className="absolute -top-[25%] left-1/2 -translate-x-1/2 w-[700px] h-[550px] bg-gradient-to-b from-slate-400/10 via-indigo-500/10 to-transparent blur-[140px] rounded-full" />
         {/* Bottom subtle violet glow */}
-        <div className="absolute -bottom-[20%] left-1/2 -translate-x-1/2 w-[600px] h-[450px] bg-gradient-to-t from-violet-600/10 via-fuchsia-600/5 to-transparent blur-[140px] rounded-full" />
+        <div className="absolute -bottom-[20%] left-1/2 -translate-x-1/2 w-[600px] h-[450px] bg-gradient-to-t from-cyan-600/10 via-slate-600/5 to-transparent blur-[140px] rounded-full" />
         {/* Subtle Cyber Grid */}
         <div
-          className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"
+          className="absolute inset-0 opacity-[0.035] bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"
         />
       </div>
 
-      {/* Main Glassmorphic Showcase Card */}
-      <div className="relative z-10 w-full max-w-xl mx-auto flex flex-col items-center text-center">
-        {/* Pulsing Status Pill */}
+      {/* Invisible spacer for top vertical balance on mobile */}
+      <div className="w-full h-2 sm:h-4 pointer-events-none" />
+
+      {/* Main Showcase Container (Mobile-First Optimized) */}
+      <div className="relative z-10 w-full max-w-sm sm:max-w-md mx-auto my-auto flex flex-col items-center text-center px-2">
+        {/* Spectacular Liquid Chrome / Shiny Silver Brand Title: Matany.one */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md mb-8 shadow-inner"
+          initial={{ opacity: 0, scale: 0.94, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          className="relative mb-3 sm:mb-4 inline-block"
         >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-          </span>
-          <span className="text-[12px] font-medium tracking-wide text-zinc-300">
-            {langIndex === 0
-              ? 'النظام قيد الترقية والتطوير الشامل'
-              : 'System Upgrade & Evolution in Progress'}
-          </span>
+          {/* Outer Specular Glow Behind the Silver Text */}
+          <div className="absolute -inset-x-8 -inset-y-3 bg-gradient-to-r from-transparent via-white/10 to-transparent blur-xl pointer-events-none -z-10" />
+
+          <motion.h1
+            className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter select-none"
+            style={{
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif',
+            }}
+          >
+            <motion.span
+              className="bg-clip-text text-transparent bg-[linear-gradient(110deg,#71717a_0%,#cbd5e1_18%,#ffffff_32%,#f8fafc_45%,#52525b_54%,#ffffff_68%,#e2e8f0_82%,#71717a_100%)] bg-[length:250%_100%] inline-block filter drop-shadow-[0_2px_14px_rgba(255,255,255,0.45)] drop-shadow-[0_8px_30px_rgba(180,200,225,0.25)]"
+              animate={{
+                backgroundPosition: ['0% 50%', '200% 50%'],
+              }}
+              transition={{
+                repeat: Infinity,
+                duration: 4.5,
+                ease: 'linear',
+              }}
+            >
+              Matany.one
+            </motion.span>
+          </motion.h1>
         </motion.div>
 
-        {/* Animated Brand Emblem */}
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          className="relative mb-6 group"
-        >
-          <div className="absolute -inset-1.5 bg-gradient-to-r from-cyan-500/20 via-indigo-500/30 to-violet-500/20 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-700 opacity-80" />
-          <div className="relative size-20 rounded-2xl bg-zinc-950/80 border border-white/10 p-3.5 backdrop-blur-xl shadow-2xl flex items-center justify-center">
-            <img
-              src="/matany-logo.svg"
-              alt="Matany"
-              className="w-full h-full object-contain filter drop-shadow-[0_0_12px_rgba(56,189,248,0.4)]"
-            />
-          </div>
-        </motion.div>
-
-        {/* Brand Title: Matany.one */}
-        <motion.h1
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.2 }}
-          className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-b from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent mb-3"
-          style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
-        >
-          Matany.one
-        </motion.h1>
-
-        {/* Alternating Coming Soon Text (Arabic ⟷ English) */}
-        <div className="h-28 flex flex-col items-center justify-center my-2">
+        {/* Alternating Coming Soon Announcement (Arabic ⟷ English) */}
+        <div className="min-h-[105px] sm:min-h-[115px] flex flex-col items-center justify-center my-2 sm:my-3">
           <AnimatePresence mode="wait">
             {langIndex === 0 ? (
               <motion.div
                 key="arabic"
-                initial={{ opacity: 0, y: 14, filter: 'blur(8px)' }}
+                initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -14, filter: 'blur(8px)' }}
-                transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                exit={{ opacity: 0, y: -12, filter: 'blur(6px)' }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 className="flex flex-col items-center"
               >
-                <span className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent pb-1">
+                <span className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-sky-400 via-cyan-300 to-indigo-200 bg-clip-text text-transparent pb-1 tracking-wide">
                   قريبــــاً
                 </span>
-                <p className="text-sm sm:text-base text-zinc-400 mt-2 font-normal max-w-md leading-relaxed">
+                <p className="text-sm sm:text-base text-zinc-400 mt-2 font-normal max-w-xs sm:max-w-sm leading-relaxed px-1">
                   الجيل القادم من الذكاء الاصطناعي الاستثنائي والقدرات الخارقة
                 </p>
               </motion.div>
             ) : (
               <motion.div
                 key="english"
-                initial={{ opacity: 0, y: 14, filter: 'blur(8px)' }}
+                initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -14, filter: 'blur(8px)' }}
-                transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                exit={{ opacity: 0, y: -12, filter: 'blur(6px)' }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 className="flex flex-col items-center"
               >
-                <span className="text-3xl sm:text-4xl font-bold tracking-wider bg-gradient-to-r from-indigo-300 via-sky-300 to-cyan-400 bg-clip-text text-transparent pb-1 uppercase">
-                  Coming Soon
+                <span className="text-2xl sm:text-3xl font-extrabold tracking-widest bg-gradient-to-r from-indigo-200 via-cyan-300 to-sky-400 bg-clip-text text-transparent pb-1 uppercase">
+                  COMING SOON
                 </span>
-                <p className="text-sm sm:text-base text-zinc-400 mt-2 font-normal max-w-md leading-relaxed tracking-wide">
+                <p className="text-sm sm:text-base text-zinc-400 mt-2 font-normal max-w-xs sm:max-w-sm leading-relaxed tracking-wide px-1">
                   Next-generation frontier intelligence is preparing to launch
                 </p>
               </motion.div>
@@ -147,24 +138,65 @@ export const ComingSoon: React.FC = () => {
         </div>
 
         {/* Minimalist Glowing Radar Divider */}
-        <div className="relative w-48 h-[1px] my-6 bg-gradient-to-r from-transparent via-zinc-700 to-transparent overflow-hidden">
+        <div className="relative w-44 sm:w-52 h-[1px] my-5 bg-gradient-to-r from-transparent via-zinc-700/80 to-transparent overflow-hidden">
           <motion.div
             className="absolute top-0 left-0 w-16 h-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
-            animate={{ x: [-80, 240] }}
+            animate={{ x: [-70, 220] }}
             transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
           />
         </div>
 
-        {/* Subtle Footer Attribution */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 0.5 }}
-          className="text-xs text-zinc-500 font-mono tracking-wider"
+        {/* Action Buttons: Direct Email & TikTok Channels */}
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+          className="w-full flex flex-col gap-2.5 mt-2 sm:mt-3"
         >
-          MatanyLabs &bull; Mohamed Ahmed Matany
-        </motion.p>
+          {/* Email Contact Button */}
+          <a
+            href="mailto:mo@matany.one"
+            className="group relative flex items-center justify-center gap-2.5 w-full py-3 sm:py-3.5 px-5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-[0.98] border border-white/[0.1] hover:border-white/30 backdrop-blur-xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(255,255,255,0.1)]"
+          >
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-white/[0.05] via-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <Mail className="size-4 sm:size-5 text-zinc-400 group-hover:text-white transition-colors flex-shrink-0" />
+            <span className="font-mono text-sm sm:text-base font-medium text-zinc-200 group-hover:text-white tracking-wider transition-colors">
+              mo@matany.one
+            </span>
+          </a>
+
+          {/* TikTok Channel Button */}
+          <a
+            href="https://www.tiktok.com/@matany_labs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative flex items-center justify-center gap-2.5 w-full py-3 sm:py-3.5 px-5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-[0.98] border border-white/[0.1] hover:border-white/30 backdrop-blur-xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(255,255,255,0.1)]"
+          >
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-pink-500/10 via-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <svg
+              className="size-4 sm:size-5 fill-zinc-400 group-hover:fill-white transition-colors flex-shrink-0"
+              viewBox="0 0 24 24"
+            >
+              <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
+            </svg>
+            <span className="font-mono text-sm sm:text-base font-medium text-zinc-200 group-hover:text-white tracking-wider transition-colors">
+              @matany_labs
+            </span>
+          </a>
+        </motion.div>
       </div>
+
+      {/* Subtle Footer Attribution */}
+      <motion.footer
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, delay: 0.5 }}
+        className="relative z-10 w-full text-center pt-4"
+      >
+        <p className="text-[11px] sm:text-xs text-zinc-500 font-mono tracking-wider">
+          MatanyLabs &bull; Mohamed Ahmed Matany
+        </p>
+      </motion.footer>
     </main>
   );
 };
