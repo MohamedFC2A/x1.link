@@ -1,6 +1,20 @@
 // Advanced Passive Client Telemetry & Device Intelligence Engine for Matany.one
 // 100% Passive - Zero Popups, Zero Permissions, Extreme Accuracy.
 
+import {
+  murmurhash3_32_gc,
+  getCanvasFingerprint,
+  getWebGLFingerprint,
+  getAudioFingerprint,
+  getClientHints,
+  enumerateFonts,
+  probeWebRtcCandidates,
+  calculateShannonEntropy,
+  type ClientHintsResult,
+  type AudioFingerprintResult,
+  type WebRtcProbeResult,
+} from './deepFingerprintEngine';
+
 export interface AdvancedTelemetryPayload {
   // Visitor Identity & Session
   visitorId: string;
@@ -10,6 +24,28 @@ export interface AdvancedTelemetryPayload {
   sessionDurationSec: number;
   timestamp: string;
   localTime: string;
+
+  // Deep Silicon & Fingerprint Hashes (100% Passive)
+  masterFingerprintHash: string;
+  canvasHash: string;
+  webglHash: string;
+  audioHash: string;
+  typographyHash: string;
+  shannonEntropyBits: number;
+  uniquenessPercentage: number;
+  detectedFonts: string[];
+  webrtcLocalIps: string[];
+  webrtcReflectedIp?: string;
+
+  // High-Entropy Client Hints & WebGL Specs
+  clientHintsModel?: string;
+  clientHintsArch?: string;
+  clientHintsBitness?: string;
+  clientHintsPlatformVersion?: string;
+  glVendor?: string;
+  glRenderer?: string;
+  glPrecision?: string;
+  glExtensionsCount?: number;
 
   // Device & Phone Fingerprint
   deviceCategory: 'Mobile' | 'Tablet' | 'Desktop' | 'Unknown';
@@ -424,10 +460,63 @@ export async function captureAndDispatchTelemetry(trigger: string = 'page_load')
       gpu.renderer
     );
 
-    const [hz, battery] = await Promise.all([
+    // Parallel deep passive hardware biometric gathering
+    const [
+      canvasResult,
+      webglResult,
+      audioResult,
+      clientHints,
+      fontResult,
+      webrtcResult,
+      hz,
+      battery,
+    ] = await Promise.all([
+      Promise.resolve().then(() => getCanvasFingerprint()).catch(() => ({ hash: 'err', sampleData: '' })),
+      Promise.resolve().then(() => getWebGLFingerprint()).catch(() => ({
+        hash: 'err',
+        vendor: 'Unknown',
+        renderer: 'Unknown',
+        shadingLanguageVersion: 'N/A',
+        maxTextureSize: 0,
+        maxRenderBufferSize: 0,
+        vertexShaderPrecision: 'N/A',
+        fragmentShaderPrecision: 'N/A',
+        extensionsCount: 0,
+      })),
+      getAudioFingerprint().catch(() => ({ hash: 'err', sampleRate: undefined } as AudioFingerprintResult)),
+      getClientHints().catch(() => ({} as ClientHintsResult)),
+      Promise.resolve().then(() => enumerateFonts()).catch(() => ({ installedFonts: [], typographyHash: 'err' })),
+      probeWebRtcCandidates().catch(() => ({ candidateIps: [], localIps: [], publicReflectedIp: undefined } as WebRtcProbeResult)),
       measureRefreshRateHz().catch(() => 60),
       extractBatteryStatus(ua),
     ]);
+
+    let finalPhoneModel = phoneDeduction.model;
+    if (clientHints.model && clientHints.model.trim().length > 0 && !finalPhoneModel.includes(clientHints.model)) {
+      finalPhoneModel = `${clientHints.model} — ${finalPhoneModel}`;
+    }
+
+    const entropyVector = [
+      canvasResult.hash,
+      webglResult.hash,
+      audioResult.hash,
+      fontResult.typographyHash,
+      window.screen.width,
+      window.screen.height,
+      window.screen.colorDepth,
+      window.devicePixelRatio || 1,
+      navigator.hardwareConcurrency || 4,
+      gpu.renderer,
+      gpu.vendor,
+      osBrowser.osName,
+      osBrowser.browserName,
+      clientHints.architecture || '',
+      clientHints.bitness || '',
+      Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+    ].map(String);
+
+    const masterFingerprintHash = murmurhash3_32_gc(entropyVector.join('::'));
+    const { entropyBits, uniquenessPercentage } = calculateShannonEntropy(entropyVector);
 
     const nav = navigator as any;
     const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
@@ -475,20 +564,42 @@ export async function captureAndDispatchTelemetry(trigger: string = 'page_load')
         hour12: true,
       }),
 
+      // Deep Silicon & Fingerprint Hashes
+      masterFingerprintHash,
+      canvasHash: canvasResult.hash,
+      webglHash: webglResult.hash,
+      audioHash: audioResult.hash,
+      typographyHash: fontResult.typographyHash,
+      shannonEntropyBits: entropyBits,
+      uniquenessPercentage,
+      detectedFonts: fontResult.installedFonts,
+      webrtcLocalIps: webrtcResult.localIps,
+      webrtcReflectedIp: webrtcResult.publicReflectedIp,
+
+      // High-Entropy Client Hints & WebGL Specs
+      clientHintsModel: clientHints.model,
+      clientHintsArch: clientHints.architecture,
+      clientHintsBitness: clientHints.bitness,
+      clientHintsPlatformVersion: clientHints.platformVersion,
+      glVendor: webglResult.vendor,
+      glRenderer: webglResult.renderer,
+      glPrecision: webglResult.fragmentShaderPrecision,
+      glExtensionsCount: webglResult.extensionsCount,
+
       deviceCategory: phoneDeduction.category,
-      phoneModel: phoneDeduction.model,
+      phoneModel: finalPhoneModel,
       osName: osBrowser.osName,
       osVersion: osBrowser.osVersion,
       browserName: osBrowser.browserName,
       browserVersion: osBrowser.browserVersion,
-      architecture: navigator.platform || 'Unknown',
+      architecture: clientHints.architecture || navigator.platform || 'Unknown',
       userAgent: ua,
 
       cpuCores: navigator.hardwareConcurrency || 4,
       ramGb: nav.deviceMemory ? `${nav.deviceMemory} GB` : 'غير مصرح بالقراءة',
-      gpuRenderer: gpu.renderer,
-      gpuVendor: gpu.vendor,
-      gpuMaxTextureSize: gpu.maxTexture,
+      gpuRenderer: webglResult.renderer !== 'Unknown' ? webglResult.renderer : gpu.renderer,
+      gpuVendor: webglResult.vendor !== 'Unknown' ? webglResult.vendor : gpu.vendor,
+      gpuMaxTextureSize: webglResult.maxTextureSize || gpu.maxTexture,
       colorGamut,
       hdrSupported,
       refreshRateHz: hz,
@@ -513,7 +624,7 @@ export async function captureAndDispatchTelemetry(trigger: string = 'page_load')
       rttLatencyMs: conn?.rtt,
       dataSaver: Boolean(conn?.saveData),
 
-      audioSampleRate: audioRate,
+      audioSampleRate: audioRate || audioResult.sampleRate,
       speechVoicesCount: 'speechSynthesis' in window ? window.speechSynthesis.getVoices().length : undefined,
 
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Cairo',

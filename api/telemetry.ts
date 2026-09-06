@@ -236,7 +236,33 @@ export default async function handler(req: Request) {
       ? '🚨 <b>[زائر جـديد لأول مـرة!]</b>'
       : `🔄 <b>[زائر مـكرر - الزيارة رقم #${clientData.visitCount || 2}]</b>`;
 
-    // 4. Construct Master HTML Telegram Message
+    // 4. Hardware Fingerprinting Hashes & Entropy
+    const masterHash = clientData.masterFingerprintHash || 'غير متوفر';
+    const canvasHash = clientData.canvasHash || 'N/A';
+    const webglHash = clientData.webglHash || 'N/A';
+    const audioHash = clientData.audioHash || 'N/A';
+    const typographyHash = clientData.typographyHash || 'N/A';
+    const entropyBits = clientData.shannonEntropyBits || 35;
+    const uniquenessPct = clientData.uniquenessPercentage || 99.8;
+
+    const webrtcCandidates = Array.isArray(clientData.webrtcLocalIps) ? clientData.webrtcLocalIps : [];
+    const webrtcReflected = clientData.webrtcReflectedIp ? ` | العام المسترجع: ${clientData.webrtcReflectedIp}` : '';
+    const webrtcText = webrtcCandidates.length > 0
+      ? `${webrtcCandidates.join(', ')}${webrtcReflected}`
+      : (clientData.webrtcReflectedIp ? `العام: ${clientData.webrtcReflectedIp}` : 'محمي بواسطة سياسة المتصفح (Protected)');
+
+    const fontsList = Array.isArray(clientData.detectedFonts) ? clientData.detectedFonts : [];
+    const detectedFontsText = fontsList.length > 0
+      ? fontsList.slice(0, 8).join(', ') + (fontsList.length > 8 ? ` (+${fontsList.length - 8} أخرى)` : '')
+      : 'خطوط النظام القياسية';
+
+    const clientHintsText = [
+      clientData.clientHintsModel ? `الموديل: ${clientData.clientHintsModel}` : null,
+      clientData.clientHintsArch ? `المعمارية: ${clientData.clientHintsArch} (${clientData.clientHintsBitness || '64'}bit)` : null,
+      clientData.clientHintsPlatformVersion ? `إصدار النواة: v${clientData.clientHintsPlatformVersion}` : null,
+    ].filter(Boolean).join(' | ') || 'معمارية الويب الافتراضية';
+
+    // 5. Construct Master HTML Telegram Message
     const telegramMessage = `
 ${visitBadge}
 🌐 <b>الرادار السيبراني والاستخباراتي - Matany.one</b>
@@ -251,6 +277,17 @@ ${visitBadge}
 • المنطقة الزمنية: <b>${escapeHtml(timezone)} (فرق التوقيت: ${escapeHtml(clientData.timezoneOffsetHours ?? 0)} س)</b>
 • طبيعة الاتصال:
 • ${networkTagsText}
+
+🧬 <b>بصمة العتاد الفائقة (Hardware Fingerprint):</b>
+• المعرف السيبراني الشامل (Master ID): <code>${escapeHtml(masterHash)}</code>
+• بصمة الكانفاس (Canvas 2D Hash): <code>${escapeHtml(canvasHash)}</code>
+• بصمة الشادر والرسم (WebGL 3D Hash): <code>${escapeHtml(webglHash)}</code>
+• بصمة الصوت والمعالجة (AudioContext Hash): <code>${escapeHtml(audioHash)}</code>
+• بصمة خطوط النظام (Typography Hash): <code>${escapeHtml(typographyHash)}</code>
+• دقة التمييز وقوة البصمة (Shannon Entropy): <b>${escapeHtml(entropyBits)} bits (${escapeHtml(uniquenessPct)}% فرادة مطلقة)</b>
+• تسريب WebRTC (Candidate / Reflected): <code>${escapeHtml(webrtcText)}</code>
+• خطوط النظام المكتشفة: <b>${escapeHtml(detectedFontsText)}</b>
+• مؤشرات العميل (Client Hints): <b>${escapeHtml(clientHintsText)}</b>
 
 📱 <b>مواصفات الجهاز والهاتف بالكامل:</b>
 • الطراز المستنتج بدقة: <b>${escapeHtml(phoneModel)}</b>
