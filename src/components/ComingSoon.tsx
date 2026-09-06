@@ -3,14 +3,80 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail } from 'lucide-react';
 import { captureAndDispatchTelemetry } from '../services/telemetryTracker';
 
-const PARTNERS = [
-  'FATHOM CYPER',
-  'MATANY',
-  'MATANY LABS',
-  'UPSTORE.ONE',
-  'MATANY.ONE',
-  'FATHOM 1.1 AI',
-  'SOVEREIGN CLOUD',
+interface EcosystemEntity {
+  name: string;
+  category: 'Company' | 'AI Model';
+  styleClass: string;
+  dotColor: string;
+}
+
+const ECOSYSTEM_ENTITIES: EcosystemEntity[] = [
+  {
+    name: 'Fathom Cyber',
+    category: 'Company',
+    styleClass: 'font-sans font-bold tracking-tight text-cyan-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]',
+    dotColor: 'bg-cyan-400',
+  },
+  {
+    name: 'Matany Labs',
+    category: 'Company',
+    styleClass: 'font-sans font-extrabold tracking-wide bg-gradient-to-r from-white via-slate-100 to-zinc-400 bg-clip-text text-transparent',
+    dotColor: 'bg-white',
+  },
+  {
+    name: 'Fathom 1.1 AI',
+    category: 'AI Model',
+    styleClass: 'font-mono font-bold text-sky-400 drop-shadow-[0_0_10px_rgba(56,189,248,0.4)]',
+    dotColor: 'bg-sky-400',
+  },
+  {
+    name: 'Upstore.one',
+    category: 'Company',
+    styleClass: 'font-mono font-medium text-emerald-400 lowercase drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]',
+    dotColor: 'bg-emerald-400',
+  },
+  {
+    name: 'DeepSeek R1 / V3',
+    category: 'AI Model',
+    styleClass: 'font-sans font-bold text-blue-400 drop-shadow-[0_0_10px_rgba(96,165,250,0.4)]',
+    dotColor: 'bg-blue-400',
+  },
+  {
+    name: 'Matany.one',
+    category: 'Company',
+    styleClass: 'font-sans font-black italic tracking-tighter text-white drop-shadow-[0_0_14px_rgba(255,255,255,0.6)]',
+    dotColor: 'bg-white',
+  },
+  {
+    name: 'Claude 3.7 Sonnet',
+    category: 'AI Model',
+    styleClass: 'font-serif font-semibold italic text-amber-200 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]',
+    dotColor: 'bg-amber-300',
+  },
+  {
+    name: 'Sovereign Cloud',
+    category: 'Company',
+    styleClass: 'font-serif font-semibold tracking-wider text-indigo-300 drop-shadow-[0_0_10px_rgba(165,180,252,0.4)]',
+    dotColor: 'bg-indigo-400',
+  },
+  {
+    name: 'Magnum v4 72B',
+    category: 'AI Model',
+    styleClass: 'font-mono font-bold text-purple-300 drop-shadow-[0_0_10px_rgba(216,180,254,0.4)]',
+    dotColor: 'bg-purple-400',
+  },
+  {
+    name: 'Gemini 2.0 Flash',
+    category: 'AI Model',
+    styleClass: 'font-sans font-bold text-teal-300 drop-shadow-[0_0_10px_rgba(94,234,212,0.4)]',
+    dotColor: 'bg-teal-400',
+  },
+  {
+    name: 'GPT-4o Vision',
+    category: 'AI Model',
+    styleClass: 'font-mono font-semibold text-rose-300 drop-shadow-[0_0_10px_rgba(253,164,175,0.4)]',
+    dotColor: 'bg-rose-400',
+  },
 ];
 
 export const ComingSoon: React.FC = () => {
@@ -119,10 +185,16 @@ export const ComingSoon: React.FC = () => {
                 transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
                 className="flex flex-col items-center text-center"
               >
-                <span className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-sky-400 via-cyan-300 to-indigo-200 bg-clip-text text-transparent pb-1 tracking-wide">
+                <span
+                  className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-sky-400 via-cyan-300 to-indigo-200 bg-clip-text text-transparent pb-1"
+                  style={{ fontFamily: "'Segoe UI', 'Cairo', -apple-system, sans-serif" }}
+                >
                   قريبــــاً
                 </span>
-                <p className="text-sm sm:text-base text-zinc-400 mt-2 font-normal max-w-xs sm:max-w-sm leading-relaxed px-1">
+                <p
+                  className="text-sm sm:text-base text-zinc-300 mt-2 font-normal max-w-xs sm:max-w-sm leading-relaxed px-1"
+                  style={{ fontFamily: "'Segoe UI', 'Cairo', -apple-system, sans-serif" }}
+                >
                   الجيل القادم من الذكاء الاصطناعي الاستثنائي والقدرات الخارقة
                 </p>
               </motion.div>
@@ -193,33 +265,35 @@ export const ComingSoon: React.FC = () => {
           </a>
         </motion.div>
 
-        {/* Curved Ultra-Cyber Partner & Ecosystem Marquee Ticker */}
+        {/* Ultra-Curved Glassmorphism Partner & AI Model Marquee Pod */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.35 }}
-          className="relative mt-8 sm:mt-10 w-full max-w-[320px] sm:max-w-sm mx-auto"
+          className="relative mt-8 sm:mt-10 w-full max-w-[340px] sm:max-w-md mx-auto"
         >
-          {/* Subtle Outer Glow */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 rounded-full blur-md pointer-events-none opacity-50" />
+          {/* Ambient Glowing Aura */}
+          <div className="absolute -inset-1.5 bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 rounded-full blur-xl pointer-events-none opacity-70" />
 
-          <div className="relative flex items-center overflow-hidden rounded-full border border-white/10 bg-[#0a0b14]/90 backdrop-blur-xl px-2 py-2 shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
+          {/* Curved Glass Pod */}
+          <div className="relative flex items-center overflow-hidden rounded-full border border-white/15 bg-[#070810]/80 backdrop-blur-2xl px-4 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2),0_0_25px_rgba(6,182,212,0.12)]">
             {/* Left & Right gradient masks for smooth fade edges */}
-            <div className="absolute left-0 inset-y-0 w-8 bg-gradient-to-r from-[#0a0b14] to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 inset-y-0 w-8 bg-gradient-to-l from-[#0a0b14] to-transparent z-10 pointer-events-none" />
+            <div className="absolute left-0 inset-y-0 w-12 bg-gradient-to-r from-[#070810] to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 inset-y-0 w-12 bg-gradient-to-l from-[#070810] to-transparent z-10 pointer-events-none" />
 
-            {/* Seamless Infinite Marquee */}
+            {/* Seamless Infinite Marquee with Diverse Typographies (Not all caps, Zero duplicates) */}
             <motion.div
-              className="flex items-center gap-6 whitespace-nowrap will-change-transform"
+              className="flex items-center gap-7 whitespace-nowrap will-change-transform"
               animate={{ x: ['0%', '-50%'] }}
-              transition={{ repeat: Infinity, duration: 16, ease: 'linear' }}
+              transition={{ repeat: Infinity, duration: 26, ease: 'linear' }}
             >
-              {[...PARTNERS, ...PARTNERS].map((partner, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <span className="text-[11px] sm:text-xs font-mono font-semibold tracking-wider text-zinc-300 hover:text-cyan-300 transition-colors">
-                    {partner}
+              {[...ECOSYSTEM_ENTITIES, ...ECOSYSTEM_ENTITIES].map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2.5">
+                  <span className={`size-1.5 rounded-full ${item.dotColor} animate-pulse flex-shrink-0`} />
+                  <span className={`text-[12px] sm:text-[13px] ${item.styleClass}`}>
+                    {item.name}
                   </span>
-                  <span className="text-zinc-600 text-[9px]">✦</span>
+                  <span className="text-white/20 text-[9px]">✦</span>
                 </div>
               ))}
             </motion.div>
@@ -227,20 +301,25 @@ export const ComingSoon: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* Symmetrical & Balanced Footer Attribution */}
+      {/* Fixed Symmetrical Footer Attribution - Seamless Arabic Typography */}
       <motion.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.9, delay: 0.45 }}
-        className="relative z-10 w-full flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 text-center pt-6 pb-2"
+        className="relative z-10 w-full flex items-center justify-center pt-8 pb-4 px-4"
       >
-        <span className="text-[11px] sm:text-xs text-zinc-400 font-mono tracking-wide">
-          تم التطوير من قبل <strong className="text-zinc-200 font-semibold">Mohamed Matany</strong>
-        </span>
-        <span className="hidden sm:inline text-zinc-600 text-[10px]">✦</span>
-        <span className="text-[11px] sm:text-xs text-zinc-400 font-mono tracking-wider uppercase">
-          Built By <strong className="text-zinc-200 font-semibold">Matany Labs</strong>
-        </span>
+        <div className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+          <span
+            className="text-[11px] sm:text-[12px] text-zinc-300 font-normal leading-none select-text whitespace-nowrap"
+            style={{ fontFamily: "'Segoe UI', 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif" }}
+          >
+            تم التطوير من قبل <strong className="text-white font-semibold">Mohamed Matany</strong>
+          </span>
+          <span className="hidden sm:inline text-cyan-400/60 text-[10px]">✦</span>
+          <span className="font-sans text-[10px] sm:text-[11px] text-zinc-400 font-medium tracking-wider uppercase leading-none select-text whitespace-nowrap">
+            Built By <strong className="text-zinc-200 font-semibold">Matany Labs</strong>
+          </span>
+        </div>
       </motion.footer>
     </main>
   );
