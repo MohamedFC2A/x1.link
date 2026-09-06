@@ -123,15 +123,17 @@ export const ComingSoon: React.FC = () => {
   const [hoveredEntity, setHoveredEntity] = useState<EcosystemEntity | null>(null);
 
   // Curved SVG Text Path Marquee References & Seamless Infinite Engine
+  const PATH_PRE_LENGTH = 3000;
+  const BASE_START_OFFSET = PATH_PRE_LENGTH - 200;
   const textPathRef = useRef<SVGTextPathElement>(null);
   const cycle1Ref = useRef<SVGTSpanElement>(null);
-  const offsetRef = useRef(0);
+  const offsetRef = useRef(BASE_START_OFFSET);
   const isPausedRef = useRef(false);
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
   const lastXRef = useRef(0);
   const dragMovedRef = useRef(false);
-  const singleCycleLengthRef = useRef(1800);
+  const singleCycleLengthRef = useRef(1500);
 
   // Alternates between Arabic and English every 3.2 seconds
   useEffect(() => {
@@ -148,6 +150,9 @@ export const ComingSoon: React.FC = () => {
         const len = (cycle1Ref.current as any).getComputedTextLength();
         if (len > 300) {
           singleCycleLengthRef.current = len;
+          if (!isDraggingRef.current && textPathRef.current) {
+            textPathRef.current.setAttribute('startOffset', `${offsetRef.current}px`);
+          }
         }
       }
     };
@@ -162,12 +167,12 @@ export const ComingSoon: React.FC = () => {
     if (isPausedRef.current || isDraggingRef.current || !textPathRef.current) return;
     const clampedDelta = Math.min(delta, 34);
     offsetRef.current -= clampedDelta * 0.045;
-    const cycle = singleCycleLengthRef.current;
+    const cycle = singleCycleLengthRef.current || 1500;
     if (cycle > 0) {
       // Seamless mathematical modulo wrapping in both directions
-      if (offsetRef.current <= -cycle) {
+      if (offsetRef.current <= BASE_START_OFFSET - cycle) {
         offsetRef.current += cycle;
-      } else if (offsetRef.current > 0) {
+      } else if (offsetRef.current > BASE_START_OFFSET) {
         offsetRef.current -= cycle;
       }
     }
@@ -176,10 +181,11 @@ export const ComingSoon: React.FC = () => {
 
   // Calculate entity currently passing through center of curved pod (x = 250)
   const getCurrentlyCenteredEntity = (): EcosystemEntity => {
-    const cycleLen = singleCycleLengthRef.current || 1800;
-    const normalizedPos = (((250 - offsetRef.current) % cycleLen) + cycleLen) % cycleLen;
+    const cycleLen = singleCycleLengthRef.current || 1500;
+    const podCenterDist = PATH_PRE_LENGTH + 252.7;
+    const relPos = (((podCenterDist - offsetRef.current) % cycleLen) + cycleLen) % cycleLen;
     const itemWidth = cycleLen / ECOSYSTEM_ENTITIES.length;
-    const index = Math.floor(normalizedPos / itemWidth) % ECOSYSTEM_ENTITIES.length;
+    const index = Math.floor(relPos / itemWidth) % ECOSYSTEM_ENTITIES.length;
     return ECOSYSTEM_ENTITIES[index] || ECOSYSTEM_ENTITIES[0];
   };
 
@@ -232,11 +238,11 @@ export const ComingSoon: React.FC = () => {
       dragMovedRef.current = true;
     }
     offsetRef.current += deltaX;
-    const cycle = singleCycleLengthRef.current;
+    const cycle = singleCycleLengthRef.current || 1500;
     if (cycle > 0) {
-      if (offsetRef.current <= -cycle) {
+      if (offsetRef.current <= BASE_START_OFFSET - cycle) {
         offsetRef.current += cycle;
-      } else if (offsetRef.current > 0) {
+      } else if (offsetRef.current > BASE_START_OFFSET) {
         offsetRef.current -= cycle;
       }
     }
@@ -466,10 +472,10 @@ export const ComingSoon: React.FC = () => {
               className="w-full h-full overflow-hidden pointer-events-auto"
             >
               <defs>
-                {/* Ultra-Extended Centerline Arc Path (No start/end boundary) */}
+                {/* Mathematical Centerline Arc Path (Straight leads + perfectly curved pod arc) */}
                 <path
                   id="marquee-arc-path"
-                  d="M -5000,38 Q -4750,6 -4500,38 Q -4250,6 -4000,38 Q -3750,6 -3500,38 Q -3250,6 -3000,38 Q -2750,6 -2500,38 Q -2250,6 -2000,38 Q -1750,6 -1500,38 Q -1250,6 -1000,38 Q -750,6 -500,38 Q -250,6 0,38 Q 250,6 500,38 Q 750,6 1000,38 Q 1250,6 1500,38 Q 1750,6 2000,38 Q 2250,6 2500,38 Q 2750,6 3000,38 Q 3250,6 3500,38 Q 3750,6 4000,38 Q 4250,6 4500,38 Q 4750,6 5000,38"
+                  d="M -3000,38 L 0,38 Q 250,6 500,38 L 4000,38"
                   fill="none"
                 />
 
@@ -578,7 +584,7 @@ export const ComingSoon: React.FC = () => {
                   <textPath
                     href="#marquee-arc-path"
                     ref={textPathRef}
-                    startOffset="0px"
+                    startOffset="2800px"
                     spacing="auto"
                   >
                     {/* Primary Master Cycle 1 (Measured dynamically for exact modulo) */}
@@ -678,6 +684,30 @@ export const ComingSoon: React.FC = () => {
                         </tspan>
                       </tspan>
                     ))}
+
+                    {/* Cycle 5 (Perpetual coverage buffer) */}
+                    {ECOSYSTEM_ENTITIES.map((item) => (
+                      <tspan
+                        key={`c5-${item.id}`}
+                        data-entity-id={item.id}
+                        className="cursor-pointer transition-opacity hover:opacity-80"
+                        onClick={(e) => handleEntityClick(item, e)}
+                        onMouseEnter={() => setHoveredEntity(item)}
+                      >
+                        <tspan fill={item.dotColor} fontSize="11">● </tspan>
+                        <tspan
+                          fill={`url(#${item.gradientId})`}
+                          fontSize="14"
+                          fontWeight="800"
+                          letterSpacing="0.04em"
+                        >
+                          {item.name}
+                        </tspan>
+                        <tspan fill="rgba(255, 255, 255, 0.22)" fontSize="10">
+                          {'       ✦       '}
+                        </tspan>
+                      </tspan>
+                    ))}
                   </textPath>
                 </text>
               </g>
@@ -729,16 +759,16 @@ export const ComingSoon: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* Ultra-Clean Symmetrical Single-Row Footer (Developer + Matany Labs Icons Only, Zero Bulky Cards) */}
+      {/* Ultra-Clean Symmetrical Footer (Mobile 2-Row Stacked Card, Desktop 1-Row Pill) */}
       <motion.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.9, delay: 0.45 }}
         className="relative z-10 w-full flex items-center justify-center pt-8 pb-4 px-4 select-none"
       >
-        <div className="inline-flex items-center justify-center flex-wrap gap-2.5 sm:gap-3.5 px-4 sm:px-6 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+        <div className="inline-flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3.5 px-4 sm:px-6 py-2.5 sm:py-2 rounded-2xl sm:rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
           {/* Developer Direct Attribution */}
-          <div className="inline-flex items-center gap-2">
+          <div className="inline-flex items-center justify-center gap-2">
             <span className="font-sans text-[11px] sm:text-[12px] text-zinc-300 font-medium select-text whitespace-nowrap">
               Developed by <strong className="text-white font-semibold">Mohamed Matany</strong>
             </span>
@@ -767,10 +797,10 @@ export const ComingSoon: React.FC = () => {
             </div>
           </div>
 
-          <span className="text-cyan-400/60 text-[10px]">✦</span>
+          <span className="hidden sm:inline text-cyan-400/60 text-[10px]">✦</span>
 
           {/* Matany Labs Built By Attribution */}
-          <div className="inline-flex items-center gap-2">
+          <div className="inline-flex items-center justify-center gap-2">
             <span className="font-sans text-[11px] sm:text-[12px] text-zinc-300 font-medium select-text whitespace-nowrap">
               Built by <strong className="text-zinc-200 font-semibold">Matany Labs</strong>
             </span>
