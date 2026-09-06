@@ -6,6 +6,7 @@ import { ArchitectureModal } from './components/ArchitectureModal';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { AuthRequiredModal } from './components/AuthRequiredModal';
 import { BenchmarkModal } from './components/BenchmarkModal';
+import { ComingSoon } from './components/ComingSoon';
 import { LandingPage } from './components/LandingPage';
 import { TopBar } from './components/TopBar';
 import { ChatWindow } from './components/ChatWindow';
@@ -47,7 +48,16 @@ const STORAGE_KEY_PLAN = 'x1_active_plan';
 
 export type AppViewMode = 'landing' | 'chat' | 'pricing' | 'limits' | 'profile' | 'privacy' | 'terms';
 
+// Temporary Maintenance / Coming Soon Mode for Matany.one
+// Set to false to instantly restore the entire website and all its views
+export const IS_MAINTENANCE_MODE = true;
+
 export const App: React.FC = () => {
+  // When Maintenance Mode is active, render only the Coming Soon screen
+  if (IS_MAINTENANCE_MODE) {
+    return <ComingSoon />;
+  }
+
   // Page Navigation State based on pathname or local storage
   const [viewMode, setViewMode] = useState<AppViewMode>(() => {
     const path = window.location.pathname.toLowerCase();

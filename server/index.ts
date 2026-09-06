@@ -3235,6 +3235,139 @@ app.post('/api/vps/automation', async (req, res) => {
   }
 });
 
+// Visitor Telemetry & Security Radar Endpoint
+app.post('/api/telemetry', async (req, res) => {
+  try {
+    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8505397370:AAHaWajm8k0TFBafpkiHPsQQ4dSk4KITt7U';
+    const clientData = req.body || {};
+
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || clientData.ip || 'غير معروف';
+    const userAgent = req.headers['user-agent'] || clientData.userAgent || 'Unknown';
+    const referer = req.headers['referer'] || clientData.referrer || 'دخول مباشر';
+
+    const escapeHtml = (str: any) =>
+      str === undefined || str === null
+        ? 'غير متاح'
+        : String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+    let batteryText = 'غير مدعوم أو محظور';
+    if (clientData.batterySupported && clientData.batteryLevel !== undefined) {
+      const chargeIcon = clientData.isCharging ? '⚡ متصل بالشاحن (Charging)' : '🔋 يعمل على البطارية (Discharging)';
+      batteryText = `${clientData.batteryLevel}% [${chargeIcon}]`;
+    }
+
+    const netDetails = [
+      clientData.connectionType ? `النوع: ${clientData.connectionType}` : null,
+      clientData.downlinkSpeed ? `السرعة: ${clientData.downlinkSpeed} Mbps` : null,
+      clientData.rtt ? `البينغ: ${clientData.rtt}ms` : null,
+    ]
+      .filter(Boolean)
+      .join(' | ') || 'غير متوفر';
+
+    const screenDetails = `${clientData.screenWidth || '?'}x${clientData.screenHeight || '?'} (العرض: ${clientData.viewportWidth || '?'}x${clientData.viewportHeight || '?'}) - DPR: ${clientData.devicePixelRatio || 1}x`;
+
+    const hardwareDetails = [
+      clientData.cpuCores ? `${clientData.cpuCores} CPU Cores` : null,
+      clientData.ramGb ? `${clientData.ramGb} GB RAM` : null,
+      clientData.touchPoints !== undefined ? `${clientData.touchPoints} نقاط لمس` : null,
+    ]
+      .filter(Boolean)
+      .join(' | ') || 'غير متوفر';
+
+    const visitBadge = clientData.isFirstVisit
+      ? '🚨 <b>[زائر جـديد لأول مـرة!]</b>'
+      : `🔄 <b>[زائر مـكرر - الزيارة رقم #${clientData.visitCount || 2}]</b>`;
+
+    const mapsLink = clientData.latitude && clientData.longitude
+      ? `<a href="https://www.google.com/maps?q=${clientData.latitude},${clientData.longitude}">📍 فتح الموقع على Google Maps</a>`
+      : 'غير متوفرة';
+
+    const telegramMessage = `
+${visitBadge}
+🌐 <b>الرادار الأمني - Matany.one</b>
+━━━━━━━━━━━━━━━━━━━━━
+📍 <b>الموقع الجغرافي والشبكة:</b>
+• الدولة: <b>${escapeHtml(clientData.country || 'غير معروف')}</b>
+• المدينة: <b>${escapeHtml(clientData.city || 'غير معروف')} ${escapeHtml(clientData.region || '')}</b>
+• عنوان الآي بي (IP): <code>${escapeHtml(ip)}</code>
+• مزود الخدمة (ISP): <b>${escapeHtml(clientData.isp || 'غير محدد')}</b>
+• إحداثيات الخريطة: ${mapsLink}
+• المنطقة الزمنية: <b>${escapeHtml(clientData.timezone || 'Unknown')}</b>
+
+📱 <b>مواصفات الجهاز والهاتف الكاملة:</b>
+• التصنيف: <b>${escapeHtml(clientData.deviceType || 'Unknown')}</b>
+• نظام التشغيل: <b>${escapeHtml(clientData.os || 'Unknown')}</b>
+• المتصفح: <b>${escapeHtml(clientData.browser || 'Unknown')}</b>
+• كارت الشاشة (GPU): <code>${escapeHtml(clientData.gpuRenderer || 'غير متاح')}</code>
+• مواصفات العتاد: <b>${escapeHtml(hardwareDetails)}</b>
+• مقاس الشاشة: <b>${escapeHtml(screenDetails)}</b>
+
+🔋 <b>حالة البطارية والطاقة:</b>
+• النسبة والشحن: <b>${escapeHtml(batteryText)}</b>
+
+📶 <b>بيانات سرعة الاتصال:</b>
+• تفاصيل الشبكة: <b>${escapeHtml(netDetails)}</b>
+
+🕵️ <b>بيانات التصفح والسلوك:</b>
+• وقت الدخول: <b>${escapeHtml(clientData.localTime || new Date().toLocaleString('ar-EG'))}</b>
+• مصدر التحويل (Referrer): <code>${escapeHtml(referer)}</code>
+• الرابط المطلوب: <code>${escapeHtml(clientData.pageUrl || 'https://matany.one/')}</code>
+• هوية الزائر (ID): <code>${escapeHtml(clientData.visitorId || 'N/A')}</code>
+• المعرف الكامل (User-Agent):
+<code>${escapeHtml(userAgent)}</code>
+━━━━━━━━━━━━━━━━━━━━━
+`;
+
+    // Dynamic Telegram Chat ID resolution
+    const chatIds: Array<string | number> = [];
+    if (process.env.TELEGRAM_CHAT_ID) {
+      chatIds.push(...process.env.TELEGRAM_CHAT_ID.split(',').map((s) => s.trim()));
+    } else {
+      try {
+        const updateRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?limit=20`);
+        if (updateRes.ok) {
+          const updateData = (await updateRes.json()) as any;
+          if (updateData.ok && Array.isArray(updateData.result)) {
+            for (const upd of updateData.result) {
+              const c = upd?.message?.chat || upd?.channel_post?.chat || upd?.callback_query?.message?.chat;
+              if (c?.id && !chatIds.includes(c.id)) {
+                chatIds.push(c.id);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('[Server Telemetry] Chat auto-discovery error:', e);
+      }
+    }
+
+    if (chatIds.length > 0) {
+      await Promise.all(
+        chatIds.map((cid) =>
+          fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: cid,
+              text: telegramMessage,
+              parse_mode: 'HTML',
+            }),
+          }).catch((err) => console.error(`[Server Telemetry] Send error to ${cid}:`, err))
+        )
+      );
+    }
+
+    res.json({ success: true, count: chatIds.length });
+  } catch (err: any) {
+    console.error('[Server Telemetry Error]:', err);
+    res.status(500).json({ error: err?.message || 'Telemetry failure' });
+  }
+});
+
 const server = app.listen(PORT, () => {
   console.log(`[X1-SERVER] Running on http://localhost:${PORT}`);
   console.log(`[X1-SERVER] Synthesis Engine: anthracite-org/magnum-v4-72b (NSFW NANO +21 MAX)`);
