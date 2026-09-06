@@ -52,17 +52,7 @@ export type AppViewMode = 'landing' | 'chat' | 'pricing' | 'limits' | 'profile' 
 // Set to false to instantly restore the entire website and all its views
 export const IS_MAINTENANCE_MODE = true;
 
-export const App: React.FC = () => {
-  // Check if user has officially unlocked early access via CEO Mohamed Matany
-  const [isPlatformUnlocked, setIsPlatformUnlocked] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('matany_platform_unlocked') === 'true';
-  });
-
-  // When Maintenance Mode is active and user is not unlocked, render Coming Soon
-  if (IS_MAINTENANCE_MODE && !isPlatformUnlocked) {
-    return <ComingSoon onPlatformUnlock={() => setIsPlatformUnlocked(true)} />;
-  }
+const MainAppContent: React.FC = () => {
 
   // Page Navigation State based on pathname or local storage
   const [viewMode, setViewMode] = useState<AppViewMode>(() => {
@@ -1267,4 +1257,17 @@ export const App: React.FC = () => {
 
     </div>
   );
+};
+
+export const App: React.FC = () => {
+  const [isPlatformUnlocked, setIsPlatformUnlocked] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('matany_platform_unlocked') === 'true';
+  });
+
+  if (IS_MAINTENANCE_MODE && !isPlatformUnlocked) {
+    return <ComingSoon onPlatformUnlock={() => setIsPlatformUnlocked(true)} />;
+  }
+
+  return <MainAppContent />;
 };
