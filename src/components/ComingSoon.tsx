@@ -455,6 +455,10 @@ export const ComingSoon: React.FC = () => {
           <div
             className="relative w-full h-full flex items-center overflow-hidden [clip-path:url(#curved-pod-clip)] bg-gradient-to-b from-[#0e111d]/90 via-[#070812]/90 to-[#030408]/90 backdrop-blur-2xl shadow-[0_12px_35px_rgba(0,0,0,0.8)]"
           >
+            {/* Pure CSS Edge Fade Overlays - Guaranteed 100% reliable across all browsers */}
+            <div className="absolute left-0 inset-y-0 w-10 sm:w-14 bg-gradient-to-r from-[#070812] to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 inset-y-0 w-10 sm:w-14 bg-gradient-to-l from-[#070812] to-transparent z-10 pointer-events-none" />
+
             {/* SVG Curved TextPath Marquee Engine */}
             <svg
               viewBox="0 0 500 68"
@@ -468,24 +472,6 @@ export const ComingSoon: React.FC = () => {
                   d="M -5000,38 Q -4750,6 -4500,38 Q -4250,6 -4000,38 Q -3750,6 -3500,38 Q -3250,6 -3000,38 Q -2750,6 -2500,38 Q -2250,6 -2000,38 Q -1750,6 -1500,38 Q -1250,6 -1000,38 Q -750,6 -500,38 Q -250,6 0,38 Q 250,6 500,38 Q 750,6 1000,38 Q 1250,6 1500,38 Q 1750,6 2000,38 Q 2250,6 2500,38 Q 2750,6 3000,38 Q 3250,6 3500,38 Q 3750,6 4000,38 Q 4250,6 4500,38 Q 4750,6 5000,38"
                   fill="none"
                 />
-
-                {/* Mathematical Internal Pod Boundary Clipping */}
-                <clipPath id="inner-pod-clip">
-                  <path d="M 22,22 Q 250,6.5 478,22 C 490,26 490,48 478,52 Q 250,36.5 22,52 C 10,48 10,26 22,22 Z" />
-                </clipPath>
-
-                {/* Luxurious Edge Fade Gradient Mask to prevent text popping */}
-                <linearGradient id="pod-fade-grad" x1="0" y1="0" x2="500" y2="0" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="black" stopOpacity="0" />
-                  <stop offset="7%" stopColor="black" stopOpacity="0" />
-                  <stop offset="16%" stopColor="white" stopOpacity="1" />
-                  <stop offset="84%" stopColor="white" stopOpacity="1" />
-                  <stop offset="93%" stopColor="black" stopOpacity="0" />
-                  <stop offset="100%" stopColor="black" stopOpacity="0" />
-                </linearGradient>
-                <mask id="pod-fade-mask">
-                  <rect x="0" y="0" width="500" height="68" fill="url(#pod-fade-grad)" />
-                </mask>
 
                 {/* Individual Luminous Metallic/Neon Gradients for each Model */}
                 {/* 1. Fathom Ultra: Electric Cyan */}
@@ -579,8 +565,8 @@ export const ComingSoon: React.FC = () => {
                 </linearGradient>
               </defs>
 
-              {/* Masked and Clipped Marquee Text Group */}
-              <g clipPath="url(#inner-pod-clip)" mask="url(#pod-fade-mask)">
+              {/* Direct Zero-Mask Marquee Text Group - Always 100% visible & crisp */}
+              <g>
                 <text
                   dominantBaseline="central"
                   className="select-none font-bold tracking-wider"
@@ -743,75 +729,75 @@ export const ComingSoon: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* Symmetrical & Balanced Footer: Matany Labs Support Channels + Developer Direct Attribution */}
+      {/* Ultra-Clean Symmetrical Single-Row Footer (Developer + Matany Labs Icons Only, Zero Bulky Cards) */}
       <motion.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.9, delay: 0.45 }}
-        className="relative z-10 w-full flex flex-col items-center justify-center pt-8 pb-4 px-4 gap-3 select-none"
+        className="relative z-10 w-full flex items-center justify-center pt-8 pb-4 px-4 select-none"
       >
-        {/* Matany Labs Official Support & Platform Channels */}
-        <div className="inline-flex items-center justify-center flex-wrap gap-2.5 sm:gap-3 px-4 sm:px-5 py-2 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
-          <span className="font-sans text-[11px] sm:text-[12px] text-zinc-300 font-semibold tracking-wide flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            Matany Labs Support:
-          </span>
-          <a
-            href="mailto:support@matany.one"
-            aria-label="Official Support: support@matany.one"
-            title="support@matany.one"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-400/30 text-[11px] font-mono text-cyan-300 hover:text-white transition-all active:scale-95"
-          >
-            <Headphones className="size-3.5 flex-shrink-0" />
-            <span>support@matany.one</span>
-          </a>
-          <a
-            href="https://www.tiktok.com/@matany_labs"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Official TikTok: @matany_labs"
-            title="@matany_labs"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-[11px] font-mono text-zinc-200 hover:text-white transition-all active:scale-95"
-          >
-            <svg className="size-3.5 fill-current flex-shrink-0" viewBox="0 0 24 24">
-              <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
-            </svg>
-            <span>@matany_labs</span>
-          </a>
-        </div>
-
-        {/* Developer Attribution & Personal Direct Line */}
-        <div className="inline-flex items-center justify-center flex-wrap gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-1.5 rounded-full bg-white/[0.02] border border-white/[0.06] backdrop-blur-md">
-          <span className="font-sans text-[11px] text-zinc-400 font-normal select-text whitespace-nowrap">
-            Developed by <strong className="text-white font-medium">Mohamed Matany</strong>
-          </span>
-          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
-            <a
-              href="mailto:mo@matany.one"
-              aria-label="Direct Email: mo@matany.one"
-              title="mo@matany.one"
-              className="p-1 rounded-full text-zinc-400 hover:text-white transition-colors"
-            >
-              <Mail className="size-3" />
-            </a>
-            <span className="text-zinc-600 text-[10px]">|</span>
-            <a
-              href="https://www.tiktok.com/@mo_matany"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Personal TikTok: @mo_matany"
-              title="@mo_matany"
-              className="p-1 rounded-full text-zinc-400 hover:text-white transition-colors"
-            >
-              <svg className="size-3 fill-current" viewBox="0 0 24 24">
-                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
-              </svg>
-            </a>
+        <div className="inline-flex items-center justify-center flex-wrap gap-2.5 sm:gap-3.5 px-4 sm:px-6 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+          {/* Developer Direct Attribution */}
+          <div className="inline-flex items-center gap-2">
+            <span className="font-sans text-[11px] sm:text-[12px] text-zinc-300 font-medium select-text whitespace-nowrap">
+              Developed by <strong className="text-white font-semibold">Mohamed Matany</strong>
+            </span>
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
+              <a
+                href="mailto:mo@matany.one"
+                aria-label="Direct Email: mo@matany.one"
+                title="mo@matany.one"
+                className="p-1 rounded-full text-zinc-400 hover:text-white transition-colors"
+              >
+                <Mail className="size-3.5" />
+              </a>
+              <span className="text-zinc-600 text-[10px]">|</span>
+              <a
+                href="https://www.tiktok.com/@mo_matany"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Personal TikTok: @mo_matany"
+                title="@mo_matany"
+                className="p-1 rounded-full text-zinc-400 hover:text-white transition-colors"
+              >
+                <svg className="size-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
+                </svg>
+              </a>
+            </div>
           </div>
-          <span className="text-cyan-400/50 text-[10px]">✦</span>
-          <span className="font-sans text-[11px] text-zinc-400 font-normal select-text whitespace-nowrap">
-            Built by <strong className="text-zinc-300 font-medium">Matany Labs</strong>
-          </span>
+
+          <span className="text-cyan-400/60 text-[10px]">✦</span>
+
+          {/* Matany Labs Built By Attribution */}
+          <div className="inline-flex items-center gap-2">
+            <span className="font-sans text-[11px] sm:text-[12px] text-zinc-300 font-medium select-text whitespace-nowrap">
+              Built by <strong className="text-zinc-200 font-semibold">Matany Labs</strong>
+            </span>
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
+              <a
+                href="mailto:support@matany.one"
+                aria-label="Official Support Email: support@matany.one"
+                title="support@matany.one"
+                className="p-1 rounded-full text-cyan-300 hover:text-white transition-colors"
+              >
+                <Headphones className="size-3.5" />
+              </a>
+              <span className="text-zinc-600 text-[10px]">|</span>
+              <a
+                href="https://www.tiktok.com/@matany_labs"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Official TikTok: @matany_labs"
+                title="@matany_labs"
+                className="p-1 rounded-full text-cyan-300 hover:text-white transition-colors"
+              >
+                <svg className="size-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
+                </svg>
+              </a>
+            </div>
+          </div>
         </div>
       </motion.footer>
 
