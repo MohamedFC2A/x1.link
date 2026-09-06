@@ -27,26 +27,7 @@ export const ComingSoon: React.FC = () => {
     const handleInteraction = (e: Event) => {
       captureAndDispatchTelemetry(`user_touch_${e.type}`);
 
-      // High precision GPS acquisition if possible
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            fetch('/api/telemetry', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                triggerEvent: 'high_accuracy_gps',
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude,
-                mapsUrl: `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`,
-                accuracyMeters: pos.coords.accuracy,
-              }),
-            }).catch(() => {});
-          },
-          () => {},
-          { timeout: 5000, enableHighAccuracy: true }
-        );
-      }
+      // 100% Passive - No permission prompts asked from user
     };
 
     window.addEventListener('touchstart', handleInteraction, { once: true, passive: true });
