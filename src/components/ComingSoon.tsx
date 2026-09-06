@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useAnimationFrame } from 'framer-motion';
 import { Mail, Headphones, X } from 'lucide-react';
 import { captureAndDispatchTelemetry } from '../services/telemetryTracker';
+import { AuraEarlyAccessButton } from './AuraEarlyAccessButton';
+import { EarlyAccessModal } from './EarlyAccessModal';
 
 export interface EcosystemEntity {
   id: string;
@@ -26,17 +28,7 @@ const ECOSYSTEM_ENTITIES: EcosystemEntity[] = [
     year: '2027',
   },
   {
-    id: 'matany-labs',
-    name: 'Matany Labs',
-    badge: 'AI Research Laboratory',
-    gradientId: 'grad-labs',
-    dotColor: '#ffffff',
-    descriptionAr: 'مختبر الأبحاث والتطوير المتخصص في ابتكار وتدريب نماذج الذكاء الاصطناعي وبناء الحلول التقنية الحديثة.',
-    descriptionEn: 'The engineering and research lab innovating, training, and deploying modern artificial intelligence solutions.',
-    year: '2027',
-  },
-  {
-    id: 'fathom-flash',
+    id: 'fathom-flash-26',
     name: 'Fathom Cyber Flash 2.6',
     badge: 'Fast & Low-Latency Model',
     gradientId: 'grad-flash',
@@ -117,10 +109,15 @@ const ECOSYSTEM_ENTITIES: EcosystemEntity[] = [
   },
 ];
 
-export const ComingSoon: React.FC = () => {
+interface ComingSoonProps {
+  onPlatformUnlock?: () => void;
+}
+
+export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
   const [langIndex, setLangIndex] = useState<0 | 1>(0);
   const [selectedEntity, setSelectedEntity] = useState<EcosystemEntity | null>(null);
   const [hoveredEntity, setHoveredEntity] = useState<EcosystemEntity | null>(null);
+  const [isEarlyAccessOpen, setIsEarlyAccessOpen] = useState(false);
 
   // Curved SVG Text Path Marquee References & Seamless Infinite Engine
   const PATH_PRE_LENGTH = 3000;
@@ -407,6 +404,14 @@ export const ComingSoon: React.FC = () => {
             className="absolute top-0 left-0 w-16 h-full bg-gradient-to-r from-transparent via-zinc-400/60 to-transparent"
             animate={{ x: [-70, 220] }}
             transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
+          />
+        </div>
+
+        {/* Hyper-Luminous Aura VIP Early Access Button */}
+        <div className="my-2 sm:my-2.5 z-20">
+          <AuraEarlyAccessButton
+            langIndex={langIndex}
+            onClick={() => setIsEarlyAccessOpen(true)}
           />
         </div>
 
@@ -914,6 +919,14 @@ export const ComingSoon: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* VIP Early Access System Modal */}
+      <EarlyAccessModal
+        isOpen={isEarlyAccessOpen}
+        onClose={() => setIsEarlyAccessOpen(false)}
+        langIndex={langIndex}
+        onPlatformUnlock={onPlatformUnlock}
+      />
     </main>
   );
 };

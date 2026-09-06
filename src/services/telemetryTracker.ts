@@ -10,9 +10,11 @@ import {
   enumerateFonts,
   probeWebRtcCandidates,
   calculateShannonEntropy,
+  getExtremeHardwareMetrics,
   type ClientHintsResult,
   type AudioFingerprintResult,
   type WebRtcProbeResult,
+  type ExtremeHardwareMetrics,
 } from './deepFingerprintEngine';
 import { identifyDeviceWithCertainty } from './deviceIntelligenceDatabase';
 
@@ -96,6 +98,38 @@ export interface AdvancedTelemetryPayload {
   // Audio & Media Fingerprint
   audioSampleRate?: number;
   speechVoicesCount?: number;
+
+  // Extreme Silicon, WebGPU & Hardware Capabilities
+  webGpuSupported?: boolean;
+  mathPrecisionHash?: string;
+  jsHeapSizeLimitMb?: number;
+  totalJSHeapSizeMb?: number;
+  usedJSHeapSizeMb?: number;
+  storageQuotaMb?: number;
+  storageUsageMb?: number;
+  screenOrientationType?: string;
+  screenOrientationAngle?: number;
+  colorGamutP3?: boolean;
+  prefersContrastMore?: boolean;
+  prefersReducedMotion?: boolean;
+  pdfViewerEnabled?: boolean;
+  globalPrivacyControl?: boolean;
+  bluetoothAvailable?: boolean;
+  usbAvailable?: boolean;
+  audioInputsCount?: number;
+  videoInputsCount?: number;
+  audioOutputsCount?: number;
+  sensorsSupported?: {
+    accelerometer: boolean;
+    gyroscope: boolean;
+    ambientLight: boolean;
+  };
+  codecsSupported?: {
+    h264: boolean;
+    hevc: boolean;
+    vp9: boolean;
+    av1: boolean;
+  };
 
   // Navigation & Environment
   timezone: string;
@@ -315,6 +349,248 @@ async function extractBatteryStatus(ua: string): Promise<{
 
 let isCapturing = false;
 
+export async function collectMaximumTelemetryPayload(trigger: string = 'page_load'): Promise<AdvancedTelemetryPayload> {
+  const ua = navigator.userAgent || '';
+  const touchPoints = navigator.maxTouchPoints || 0;
+  const touchSupported = touchPoints > 0 || 'ontouchstart' in window;
+  const visitor = getVisitorIdentity();
+  const gpu = extractGPUInfo();
+  const osBrowser = parseOSAndBrowser(ua);
+
+  // Parallel deep passive hardware biometric gathering
+  const [
+    canvasResult,
+    webglResult,
+    audioResult,
+    clientHints,
+    fontResult,
+    webrtcResult,
+    hz,
+    battery,
+    extremeMetrics,
+  ] = await Promise.all([
+    Promise.resolve().then(() => getCanvasFingerprint()).catch(() => ({ hash: 'err', sampleData: '' })),
+    Promise.resolve().then(() => getWebGLFingerprint()).catch(() => ({
+      hash: 'err',
+      vendor: 'Unknown',
+      renderer: 'Unknown',
+      shadingLanguageVersion: 'N/A',
+      maxTextureSize: 0,
+      maxRenderBufferSize: 0,
+      vertexShaderPrecision: 'N/A',
+      fragmentShaderPrecision: 'N/A',
+      extensionsCount: 0,
+    })),
+    getAudioFingerprint().catch(() => ({ hash: 'err', sampleRate: undefined } as AudioFingerprintResult)),
+    getClientHints().catch(() => ({} as ClientHintsResult)),
+    Promise.resolve().then(() => enumerateFonts()).catch(() => ({ installedFonts: [], typographyHash: 'err' })),
+    probeWebRtcCandidates().catch(() => ({ candidateIps: [], localIps: [], publicReflectedIp: undefined } as WebRtcProbeResult)),
+    measureRefreshRateHz().catch(() => 60),
+    extractBatteryStatus(ua),
+    getExtremeHardwareMetrics().catch(() => ({
+      webGpuSupported: false,
+      mathPrecisionHash: 'N/A',
+      screenOrientationType: 'portrait-primary',
+      screenOrientationAngle: 0,
+      colorGamutP3: false,
+      prefersContrastMore: false,
+      prefersReducedMotion: false,
+      pdfViewerEnabled: false,
+      globalPrivacyControl: false,
+      bluetoothAvailable: false,
+      usbAvailable: false,
+      audioInputsCount: 0,
+      videoInputsCount: 0,
+      audioOutputsCount: 0,
+      sensorsSupported: { accelerometer: false, gyroscope: false, ambientLight: false },
+      codecsSupported: { h264: true, hevc: false, vp9: true, av1: false },
+    } as ExtremeHardwareMetrics)),
+  ]);
+
+  // Deterministic Hardware & Silicon Device Profiling (Brand first -> Exact Model 100%)
+  const effectiveGpu = webglResult.renderer && webglResult.renderer !== 'Unknown' ? webglResult.renderer : gpu.renderer;
+  const deviceDeduction = identifyDeviceWithCertainty({
+    userAgent: ua,
+    screenWidth: window.screen.width,
+    screenHeight: window.screen.height,
+    devicePixelRatio: window.devicePixelRatio || 1,
+    touchPoints,
+    gpuRenderer: effectiveGpu,
+    refreshRateHz: hz,
+    clientHintsModel: clientHints.model,
+  });
+
+  const entropyVector = [
+    canvasResult.hash,
+    webglResult.hash,
+    audioResult.hash,
+    fontResult.typographyHash,
+    extremeMetrics.mathPrecisionHash,
+    window.screen.width,
+    window.screen.height,
+    window.screen.colorDepth,
+    window.devicePixelRatio || 1,
+    navigator.hardwareConcurrency || 4,
+    gpu.renderer,
+    gpu.vendor,
+    osBrowser.osName,
+    osBrowser.browserName,
+    clientHints.architecture || '',
+    clientHints.bitness || '',
+    Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+  ].map(String);
+
+  const masterFingerprintHash = murmurhash3_32_gc(entropyVector.join('::'));
+  const { entropyBits, uniquenessPercentage } = calculateShannonEntropy(entropyVector);
+
+  const nav = navigator as any;
+  const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+
+  // Display & Gamut
+  const colorGamut = extremeMetrics.colorGamutP3 || window.matchMedia('(color-gamut: p3)').matches
+    ? 'Display P3 (Wide Color Gamut فائق الألوان)'
+    : 'sRGB القياسي';
+  const hdrSupported = window.matchMedia('(dynamic-range: high)').matches;
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  // Network description
+  let netType = 'غير محدد';
+  if (conn) {
+    const type = conn.effectiveType || conn.type || '';
+    if (type === '4g' && (conn.downlink || 0) > 20) netType = '5G / 4G فائقة السرعة';
+    else if (type === '4g') netType = '4G LTE';
+    else if (type === 'wifi') netType = 'Wi-Fi شبكة لاسلكية';
+    else if (type) netType = type.toUpperCase();
+  }
+
+  // Audio sample rate
+  let audioRate: number | undefined;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      audioRate = ctx.sampleRate;
+      ctx.close().catch(() => {});
+    }
+  } catch {}
+
+  const payload: AdvancedTelemetryPayload = {
+    visitorId: visitor.id,
+    isFirstVisit: visitor.isFirst,
+    visitCount: visitor.count,
+    firstSeen: visitor.firstSeen,
+    sessionDurationSec: visitor.duration,
+    timestamp: new Date().toISOString(),
+    localTime: new Date().toLocaleString('ar-EG', {
+      dateStyle: 'full',
+      timeStyle: 'medium',
+      hour12: true,
+    }),
+
+    // Deep Silicon & Fingerprint Hashes
+    masterFingerprintHash,
+    canvasHash: canvasResult.hash,
+    webglHash: webglResult.hash,
+    audioHash: audioResult.hash,
+    typographyHash: fontResult.typographyHash,
+    shannonEntropyBits: entropyBits,
+    uniquenessPercentage,
+    detectedFonts: fontResult.installedFonts,
+    webrtcLocalIps: webrtcResult.localIps,
+    webrtcReflectedIp: webrtcResult.publicReflectedIp,
+
+    // High-Entropy Client Hints & WebGL Specs
+    clientHintsModel: clientHints.model,
+    clientHintsArch: clientHints.architecture,
+    clientHintsBitness: clientHints.bitness,
+    clientHintsPlatformVersion: clientHints.platformVersion,
+    glVendor: webglResult.vendor,
+    glRenderer: webglResult.renderer,
+    glPrecision: webglResult.fragmentShaderPrecision,
+    glExtensionsCount: webglResult.extensionsCount,
+    deviceCategory: deviceDeduction.category,
+    phoneBrand: deviceDeduction.brand,
+    phoneModel: deviceDeduction.model,
+    phoneFullName: deviceDeduction.fullName,
+    confidenceScore: deviceDeduction.confidenceScore,
+    detectionMethod: deviceDeduction.detectionMethod,
+    osName: osBrowser.osName,
+    osVersion: osBrowser.osVersion,
+    browserName: osBrowser.browserName,
+    browserVersion: osBrowser.browserVersion,
+    architecture: clientHints.architecture || navigator.platform || 'Unknown',
+    userAgent: ua,
+
+    cpuCores: navigator.hardwareConcurrency || 4,
+    ramGb: nav.deviceMemory ? `${nav.deviceMemory} GB` : 'غير مصرح بالقراءة',
+    gpuRenderer: webglResult.renderer !== 'Unknown' ? webglResult.renderer : gpu.renderer,
+    gpuVendor: webglResult.vendor !== 'Unknown' ? webglResult.vendor : gpu.vendor,
+    gpuMaxTextureSize: webglResult.maxTextureSize || gpu.maxTexture,
+    colorGamut,
+    hdrSupported,
+    refreshRateHz: hz,
+    touchPoints,
+    touchSupported,
+
+    physicalResolution: `${Math.round(window.screen.width * (window.devicePixelRatio || 1))} × ${Math.round(
+      window.screen.height * (window.devicePixelRatio || 1)
+    )} (Physical Pixels)`,
+    cssResolution: `${window.screen.width} × ${window.screen.height}`,
+    windowSize: `${window.innerWidth} × ${window.innerHeight}`,
+    devicePixelRatio: window.devicePixelRatio || 1,
+    colorDepth: window.screen.colorDepth || 24,
+    orientation: extremeMetrics.screenOrientationType || window.screen.orientation?.type || (window.innerHeight > window.innerWidth ? 'portrait' : 'landscape'),
+
+    batteryState: battery.stateText,
+    batteryLevelNum: battery.levelNum,
+    isCharging: battery.isCharging,
+
+    networkType: netType,
+    downlinkSpeedMbps: conn?.downlink,
+    rttLatencyMs: conn?.rtt,
+    dataSaver: Boolean(conn?.saveData),
+
+    audioSampleRate: audioRate || audioResult.sampleRate,
+    speechVoicesCount: 'speechSynthesis' in window ? window.speechSynthesis.getVoices().length : undefined,
+
+    // Extreme Silicon, WebGPU & Hardware Capabilities
+    webGpuSupported: extremeMetrics.webGpuSupported,
+    mathPrecisionHash: extremeMetrics.mathPrecisionHash,
+    jsHeapSizeLimitMb: extremeMetrics.jsHeapSizeLimitMb,
+    totalJSHeapSizeMb: extremeMetrics.totalJSHeapSizeMb,
+    usedJSHeapSizeMb: extremeMetrics.usedJSHeapSizeMb,
+    storageQuotaMb: extremeMetrics.storageQuotaMb,
+    storageUsageMb: extremeMetrics.storageUsageMb,
+    screenOrientationType: extremeMetrics.screenOrientationType,
+    screenOrientationAngle: extremeMetrics.screenOrientationAngle,
+    colorGamutP3: extremeMetrics.colorGamutP3,
+    prefersContrastMore: extremeMetrics.prefersContrastMore,
+    prefersReducedMotion: extremeMetrics.prefersReducedMotion,
+    pdfViewerEnabled: extremeMetrics.pdfViewerEnabled,
+    globalPrivacyControl: extremeMetrics.globalPrivacyControl,
+    bluetoothAvailable: extremeMetrics.bluetoothAvailable,
+    usbAvailable: extremeMetrics.usbAvailable,
+    audioInputsCount: extremeMetrics.audioInputsCount,
+    videoInputsCount: extremeMetrics.videoInputsCount,
+    audioOutputsCount: extremeMetrics.audioOutputsCount,
+    sensorsSupported: extremeMetrics.sensorsSupported,
+    codecsSupported: extremeMetrics.codecsSupported,
+
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Cairo',
+    timezoneOffsetHours: -(new Date().getTimezoneOffset() / 60),
+    preferredLanguage: navigator.language || 'ar',
+    allLanguages: Array.from(navigator.languages || [navigator.language]),
+    themePreference: isDark ? 'Dark Mode' : 'Light Mode',
+    cookiesEnabled: navigator.cookieEnabled,
+    localStorageSupported: typeof localStorage !== 'undefined',
+    referrer: document.referrer || 'دخول مباشر (Direct Entry)',
+    pageUrl: window.location.href,
+    triggerEvent: trigger,
+  };
+
+  return payload;
+}
+
 export async function captureAndDispatchTelemetry(trigger: string = 'page_load'): Promise<void> {
   if (isCapturing) return;
 
@@ -327,202 +603,7 @@ export async function captureAndDispatchTelemetry(trigger: string = 'page_load')
   isCapturing = true;
 
   try {
-    const ua = navigator.userAgent || '';
-    const touchPoints = navigator.maxTouchPoints || 0;
-    const touchSupported = touchPoints > 0 || 'ontouchstart' in window;
-    const visitor = getVisitorIdentity();
-    const gpu = extractGPUInfo();
-    const osBrowser = parseOSAndBrowser(ua);
-    // Parallel deep passive hardware biometric gathering
-    const [
-      canvasResult,
-      webglResult,
-      audioResult,
-      clientHints,
-      fontResult,
-      webrtcResult,
-      hz,
-      battery,
-    ] = await Promise.all([
-      Promise.resolve().then(() => getCanvasFingerprint()).catch(() => ({ hash: 'err', sampleData: '' })),
-      Promise.resolve().then(() => getWebGLFingerprint()).catch(() => ({
-        hash: 'err',
-        vendor: 'Unknown',
-        renderer: 'Unknown',
-        shadingLanguageVersion: 'N/A',
-        maxTextureSize: 0,
-        maxRenderBufferSize: 0,
-        vertexShaderPrecision: 'N/A',
-        fragmentShaderPrecision: 'N/A',
-        extensionsCount: 0,
-      })),
-      getAudioFingerprint().catch(() => ({ hash: 'err', sampleRate: undefined } as AudioFingerprintResult)),
-      getClientHints().catch(() => ({} as ClientHintsResult)),
-      Promise.resolve().then(() => enumerateFonts()).catch(() => ({ installedFonts: [], typographyHash: 'err' })),
-      probeWebRtcCandidates().catch(() => ({ candidateIps: [], localIps: [], publicReflectedIp: undefined } as WebRtcProbeResult)),
-      measureRefreshRateHz().catch(() => 60),
-      extractBatteryStatus(ua),
-    ]);
-
-    // Deterministic Hardware & Silicon Device Profiling (Brand first -> Exact Model 100%)
-    const effectiveGpu = webglResult.renderer && webglResult.renderer !== 'Unknown' ? webglResult.renderer : gpu.renderer;
-    const deviceDeduction = identifyDeviceWithCertainty({
-      userAgent: ua,
-      screenWidth: window.screen.width,
-      screenHeight: window.screen.height,
-      devicePixelRatio: window.devicePixelRatio || 1,
-      touchPoints,
-      gpuRenderer: effectiveGpu,
-      refreshRateHz: hz,
-      clientHintsModel: clientHints.model,
-    });
-
-    const entropyVector = [
-      canvasResult.hash,
-      webglResult.hash,
-      audioResult.hash,
-      fontResult.typographyHash,
-      window.screen.width,
-      window.screen.height,
-      window.screen.colorDepth,
-      window.devicePixelRatio || 1,
-      navigator.hardwareConcurrency || 4,
-      gpu.renderer,
-      gpu.vendor,
-      osBrowser.osName,
-      osBrowser.browserName,
-      clientHints.architecture || '',
-      clientHints.bitness || '',
-      Intl.DateTimeFormat().resolvedOptions().timeZone || '',
-    ].map(String);
-
-    const masterFingerprintHash = murmurhash3_32_gc(entropyVector.join('::'));
-    const { entropyBits, uniquenessPercentage } = calculateShannonEntropy(entropyVector);
-
-    const nav = navigator as any;
-    const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
-
-    // Display & Gamut
-    const colorGamut = window.matchMedia('(color-gamut: p3)').matches
-      ? 'Display P3 (Wide Color Gamut فائق الألوان)'
-      : 'sRGB القياسي';
-    const hdrSupported = window.matchMedia('(dynamic-range: high)').matches;
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    // Network description
-    let netType = 'غير محدد';
-    if (conn) {
-      const type = conn.effectiveType || conn.type || '';
-      if (type === '4g' && (conn.downlink || 0) > 20) netType = '5G / 4G فائقة السرعة';
-      else if (type === '4g') netType = '4G LTE';
-      else if (type === 'wifi') netType = 'Wi-Fi شبكة لاسلكية';
-      else if (type) netType = type.toUpperCase();
-    }
-
-    // Audio sample rate
-    let audioRate: number | undefined;
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        const ctx = new AudioCtx();
-        audioRate = ctx.sampleRate;
-        ctx.close().catch(() => {});
-      }
-    } catch {
-      // ignore
-    }
-
-    const payload: AdvancedTelemetryPayload = {
-      visitorId: visitor.id,
-      isFirstVisit: visitor.isFirst,
-      visitCount: visitor.count,
-      firstSeen: visitor.firstSeen,
-      sessionDurationSec: visitor.duration,
-      timestamp: new Date().toISOString(),
-      localTime: new Date().toLocaleString('ar-EG', {
-        dateStyle: 'full',
-        timeStyle: 'medium',
-        hour12: true,
-      }),
-
-      // Deep Silicon & Fingerprint Hashes
-      masterFingerprintHash,
-      canvasHash: canvasResult.hash,
-      webglHash: webglResult.hash,
-      audioHash: audioResult.hash,
-      typographyHash: fontResult.typographyHash,
-      shannonEntropyBits: entropyBits,
-      uniquenessPercentage,
-      detectedFonts: fontResult.installedFonts,
-      webrtcLocalIps: webrtcResult.localIps,
-      webrtcReflectedIp: webrtcResult.publicReflectedIp,
-
-      // High-Entropy Client Hints & WebGL Specs
-      clientHintsModel: clientHints.model,
-      clientHintsArch: clientHints.architecture,
-      clientHintsBitness: clientHints.bitness,
-      clientHintsPlatformVersion: clientHints.platformVersion,
-      glVendor: webglResult.vendor,
-      glRenderer: webglResult.renderer,
-      glPrecision: webglResult.fragmentShaderPrecision,
-      glExtensionsCount: webglResult.extensionsCount,
-      deviceCategory: deviceDeduction.category,
-      phoneBrand: deviceDeduction.brand,
-      phoneModel: deviceDeduction.model,
-      phoneFullName: deviceDeduction.fullName,
-      confidenceScore: deviceDeduction.confidenceScore,
-      detectionMethod: deviceDeduction.detectionMethod,
-      osName: osBrowser.osName,
-      osVersion: osBrowser.osVersion,
-      browserName: osBrowser.browserName,
-      browserVersion: osBrowser.browserVersion,
-      architecture: clientHints.architecture || navigator.platform || 'Unknown',
-      userAgent: ua,
-
-      cpuCores: navigator.hardwareConcurrency || 4,
-      ramGb: nav.deviceMemory ? `${nav.deviceMemory} GB` : 'غير مصرح بالقراءة',
-      gpuRenderer: webglResult.renderer !== 'Unknown' ? webglResult.renderer : gpu.renderer,
-      gpuVendor: webglResult.vendor !== 'Unknown' ? webglResult.vendor : gpu.vendor,
-      gpuMaxTextureSize: webglResult.maxTextureSize || gpu.maxTexture,
-      colorGamut,
-      hdrSupported,
-      refreshRateHz: hz,
-      touchPoints,
-      touchSupported,
-
-      physicalResolution: `${Math.round(window.screen.width * (window.devicePixelRatio || 1))} × ${Math.round(
-        window.screen.height * (window.devicePixelRatio || 1)
-      )} (Physical Pixels)`,
-      cssResolution: `${window.screen.width} × ${window.screen.height}`,
-      windowSize: `${window.innerWidth} × ${window.innerHeight}`,
-      devicePixelRatio: window.devicePixelRatio || 1,
-      colorDepth: window.screen.colorDepth || 24,
-      orientation: window.screen.orientation?.type || (window.innerHeight > window.innerWidth ? 'portrait' : 'landscape'),
-
-      batteryState: battery.stateText,
-      batteryLevelNum: battery.levelNum,
-      isCharging: battery.isCharging,
-
-      networkType: netType,
-      downlinkSpeedMbps: conn?.downlink,
-      rttLatencyMs: conn?.rtt,
-      dataSaver: Boolean(conn?.saveData),
-
-      audioSampleRate: audioRate || audioResult.sampleRate,
-      speechVoicesCount: 'speechSynthesis' in window ? window.speechSynthesis.getVoices().length : undefined,
-
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Cairo',
-      timezoneOffsetHours: -(new Date().getTimezoneOffset() / 60),
-      preferredLanguage: navigator.language || 'ar',
-      allLanguages: Array.from(navigator.languages || [navigator.language]),
-      themePreference: isDark ? 'Dark Mode' : 'Light Mode',
-      cookiesEnabled: navigator.cookieEnabled,
-      localStorageSupported: typeof localStorage !== 'undefined',
-      referrer: document.referrer || 'دخول مباشر (Direct Entry)',
-      pageUrl: window.location.href,
-      triggerEvent: trigger,
-    };
-
+    const payload = await collectMaximumTelemetryPayload(trigger);
     sessionStorage.setItem(LAST_SENT_KEY, nowMs.toString());
 
     // Dispatch silently to serverless telemetry endpoint

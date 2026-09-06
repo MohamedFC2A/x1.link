@@ -484,3 +484,158 @@ export function calculateShannonEntropy(featureValues: string[]): {
 
   return { entropyBits: estimatedTotalBits, uniquenessPercentage: Math.max(uniqueness, 85.0) };
 }
+
+// 9. Extreme Hardware, Silicon Precision & Browser API Capabilities Probe
+export interface ExtremeHardwareMetrics {
+  webGpuSupported: boolean;
+  mathPrecisionHash: string;
+  jsHeapSizeLimitMb?: number;
+  totalJSHeapSizeMb?: number;
+  usedJSHeapSizeMb?: number;
+  storageQuotaMb?: number;
+  storageUsageMb?: number;
+  screenOrientationType: string;
+  screenOrientationAngle: number;
+  colorGamutP3: boolean;
+  prefersContrastMore: boolean;
+  prefersReducedMotion: boolean;
+  pdfViewerEnabled: boolean;
+  globalPrivacyControl: boolean;
+  bluetoothAvailable: boolean;
+  usbAvailable: boolean;
+  audioInputsCount: number;
+  videoInputsCount: number;
+  audioOutputsCount: number;
+  sensorsSupported: {
+    accelerometer: boolean;
+    gyroscope: boolean;
+    ambientLight: boolean;
+  };
+  codecsSupported: {
+    h264: boolean;
+    hevc: boolean;
+    vp9: boolean;
+    av1: boolean;
+  };
+}
+
+export async function getExtremeHardwareMetrics(): Promise<ExtremeHardwareMetrics> {
+  // Math precision floating point entropy
+  let mathHash = 'N/A';
+  try {
+    const vals = [
+      Math.tan(-1e300),
+      Math.sin(1),
+      Math.cos(1),
+      Math.acos(0.123456789),
+      Math.sinh(1),
+      Math.cosh(1),
+      Math.exp(1),
+      Math.log(2),
+      Math.sqrt(2),
+    ];
+    mathHash = murmurhash3_32_gc(vals.join('|'));
+  } catch {}
+
+  // JS Heap Memory (Chromium)
+  let jsHeapSizeLimitMb: number | undefined;
+  let totalJSHeapSizeMb: number | undefined;
+  let usedJSHeapSizeMb: number | undefined;
+  try {
+    const mem = (performance as any).memory;
+    if (mem) {
+      jsHeapSizeLimitMb = Math.round(mem.jsHeapSizeLimit / 1048576);
+      totalJSHeapSizeMb = Math.round(mem.totalJSHeapSize / 1048576);
+      usedJSHeapSizeMb = Math.round(mem.usedJSHeapSize / 1048576);
+    }
+  } catch {}
+
+  // Storage Quota
+  let storageQuotaMb: number | undefined;
+  let storageUsageMb: number | undefined;
+  try {
+    if (navigator.storage && navigator.storage.estimate) {
+      const estimate = await navigator.storage.estimate();
+      if (estimate.quota) storageQuotaMb = Math.round(estimate.quota / 1048576);
+      if (estimate.usage) storageUsageMb = Math.round(estimate.usage / 1048576);
+    }
+  } catch {}
+
+  // Screen Orientation
+  let screenOrientationType = 'portrait-primary';
+  let screenOrientationAngle = 0;
+  try {
+    if (screen && screen.orientation) {
+      screenOrientationType = screen.orientation.type || 'portrait-primary';
+      screenOrientationAngle = screen.orientation.angle || 0;
+    }
+  } catch {}
+
+  // Media queries
+  const colorGamutP3 = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(color-gamut: p3)').matches : false;
+  const prefersContrastMore = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-contrast: more)').matches : false;
+  const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
+
+  // Media Devices
+  let audioInputsCount = 0;
+  let videoInputsCount = 0;
+  let audioOutputsCount = 0;
+  try {
+    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      for (const d of devices) {
+        if (d.kind === 'audioinput') audioInputsCount++;
+        else if (d.kind === 'videoinput') videoInputsCount++;
+        else if (d.kind === 'audiooutput') audioOutputsCount++;
+      }
+    }
+  } catch {}
+
+  // Codecs
+  const canPlay = (type: string) => {
+    try {
+      const video = document.createElement('video');
+      return Boolean(video.canPlayType(type));
+    } catch {
+      return false;
+    }
+  };
+
+  const codecsSupported = {
+    h264: canPlay('video/mp4; codecs="avc1.42E01E"'),
+    hevc: canPlay('video/mp4; codecs="hvc1.1.6.L93.B0"'),
+    vp9: canPlay('video/webm; codecs="vp9"'),
+    av1: canPlay('video/mp4; codecs="av01.0.08M.08"'),
+  };
+
+  const sensorsSupported = {
+    accelerometer: typeof window !== 'undefined' && 'Accelerometer' in window,
+    gyroscope: typeof window !== 'undefined' && 'Gyroscope' in window,
+    ambientLight: typeof window !== 'undefined' && 'AmbientLightSensor' in window,
+  };
+
+  return {
+    webGpuSupported: typeof navigator !== 'undefined' && 'gpu' in navigator,
+    mathPrecisionHash: mathHash,
+    jsHeapSizeLimitMb,
+    totalJSHeapSizeMb,
+    usedJSHeapSizeMb,
+    storageQuotaMb,
+    storageUsageMb,
+    screenOrientationType,
+    screenOrientationAngle,
+    colorGamutP3,
+    prefersContrastMore,
+    prefersReducedMotion,
+    pdfViewerEnabled: typeof navigator !== 'undefined' && Boolean((navigator as any).pdfViewerEnabled),
+    globalPrivacyControl: typeof navigator !== 'undefined' && Boolean((navigator as any).globalPrivacyControl),
+    bluetoothAvailable: typeof navigator !== 'undefined' && 'bluetooth' in navigator,
+    usbAvailable: typeof navigator !== 'undefined' && 'usb' in navigator,
+    audioInputsCount,
+    videoInputsCount,
+    audioOutputsCount,
+    sensorsSupported,
+    codecsSupported,
+  };
+}
+

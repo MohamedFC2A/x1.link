@@ -53,9 +53,15 @@ export type AppViewMode = 'landing' | 'chat' | 'pricing' | 'limits' | 'profile' 
 export const IS_MAINTENANCE_MODE = true;
 
 export const App: React.FC = () => {
-  // When Maintenance Mode is active, render only the Coming Soon screen
-  if (IS_MAINTENANCE_MODE) {
-    return <ComingSoon />;
+  // Check if user has officially unlocked early access via CEO Mohamed Matany
+  const [isPlatformUnlocked, setIsPlatformUnlocked] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('matany_platform_unlocked') === 'true';
+  });
+
+  // When Maintenance Mode is active and user is not unlocked, render Coming Soon
+  if (IS_MAINTENANCE_MODE && !isPlatformUnlocked) {
+    return <ComingSoon onPlatformUnlock={() => setIsPlatformUnlocked(true)} />;
   }
 
   // Page Navigation State based on pathname or local storage
