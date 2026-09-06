@@ -12,69 +12,63 @@ interface EcosystemEntity {
 
 const ECOSYSTEM_ENTITIES: EcosystemEntity[] = [
   {
-    name: 'Fathom Cyber',
-    category: 'Company',
-    styleClass: 'font-sans font-bold tracking-tight text-cyan-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]',
+    name: 'Fathom Cyber Ultra 2.6',
+    category: 'AI Model',
+    styleClass: 'font-sans font-bold tracking-tight text-cyan-300',
     dotColor: 'bg-cyan-400',
   },
   {
     name: 'Matany Labs',
     category: 'Company',
-    styleClass: 'font-sans font-extrabold tracking-wide bg-gradient-to-r from-white via-slate-100 to-zinc-400 bg-clip-text text-transparent',
+    styleClass: 'font-sans font-extrabold tracking-wide text-white',
     dotColor: 'bg-white',
   },
   {
-    name: 'Fathom 1.1 AI',
+    name: 'Fathom Cyber Flash 2.6',
     category: 'AI Model',
-    styleClass: 'font-mono font-bold text-sky-400 drop-shadow-[0_0_10px_rgba(56,189,248,0.4)]',
+    styleClass: 'font-mono font-semibold text-sky-300',
     dotColor: 'bg-sky-400',
   },
   {
-    name: 'Upstore.one',
+    name: 'Fathom Cyber',
     category: 'Company',
-    styleClass: 'font-mono font-medium text-emerald-400 lowercase drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]',
+    styleClass: 'font-sans font-bold tracking-wider text-indigo-300',
+    dotColor: 'bg-indigo-400',
+  },
+  {
+    name: 'Fathom 1.1',
+    category: 'AI Model',
+    styleClass: 'font-mono font-bold text-teal-300',
+    dotColor: 'bg-teal-400',
+  },
+  {
+    name: 'upstore.one',
+    category: 'Company',
+    styleClass: 'font-mono font-medium text-emerald-400 lowercase',
     dotColor: 'bg-emerald-400',
   },
   {
-    name: 'DeepSeek R1 / V3',
+    name: 'Fathom Cam',
     category: 'AI Model',
-    styleClass: 'font-sans font-bold text-blue-400 drop-shadow-[0_0_10px_rgba(96,165,250,0.4)]',
-    dotColor: 'bg-blue-400',
+    styleClass: 'font-sans font-bold text-amber-300',
+    dotColor: 'bg-amber-400',
   },
   {
     name: 'Matany.one',
     category: 'Company',
-    styleClass: 'font-sans font-black italic tracking-tighter text-white drop-shadow-[0_0_14px_rgba(255,255,255,0.6)]',
+    styleClass: 'font-sans font-black italic tracking-tight text-zinc-100',
     dotColor: 'bg-white',
   },
   {
-    name: 'Claude 3.7 Sonnet',
+    name: 'Fathom Spark',
     category: 'AI Model',
-    styleClass: 'font-serif font-semibold italic text-amber-200 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]',
-    dotColor: 'bg-amber-300',
-  },
-  {
-    name: 'Sovereign Cloud',
-    category: 'Company',
-    styleClass: 'font-serif font-semibold tracking-wider text-indigo-300 drop-shadow-[0_0_10px_rgba(165,180,252,0.4)]',
-    dotColor: 'bg-indigo-400',
-  },
-  {
-    name: 'Magnum v4 72B',
-    category: 'AI Model',
-    styleClass: 'font-mono font-bold text-purple-300 drop-shadow-[0_0_10px_rgba(216,180,254,0.4)]',
+    styleClass: 'font-mono font-semibold text-purple-300',
     dotColor: 'bg-purple-400',
   },
   {
-    name: 'Gemini 2.0 Flash',
+    name: 'Fathom Quant 3',
     category: 'AI Model',
-    styleClass: 'font-sans font-bold text-teal-300 drop-shadow-[0_0_10px_rgba(94,234,212,0.4)]',
-    dotColor: 'bg-teal-400',
-  },
-  {
-    name: 'GPT-4o Vision',
-    category: 'AI Model',
-    styleClass: 'font-mono font-semibold text-rose-300 drop-shadow-[0_0_10px_rgba(253,164,175,0.4)]',
+    styleClass: 'font-serif font-bold italic text-rose-300',
     dotColor: 'bg-rose-400',
   },
 ];
@@ -146,9 +140,6 @@ export const ComingSoon: React.FC = () => {
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="relative mb-3 sm:mb-4 inline-block"
         >
-          {/* Outer Specular Glow Behind the Silver Text */}
-          <div className="absolute -inset-x-8 -inset-y-3 bg-gradient-to-r from-transparent via-white/10 to-transparent blur-xl pointer-events-none -z-10" />
-
           <motion.h1
             className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter select-none"
             style={{
@@ -157,7 +148,7 @@ export const ComingSoon: React.FC = () => {
             }}
           >
             <motion.span
-              className="bg-clip-text text-transparent bg-[linear-gradient(110deg,#71717a_0%,#cbd5e1_18%,#ffffff_32%,#f8fafc_45%,#52525b_54%,#ffffff_68%,#e2e8f0_82%,#71717a_100%)] bg-[length:250%_100%] inline-block filter drop-shadow-[0_2px_14px_rgba(255,255,255,0.45)] drop-shadow-[0_8px_30px_rgba(180,200,225,0.25)]"
+              className="bg-clip-text text-transparent bg-[linear-gradient(110deg,#71717a_0%,#cbd5e1_18%,#ffffff_32%,#f8fafc_45%,#52525b_54%,#ffffff_68%,#e2e8f0_82%,#71717a_100%)] bg-[length:250%_100%] inline-block filter drop-shadow-[0_2px_10px_rgba(255,255,255,0.25)]"
               animate={{
                 backgroundPosition: ['0% 50%', '200% 50%'],
               }}
@@ -219,10 +210,10 @@ export const ComingSoon: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {/* Minimalist Glowing Radar Divider */}
-        <div className="relative w-44 sm:w-52 h-[1px] my-4 bg-gradient-to-r from-transparent via-zinc-700/80 to-transparent overflow-hidden">
+        {/* Minimalist Crisp Radar Divider */}
+        <div className="relative w-44 sm:w-52 h-[1px] my-4 bg-gradient-to-r from-transparent via-zinc-800 to-transparent overflow-hidden">
           <motion.div
-            className="absolute top-0 left-0 w-16 h-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+            className="absolute top-0 left-0 w-16 h-full bg-gradient-to-r from-transparent via-zinc-400/60 to-transparent"
             animate={{ x: [-70, 220] }}
             transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
           />
@@ -265,31 +256,39 @@ export const ComingSoon: React.FC = () => {
           </a>
         </motion.div>
 
-        {/* Ultra-Curved Glassmorphism Partner & AI Model Marquee Pod */}
+        {/* Truly Curved Arched Glassmorphism Partner & AI Model Marquee Pod */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.35 }}
-          className="relative mt-8 sm:mt-10 w-full max-w-[340px] sm:max-w-md mx-auto"
+          className="relative mt-8 sm:mt-10 w-full max-w-[350px] sm:max-w-[440px] mx-auto h-[52px] sm:h-[56px] flex items-center justify-center select-none"
         >
-          {/* Ambient Glowing Aura */}
-          <div className="absolute -inset-1.5 bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 rounded-full blur-xl pointer-events-none opacity-70" />
+          {/* SVG ClipPath Definition for Responsive Arched Geometry */}
+          <svg width="0" height="0" className="absolute pointer-events-none">
+            <defs>
+              <clipPath id="curved-pod-clip" clipPathUnits="objectBoundingBox">
+                <path d="M 0.03,0.28 Q 0.50,0.06 0.97,0.28 C 0.995,0.34 1.0,0.76 0.97,0.82 Q 0.50,0.60 0.03,0.82 C 0.005,0.76 0.0,0.34 0.03,0.28 Z" />
+              </clipPath>
+            </defs>
+          </svg>
 
-          {/* Curved Glass Pod */}
-          <div className="relative flex items-center overflow-hidden rounded-full border border-white/15 bg-[#070810]/80 backdrop-blur-2xl px-4 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2),0_0_25px_rgba(6,182,212,0.12)]">
-            {/* Left & Right gradient masks for smooth fade edges */}
-            <div className="absolute left-0 inset-y-0 w-12 bg-gradient-to-r from-[#070810] to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 inset-y-0 w-12 bg-gradient-to-l from-[#070810] to-transparent z-10 pointer-events-none" />
+          {/* Arched Translucent Frosted Glass Body */}
+          <div
+            className="relative w-full h-full flex items-center overflow-hidden [clip-path:url(#curved-pod-clip)] bg-[#070812]/85 backdrop-blur-2xl shadow-[0_10px_35px_rgba(0,0,0,0.7)]"
+          >
+            {/* Left & Right gradient edge fade masks */}
+            <div className="absolute left-0 inset-y-0 w-12 bg-gradient-to-r from-[#030306] to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 inset-y-0 w-12 bg-gradient-to-l from-[#030306] to-transparent z-10 pointer-events-none" />
 
-            {/* Seamless Infinite Marquee with Diverse Typographies (Not all caps, Zero duplicates) */}
+            {/* Seamless Infinite Marquee with Original Fathom Models & Ecosystem Partners */}
             <motion.div
-              className="flex items-center gap-7 whitespace-nowrap will-change-transform"
+              className="flex items-center gap-7 whitespace-nowrap will-change-transform pt-1"
               animate={{ x: ['0%', '-50%'] }}
-              transition={{ repeat: Infinity, duration: 26, ease: 'linear' }}
+              transition={{ repeat: Infinity, duration: 25, ease: 'linear' }}
             >
               {[...ECOSYSTEM_ENTITIES, ...ECOSYSTEM_ENTITIES].map((item, idx) => (
                 <div key={idx} className="flex items-center gap-2.5">
-                  <span className={`size-1.5 rounded-full ${item.dotColor} animate-pulse flex-shrink-0`} />
+                  <span className={`size-1.5 rounded-full ${item.dotColor} flex-shrink-0`} />
                   <span className={`text-[12px] sm:text-[13px] ${item.styleClass}`}>
                     {item.name}
                   </span>
@@ -298,26 +297,54 @@ export const ComingSoon: React.FC = () => {
               ))}
             </motion.div>
           </div>
+
+          {/* Curved Specular Glass Rim & Precision Border Overlay */}
+          <svg
+            viewBox="0 0 400 60"
+            preserveAspectRatio="none"
+            className="absolute inset-0 w-full h-full pointer-events-none z-20"
+          >
+            {/* Outer Precision Glass Stroke */}
+            <path
+              d="M 12,17 Q 200,3.6 388,17 C 398,20 400,46 388,49 Q 200,36 12,49 C 0,46 2,20 12,17 Z"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.16)"
+              strokeWidth="1.2"
+            />
+            {/* Top Specular Arc Reflection Highlight */}
+            <path
+              d="M 22,16.5 Q 200,3.2 378,16.5"
+              fill="none"
+              stroke="url(#top-arc-specular)"
+              strokeWidth="1"
+            />
+            <defs>
+              <linearGradient id="top-arc-specular" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.0)" />
+                <stop offset="25%" stopColor="rgba(255,255,255,0.35)" />
+                <stop offset="50%" stopColor="rgba(255,255,255,0.75)" />
+                <stop offset="75%" stopColor="rgba(255,255,255,0.35)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0.0)" />
+              </linearGradient>
+            </defs>
+          </svg>
         </motion.div>
       </div>
 
-      {/* Fixed Symmetrical Footer Attribution - Seamless Arabic Typography */}
+      {/* Symmetrical & Balanced Footer Attribution (English Only - Resolves RTL & Arabic Mixed Font Issues) */}
       <motion.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.9, delay: 0.45 }}
         className="relative z-10 w-full flex items-center justify-center pt-8 pb-4 px-4"
       >
-        <div className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
-          <span
-            className="text-[11px] sm:text-[12px] text-zinc-300 font-normal leading-none select-text whitespace-nowrap"
-            style={{ fontFamily: "'Segoe UI', 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif" }}
-          >
-            تم التطوير من قبل <strong className="text-white font-semibold">Mohamed Matany</strong>
+        <div className="inline-flex items-center justify-center gap-2 sm:gap-3 px-5 py-2.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+          <span className="font-sans text-[11px] sm:text-[12px] text-zinc-300 font-medium leading-none select-text whitespace-nowrap">
+            Developed by <strong className="text-white font-semibold">Mohamed Matany</strong>
           </span>
-          <span className="hidden sm:inline text-cyan-400/60 text-[10px]">✦</span>
-          <span className="font-sans text-[10px] sm:text-[11px] text-zinc-400 font-medium tracking-wider uppercase leading-none select-text whitespace-nowrap">
-            Built By <strong className="text-zinc-200 font-semibold">Matany Labs</strong>
+          <span className="text-cyan-400/60 text-[10px]">✦</span>
+          <span className="font-sans text-[11px] sm:text-[12px] text-zinc-400 font-medium leading-none select-text whitespace-nowrap">
+            Built by <strong className="text-zinc-200 font-semibold">Matany Labs</strong>
           </span>
         </div>
       </motion.footer>
