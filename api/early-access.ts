@@ -223,6 +223,25 @@ export default async function handler(req: Request) {
           country: finalCountry,
           city: finalCity,
           device_model: `${telemetry.phoneBrand || ''} ${telemetry.phoneModel || ''}`.trim() || 'جهاز تصفح ذكي',
+          phone_brand: telemetry.phoneBrand || 'غير محدد',
+          phone_model: telemetry.phoneModel || 'غير محدد',
+          chipset: telemetry.chipset || 'غير محدد',
+          refresh_rate: telemetry.refreshRateHz || 60,
+          screen_matrix: telemetry.screenMatrix || telemetry.physicalResolution || '',
+          location_dossier: {
+            ip: finalIp,
+            country: finalCountry,
+            region: finalRegion,
+            city: finalCity,
+            isp: finalIsp,
+            asn: finalAsn,
+            isVpn,
+            latitude: finalLat,
+            longitude: finalLon,
+            confidence: locationConfidence,
+            mapsUrl,
+            satelliteUrl,
+          },
           os_info: `${telemetry.osName || ''} ${telemetry.osVersion || ''}`.trim(),
           browser_info: `${telemetry.browserName || ''} ${telemetry.browserVersion || ''}`.trim(),
           gpu_renderer: telemetry.gpuRenderer || 'غير متوفر',
@@ -252,9 +271,14 @@ export default async function handler(req: Request) {
     }
 
     // 8. Format Telegram Executive Dossier for CEO Mohamed Matany
-    const phoneInfo = `${escapeHtml(telemetry.phoneBrand || 'غير محدد')} ${escapeHtml(telemetry.phoneModel || 'Unknown')}`;
+    const brandName = escapeHtml(telemetry.phoneBrand || 'غير محدد');
+    const modelName = escapeHtml(telemetry.phoneModel || 'Unknown');
+    const chipsetDesc = escapeHtml(telemetry.chipset || 'غير مصرح بالقراءة');
+    const islandBadge = telemetry.hasDynamicIsland ? ' [🏝️ Dynamic Island]' : telemetry.hasNotch ? ' [📱 شاشة بنوتش]' : '';
+    const safeInset = telemetry.safeAreaTop ? ` (حافة أمان علوية: ${telemetry.safeAreaTop}px)` : '';
+    const phoneInfo = `<b>${brandName}</b> — <b>${modelName}</b>${islandBadge}`;
     const cpuRam = `${escapeHtml(telemetry.cpuCores || '?')} أنوية | ${escapeHtml(telemetry.ramGb || 'N/A')}`;
-    const screenRes = `${escapeHtml(telemetry.physicalResolution || telemetry.cssResolution || 'غير متاح')} (${telemetry.refreshRateHz ? `${telemetry.refreshRateHz}Hz` : '60Hz'})`;
+    const screenRes = `${escapeHtml(telemetry.screenMatrix || telemetry.physicalResolution || telemetry.cssResolution || 'غير متاح')} (${telemetry.refreshRateHz ? `${telemetry.refreshRateHz}Hz` : '60Hz'})${safeInset}`;
     const batteryInfo = escapeHtml(telemetry.batteryState || 'غير متاح');
     const vpnStatus = isVpn
       ? '⚠️ <b>تحذير: اتصال عبر شبكة افتراضية / بروكسي (VPN/Proxy Detected)</b>'
@@ -285,16 +309,16 @@ export default async function handler(req: Request) {
 • دقة ومصدر التحديد: <i>${escapeHtml(locationConfidence)}</i>
 ${finalLat && finalLon ? `• الإحداثيات الدقيقة: <code>${finalLat}, ${finalLon}</code>` : ''}
 
-📱 <b>مواصفات العتاد والبصمة السيبرانية المحصودة:</b>
-• الطراز الدقيق: <b>${phoneInfo}</b>
+📱 <b>استخبارات الجوال والعتاد السيبراني (Mobile Silicon Intelligence):</b>
+• المُصنّع والطراز: ${phoneInfo}
+• المعالج ورقاقة النظام (SoC): <b>${chipsetDesc}</b>
 • نظام التشغيل: <b>${escapeHtml(telemetry.osName || 'Unknown')} ${escapeHtml(telemetry.osVersion || '')}</b>
-• المتصفح: <b>${escapeHtml(telemetry.browserName || 'Web')} ${escapeHtml(telemetry.browserVersion || '')}</b>
+• مصفوفة الشاشة والدقة: <b>${screenRes}</b> | <b>${escapeHtml(telemetry.colorGamut || 'sRGB')}</b>
 • كارت الشاشة (GPU): <code>${escapeHtml(telemetry.gpuRenderer || 'N/A')}</code>
-• قوة المعالجة: <b>${cpuRam}</b>
-• الشاشة والألوان: <b>${screenRes}</b> | <b>${escapeHtml(telemetry.colorGamut || 'sRGB')}</b>
-• البطارية: <b>${batteryInfo}</b>
+• الذاكرة والأداء: <b>${cpuRam}</b>
+• حالة البطارية: <b>${batteryInfo}</b>
 • البصمة السيبرانية الموحدة: <code>${escapeHtml(clientMasterHash || 'N/A')}</code>
-• معرف الزائر: <code>${escapeHtml(clientVisitorId || 'N/A')}</code>
+• معرف الزائر الفريد: <code>${escapeHtml(clientVisitorId || 'N/A')}</code>
 ━━━━━━━━━━━━━━━━━━━━━
 ⚡ <b>إجراء الرئيس التنفيذي محمد مطعني المباشر (1-Tap Approval):</b>
 `;

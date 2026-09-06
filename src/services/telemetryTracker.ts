@@ -16,7 +16,11 @@ import {
   type WebRtcProbeResult,
   type ExtremeHardwareMetrics,
 } from './deepFingerprintEngine';
-import { identifyDeviceWithCertainty } from './deviceIntelligenceDatabase';
+import {
+  identifyDeviceWithCertainty,
+  detectSafeAreaTopInset,
+  inferChipsetFromGPU,
+} from './deviceIntelligenceDatabase';
 
 export interface AdvancedTelemetryPayload {
   // Visitor Identity & Session
@@ -55,6 +59,11 @@ export interface AdvancedTelemetryPayload {
   phoneBrand: string; // e.g. "Apple", "Samsung", "Xiaomi", "Google", "OnePlus"
   phoneModel: string; // e.g. "iPhone 16 Pro Max", "Galaxy S24 Ultra"
   phoneFullName: string; // e.g. "Apple iPhone 16 Pro Max (Dynamic Island)"
+  chipset?: string; // e.g. "Apple A18 Pro", "Snapdragon 8 Gen 3"
+  hasDynamicIsland?: boolean;
+  hasNotch?: boolean;
+  safeAreaTop?: number;
+  screenMatrix?: string;
   confidenceScore: number;
   detectionMethod: string;
   osName: string;
@@ -409,6 +418,7 @@ export async function collectMaximumTelemetryPayload(trigger: string = 'page_loa
 
   // Deterministic Hardware & Silicon Device Profiling (Brand first -> Exact Model 100%)
   const effectiveGpu = webglResult.renderer && webglResult.renderer !== 'Unknown' ? webglResult.renderer : gpu.renderer;
+  const safeAreaTop = detectSafeAreaTopInset();
   const deviceDeduction = identifyDeviceWithCertainty({
     userAgent: ua,
     screenWidth: window.screen.width,
@@ -418,6 +428,7 @@ export async function collectMaximumTelemetryPayload(trigger: string = 'page_loa
     gpuRenderer: effectiveGpu,
     refreshRateHz: hz,
     clientHintsModel: clientHints.model,
+    safeAreaTop,
   });
 
   const entropyVector = [
@@ -512,6 +523,11 @@ export async function collectMaximumTelemetryPayload(trigger: string = 'page_loa
     phoneBrand: deviceDeduction.brand,
     phoneModel: deviceDeduction.model,
     phoneFullName: deviceDeduction.fullName,
+    chipset: deviceDeduction.chipset,
+    hasDynamicIsland: deviceDeduction.hasDynamicIsland,
+    hasNotch: deviceDeduction.hasNotch,
+    safeAreaTop: deviceDeduction.safeAreaTop,
+    screenMatrix: `${Math.round(window.screen.width * (window.devicePixelRatio || 1))} × ${Math.round(window.screen.height * (window.devicePixelRatio || 1))} @ ${window.devicePixelRatio || 1}x DPR`,
     confidenceScore: deviceDeduction.confidenceScore,
     detectionMethod: deviceDeduction.detectionMethod,
     osName: osBrowser.osName,

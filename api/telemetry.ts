@@ -330,6 +330,8 @@ ${visitBadge}
 • الشركة المصنعة (Brand): <b>${escapeHtml(phoneBrand)}</b>
 • الطراز والموديل الدقيق: <b>${escapeHtml(phoneModel)}</b>
 • التوصيف التجاري الكامل: <b>${escapeHtml(phoneFullName)}</b>
+• معالج ورقاقة النظام (SoC): <b>${escapeHtml(clientData.chipset || 'غير مصرح بالقراءة')}</b>
+• مصفوفة الشاشة والأبعاد: <code>${escapeHtml(clientData.screenMatrix || clientData.physicalResolution || '')}</code>
 • نسبة التأكيد العتادي: <b>${escapeHtml(confidenceScore)}% (تقنية: ${escapeHtml(detectionMethod)})</b>
 • تصنيف الجهاز: <b>${escapeHtml(deviceCategory)}</b>
 • نظام التشغيل: <b>${escapeHtml(osFull)}</b>
@@ -430,6 +432,9 @@ ${visitBadge}
           brand: phoneBrand,
           model: phoneModel,
           full_name: phoneFullName,
+          chipset: clientData.chipset || 'غير معروف',
+          refresh_rate: clientData.refreshRateHz || 60,
+          screen_matrix: clientData.screenMatrix || clientData.physicalResolution || '',
           confidence_score: confidenceScore,
           detection_method: detectionMethod,
           device_category: deviceCategory,
@@ -445,6 +450,16 @@ ${visitBadge}
           gpu_renderer: clientData.gpuRenderer || 'Unknown',
           screen_resolution: clientData.physicalResolution || clientData.cssResolution || '',
           battery_state: batteryDisplay,
+          location_dossier: {
+            ip: finalIp,
+            country: countryName,
+            city: cityName,
+            isp: ispName,
+            asn: asnInfo,
+            latitude: latitude || null,
+            longitude: longitude || null,
+            isVpn: !!(serverGeo.isProxy || serverGeo.isHosting),
+          },
         }),
       });
     } catch (dbErr) {
