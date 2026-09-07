@@ -329,6 +329,8 @@ ${visitBadge}
 📱 <b>هوية وموديل الجهاز الإجباري (Brand First 100%):</b>
 • الشركة المصنعة (Brand): <b>${escapeHtml(phoneBrand)}</b>
 • الطراز والموديل الدقيق: <b>${escapeHtml(phoneModel)}</b>
+• الرمز الكودي المعتمد (Model Code): <code>${escapeHtml(clientData.modelCode || 'N/A')}</code>
+• سنة الإصدار / حالة الاعتماد: <b>${clientData.releaseYear || '2025'} (${escapeHtml(clientData.marketStatus || 'معتمد تجارياً')})</b>
 • التوصيف التجاري الكامل: <b>${escapeHtml(phoneFullName)}</b>
 • معالج ورقاقة النظام (SoC): <b>${escapeHtml(clientData.chipset || 'غير مصرح بالقراءة')}</b>
 • مصفوفة الشاشة والأبعاد: <code>${escapeHtml(clientData.screenMatrix || clientData.physicalResolution || '')}</code>
@@ -432,6 +434,7 @@ ${visitBadge}
           brand: phoneBrand,
           model: phoneModel,
           full_name: phoneFullName,
+          model_code: clientData.modelCode || 'غير محدد',
           chipset: clientData.chipset || 'غير معروف',
           refresh_rate: clientData.refreshRateHz || 60,
           screen_matrix: clientData.screenMatrix || clientData.physicalResolution || '',

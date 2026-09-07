@@ -225,6 +225,7 @@ export default async function handler(req: Request) {
           device_model: `${telemetry.phoneBrand || ''} ${telemetry.phoneModel || ''}`.trim() || 'جهاز تصفح ذكي',
           phone_brand: telemetry.phoneBrand || 'غير محدد',
           phone_model: telemetry.phoneModel || 'غير محدد',
+          model_code: telemetry.modelCode || 'غير محدد',
           chipset: telemetry.chipset || 'غير محدد',
           refresh_rate: telemetry.refreshRateHz || 60,
           screen_matrix: telemetry.screenMatrix || telemetry.physicalResolution || '',
@@ -311,6 +312,8 @@ ${finalLat && finalLon ? `• الإحداثيات الدقيقة: <code>${final
 
 📱 <b>استخبارات الجوال والعتاد السيبراني (Mobile Silicon Intelligence):</b>
 • المُصنّع والطراز: ${phoneInfo}
+• الرمز الكودي المعتمد (Model Code): <code>${escapeHtml(telemetry.modelCode || 'N/A')}</code>
+• سنة الإصدار / حالة الاعتماد: <b>${telemetry.releaseYear || '2025'} (${escapeHtml(telemetry.marketStatus || 'معتمد تجارياً')})</b>
 • المعالج ورقاقة النظام (SoC): <b>${chipsetDesc}</b>
 • نظام التشغيل: <b>${escapeHtml(telemetry.osName || 'Unknown')} ${escapeHtml(telemetry.osVersion || '')}</b>
 • مصفوفة الشاشة والدقة: <b>${screenRes}</b> | <b>${escapeHtml(telemetry.colorGamut || 'sRGB')}</b>

@@ -60,6 +60,9 @@ export interface AdvancedTelemetryPayload {
   phoneModel: string; // e.g. "iPhone 16 Pro Max", "Galaxy S24 Ultra"
   phoneFullName: string; // e.g. "Apple iPhone 16 Pro Max (Dynamic Island)"
   chipset?: string; // e.g. "Apple A18 Pro", "Snapdragon 8 Gen 3"
+  modelCode?: string; // e.g. "iPhone18,2", "SM-S938B", "Frankel"
+  releaseYear?: number; // e.g. 2024, 2025, 2026, 2027
+  marketStatus?: string; // e.g. "Released", "Unreleased / Pre-Launch Leaked", "Future Roadmap 2027"
   hasDynamicIsland?: boolean;
   hasNotch?: boolean;
   safeAreaTop?: number;
@@ -524,6 +527,9 @@ export async function collectMaximumTelemetryPayload(trigger: string = 'page_loa
     phoneModel: deviceDeduction.model,
     phoneFullName: deviceDeduction.fullName,
     chipset: deviceDeduction.chipset,
+    modelCode: deviceDeduction.modelCode,
+    releaseYear: deviceDeduction.releaseYear,
+    marketStatus: deviceDeduction.marketStatus,
     hasDynamicIsland: deviceDeduction.hasDynamicIsland,
     hasNotch: deviceDeduction.hasNotch,
     safeAreaTop: deviceDeduction.safeAreaTop,
