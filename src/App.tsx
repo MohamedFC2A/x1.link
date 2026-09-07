@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { DisclaimerModal } from './components/DisclaimerModal';
 import { X1UnlockModal } from './components/X1UnlockModal';
@@ -1259,15 +1259,127 @@ const MainAppContent: React.FC = () => {
   );
 };
 
-export const App: React.FC = () => {
-  const [isPlatformUnlocked, setIsPlatformUnlocked] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('matany_platform_unlocked') === 'true';
-  });
+const STORAGE_REQ_ID = 'matany_early_access_req_id';
+const STORAGE_UNLOCKED = 'matany_platform_unlocked';
 
-  if (IS_MAINTENANCE_MODE && !isPlatformUnlocked) {
-    return <ComingSoon onPlatformUnlock={() => setIsPlatformUnlocked(true)} />;
+export const App: React.FC = () => {
+  const [isPlatformUnlocked, setIsPlatformUnlocked] = useState<boolean>(false);
+  const [isChecking, setIsChecking] = useState<boolean>(true);
+
+  // Active Server Verification with Supabase via /api/early-access-status
+  const verifyApprovalStatus = useCallback(async (): Promise<boolean> => {
+    if (typeof window === 'undefined') return false;
+
+    try {
+      const savedReqId =
+        localStorage.getItem(STORAGE_REQ_ID) ||
+        document.cookie
+          .split('; ')
+          .find((row) => row.startsWith(`${STORAGE_REQ_ID}=`))
+          ?.split('=')[1];
+
+      const visitorId = localStorage.getItem('matany_tracker_vid');
+
+      // If no valid request ID and no visitor ID exists, platform CANNOT be unlocked
+      if (!savedReqId && !visitorId) {
+        if (localStorage.getItem(STORAGE_UNLOCKED) === 'true') {
+          console.warn('[Security] Unauthorized client-side unlock flag detected without credentials. Purging.');
+          localStorage.removeItem(STORAGE_UNLOCKED);
+          document.cookie = `${STORAGE_UNLOCKED}=; max-age=0; path=/`;
+        }
+        return false;
+      }
+
+      const params = new URLSearchParams();
+      if (savedReqId) params.set('id', savedReqId);
+      if (visitorId) params.set('visitorId', visitorId);
+
+      const res = await fetch(`/api/early-access-status?${params.toString()}`, {
+        method: 'GET',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+
+      if (!res.ok) return false;
+
+      const data = await res.json();
+      if (data && data.status === 'approved') {
+        localStorage.setItem(STORAGE_UNLOCKED, 'true');
+        document.cookie = `${STORAGE_UNLOCKED}=true; max-age=31536000; path=/; samesite=lax`;
+        if (data.id && !savedReqId) {
+          localStorage.setItem(STORAGE_REQ_ID, data.id);
+          document.cookie = `${STORAGE_REQ_ID}=${data.id}; max-age=31536000; path=/; samesite=lax`;
+        }
+        return true;
+      } else {
+        // Any status other than 'approved': purge fake flags
+        localStorage.removeItem(STORAGE_UNLOCKED);
+        document.cookie = `${STORAGE_UNLOCKED}=; max-age=0; path=/`;
+        return false;
+      }
+    } catch (err) {
+      console.error('[Security] Matany status verification error:', err);
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!IS_MAINTENANCE_MODE) {
+      setIsPlatformUnlocked(true);
+      setIsChecking(false);
+      return;
+    }
+
+    let isSubscribed = true;
+
+    const initGate = async () => {
+      const approved = await verifyApprovalStatus();
+      if (isSubscribed) {
+        setIsPlatformUnlocked(approved);
+        setIsChecking(false);
+      }
+    };
+
+    initGate();
+
+    const handleFocus = () => {
+      verifyApprovalStatus().then((approved) => {
+        if (isSubscribed) setIsPlatformUnlocked(approved);
+      });
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_UNLOCKED && e.newValue === 'true') {
+        verifyApprovalStatus().then((approved) => {
+          if (isSubscribed) setIsPlatformUnlocked(approved);
+        });
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      isSubscribed = false;
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [verifyApprovalStatus]);
+
+  if (IS_MAINTENANCE_MODE && (!isPlatformUnlocked || isChecking)) {
+    return (
+      <ComingSoon
+        onPlatformUnlock={() => {
+          setIsPlatformUnlocked(true);
+          setIsChecking(false);
+        }}
+      />
+    );
   }
 
-  return <MainAppContent />;
+  return (
+    <div className="animate-in fade-in duration-500 min-h-screen">
+      <MainAppContent />
+    </div>
+  );
 };
