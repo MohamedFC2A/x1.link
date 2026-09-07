@@ -344,17 +344,35 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
 
   return (
     <main
-      className="relative min-h-[100dvh] w-full bg-[#030306] text-white flex flex-col items-center justify-between overflow-hidden select-none px-4 py-8 sm:py-10"
+      className="relative min-h-[100dvh] w-full bg-[#000000] text-white flex flex-col items-center justify-between overflow-hidden select-none px-4 py-8 sm:py-10"
       dir="ltr"
     >
 
-      {/* Dynamic Cyber Background Gradients */}
+      {/* Dynamic Cyber Background Gradients (Pure Obsidian Luxury, Zero Navy Tint) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-[25%] left-1/2 -translate-x-1/2 w-[700px] h-[550px] bg-gradient-to-b from-slate-400/10 via-indigo-500/10 to-transparent blur-[140px] rounded-full" />
-        <div className="absolute -bottom-[20%] left-1/2 -translate-x-1/2 w-[600px] h-[450px] bg-gradient-to-t from-cyan-600/10 via-slate-600/5 to-transparent blur-[140px] rounded-full" />
+        {/* Subtle Top Ambient Silver/Platinum Sheen */}
+        <div className="absolute -top-[20%] left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-b from-white/[0.04] via-zinc-500/[0.015] to-transparent blur-[150px] rounded-full" />
+        
+        {/* Center Spotlight */}
         <div
-          className="absolute inset-0 opacity-[0.035] bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle at 50% 38%, rgba(255,255,255,0.035) 0%, rgba(0,0,0,0) 70%)',
+          }}
         />
+
+        {/* High-Precision Luxury Engineering Grid */}
+        <div
+          className="absolute inset-0 opacity-[0.06] bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(ellipse_75%_65%_at_50%_42%,#000_55%,transparent_100%)]"
+        />
+
+        {/* Precision Crosshair Intersection Dots for Ultra-High-End Grid Finish */}
+        <div
+          className="absolute inset-0 opacity-[0.14] bg-[radial-gradient(#ffffff_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(ellipse_75%_65%_at_50%_42%,#000_50%,transparent_100%)]"
+        />
+
+        {/* Bottom Pure Pitch-Black Fade */}
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/90 to-transparent" />
       </div>
 
       {/* Invisible spacer for top vertical balance */}
@@ -441,7 +459,7 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
                 className="flex flex-col items-center text-center"
               >
                 <span
-                  className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-sky-400 via-cyan-300 to-indigo-200 bg-clip-text text-transparent pb-1"
+                  className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-cyan-300 via-sky-200 to-white bg-clip-text text-transparent pb-1"
                   style={{ fontFamily: "'Segoe UI', 'Cairo', -apple-system, sans-serif" }}
                 >
                   قريبــــاً
@@ -463,7 +481,7 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
                 transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
                 className="flex flex-col items-center text-center"
               >
-                <span className="text-2xl sm:text-3xl font-extrabold tracking-widest bg-gradient-to-r from-indigo-200 via-cyan-300 to-sky-400 bg-clip-text text-transparent pb-1 uppercase">
+                <span className="text-2xl sm:text-3xl font-extrabold tracking-widest bg-gradient-to-r from-white via-cyan-200 to-sky-300 bg-clip-text text-transparent pb-1 uppercase">
                   COMING SOON
                 </span>
                 <p className="text-sm sm:text-base text-zinc-400 mt-2 font-normal max-w-xs sm:max-w-sm leading-relaxed tracking-wide px-1">
@@ -541,11 +559,11 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
 
           {/* Arched Translucent Frosted Glass Pod Body */}
           <div
-            className="relative w-full h-full flex items-center overflow-hidden [clip-path:url(#curved-pod-clip)] bg-gradient-to-b from-[#0e111d]/90 via-[#070812]/90 to-[#030408]/90 backdrop-blur-2xl shadow-[0_12px_35px_rgba(0,0,0,0.8)]"
+            className="relative w-full h-full flex items-center overflow-hidden [clip-path:url(#curved-pod-clip)] bg-gradient-to-b from-zinc-900/90 via-zinc-950/95 to-black backdrop-blur-2xl shadow-[0_12px_35px_rgba(0,0,0,0.85)]"
           >
             {/* Pure CSS Edge Fade Overlays - Guaranteed 100% reliable across all browsers */}
-            <div className="absolute left-0 inset-y-0 w-10 sm:w-14 bg-gradient-to-r from-[#070812] to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 inset-y-0 w-10 sm:w-14 bg-gradient-to-l from-[#070812] to-transparent z-10 pointer-events-none" />
+            <div className="absolute left-0 inset-y-0 w-10 sm:w-14 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 inset-y-0 w-10 sm:w-14 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
 
             {/* SVG Curved TextPath Marquee Engine */}
             <svg
@@ -841,70 +859,74 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
         </motion.div>
       </div>
 
-      {/* Ultra-Clean Symmetrical Footer (Mobile 2-Row Stacked Card, Desktop 1-Row Pill) */}
+      {/* Ultra-Luxury Obsidian Glass Footer (Mobile 2-Row Optimized Grid, Desktop 1-Row Pill) */}
       <motion.footer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.9, delay: 0.45 }}
-        className="relative z-10 w-full flex items-center justify-center pt-8 pb-4 px-4 select-none"
+        className="relative z-10 w-full flex items-center justify-center pt-8 pb-4 px-3 sm:px-4 select-none"
       >
-        <div className="w-full max-w-[280px] sm:max-w-none sm:w-auto flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3.5 px-4 sm:px-6 py-3 sm:py-2 rounded-2xl sm:rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+        <div className="w-full max-w-[340px] sm:max-w-none sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center justify-between sm:justify-center gap-2 sm:gap-4 p-3 sm:py-2 sm:px-6 rounded-2xl sm:rounded-full bg-zinc-950/80 border border-white/[0.12] backdrop-blur-2xl shadow-[0_12px_32px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.15)]">
           {/* Developer Direct Attribution */}
-          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2.5">
-            <span className="font-sans text-[11px] sm:text-[12px] text-zinc-300 font-medium select-text whitespace-nowrap">
-              Developed by <strong className="text-white font-semibold">Mohamed Matany</strong>
+          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-3 px-1 sm:px-0">
+            <span className="font-sans text-[11.5px] sm:text-[12.5px] text-zinc-300 font-medium tracking-tight whitespace-nowrap">
+              Developed by <strong className="text-white font-semibold tracking-normal">Mohamed Matany</strong>
             </span>
-            <div className="w-[58px] h-[26px] shrink-0 inline-flex items-center justify-center gap-1.5 px-2 rounded-full bg-white/[0.04] border border-white/10 hover:border-cyan-500/30 transition-colors">
+            <div className="flex items-center gap-1.5 shrink-0">
               <a
                 href="mailto:mo@matany.one"
                 aria-label="Direct Email: mo@matany.one"
                 title="mo@matany.one"
-                className="text-zinc-300 hover:text-cyan-300 transition-colors"
+                className="group relative flex items-center justify-center size-7 sm:size-7.5 rounded-xl bg-gradient-to-b from-white/[0.22] via-white/[0.08] to-white/[0.02] border border-white/30 hover:border-white/55 shadow-[0_2px_8px_rgba(0,0,0,0.6),inset_0_1px_1.5px_rgba(255,255,255,0.5),inset_0_-1px_1px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden"
               >
-                <Mail className="size-3.5" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <Mail className="size-3.5 text-zinc-100 group-hover:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] transition-colors" />
               </a>
-              <span className="text-zinc-600 text-[10px]">|</span>
               <a
                 href="https://www.tiktok.com/@mo_matany"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Personal TikTok: @mo_matany"
                 title="@mo_matany"
-                className="text-zinc-300 hover:text-cyan-300 transition-colors"
+                className="group relative flex items-center justify-center size-7 sm:size-7.5 rounded-xl bg-gradient-to-b from-white/[0.22] via-white/[0.08] to-white/[0.02] border border-white/30 hover:border-white/55 shadow-[0_2px_8px_rgba(0,0,0,0.6),inset_0_1px_1.5px_rgba(255,255,255,0.5),inset_0_-1px_1px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden"
               >
-                <svg className="size-3.5 fill-current" viewBox="0 0 24 24">
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <svg className="size-3.5 fill-zinc-100 group-hover:fill-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] transition-colors" viewBox="0 0 24 24">
                   <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
                 </svg>
               </a>
             </div>
           </div>
 
-          <span className="hidden sm:inline text-cyan-400/60 text-[10px]">✦</span>
+          {/* Delicate Divider */}
+          <div className="sm:hidden h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent my-0.5" />
+          <span className="hidden sm:inline text-white/30 text-[10px]">✦</span>
 
           {/* Matany Labs Built By Attribution */}
-          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2.5">
-            <span className="font-sans text-[11px] sm:text-[12px] text-zinc-300 font-medium select-text whitespace-nowrap">
-              Built by <strong className="text-white font-semibold">Matany Labs</strong>
+          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-3 px-1 sm:px-0">
+            <span className="font-sans text-[11.5px] sm:text-[12.5px] text-zinc-300 font-medium tracking-tight whitespace-nowrap">
+              Built by <strong className="text-white font-semibold tracking-normal">Matany Labs</strong>
             </span>
-            <div className="w-[58px] h-[26px] shrink-0 inline-flex items-center justify-center gap-1.5 px-2 rounded-full bg-white/[0.04] border border-white/10 hover:border-cyan-500/30 transition-colors">
+            <div className="flex items-center gap-1.5 shrink-0">
               <a
                 href="mailto:support@matany.one"
                 aria-label="Official Support Email: support@matany.one"
                 title="support@matany.one"
-                className="text-zinc-300 hover:text-cyan-300 transition-colors"
+                className="group relative flex items-center justify-center size-7 sm:size-7.5 rounded-xl bg-gradient-to-b from-white/[0.22] via-white/[0.08] to-white/[0.02] border border-white/30 hover:border-white/55 shadow-[0_2px_8px_rgba(0,0,0,0.6),inset_0_1px_1.5px_rgba(255,255,255,0.5),inset_0_-1px_1px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden"
               >
-                <Headphones className="size-3.5" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <Headphones className="size-3.5 text-zinc-100 group-hover:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] transition-colors" />
               </a>
-              <span className="text-zinc-600 text-[10px]">|</span>
               <a
                 href="https://www.tiktok.com/@matany_labs"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Official TikTok: @matany_labs"
                 title="@matany_labs"
-                className="text-zinc-300 hover:text-cyan-300 transition-colors"
+                className="group relative flex items-center justify-center size-7 sm:size-7.5 rounded-xl bg-gradient-to-b from-white/[0.22] via-white/[0.08] to-white/[0.02] border border-white/30 hover:border-white/55 shadow-[0_2px_8px_rgba(0,0,0,0.6),inset_0_1px_1.5px_rgba(255,255,255,0.5),inset_0_-1px_1px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden"
               >
-                <svg className="size-3.5 fill-current" viewBox="0 0 24 24">
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <svg className="size-3.5 fill-zinc-100 group-hover:fill-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] transition-colors" viewBox="0 0 24 24">
                   <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
                 </svg>
               </a>
