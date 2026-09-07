@@ -55,7 +55,7 @@ export interface AdvancedTelemetryPayload {
   glExtensionsCount?: number;
 
   // Device & Phone Fingerprint (Mandatory Brand First -> Exact Model)
-  deviceCategory: 'Mobile' | 'Tablet' | 'Desktop' | 'Unknown';
+  deviceCategory: 'Mobile' | 'Tablet' | 'Laptop' | 'Desktop' | 'Console' | 'Unknown';
   phoneBrand: string; // e.g. "Apple", "Samsung", "Xiaomi", "Google", "OnePlus"
   phoneModel: string; // e.g. "iPhone 16 Pro Max", "Galaxy S24 Ultra"
   phoneFullName: string; // e.g. "Apple iPhone 16 Pro Max (Dynamic Island)"
