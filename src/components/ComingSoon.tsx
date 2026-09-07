@@ -911,8 +911,8 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
                 Built by <strong className="text-white font-semibold tracking-normal">Matany Labs</strong>
               </span>
             </div>
-            {/* Labs Icons: Strictly Pinned to Far Right Edge, Exactly Parallel */}
-            <div className="flex items-center justify-end gap-1.5 w-[64px] sm:w-[68px] shrink-0 justify-self-end ml-auto">
+            {/* Labs Icons: Strictly Pinned to Far Right Edge */}
+            <div className="flex items-center justify-end gap-1.5 shrink-0 justify-self-end ml-auto">
               <a
                 href="mailto:support@matany.one"
                 aria-label="Official Support Email: support@matany.one"
@@ -922,6 +922,7 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
                 <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/5 to-transparent pointer-events-none rounded-xl opacity-80 group-hover:opacity-100 transition-opacity" />
                 <Headphones className="size-3.5 text-zinc-200 group-hover:text-cyan-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] transition-colors" />
               </a>
+              {/* Temporarily hidden: TikTok @matany_labs
               <a
                 href="https://www.tiktok.com/@matany_labs"
                 target="_blank"
@@ -935,6 +936,7 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
                   <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
                 </svg>
               </a>
+              */}
             </div>
           </div>
         </div>
