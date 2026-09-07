@@ -100,18 +100,15 @@ export default async function handler(req: Request) {
     const clientVisitorId = telemetry.visitorId && telemetry.visitorId !== 'anon' ? String(telemetry.visitorId).trim() : '';
     const clientMasterHash = telemetry.masterFingerprintHash && telemetry.masterFingerprintHash !== 'N/A' ? String(telemetry.masterFingerprintHash).trim() : '';
     
-    // Construct multi-vector duplicate check query
+    // Construct multi-vector duplicate check query (strictly based on device/contact identity, NEVER shared IP)
     const duplicateOrFilters: string[] = [];
-    if (finalIp && finalIp !== 'غير متاح' && !finalIp.startsWith('127.') && finalIp !== '::1') {
-      duplicateOrFilters.push(`ip_address.eq.${encodeURIComponent(finalIp)}`);
-    }
     if (cleanContact && cleanContact.length >= 4) {
       duplicateOrFilters.push(`contact.ilike.*${encodeURIComponent(cleanContact)}*`);
     }
-    if (clientMasterHash && clientMasterHash.length >= 6) {
+    if (clientMasterHash && clientMasterHash.length >= 6 && clientMasterHash !== 'N/A') {
       duplicateOrFilters.push(`master_hash.eq.${encodeURIComponent(clientMasterHash)}`);
     }
-    if (clientVisitorId && clientVisitorId.length >= 8) {
+    if (clientVisitorId && clientVisitorId.length >= 8 && clientVisitorId !== 'anon') {
       duplicateOrFilters.push(`visitor_id.eq.${encodeURIComponent(clientVisitorId)}`);
     }
 
@@ -201,15 +198,16 @@ export default async function handler(req: Request) {
     const requestId = `REQ-${generateRandomHex(6)}`;
     const approvalSecret = `SEC-${generateRandomHex(16)}`;
 
-    // 7. Persist to Supabase early_access_requests table
+    // 7. Persist to Supabase early_access_requests table (STRICT CLOUD-FIRST ZERO-LOSS GUARANTEE)
+    let dbPersisted = false;
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/early_access_requests`, {
+      const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/early_access_requests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Prefer': 'return=minimal',
+          'Prefer': 'return=representation',
         },
         body: JSON.stringify({
           id: requestId,
@@ -267,8 +265,45 @@ export default async function handler(req: Request) {
           approval_secret: approvalSecret,
         }),
       });
+
+      if (!dbRes.ok) {
+        const errorText = await dbRes.text().catch(() => '');
+        console.error('[Supabase Insert Failure - ABORTING]:', dbRes.status, errorText);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'تعذر تسجيل الطلب في السحابة المركزية. تم إلغاء الإرسال فوراً لحماية أمان المنظومة.',
+            status: 'failed',
+          }),
+          { status: 500, headers: corsHeaders }
+        );
+      }
+
+      const inserted = await dbRes.json().catch(() => null);
+      if (Array.isArray(inserted) && inserted.length > 0) {
+        dbPersisted = true;
+      }
     } catch (dbErr) {
-      console.error('[Supabase Insert Request Error]:', dbErr);
+      console.error('[Supabase Connection Exception - ABORTING]:', dbErr);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'انقطع الاتصال بالسحابة المركزية أثناء محاولة تسجيل الطلب. تم إيقاف العملية بالكامل.',
+          status: 'network_error',
+        }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
+    if (!dbPersisted) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'فشل التحقق من استقرار الطلب في السحابة المركزية. لم يتم إرسال أي إشعار.',
+          status: 'unverified',
+        }),
+        { status: 500, headers: corsHeaders }
+      );
     }
 
     // 8. Format Telegram Executive Dossier for CEO Mohamed Matany

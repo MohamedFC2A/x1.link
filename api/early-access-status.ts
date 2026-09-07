@@ -64,7 +64,12 @@ export default async function handler(req: Request) {
 
     const data = await res.json();
     if (Array.isArray(data) && data.length > 0) {
-      return new Response(JSON.stringify(data[0]), { status: 200, headers: corsHeaders });
+      const record = data[0];
+      // Defensive validation: A request is ONLY legitimately approved if approved_at AND approved_by exist
+      if (record.status === 'approved' && (!record.approved_at || !record.approved_by)) {
+        record.status = 'pending';
+      }
+      return new Response(JSON.stringify(record), { status: 200, headers: corsHeaders });
     }
 
     return new Response(JSON.stringify({ status: 'not_found' }), { status: 200, headers: corsHeaders });

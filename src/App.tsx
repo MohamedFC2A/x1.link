@@ -1369,9 +1369,15 @@ export const App: React.FC = () => {
   if (IS_MAINTENANCE_MODE && (!isPlatformUnlocked || isChecking)) {
     return (
       <ComingSoon
-        onPlatformUnlock={() => {
-          setIsPlatformUnlocked(true);
-          setIsChecking(false);
+        onPlatformUnlock={async () => {
+          const verified = await verifyApprovalStatus();
+          if (verified) {
+            setIsPlatformUnlocked(true);
+            setIsChecking(false);
+          } else {
+            setIsPlatformUnlocked(false);
+            setIsChecking(false);
+          }
         }}
       />
     );
