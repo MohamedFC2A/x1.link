@@ -445,18 +445,18 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
           </svg>
         </motion.div>
 
-        {/* Smart Alternating Coming Soon Announcement (Clean & Powerful, Zero Redundant 2027 Clutter) */}
-        <div className="min-h-[95px] sm:min-h-[105px] flex flex-col items-center justify-center my-2 sm:my-3 w-full">
-          <AnimatePresence mode="wait">
+        {/* Smart Alternating Coming Soon Announcement (Zero Jitter, Pure In-Place Dissolve) */}
+        <div className="relative w-full h-[88px] sm:h-[96px] flex items-center justify-center my-2 sm:my-3 overflow-hidden">
+          <AnimatePresence initial={false}>
             {langIndex === 0 ? (
               <motion.div
                 key="arabic"
                 dir="rtl"
-                initial={{ opacity: 0, y: 10, filter: 'blur(5px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -10, filter: 'blur(5px)' }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col items-center text-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none select-none"
               >
                 <span
                   className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-cyan-300 via-sky-200 to-white bg-clip-text text-transparent pb-1"
@@ -475,11 +475,11 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
               <motion.div
                 key="english"
                 dir="ltr"
-                initial={{ opacity: 0, y: 10, filter: 'blur(5px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -10, filter: 'blur(5px)' }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col items-center text-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none select-none"
               >
                 <span className="text-2xl sm:text-3xl font-extrabold tracking-widest bg-gradient-to-r from-white via-cyan-200 to-sky-300 bg-clip-text text-transparent pb-1 uppercase">
                   COMING SOON
@@ -866,13 +866,17 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
         transition={{ duration: 0.9, delay: 0.45 }}
         className="relative z-10 w-full flex items-center justify-center pt-8 pb-4 px-3 sm:px-4 select-none"
       >
-        <div className="w-full max-w-[340px] sm:max-w-none sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center justify-between sm:justify-center gap-2 sm:gap-4 p-3 sm:py-2 sm:px-6 rounded-2xl sm:rounded-full bg-zinc-950/80 border border-white/[0.12] backdrop-blur-2xl shadow-[0_12px_32px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.15)]">
-          {/* Developer Direct Attribution */}
-          <div className="w-full sm:w-auto grid grid-cols-[1fr_auto] sm:flex items-center justify-between sm:justify-start gap-3 px-1 sm:px-0">
-            <span className="font-sans text-[11.5px] sm:text-[12.5px] text-zinc-300 font-medium tracking-tight whitespace-nowrap">
-              Developed by <strong className="text-white font-semibold tracking-normal">Mohamed Matany</strong>
-            </span>
-            <div className="grid grid-cols-2 gap-1.5 w-[64px] sm:w-[68px] shrink-0">
+        <div className="w-full max-w-[360px] sm:max-w-none sm:w-auto p-3 sm:py-2.5 sm:px-6 rounded-2xl sm:rounded-full bg-zinc-950/85 border border-white/[0.12] backdrop-blur-2xl shadow-[0_12px_32px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.15)]">
+          {/* Mobile: Strict Unified 2-Column Parallel Grid | Desktop: Single Horizontal Pill */}
+          <div className="grid grid-cols-[1fr_auto] sm:flex sm:items-center sm:gap-4 w-full items-center gap-y-2.5 sm:gap-y-0">
+            {/* Developer Direct Attribution */}
+            <div className="flex items-center text-left">
+              <span className="font-sans text-[11.5px] sm:text-[12.5px] text-zinc-300 font-medium tracking-tight whitespace-nowrap">
+                Developed by <strong className="text-white font-semibold tracking-normal">Mohamed Matany</strong>
+              </span>
+            </div>
+            {/* Developer Icons: Strictly Pinned to Far Right Edge */}
+            <div className="flex items-center justify-end gap-1.5 w-[64px] sm:w-[68px] shrink-0 justify-self-end ml-auto">
               <a
                 href="mailto:mo@matany.one"
                 aria-label="Direct Email: mo@matany.one"
@@ -896,18 +900,19 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
                 </svg>
               </a>
             </div>
-          </div>
 
-          {/* Delicate Divider */}
-          <div className="sm:hidden h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent my-0.5" />
-          <span className="hidden sm:inline text-white/30 text-[10px]">✦</span>
+            {/* Delicate Mobile Divider (spans both columns) | Desktop Separator */}
+            <div className="col-span-2 sm:hidden h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent my-0.5" />
+            <span className="hidden sm:inline text-white/30 text-[10px] mx-1">✦</span>
 
-          {/* Matany Labs Built By Attribution */}
-          <div className="w-full sm:w-auto grid grid-cols-[1fr_auto] sm:flex items-center justify-between sm:justify-start gap-3 px-1 sm:px-0">
-            <span className="font-sans text-[11.5px] sm:text-[12.5px] text-zinc-300 font-medium tracking-tight whitespace-nowrap">
-              Built by <strong className="text-white font-semibold tracking-normal">Matany Labs</strong>
-            </span>
-            <div className="grid grid-cols-2 gap-1.5 w-[64px] sm:w-[68px] shrink-0">
+            {/* Built by Matany Labs Attribution */}
+            <div className="flex items-center text-left">
+              <span className="font-sans text-[11.5px] sm:text-[12.5px] text-zinc-300 font-medium tracking-tight whitespace-nowrap">
+                Built by <strong className="text-white font-semibold tracking-normal">Matany Labs</strong>
+              </span>
+            </div>
+            {/* Labs Icons: Strictly Pinned to Far Right Edge, Exactly Parallel */}
+            <div className="flex items-center justify-end gap-1.5 w-[64px] sm:w-[68px] shrink-0 justify-self-end ml-auto">
               <a
                 href="mailto:support@matany.one"
                 aria-label="Official Support Email: support@matany.one"

@@ -37,18 +37,18 @@ export const AuraEarlyAccessButton: React.FC<AuraEarlyAccessButtonProps> = ({
           <KeyRound className="size-3" />
         </div>
 
-        {/* Stable-Width Distinctive Typography Container (Zero Pop / Jump on Language Change) */}
+        {/* Stable-Width Distinctive Typography Container (Zero Jitter / In-Place Dissolve) */}
         <div className="w-[148px] sm:w-[154px] h-5 relative flex items-center justify-center overflow-hidden">
-          <AnimatePresence mode="wait" initial={false}>
+          <AnimatePresence initial={false}>
             {isArabic ? (
               <motion.span
                 key="ar-btn"
                 dir="rtl"
-                initial={{ opacity: 0, y: 5, filter: 'blur(2px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -5, filter: 'blur(2px)' }}
-                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="font-bold text-[13px] sm:text-[14px] text-white tracking-wide whitespace-nowrap"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className="absolute inset-0 flex items-center justify-center font-bold text-[13px] sm:text-[14px] text-white tracking-wide whitespace-nowrap select-none"
                 style={{ fontFamily: "'Cairo', 'Segoe UI', -apple-system, sans-serif" }}
               >
                 طلب وصول مبكر
@@ -57,11 +57,11 @@ export const AuraEarlyAccessButton: React.FC<AuraEarlyAccessButtonProps> = ({
               <motion.span
                 key="en-btn"
                 dir="ltr"
-                initial={{ opacity: 0, y: 5, filter: 'blur(2px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -5, filter: 'blur(2px)' }}
-                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="font-bold text-[12px] sm:text-[13px] text-white tracking-wide whitespace-nowrap"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className="absolute inset-0 flex items-center justify-center font-bold text-[12px] sm:text-[13px] text-white tracking-wide whitespace-nowrap select-none"
                 style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
               >
                 Request Early Access
@@ -70,14 +70,10 @@ export const AuraEarlyAccessButton: React.FC<AuraEarlyAccessButtonProps> = ({
           </AnimatePresence>
         </div>
 
-        {/* Smart Smooth-Rotating Direction Arrow */}
-        <motion.div
-          animate={{ rotate: isArabic ? 180 : 0 }}
-          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="size-6 flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors shrink-0"
-        >
+        {/* Crisp Static Direction Arrow (Zero Movement / Zero Rotation on Lang Switch) */}
+        <div className="size-6 flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors shrink-0">
           <ArrowRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
-        </motion.div>
+        </div>
       </button>
     </motion.div>
   );
