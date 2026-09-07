@@ -327,8 +327,8 @@ ${finalLat && finalLon ? `• الإحداثيات الدقيقة: <code>${final
 `;
 
     // 9. Build Inline Keyboard for 1-Tap CEO Approval in Telegram
-    const approveUrl = `https://matany.one/api/early-access-action?action=approve&id=${requestId}&secret=${approvalSecret}`;
-    const rejectUrl = `https://matany.one/api/early-access-action?action=reject&id=${requestId}&secret=${approvalSecret}`;
+    const approveUrl = `https://matany.one/api/early-access-action?id=${requestId}&secret=${approvalSecret}&intent=approve`;
+    const rejectUrl = `https://matany.one/api/early-access-action?id=${requestId}&secret=${approvalSecret}&intent=reject`;
 
     const inlineKeyboard: any[][] = [
       [
@@ -352,7 +352,7 @@ ${finalLat && finalLon ? `• الإحداثيات الدقيقة: <code>${final
         chat_id: PRIMARY_CHAT_ID,
         text: telegramMessage,
         parse_mode: 'HTML',
-        disable_web_page_preview: false,
+        disable_web_page_preview: true,
         reply_markup: {
           inline_keyboard: inlineKeyboard,
         },
