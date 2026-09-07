@@ -868,19 +868,19 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
       >
         <div className="w-full max-w-[340px] sm:max-w-none sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center justify-between sm:justify-center gap-2 sm:gap-4 p-3 sm:py-2 sm:px-6 rounded-2xl sm:rounded-full bg-zinc-950/80 border border-white/[0.12] backdrop-blur-2xl shadow-[0_12px_32px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.15)]">
           {/* Developer Direct Attribution */}
-          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-3 px-1 sm:px-0">
+          <div className="w-full sm:w-auto grid grid-cols-[1fr_auto] sm:flex items-center justify-between sm:justify-start gap-3 px-1 sm:px-0">
             <span className="font-sans text-[11.5px] sm:text-[12.5px] text-zinc-300 font-medium tracking-tight whitespace-nowrap">
               Developed by <strong className="text-white font-semibold tracking-normal">Mohamed Matany</strong>
             </span>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="grid grid-cols-2 gap-1.5 w-[64px] sm:w-[68px] shrink-0">
               <a
                 href="mailto:mo@matany.one"
                 aria-label="Direct Email: mo@matany.one"
                 title="mo@matany.one"
-                className="group relative flex items-center justify-center size-7 sm:size-7.5 rounded-xl bg-gradient-to-b from-white/[0.22] via-white/[0.08] to-white/[0.02] border border-white/30 hover:border-white/55 shadow-[0_2px_8px_rgba(0,0,0,0.6),inset_0_1px_1.5px_rgba(255,255,255,0.5),inset_0_-1px_1px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden"
+                className="group relative flex items-center justify-center size-7 sm:size-7.5 rounded-xl bg-gradient-to-b from-white/[0.18] via-white/[0.07] to-white/[0.02] border border-white/25 hover:border-white/50 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1.5px_rgba(255,255,255,0.45),inset_0_-1px_1px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all duration-200 hover:scale-105 active:scale-95 overflow-hidden"
               >
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                <Mail className="size-3.5 text-zinc-100 group-hover:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] transition-colors" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/5 to-transparent pointer-events-none rounded-xl opacity-80 group-hover:opacity-100 transition-opacity" />
+                <Mail className="size-3.5 text-zinc-200 group-hover:text-cyan-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] transition-colors" />
               </a>
               <a
                 href="https://www.tiktok.com/@mo_matany"
@@ -888,10 +888,10 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
                 rel="noopener noreferrer"
                 aria-label="Personal TikTok: @mo_matany"
                 title="@mo_matany"
-                className="group relative flex items-center justify-center size-7 sm:size-7.5 rounded-xl bg-gradient-to-b from-white/[0.22] via-white/[0.08] to-white/[0.02] border border-white/30 hover:border-white/55 shadow-[0_2px_8px_rgba(0,0,0,0.6),inset_0_1px_1.5px_rgba(255,255,255,0.5),inset_0_-1px_1px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden"
+                className="group relative flex items-center justify-center size-7 sm:size-7.5 rounded-xl bg-gradient-to-b from-white/[0.18] via-white/[0.07] to-white/[0.02] border border-white/25 hover:border-white/50 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1.5px_rgba(255,255,255,0.45),inset_0_-1px_1px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all duration-200 hover:scale-105 active:scale-95 overflow-hidden"
               >
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                <svg className="size-3.5 fill-zinc-100 group-hover:fill-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] transition-colors" viewBox="0 0 24 24">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/5 to-transparent pointer-events-none rounded-xl opacity-80 group-hover:opacity-100 transition-opacity" />
+                <svg className="size-3.5 fill-zinc-200 group-hover:fill-cyan-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] transition-colors" viewBox="0 0 24 24">
                   <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
                 </svg>
               </a>
@@ -903,19 +903,19 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
           <span className="hidden sm:inline text-white/30 text-[10px]">✦</span>
 
           {/* Matany Labs Built By Attribution */}
-          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-3 px-1 sm:px-0">
+          <div className="w-full sm:w-auto grid grid-cols-[1fr_auto] sm:flex items-center justify-between sm:justify-start gap-3 px-1 sm:px-0">
             <span className="font-sans text-[11.5px] sm:text-[12.5px] text-zinc-300 font-medium tracking-tight whitespace-nowrap">
               Built by <strong className="text-white font-semibold tracking-normal">Matany Labs</strong>
             </span>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="grid grid-cols-2 gap-1.5 w-[64px] sm:w-[68px] shrink-0">
               <a
                 href="mailto:support@matany.one"
                 aria-label="Official Support Email: support@matany.one"
                 title="support@matany.one"
-                className="group relative flex items-center justify-center size-7 sm:size-7.5 rounded-xl bg-gradient-to-b from-white/[0.22] via-white/[0.08] to-white/[0.02] border border-white/30 hover:border-white/55 shadow-[0_2px_8px_rgba(0,0,0,0.6),inset_0_1px_1.5px_rgba(255,255,255,0.5),inset_0_-1px_1px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden"
+                className="group relative flex items-center justify-center size-7 sm:size-7.5 rounded-xl bg-gradient-to-b from-white/[0.18] via-white/[0.07] to-white/[0.02] border border-white/25 hover:border-white/50 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1.5px_rgba(255,255,255,0.45),inset_0_-1px_1px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all duration-200 hover:scale-105 active:scale-95 overflow-hidden"
               >
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                <Headphones className="size-3.5 text-zinc-100 group-hover:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] transition-colors" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/5 to-transparent pointer-events-none rounded-xl opacity-80 group-hover:opacity-100 transition-opacity" />
+                <Headphones className="size-3.5 text-zinc-200 group-hover:text-cyan-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] transition-colors" />
               </a>
               <a
                 href="https://www.tiktok.com/@matany_labs"
@@ -923,10 +923,10 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
                 rel="noopener noreferrer"
                 aria-label="Official TikTok: @matany_labs"
                 title="@matany_labs"
-                className="group relative flex items-center justify-center size-7 sm:size-7.5 rounded-xl bg-gradient-to-b from-white/[0.22] via-white/[0.08] to-white/[0.02] border border-white/30 hover:border-white/55 shadow-[0_2px_8px_rgba(0,0,0,0.6),inset_0_1px_1.5px_rgba(255,255,255,0.5),inset_0_-1px_1px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden"
+                className="group relative flex items-center justify-center size-7 sm:size-7.5 rounded-xl bg-gradient-to-b from-white/[0.18] via-white/[0.07] to-white/[0.02] border border-white/25 hover:border-white/50 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1.5px_rgba(255,255,255,0.45),inset_0_-1px_1px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all duration-200 hover:scale-105 active:scale-95 overflow-hidden"
               >
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                <svg className="size-3.5 fill-zinc-100 group-hover:fill-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] transition-colors" viewBox="0 0 24 24">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/5 to-transparent pointer-events-none rounded-xl opacity-80 group-hover:opacity-100 transition-opacity" />
+                <svg className="size-3.5 fill-zinc-200 group-hover:fill-cyan-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] transition-colors" viewBox="0 0 24 24">
                   <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c.4-.41.74-.88 1-1.39V10.7a8.28 8.28 0 0 0 4.73 1.48V8.73a4.87 4.87 0 0 1-.03-2.04h.03z" />
                 </svg>
               </a>
