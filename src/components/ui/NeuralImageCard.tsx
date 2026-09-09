@@ -86,7 +86,10 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   const [modelName, setModelName] = useState<string>(() => {
     if (data.style === 'anime') return 'flux-anime';
     if (data.style === '3d_render') return 'flux-3d';
-    return 'flux-realism';
+    if (data.style === 'cinematic') return 'flux-pro';
+    // flux-pro is the highest quality model available on Pollinations
+    // Use it as the default for all photorealistic and ultra_photorealistic generation
+    return 'flux-pro';
   });
 
   // Keep seed synchronized if data.seed is updated from incoming stream/props
@@ -273,8 +276,14 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   };
 
   const handleImageError = () => {
+    if (modelName === 'flux-pro') {
+      // Graceful fallback to flux-realism if flux-pro is temporarily busy
+      setModelName('flux-realism');
+      setIsImageLoading(true);
+      return;
+    }
     if (modelName === 'flux-realism') {
-      // Graceful fallback to standard flux if flux-realism is temporarily busy
+      // Final fallback to standard flux
       setModelName('flux');
       setIsImageLoading(true);
       return;
@@ -409,7 +418,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
               <span>•</span>
               <span>4K UHD</span>
               <span>•</span>
-              <span>FLUX.1</span>
+              <span className="text-amber-400/90 font-semibold" title={`نموذج التوليد: ${modelName}`}>{modelName === 'flux-pro' ? 'FLUX.1 PRO' : modelName === 'flux-realism' ? 'FLUX.1' : modelName === 'flux-anime' ? 'FLUX.1 ANIME' : modelName === 'flux-3d' ? 'FLUX.1 3D' : 'FLUX.1'}</span>
               {seed !== null && (
                 <>
                   <span>•</span>

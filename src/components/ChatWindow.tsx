@@ -36,7 +36,7 @@ function extractPriorImageFromHistory(precedingMessages: ChatMessageItem[]): str
           if (parsed.imageUrl) return parsed.imageUrl;
           if (parsed.processedImage) return parsed.processedImage;
           if (parsed.prompt) {
-            const activeModel = parsed.style === 'anime' ? 'flux-anime' : (parsed.style === '3d_render' ? 'flux-3d' : 'flux-realism');
+            const activeModel = parsed.style === 'anime' ? 'flux-anime' : (parsed.style === '3d_render' ? 'flux-3d' : 'flux-pro');
             let w = 1024;
             let h = 1024;
             if (parsed.aspectRatio === '16:9') { w = 1344; h = 768; }
