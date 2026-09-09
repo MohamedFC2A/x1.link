@@ -7,6 +7,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/telemetry/incident",
+      "destination": "/api/telemetry-incident"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/:path*"
     },

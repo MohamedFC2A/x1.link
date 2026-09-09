@@ -224,7 +224,7 @@ class IncidentDiagnosticService {
       // Dispatch non-blockingly using requestIdleCallback or setTimeout
       const dispatchFn = () => {
         try {
-          fetch('/api/telemetry/incident', {
+          fetch('/api/telemetry-incident', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -232,7 +232,13 @@ class IncidentDiagnosticService {
             body: JSON.stringify(payload),
             keepalive: true,
           }).catch(() => {
-            // Silently swallow network reporting failures to guarantee zero user impact
+            // Fallback to /api/telemetry if /api/telemetry-incident fails
+            fetch('/api/telemetry', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              keepalive: true,
+            }).catch(() => null);
           });
         } catch {
           // Fire and forget
