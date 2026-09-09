@@ -1788,6 +1788,85 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
+  // Intercept image generation requests for Meta: Muse Image via OpenRouter
+  if (body?.action === 'generate_image' || (body?.prompt && !Array.isArray(body?.messages))) {
+    const promptText = (body?.prompt || '').trim();
+    if (!promptText) {
+      return new Response(JSON.stringify({ error: 'Prompt is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'x-request-id': requestId }
+      });
+    }
+
+    try {
+      const openRouterKey = OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || '';
+      if (!openRouterKey) {
+        return new Response(JSON.stringify({ error: 'OPENROUTER_API_KEY is not configured' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'x-request-id': requestId }
+        });
+      }
+
+      const imgRes = await fetch(`${OPENROUTER_BASE_URL}/images`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openRouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI'
+        },
+        body: JSON.stringify({
+          model: 'meta/muse-image',
+          prompt: promptText
+        })
+      });
+
+      if (!imgRes.ok) {
+        const errDetail = await imgRes.text();
+        return new Response(JSON.stringify({ error: 'OpenRouter generation failed', details: errDetail }), {
+          status: imgRes.status,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'x-request-id': requestId }
+        });
+      }
+
+      const imgData: any = await imgRes.json();
+      const item = imgData?.data?.[0];
+      if (!item) {
+        return new Response(JSON.stringify({ error: 'No image data returned from OpenRouter' }), {
+          status: 502,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'x-request-id': requestId }
+        });
+      }
+
+      let finalUrl = '';
+      if (item.b64_json) {
+        const mediaType = item.media_type || 'image/png';
+        finalUrl = `data:${mediaType};base64,${item.b64_json}`;
+      } else if (item.url) {
+        finalUrl = item.url;
+      }
+
+      return new Response(JSON.stringify({
+        imageUrl: finalUrl,
+        model: 'meta/muse-image',
+        provider: 'openrouter'
+      }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=3600',
+          'x-request-id': requestId
+        }
+      });
+    } catch (imgErr: any) {
+      return new Response(JSON.stringify({ error: imgErr?.message || 'Image generation error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'x-request-id': requestId }
+      });
+    }
+  }
+
   const {
     messages = [],
     model = 'deepseek-v4-flash',

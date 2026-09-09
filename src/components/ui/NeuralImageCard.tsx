@@ -154,18 +154,35 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       let isCancelled = false;
       setIsImageLoading(true);
 
-      fetch('/api/generate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: data.prompt.trim(),
-          aspectRatio: selectedRatio
-        })
-      })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+      const requestPayload = {
+        action: 'generate_image',
+        prompt: data.prompt.trim(),
+        aspectRatio: selectedRatio
+      };
+
+      // Try primary /api/generate-image first, fallback to /api/chat with generate_image action
+      const executeGeneration = async () => {
+        try {
+          const res = await fetch('/api/generate-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestPayload)
+          });
+          if (res.ok) return await res.json();
+        } catch {
+          // Fall through to /api/chat
+        }
+
+        const fallbackRes = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestPayload)
+        });
+        if (!fallbackRes.ok) throw new Error(`HTTP ${fallbackRes.status}`);
+        return await fallbackRes.json();
+      };
+
+      executeGeneration()
       .then((payload) => {
         if (!isCancelled && payload?.imageUrl) {
           setMuseImageUrl(payload.imageUrl);
