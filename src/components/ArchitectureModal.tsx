@@ -39,7 +39,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
     },
     {
       id: 4,
-      title: 'المرحلة الرابعة: التوليد السيادي فائق الذكاء (Fathom Cyber Ultra 2.6 & Fathom Cyber Flash 2.6 & Fathom 1.1)',
+      title: 'المرحلة الرابعة: التوليد السيادي فائق الذكاء (Fathom Cyber Ultra 2.6 & Fathom Quant 3)',
       description: 'صياغة المخرجات باللغة العربية الفصحى البليغة، مع دقة تقنية متناهية، تفنيد للثغرات، وترقيع دفاعي فوري بدون شوائب.',
       timestamp: 'المرحلة 04 • التوليد السيادي',
       status: 'completed',

@@ -1582,8 +1582,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const isTimeIntent = activeFeatures.some(f => f.id === 'time_detect');
   const hasDownloadDetect = activeFeatures.some(f => f.id === 'download_detect');
 
-  // Fathom Quant 3 Exclusive Neural Image Studio Activity Check
-  const isQuant3Model = message.model === 'fathom-quant-3' || (typeof message.model === 'string' && message.model.includes('quant-3'));
+  // Fathom Quant 3 Exclusive Neural Image Studio Activity Check (Active by default for flagship Quant 3)
+  const isQuant3Model = message.model === 'fathom-quant-3' || (typeof message.model === 'string' && message.model.includes('quant-3')) || !message.model;
 
   const isNeuralImageStudioActive = useMemo(() => {
     // If extracted image data is present, immediately activate
@@ -1936,11 +1936,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   // Assistant Message
   const isCyber = Boolean(
     message.model === 'fathom-quant-3' ||
-    message.model === 'deepseek-v4-flash-cyber' ||
     message.model === 'deepseek-v4-pro-cyber-2.6' ||
-    message.model === 'deepseek-v4-flash-cyber-2.6' ||
     message.model === 'deepseek-v4-pro-cyber-2.1' ||
-    message.model === 'deepseek-v4-flash-cyber-2.1' ||
     message.model?.includes('cyber') ||
     message.model?.includes('cyper')
   );
@@ -1956,7 +1953,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     >
       <div className="flex items-center justify-between w-full mb-1.5 px-1 text-xs text-zinc-400 select-none">
         <div className="flex items-center gap-1.5 font-sans font-medium flex-wrap">
-          {message.model === 'fathom-quant-3' && (
+          {(message.model === 'fathom-quant-3' || !message.model) && (
             <span className="inline-flex items-center gap-1.5 text-[10.5px] font-mono font-medium px-2 py-0.5 rounded bg-white/[0.04] text-zinc-200 border border-white/[0.09] select-none">
               <Quant3PerfectionIcon size={12} className="text-zinc-300" />
               <span>Fathom Quant 3</span>
@@ -1967,30 +1964,14 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               X1 MAX
             </span>
           )}
-          {(message.model === 'deepseek-v4-flash-cyber-2.6' || message.model === 'deepseek-v4-flash-cyber-2.1') && (
-            <span className="text-[10px] font-mono font-bold text-amber-300/90 tracking-wide px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
-              Fathom Cyber Flash 2.6
-            </span>
-          )}
           {(message.model === 'deepseek-v4-pro-cyber-2.6' || message.model === 'deepseek-v4-pro-cyber-2.1') && (
             <span className="text-[10px] font-mono font-bold text-indigo-300/90 tracking-wide px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
               Fathom Cyber Ultra 2.6
             </span>
           )}
-          {message.model === 'deepseek-v4-flash-cyber' && (
-            <span className="text-[10px] font-mono font-bold text-cyan-300/90 tracking-wide px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20">
-              Fathom Cyber
-            </span>
-          )}
           {message.model === 'deepseek-v4-flash-vision-exp' && (
             <span className="text-[10px] font-mono font-bold text-emerald-300/90 tracking-wide px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
               Fathom Cam
-            </span>
-          )}
-
-          {message.model === 'deepseek-v4-flash' && (
-            <span className="text-[10px] font-mono font-bold text-zinc-300/90 tracking-wide px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.08]">
-              Fathom 1.1
             </span>
           )}
 

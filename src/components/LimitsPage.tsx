@@ -168,7 +168,7 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
           {isFree && (
             <div className="mt-4 p-3 rounded-2xl bg-zinc-900/60 border border-white/[0.08] flex items-center gap-2.5 text-xs text-zinc-300">
               <AlertCircle className="w-4 h-4 text-zinc-400 shrink-0" />
-              <span>الخطة المجانية تتيح تجربتين لـ Fathom 1.1 وتجربتين لـ Fathom Cam. قم بالترقية للحصول على 100M+ توكن.</span>
+              <span>الخطة المجانية تتيح تجربتين لـ Fathom Quant 3 وتجربتين لـ Fathom Cam. قم بالترقية للحصول على 100M+ توكن.</span>
             </div>
           )}
 
@@ -350,7 +350,7 @@ export const LimitsPage: React.FC<LimitsPageProps> = ({
           <div className="space-y-4">
             <div>
               <div className="flex justify-between text-xs font-sans text-zinc-300 mb-1.5">
-                <span className="font-semibold">Fathom 1.1 (المحرك اللغوي الفصيح والتفكير)</span>
+                <span className="font-semibold">Fathom Quant 3 (المحرك الرئيسي والاستدلال الفصيح)</span>
                 <span className="font-mono text-white">{usage.fathom1Tokens.toLocaleString()} توكن</span>
               </div>
               <div className="w-full bg-zinc-950/80 h-1.5 rounded-full overflow-hidden border border-white/[0.04]">

@@ -68,6 +68,16 @@ export class TestHarness {
     console.log(`  Total Time:     \x1b[90m${totalDuration}ms\x1b[0m`);
     console.log('═'.repeat(68) + '\n');
 
+    if (failed > 0) {
+      console.log('\n\x1b[31mFailed Tests:\x1b[0m');
+      for (const r of this.results.filter(r => !r.passed)) {
+        console.log(`  \x1b[31m✗ [${r.suite}] ${r.name}\x1b[0m`);
+        if (r.error) {
+          console.log(`    \x1b[31m${(r.error as any)?.message || r.error}\x1b[0m`);
+        }
+      }
+    }
+
     return failed === 0;
   }
 }

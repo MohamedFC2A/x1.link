@@ -26,7 +26,7 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
 
   const memStats = memoryEngine.getMemoryStats();
   const discStats = scientificDiscoveryEngine.getDiscoveryStats();
-  const isCyber26 = activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-flash-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1';
+  const isCyber26 = activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'fathom-quant-3';
   const isCyber = isCyber26;
 
   return (

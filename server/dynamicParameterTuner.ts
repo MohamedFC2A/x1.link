@@ -238,14 +238,14 @@ export class DynamicParameterTuner {
   public static resolveModelFamily(modelName: string): ModelFamily {
     const m = (modelName || '').toLowerCase().trim();
 
-    // Check if specifically flash cyber before general cyber
+    // Redirect any legacy flash models to deepseek-pro (Fathom Quant 3 flagship)
     if (
       m.includes('flash-cyber') ||
       m.includes('flash-cyper') ||
       m === 'deepseek-v4-flash' ||
       m === 'deepseek/deepseek-v4-flash'
     ) {
-      return 'deepseek-flash';
+      return 'deepseek-pro';
     }
 
     if (
@@ -1004,27 +1004,27 @@ export class DynamicParameterTuner {
         break;
 
       case 'FACTUAL_SEARCH_AND_REALTIME_GROUNDING':
-        // Grounded tightly to live search results
+        // Grounded tightly to live search results with loop prevention
         temperature = 0.25;
         top_p = 0.95;
-        frequency_penalty = 0.0;
-        presence_penalty = 0.0;
+        frequency_penalty = 0.15;
+        presence_penalty = 0.05;
         max_tokens = 16384;
         break;
 
       case 'COMPARATIVE_AND_EVALUATION_ANALYSIS':
         temperature = 0.30;
         top_p = 0.95;
-        frequency_penalty = 0.0;
-        presence_penalty = 0.0;
+        frequency_penalty = 0.15;
+        presence_penalty = 0.05;
         max_tokens = 16384;
         break;
 
       case 'TECHNICAL_DOCUMENTATION':
         temperature = 0.25;
         top_p = 0.95;
-        frequency_penalty = 0.0;
-        presence_penalty = 0.0;
+        frequency_penalty = 0.10;
+        presence_penalty = 0.05;
         max_tokens = 16384;
         break;
 
@@ -1032,25 +1032,25 @@ export class DynamicParameterTuner {
         // Elevated entropy for rich linguistic prose and poetic diversity
         temperature = 0.80;
         top_p = 0.96;
-        frequency_penalty = 0.05;
-        presence_penalty = 0.05;
+        frequency_penalty = 0.20;
+        presence_penalty = 0.10;
         max_tokens = 16384;
         break;
 
       case 'UNINHIBITED_PERSONA_X1':
         temperature = 0.82;
         top_p = 0.96;
-        frequency_penalty = 0.05;
-        presence_penalty = 0.05;
+        frequency_penalty = 0.20;
+        presence_penalty = 0.10;
         max_tokens = 32768;
         break;
 
       case 'GENERAL_CONVERSATION_AND_QUICK_QA':
       default:
-        temperature = 0.60;
+        temperature = 0.50;
         top_p = 0.95;
-        frequency_penalty = 0.0;
-        presence_penalty = 0.0;
+        frequency_penalty = 0.20; // High token repulsion against degenerate repetition loops
+        presence_penalty = 0.05;
         max_tokens = complexity === 'LIGHT' ? 4096 : 8192;
         break;
     }
@@ -1202,7 +1202,7 @@ export class DynamicParameterTuner {
       subIntent?: ImageOperationType;
     }
   ): string {
-    const isUltra = (requestedModel && this.isCyberUltraModel(requestedModel)) || modelFamily === 'deepseek-pro';
+    const isUltra = requestedModel ? this.isCyberUltraModel(requestedModel) : (modelFamily === 'deepseek-pro');
 
     const priorImage = contextOptions?.priorNeuralImage !== undefined
       ? contextOptions.priorNeuralImage

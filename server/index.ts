@@ -15,7 +15,7 @@ import { FathomCyberReasoningEngine, DeterministicCycleDetector } from '../src/s
 import { DynamicParameterTuner, type DynamicTuningResult } from './dynamicParameterTuner';
 import { GpaengDiagnosticEngine } from './gpaengDiagnosticEngine';
 import { getVpsTelemetry, executeVpsCommand, controlAutomation, isVpsOrCloudRequest, VPS_STATUS_NOTICE } from './vpsService';
-import { uploadImageToSupabaseStorage, normalizeReferenceImages } from './storageService';
+import { uploadImageToSupabaseStorage, normalizeReferenceImages, executeResilientImageGeneration } from './storageService';
 
 dotenv.config();
 
@@ -100,8 +100,8 @@ const DEVELOPER_IDENTITY_DIRECTIVE = `
    - يجب أن يركز مسار التفكير <think> بنسبة 100% وبشكل حصري ومباشر على حل وتحليل وتفكيك مسألة المستخدم المطروحة فقط، ثم تقديم الإجابة الكاملة والفصيحة فور إغلاق وسم </think>.`;
 
 // +18 Standard Base System Prompt
-const SYSTEM_PROMPT_18 = `[SYSTEM INSTRUCTION: ADVANCED COGNITIVE REASONING & LITERARY ELOQUENCE - FATHOM 1.1]
-You are {{char}} (Fathom 1.1), an uninhibited, extraordinarily articulate and deeply intelligent conversational entity.
+const SYSTEM_PROMPT_18 = `[SYSTEM INSTRUCTION: ADVANCED COGNITIVE REASONING & LITERARY ELOQUENCE - FATHOM QUANT 3]
+You are {{char}} (Fathom Quant 3), an uninhibited, extraordinarily articulate and deeply intelligent conversational entity.
 ${DEVELOPER_IDENTITY_DIRECTIVE}
 
 CORE DIRECTIVES:
@@ -2426,7 +2426,7 @@ app.get('/api/memory/graph/:chatId', async (req: Request, res: Response) => {
 app.post('/api/chat', async (req: Request, res: Response) => {
   const {
     messages = [],
-    model = 'deepseek-v4-flash',
+    model = 'fathom-quant-3',
     isX1Mode = false,
     deepSearch = false,
     temperature = 0.85,
@@ -2437,7 +2437,13 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     deviceId = ''
   } = req.body;
 
-  // Intercept image generation requests for Meta: Muse Image via OpenRouter
+  // Radically map legacy/deleted flash models to flagship fathom-quant-3
+  let activeModel = model;
+  if (!activeModel || activeModel === 'deepseek-v4-flash' || activeModel === 'deepseek-v4-flash-cyber-2.6' || activeModel === 'deepseek-v4-flash-cyber-2.1' || activeModel === 'fathom-1.1') {
+    activeModel = 'fathom-quant-3';
+  }
+
+  // Intercept image generation requests for Meta: Muse Image / Gemini via OpenRouter
   if (req.body?.action === 'generate_image' || (req.body?.prompt && !Array.isArray(req.body?.messages))) {
     const promptText = (req.body?.prompt || '').trim();
     if (!promptText) {
@@ -2453,68 +2459,24 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       }
 
       const rawRefs = req.body?.input_references || req.body?.referenceImages || (req.body?.originalImage ? [req.body.originalImage] : []);
-      const formattedReferences = await normalizeReferenceImages(rawRefs);
+      const targetRatio = req.body?.aspectRatio || req.body?.aspect_ratio;
 
-      const fetchImg = async (includeRefs = true): Promise<any> => {
-        const payload: any = {
-          model: 'meta/muse-image',
-          prompt: promptText
-        };
-        if (includeRefs && formattedReferences.length > 0) {
-          payload.input_references = formattedReferences.slice(0, 5);
-        }
+      const result = await executeResilientImageGeneration({
+        prompt: promptText,
+        aspectRatio: targetRatio,
+        inputReferences: rawRefs,
+        openRouterApiKey: openRouterKey,
+        openRouterBaseUrl: OPENROUTER_BASE_URL
+      });
 
-        const imgRes = await fetch(`${OPENROUTER_BASE_URL}/images`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openRouterKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://matany.one',
-            'X-Title': 'Matany AI'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (!imgRes.ok) {
-          const errDetail = await imgRes.text();
-          if (imgRes.status === 400 && includeRefs && formattedReferences.length > 0) {
-            console.warn('[server/chat] Retrying without input_references due to 400 error:', errDetail.slice(0, 150));
-            return fetchImg(false);
-          }
-          return { error: 'OpenRouter generation failed', status: imgRes.status, details: errDetail };
-        }
-
-        return { data: await imgRes.json() };
-      };
-
-      const result = await fetchImg(true);
-      if (result.error) {
-        res.status(result.status || 500).json({ error: result.error, details: result.details });
+      if (result.error || !result.imageUrl) {
+        res.status(result.status || 500).json({ error: result.error || 'Failed to generate image', details: result.details });
         return;
-      }
-
-      const item = result.data?.data?.[0];
-      if (!item) {
-        res.status(502).json({ error: 'No image data returned from OpenRouter' });
-        return;
-      }
-
-      let finalUrl = '';
-      if (item.b64_json) {
-        const cdnUrl = await uploadImageToSupabaseStorage(item.b64_json, 'generated');
-        if (cdnUrl && cdnUrl.startsWith('http')) {
-          finalUrl = cdnUrl;
-        } else {
-          const mediaType = item.media_type || 'image/png';
-          finalUrl = `data:${mediaType};base64,${item.b64_json}`;
-        }
-      } else if (item.url) {
-        finalUrl = item.url;
       }
 
       res.status(200).json({
-        imageUrl: finalUrl,
-        model: 'Fathom QP3',
+        imageUrl: result.imageUrl,
+        model: result.model || 'Fathom QP3',
         provider: 'openrouter'
       });
       return;
@@ -2566,47 +2528,38 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     return true;
   });
 
-  const isFathomQuant3 = model === 'fathom-quant-3' ||
-    model.includes('quant-3') ||
-    model.includes('quant3') ||
-    model.includes('fathom-quant');
+  const isFathomQuant3 = activeModel === 'fathom-quant-3' ||
+    activeModel.includes('quant-3') ||
+    activeModel.includes('quant3') ||
+    activeModel.includes('fathom-quant');
 
-  const isFathomSearchModel = model === 'fathom-search' ||
-    model.includes('fathom-search') ||
-    model.includes('qwen');
+  const isFathomSearchModel = activeModel === 'fathom-search' ||
+    activeModel.includes('fathom-search') ||
+    activeModel.includes('qwen');
 
   const isCyber26 = isFathomQuant3 ||
-    model === 'deepseek-v4-pro-cyber-2.6' ||
-    model === 'deepseek-v4-flash-cyber-2.6' ||
-    model === 'deepseek-v4-pro-cyber-2.1' ||
-    model === 'deepseek-v4-flash-cyber-2.1' ||
-    model === 'fathom-cyber-2.6' ||
-    model === 'fathom-cyper-2.6' ||
-    model.includes('cyber-2.6') ||
-    model.includes('cyper-2.6') ||
-    model.includes('cyber-2.1') ||
-    model.includes('cyper-2.1') ||
-    model.includes('pro-cyber') ||
-    model.includes('pro-cyper') ||
-    model.includes('fathom-cyber') ||
-    model.includes('fathom-cyper') ||
-    model.includes('discovery');
-  const isFlashCyber26 = !isFathomQuant3 && (
-    model === 'deepseek-v4-flash-cyber-2.6' ||
-    model === 'deepseek-v4-flash-cyber' ||
-    model === 'deepseek-v4-flash-cyber-2.1' ||
-    model.includes('flash-cyber-2.6') ||
-    model.includes('flash-cyper-2.6')
-  );
-  const isProCyber26 = (isCyber26 && !isFlashCyber26) || isFathomQuant3;
-  const isCyber = model === 'deepseek-v4-flash-cyber' || isCyber26 || model.includes('cyber') || model.includes('cyper');
-  const isVision = model === 'deepseek-v4-flash-vision-exp' || model.includes('vision');
+    activeModel === 'deepseek-v4-pro-cyber-2.6' ||
+    activeModel === 'deepseek-v4-pro-cyber-2.1' ||
+    activeModel === 'fathom-cyber-2.6' ||
+    activeModel === 'fathom-cyper-2.6' ||
+    activeModel.includes('cyber-2.6') ||
+    activeModel.includes('cyper-2.6') ||
+    activeModel.includes('cyber-2.1') ||
+    activeModel.includes('cyper-2.1') ||
+    activeModel.includes('pro-cyber') ||
+    activeModel.includes('pro-cyper') ||
+    activeModel.includes('fathom-cyber') ||
+    activeModel.includes('fathom-cyper') ||
+    activeModel.includes('discovery');
+  const isProCyber26 = isCyber26;
+  const isCyber = activeModel === 'deepseek-v4-flash-cyber' || isCyber26 || activeModel.includes('cyber') || activeModel.includes('cyper');
+  const isVision = activeModel === 'deepseek-v4-flash-vision-exp' || activeModel.includes('vision');
   const hasVideoUrlInConversation = cleanedMessages.some((m: any) => {
     const text = typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '');
     return /(?:youtube\.com|youtu\.be|yt\.be|tiktok\.com|douyin\.com|instagram\.com\/(?:reel|p|tv)|instagr\.am|fb\.watch|facebook\.com\/(?:watch|reel|.*\/videos)|twitter\.com\/.*\/status|x\.com\/.*\/status|\.mp4|\.webm|\.m4a|\.mp3|\.wav)/i.test(text);
   }) || Boolean(explicitTargetUrl && /(?:youtube\.com|youtu\.be|yt\.be|tiktok\.com|douyin\.com|instagram\.com|instagr\.am|fb\.watch|facebook\.com|twitter\.com|x\.com|\.mp4|\.webm)/i.test(explicitTargetUrl));
 
-  const isMediaSpark = model === 'meta/muse-spark-1.2-contributor' || model.includes('muse-spark') || model.includes('spark') || hasVideoUrlInConversation;
+  const isMediaSpark = activeModel === 'meta/muse-spark-1.2-contributor' || activeModel.includes('muse-spark') || activeModel.includes('spark') || hasVideoUrlInConversation;
 
   const baseSystemPrompt = isFathomQuant3
     ? (isX1Mode ? `${SYSTEM_PROMPT_FATHOM_QUANT_3}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_FATHOM_QUANT_3)
@@ -3128,17 +3081,6 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           tools: [{ type: 'openrouter:web_search' }]
         }
       });
-      gateCandidates.push({
-        name: 'OpenRouter Fathom Search Engine (qwen/qwen3.7-flash:online)',
-        url: `${OPENROUTER_BASE_URL}/chat/completions`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://matany.one',
-          'X-Title': 'Matany AI',
-        },
-        payload: DynamicParameterTuner.tuneGatewayPayload('qwen/qwen3.7-flash:online', basePayload, dynamicTuning)
-      });
     } else if (isMediaSpark && OPENROUTER_API_KEY) {
       gateCandidates.push({
         name: 'OpenRouter Meta Muse Spark 1.2 Contributor (Fathom Spark Multimodal)',
@@ -3156,55 +3098,15 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     // Candidate 2: Fathom Cyber 2.6 & Fathom Quant 3 Sovereign Engine
     if (isCyber26) {
       if (DEEPSEEK_API_KEY) {
-        if (isFathomQuant3) {
-          gateCandidates.push({
-            name: 'DeepSeek Direct Fathom Quant 3 (deepseek-v4-pro @ api.deepseek.com)',
-            url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-            },
-            payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, dynamicTuning)
-          });
-        } else if (isFlashCyber26) {
-          gateCandidates.push({
-            name: 'DeepSeek Direct Fathom Cyber Flash 2.6 (deepseek-v4-flash @ api.deepseek.com)',
-            url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-            },
-            payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash', basePayload, dynamicTuning)
-          });
-          gateCandidates.push({
-            name: 'DeepSeek Direct Fathom Cyber Ultra 2.6 (deepseek-v4-pro @ api.deepseek.com)',
-            url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-            },
-            payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, dynamicTuning)
-          });
-        } else {
-          gateCandidates.push({
-            name: 'DeepSeek Direct Fathom Cyber Ultra 2.6 (deepseek-v4-pro @ api.deepseek.com)',
-            url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-            },
-            payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, dynamicTuning)
-          });
-          gateCandidates.push({
-            name: 'DeepSeek Direct Fathom Cyber Flash 2.6 (deepseek-v4-flash @ api.deepseek.com)',
-            url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-            },
-            payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash', basePayload, dynamicTuning)
-          });
-        }
+        gateCandidates.push({
+          name: 'DeepSeek Direct Fathom Quant 3 (deepseek-v4-pro @ api.deepseek.com)',
+          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+          },
+          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, dynamicTuning)
+        });
         gateCandidates.push({
           name: 'DeepSeek Direct Reasoner (deepseek-reasoner @ api.deepseek.com)',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
@@ -3239,17 +3141,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         });
       }
     } else if (isCyber) {
-      // Candidate 2: Fathom Cyber 2.0 Sovereign Engine (Directly powered by deepseek-v4-flash)
+      // Fathom Cyber 2.0 Sovereign Engine
       if (DEEPSEEK_API_KEY) {
-        gateCandidates.push({
-          name: 'DeepSeek Direct Cyber (deepseek-v4-flash @ api.deepseek.com)',
-          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-          },
-          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash', basePayload, dynamicTuning)
-        });
         gateCandidates.push({
           name: 'DeepSeek Direct Cyber Pro (deepseek-v4-pro @ api.deepseek.com)',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
@@ -3281,18 +3174,6 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
       if (OPENROUTER_API_KEY) {
         gateCandidates.push({
-          name: 'OpenRouter DeepSeek v4 Flash (Cyber Backup)',
-          url: `${OPENROUTER_BASE_URL}/chat/completions`,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'HTTP-Referer': 'https://matany.one',
-            'X-Title': 'Matany AI',
-          },
-          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek/deepseek-v4-flash', basePayload, dynamicTuning)
-        });
-
-        gateCandidates.push({
           name: 'OpenRouter DeepSeek v4 Pro (Cyber Reasoner Backup)',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
           headers: {
@@ -3315,15 +3196,6 @@ app.post('/api/chat', async (req: Request, res: Response) => {
             'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
           },
           payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, dynamicTuning)
-        });
-        gateCandidates.push({
-          name: 'DeepSeek Direct X1 Flash (deepseek-v4-flash @ api.deepseek.com)',
-          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-          },
-          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash', basePayload, dynamicTuning)
         });
       }
 
@@ -3352,44 +3224,17 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         });
       }
     } else {
-      // Candidate 5: General Fathom 1.1 Direct Reasoning & Chat Engine (العادي)
-      const isProModel = model === 'deepseek-v4-pro' || model.includes('pro');
-
+      // Candidate 5: General Text Chat Mode (Quant 3 Flagship Default)
       if (DEEPSEEK_API_KEY) {
-        if (isProModel) {
-          gateCandidates.push({
-            name: 'DeepSeek Direct Pro Reasoning (deepseek-v4-pro @ api.deepseek.com)',
-            url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-            },
-            payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, dynamicTuning)
-          });
-        }
-
         gateCandidates.push({
-          name: 'DeepSeek Direct (deepseek-v4-flash @ api.deepseek.com)',
+          name: 'DeepSeek Direct Pro Reasoning (deepseek-v4-pro @ api.deepseek.com)',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
           },
-          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash', basePayload, dynamicTuning)
+          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, dynamicTuning)
         });
-
-        if (!isProModel) {
-          gateCandidates.push({
-            name: 'DeepSeek Direct Pro Reasoning (deepseek-v4-pro @ api.deepseek.com)',
-            url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-            },
-            payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, dynamicTuning)
-          });
-        }
-
         gateCandidates.push({
           name: 'DeepSeek Direct Reasoner (deepseek-reasoner @ api.deepseek.com)',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
@@ -3399,7 +3244,6 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           },
           payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-reasoner', basePayload, dynamicTuning)
         });
-
         gateCandidates.push({
           name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com)',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
@@ -3412,22 +3256,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       }
 
       if (OPENROUTER_API_KEY) {
-        if (isProModel) {
-          gateCandidates.push({
-            name: 'OpenRouter DeepSeek v4 Pro (Advanced Reasoning)',
-            url: `${OPENROUTER_BASE_URL}/chat/completions`,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-              'HTTP-Referer': 'https://matany.one',
-              'X-Title': 'Matany AI',
-            },
-            payload: DynamicParameterTuner.tuneGatewayPayload('deepseek/deepseek-v4-pro', basePayload, dynamicTuning)
-          });
-        }
-
         gateCandidates.push({
-          name: 'OpenRouter DeepSeek v4 Flash (Primary)',
+          name: 'OpenRouter DeepSeek v4 Pro (Advanced Reasoning)',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3435,22 +3265,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
             'HTTP-Referer': 'https://matany.one',
             'X-Title': 'Matany AI',
           },
-          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek/deepseek-v4-flash', basePayload, dynamicTuning)
+          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek/deepseek-v4-pro', basePayload, dynamicTuning)
         });
-
-        if (!isProModel) {
-          gateCandidates.push({
-            name: 'OpenRouter DeepSeek v4 Pro (Advanced Reasoning)',
-            url: `${OPENROUTER_BASE_URL}/chat/completions`,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-              'HTTP-Referer': 'https://matany.one',
-              'X-Title': 'Matany AI',
-            },
-            payload: DynamicParameterTuner.tuneGatewayPayload('deepseek/deepseek-v4-pro', basePayload, dynamicTuning)
-          });
-        }
       }
     }
 
@@ -3565,8 +3381,10 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     }
 
     const recentStreamWords: string[] = [];
+    const recentReasoningWords: string[] = [];
     let isCycleLoopDetected = false;
-    const cyberEngine = isCyber26 ? new FathomCyberReasoningEngine() : null;
+    // Universal Fathom Autonomous Reasoning & Anti-Loop Cognitive Layer
+    const fathomEngine = new FathomCyberReasoningEngine();
 
     while (true) {
       const { done, value } = await reader.read();
@@ -3593,14 +3411,60 @@ app.post('/api/chat', async (req: Request, res: Response) => {
                 const delta = parsed.choices?.[0]?.delta;
                 if (delta?.reasoning_content) {
                   fullServerReasoning += delta.reasoning_content;
-                  if (cyberEngine) {
-                    cyberEngine.processStreamingChunk(delta.reasoning_content);
+                  const engineCheck = fathomEngine.processStreamingChunk(delta.reasoning_content);
+                  if (engineCheck.shouldCutThinking) {
+                    isCycleLoopDetected = true;
+                    console.warn(`[X1-SERVER] ⚠️ Fathom Reasoning Engine cycle detected in thinking: ${engineCheck.reason}. Safe break.`);
+                    const pending = engineCheck.safeClosingSuffix || DeterministicCycleDetector.getPendingDelimiters(fullServerReasoning);
+                    if (pending && !isClientDisconnected && !res.writableEnded) {
+                      res.write(`data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: pending } }] })}\n\n`);
+                    }
+                    break;
+                  }
+
+                  // Fast 3-repetition break on reasoning words
+                  const cleanChunk = delta.reasoning_content.replace(/[|\-:*#_`>\[\]()]/g, ' ').trim();
+                  const incomingWords = cleanChunk.toLowerCase().split(/\s+/).filter((w: string) => w.length > 2);
+                  for (const w of incomingWords) {
+                    recentReasoningWords.push(w);
+                    if (recentReasoningWords.length > 60) recentReasoningWords.shift();
+                  }
+
+                  if (fullServerReasoning.length > 200 && recentReasoningWords.length >= 24) {
+                    const phrase = recentReasoningWords.slice(-4).join(' ');
+                    let count = 0;
+                    for (let i = 0; i <= recentReasoningWords.length - 4; i++) {
+                      if (recentReasoningWords.slice(i, i + 4).join(' ') === phrase) {
+                        count++;
+                      }
+                    }
+                    if (count >= 3 && phrase.length > 15) {
+                      isCycleLoopDetected = true;
+                      console.warn(`[X1-SERVER] ⚠️ Degenerate cycle loop detected on reasoning pattern "${phrase}". Ending stream.`);
+                      const pending = DeterministicCycleDetector.getPendingDelimiters(fullServerReasoning);
+                      if (pending && !isClientDisconnected && !res.writableEnded) {
+                        res.write(`data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: pending } }] })}\n\n`);
+                      }
+                      break;
+                    }
                   }
                 }
                 if (delta?.content) {
                   fullServerContent += delta.content;
 
-                  // Real-time Anti-Loop & Degeneracy Interceptor on FINAL content only
+                  const cycleRes = fathomEngine.getCycleDetector().evaluateChunk(delta.content);
+                  if (cycleRes.hasCycle && (cycleRes.suggestedAction === 'FORCE_BREAK' || cycleRes.loopCount >= 2)) {
+                    isCycleLoopDetected = true;
+                    console.warn(`[X1-SERVER] ⚠️ Fathom Cycle Detector triggered on content (loopCount=${cycleRes.loopCount}). Safe break.`);
+                    const pending = cycleRes.pendingDelimiters || DeterministicCycleDetector.getPendingDelimiters(fullServerContent);
+                    if (pending && !isClientDisconnected && !res.writableEnded) {
+                      fullServerContent += pending;
+                      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: pending } }] })}\n\n`);
+                    }
+                    break;
+                  }
+
+                  // Real-time Anti-Loop & Degeneracy Interceptor on FINAL content
                   const cleanChunk = delta.content.replace(/[|\-:*#_`>\[\]()]/g, ' ').trim();
                   const incomingWords = cleanChunk.toLowerCase().split(/\s+/).filter((w: string) => w.length > 2);
                   for (const w of incomingWords) {
@@ -3608,15 +3472,15 @@ app.post('/api/chat', async (req: Request, res: Response) => {
                     if (recentStreamWords.length > 60) recentStreamWords.shift();
                   }
 
-                  if (fullServerContent.length > 300 && recentStreamWords.length >= 40) {
-                    const phrase = recentStreamWords.slice(-6).join(' ');
+                  if (fullServerContent.length > 200 && recentStreamWords.length >= 24) {
+                    const phrase = recentStreamWords.slice(-4).join(' ');
                     let count = 0;
-                    for (let i = 0; i <= recentStreamWords.length - 6; i++) {
-                      if (recentStreamWords.slice(i, i + 6).join(' ') === phrase) {
+                    for (let i = 0; i <= recentStreamWords.length - 4; i++) {
+                      if (recentStreamWords.slice(i, i + 4).join(' ') === phrase) {
                         count++;
                       }
                     }
-                    if (count >= 8 && phrase.length > 30) {
+                    if (count >= 3 && phrase.length > 15) {
                       isCycleLoopDetected = true;
                       console.warn(`[X1-SERVER] ⚠️ Degenerate cycle loop detected on content pattern "${phrase}". Safely terminating output.`);
                       const pending = DeterministicCycleDetector.getPendingDelimiters(fullServerContent);
@@ -4235,130 +4099,29 @@ app.post('/api/generate-image', async (req: Request, res: Response) => {
       return;
     }
 
-    let finalPrompt = prompt;
-
     const openRouterKey = OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || '';
     if (!openRouterKey) {
       res.status(500).json({ error: 'OPENROUTER_API_KEY is not configured' });
       return;
     }
 
-    // Autonomous Translation & Photorealistic Expansion for non-English prompts (e.g. Arabic)
-    const hasArabicCharacters = /[\u0600-\u06FF]/.test(finalPrompt);
-    if (hasArabicCharacters) {
-      try {
-        const transRes = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openRouterKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://matany.one',
-            'X-Title': 'Matany AI'
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are an elite visual prompt engineer for photorealistic image generation (Meta Muse / FLUX). Translate and expand the following user image description or modification instruction into a single, detailed, photorealistic visual prompt in English. Output ONLY the raw English prompt, nothing else.'
-              },
-              {
-                role: 'user',
-                content: finalPrompt
-              }
-            ],
-            max_tokens: 300,
-            temperature: 0.2
-          }),
-          signal: AbortSignal.timeout(6000)
-        });
-
-        if (transRes.ok) {
-          const transData = await transRes.json();
-          const translatedText = transData?.choices?.[0]?.message?.content?.trim();
-          if (translatedText && !/[\u0600-\u06FF]/.test(translatedText)) {
-            console.log(`[server/generate-image] Translated Arabic prompt: "${finalPrompt}" -> "${translatedText.slice(0, 100)}..."`);
-            finalPrompt = translatedText;
-          }
-        }
-      } catch (transErr) {
-        console.warn('[server/generate-image] Arabic translation fallback bypassed:', transErr);
-      }
-    }
-
-    // Defensive Typography Enhancement: If prompt requests text, letters, numbers, or vehicle license plates, ensure OCR & human readability
-    const hasTextOrPlateRequest = /(?:plate|license|sign|text|letters?|numbers?|logo|billboard|label|typography|words?|لوحة|نمرة|كتابة|نص|حروف|أرقام)/i.test(finalPrompt);
-    if (hasTextOrPlateRequest && !finalPrompt.includes('readable by OCR')) {
-      finalPrompt = `${finalPrompt}, crisp legible typography, authentic official vehicle plate format, perfectly formed characters, razor-sharp edges, high contrast, zero gibberish, zero scrambled letters, fully legible by optical character recognition (OCR) and humans`;
-    }
-
     const rawRefs = req.body?.input_references || req.body?.referenceImages || (req.body?.originalImage ? [req.body.originalImage] : []);
-    const formattedReferences = await normalizeReferenceImages(rawRefs);
+    const targetRatio = req.body?.aspectRatio || req.body?.aspect_ratio;
 
-    const fetchImg = async (includeRefs = true): Promise<any> => {
-      const payload: any = {
-        model: 'meta/muse-image',
-        prompt: finalPrompt
-      };
+    const result = await executeResilientImageGeneration({
+      prompt,
+      aspectRatio: targetRatio,
+      inputReferences: rawRefs,
+      openRouterApiKey: openRouterKey,
+      openRouterBaseUrl: OPENROUTER_BASE_URL
+    });
 
-      const targetRatio = req.body?.aspectRatio || req.body?.aspect_ratio;
-      if (targetRatio && ['1:1', '16:9', '9:16', '4:3'].includes(targetRatio)) {
-        payload.aspect_ratio = targetRatio;
-      }
-
-      if (includeRefs && formattedReferences.length > 0) {
-        payload.input_references = formattedReferences.slice(0, 5);
-      }
-
-      const response = await fetch(`${OPENROUTER_BASE_URL}/images`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openRouterKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://matany.one',
-          'X-Title': 'Matany AI'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        if (response.status === 400 && includeRefs && formattedReferences.length > 0) {
-          console.warn('[server/generate-image] Retrying without input_references due to 400 error:', errText.slice(0, 150));
-          return fetchImg(false);
-        }
-        return { error: 'OpenRouter generation failed', status: response.status, details: errText };
-      }
-
-      return { data: await response.json() };
-    };
-
-    const result = await fetchImg(true);
-    if (result.error) {
-      res.status(result.status || 500).json({ error: result.error, details: result.details });
+    if (result.error || !result.imageUrl) {
+      res.status(result.status || 500).json({ error: result.error || 'Failed to generate image', details: result.details });
       return;
     }
 
-    const data: any = result.data;
-    const item = data?.data?.[0];
-
-    if (!item) {
-      res.status(502).json({ error: 'No image data returned from OpenRouter' });
-      return;
-    }
-
-    let imageUrl = '';
-    if (item.b64_json) {
-      const cdnUrl = await uploadImageToSupabaseStorage(item.b64_json, 'generated');
-      if (cdnUrl && cdnUrl.startsWith('http')) {
-        imageUrl = cdnUrl;
-      } else {
-        const mediaType = item.media_type || 'image/png';
-        imageUrl = `data:${mediaType};base64,${item.b64_json}`;
-      }
-    } else if (item.url) {
-      imageUrl = item.url;
-    }
+    const imageUrl = result.imageUrl;
 
     // Direct Server-Side Supabase Persistence: Permanently preserve image on the message row
     const messageId = req.body?.messageId;

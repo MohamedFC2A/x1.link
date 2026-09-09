@@ -49,40 +49,39 @@ export async function runUltraAndFlashModelsTests(harness: TestHarness): Promise
       expect(result.hyperparameters.top_p).toBe(0.95);
     });
 
-    // ─── 2. Flash Model (deepseek-v4-flash / deepseek-flash) Velocity & Economy ───
-    await harness.it('Flash Model: caps token ceiling for LIGHT complexity to guarantee sub-second TTFT', () => {
+    // ─── 2. Flash Model Legacy Redirection to deepseek-pro (Fathom Quant 3) ───
+    await harness.it('Legacy Flash Model: automatically redirects to deepseek-pro flagship family', () => {
       const result = DynamicParameterTuner.tune({
         userPrompt: 'مرحبا',
         requestedModel: 'deepseek-v4-flash',
       });
 
-      expect(result.targetModelFamily).toBe('deepseek-flash');
+      expect(result.targetModelFamily).toBe('deepseek-pro');
       expect(result.complexityLevel).toBe('LIGHT');
-      expect(result.hyperparameters.max_tokens).toBe(4096);
       expect(result.hyperparameters.temperature).toBeLessThanOrEqual(0.70);
       expect(result.hyperparameters.frequency_penalty).toBeGreaterThanOrEqual(0.04);
     });
 
-    await harness.it('Flash Model: tunes optimal parameters for STANDARD factual Q&A', () => {
+    await harness.it('Legacy Flash Cyber Model: automatically redirects to deepseek-pro for Q&A', () => {
       const result = DynamicParameterTuner.tune({
         userPrompt: 'اشرح الفرق بين بروتوكول TCP وبروتوكول UDP في 4 نقاط محددة وموجزة مع أمثلة لكل منهما',
         requestedModel: 'deepseek-v4-flash-cyber-2.6',
       });
 
-      expect(result.targetModelFamily).toBe('deepseek-flash');
-      expect(result.hyperparameters.max_tokens).toBe(8192);
+      expect(result.targetModelFamily).toBe('deepseek-pro');
+      expect(result.hyperparameters.max_tokens).toBe(16384);
     });
 
     // ─── 3. SVG Vector Studio Integration & Canvas PNG Readiness ─────────────
-    await harness.it('SVG Studio: calibrates Flash for high-speed mathematical vector generation', () => {
+    await harness.it('SVG Studio: calibrates high-fidelity mathematical vector generation', () => {
       const result = DynamicParameterTuner.tune({
         userPrompt: 'صمم لي كود SVG لشعار ذكاء اصطناعي متقدم مع تدرجات لونية وظلال',
-        requestedModel: 'deepseek-v4-flash',
+        requestedModel: 'fathom-quant-3',
       });
 
       expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
       expect(result.hyperparameters.temperature).toBe(0.38);
-      expect(result.hyperparameters.max_tokens).toBe(16384);
+      expect(result.hyperparameters.max_tokens).toBe(24576);
       expect(result.calibrationDirective).toContain('SOVEREIGN_SVG_VECTOR_STUDIO');
       expect(result.calibrationDirective).toContain('viewBox');
       expect(result.calibrationDirective).toContain('PNG');

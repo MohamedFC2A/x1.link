@@ -238,7 +238,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </motion.div>
 
-            {/* Card 4: Fathom 1.1 */}
+            {/* Card 4: Fathom Quant 3 */}
             <motion.div
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.97 }}
@@ -251,7 +251,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <Activity className="w-4 h-4" />
                 </div>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white/[0.05] text-zinc-300 border border-white/[0.08]">
-                  FATHOM 1.1
+                  FATHOM QUANT 3
                 </span>
               </div>
 

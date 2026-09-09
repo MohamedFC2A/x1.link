@@ -28,14 +28,14 @@ const ECOSYSTEM_ENTITIES: EcosystemEntity[] = [
     year: '2027',
   },
   {
-    id: 'fathom-flash-26',
-    name: 'Fathom Cyber Flash 2.6',
-    badge: 'Fast & Low-Latency Model',
+    id: 'fathom-search',
+    name: 'Fathom Search',
+    badge: 'Real-Time Web Intelligence',
     gradientId: 'grad-flash',
     dotColor: '#38bdf8',
-    descriptionAr: 'نموذج فائق السرعة مخصص للمهام اللحظية وفحص الأكواد البرمجية وتقديم استجابات فورية بدون تأخير.',
-    descriptionEn: 'A lightweight, high-speed model optimized for real-time code analysis and instant low-latency responses.',
-    year: '2027',
+    descriptionAr: 'محرك البحث الحي السيادي المدعوم بأدوات الويب المباشرة والذاكرة واسترجاع الحقائق اللحظية.',
+    descriptionEn: 'Sovereign real-time web search engine powered by live web tools, grounding, and cognitive memory.',
+    year: '2026',
   },
   {
     id: 'fathom-cyber',
@@ -48,14 +48,14 @@ const ECOSYSTEM_ENTITIES: EcosystemEntity[] = [
     year: '2027',
   },
   {
-    id: 'fathom-1.1',
-    name: 'Fathom 1.1',
-    badge: 'Foundation AI Model',
+    id: 'fathom-quant-3',
+    name: 'Fathom Quant 3',
+    badge: 'Flagship Sovereign Model',
     gradientId: 'grad-11',
     dotColor: '#2dd4bf',
-    descriptionAr: 'نموذج لغوي تأسيسي يتميز بالفهم العميق للنصوص، والكتابة الذكية، وحل المشكلات المنطقية المتنوعة.',
-    descriptionEn: 'A foundation language model engineered for deep text understanding, smart synthesis, and general logical reasoning.',
-    year: '2027',
+    descriptionAr: 'النموذج السيادي الأساسي فائق الذكاء، استدلال معماري عميق، توليد وتعديل الصور والاستجابة الفصيحة.',
+    descriptionEn: 'The sovereign flagship model featuring deep architectural reasoning, neural image studio, and high linguistic fidelity.',
+    year: '2026',
   },
   {
     id: 'upstore',
@@ -622,7 +622,7 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
                   <stop offset="100%" stopColor="#4f46e5" />
                 </linearGradient>
 
-                {/* 5. Fathom 1.1: Emerald Mint Neural */}
+                {/* 5. Fathom Quant 3: Emerald Mint Neural */}
                 <linearGradient id="grad-11" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#2dd4bf" />
                   <stop offset="40%" stopColor="#99f6e4" />

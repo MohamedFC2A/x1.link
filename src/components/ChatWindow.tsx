@@ -69,7 +69,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   isStreaming,
   isRestoringChat = false,
   isX1Active,
-  activeModel = 'deepseek-v4-flash',
+  activeModel = 'fathom-quant-3',
   onSendPreset,
   onImageGenerated,
 }) => {

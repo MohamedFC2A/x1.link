@@ -46,7 +46,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
       frequency: '/ شهرياً',
       description: 'خطة استكشافية محدودة لمعاينة سرعة واستجابة النماذج.',
       features: [
-        'تجربة نموذج Fathom 1.1 (مرتان فقط إجمالاً)',
+        'تجربة نموذج Fathom Quant 3 (مرتان فقط إجمالاً)',
         'تجربة إدراك Fathom Cam البصري (صورتان فقط إجمالاً)',
       ],
       disabledFeatures: [
@@ -65,7 +65,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
       description: 'للاستخدام اليومي الكثيف وحصص استهلاك وافرة لكافة النماذج.',
       features: [
         '100,000,000 توكن شهرياً (100M Tokens)',
-        'وصول كامل لمحركات Fathom 1.1 و Cam و Cyber 1.1',
+        'وصول كامل لمحركات Fathom Quant 3 و Cam و Cyber 2.6',
         'تفعيل وضع المحادثة الحرة (NSFW Off) بالبصمة',
         '500 عملية فحص أمني واستخباراتي عميق شهرياً',
         '1,000 تحليل فائق للصور والمستندات شهرياً',
@@ -82,7 +82,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
       description: 'للمحترفين والعمليات الاستخباراتية والاستهلاك الفائق المفتوح.',
       features: [
         '500,000,000 توكن شهرياً (500M Tokens - سعة هائلة)',
-        'وصول كامل لمحركات Fathom 1.1 و Cam و Cyber 1.1',
+        'وصول كامل لمحركات Fathom Quant 3 و Cam و Cyber 2.6',
         'تفعيل وضع المحادثة الحرة (NSFW Off) بالبصمة',
         'فحص سيبراني واستخباراتي غير محدود (Uncapped Recon)',
         'تحليل صور ومستندات غير محدود بدقة 4K',
@@ -299,7 +299,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 <span>ماذا تتيح الخطة المجانية؟</span>
               </h5>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                تجربتان فقط لنموذج Fathom 1.1 وتجربتان لتحليل الصور لمعاينة سرعة الاستجابة فقط دون سعة تخزين أو وضع حر.
+                تجربتان فقط لنموذج Fathom Quant 3 وتجربتان لتحليل الصور لمعاينة سرعة الاستجابة فقط دون سعة تخزين أو وضع حر.
               </p>
             </div>
 

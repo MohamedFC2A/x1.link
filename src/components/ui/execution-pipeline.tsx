@@ -23,8 +23,8 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
   hasContent = false,
   className,
 }) => {
-  const isCyber26 = model === "deepseek-v4-pro-cyber-2.6" || model === "deepseek-v4-flash-cyber-2.6" || model === "deepseek-v4-pro-cyber-2.1" || model === "deepseek-v4-flash-cyber-2.1";
-  const isCyber = model === "deepseek-v4-flash-cyber" || isCyber26;
+  const isCyber26 = model === "deepseek-v4-pro-cyber-2.6" || model === "deepseek-v4-pro-cyber-2.1" || model === "fathom-quant-3";
+  const isCyber = isCyber26;
 
   // Step 1: Input / Recon
   const step1Done = true;

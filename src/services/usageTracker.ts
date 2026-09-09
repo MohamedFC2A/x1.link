@@ -75,9 +75,9 @@ export async function recordRealUsage(params: {
 
   const updated: UsageLedger = {
     totalTokens: current.totalTokens + addedTokens,
-    fathom1Tokens: current.fathom1Tokens + (params.model === 'deepseek-v4-flash' || params.model === 'meta/muse-spark-1.2-contributor' ? addedTokens : 0),
+    fathom1Tokens: current.fathom1Tokens + (params.model === 'fathom-quant-3' || params.model === 'meta/muse-spark-1.2-contributor' ? addedTokens : 0),
     fathomCamTokens: current.fathomCamTokens + (params.model === 'deepseek-v4-flash-vision-exp' || params.hasImages ? addedTokens : 0),
-    fathomCyberTokens: current.fathomCyberTokens + (params.model === 'deepseek-v4-flash-cyber-2.6' || params.model === 'deepseek-v4-pro-cyber-2.6' || params.model === 'deepseek-v4-flash-cyber' || params.isCyberScan ? addedTokens : 0),
+    fathomCyberTokens: current.fathomCyberTokens + (params.model === 'deepseek-v4-pro-cyber-2.6' || params.model === 'deepseek-v4-pro-cyber-2.1' || params.isCyberScan ? addedTokens : 0),
     visionFilesCount: current.visionFilesCount + imagesNum,
     cyberScansCount: current.cyberScansCount + (params.isCyberScan ? 1 : 0),
     fathom1TrialsCount: current.fathom1TrialsCount + (params.currentPlanId === 'free-0' && !params.hasImages ? 1 : 0),

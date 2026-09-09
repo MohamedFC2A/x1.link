@@ -14,7 +14,7 @@ export const InteractiveGridBackground: React.FC<InteractiveGridBackgroundProps>
   className = '',
   gridSize = 36,
   macroSize = 144,
-  activeModel = 'deepseek-v4-flash',
+  activeModel = 'fathom-quant-3',
   isX1Active = false,
 }) => {
   const spotlightRef = useRef<HTMLDivElement>(null);
@@ -23,7 +23,7 @@ export const InteractiveGridBackground: React.FC<InteractiveGridBackgroundProps>
 
   const theme: GridTheme = isX1Active
     ? 'x1'
-    : (activeModel === 'deepseek-v4-flash-cyber' || activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-flash-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1')
+    : (activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1')
     ? 'cyber'
     : activeModel === 'deepseek-v4-flash-vision-exp'
     ? 'vision'

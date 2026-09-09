@@ -208,7 +208,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
   (
     {
       onSubmit,
-      placeholder = "اسأل Fathom 1.1 في أي شيء...",
+      placeholder = "اسأل Fathom Quant 3 في أي شيء...",
       className,
       defaultValue = "",
       value: controlledValue,
@@ -220,7 +220,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       onToggleX1,
       isDeepSearchActive: externalDeepSearch,
       onToggleDeepSearch,
-      activeModel = 'deepseek-v4-flash',
+      activeModel = 'fathom-quant-3',
       onSelectModel,
     },
     ref
@@ -290,9 +290,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     const isVisionMode = hasAttachments && !hasNonImageMedia;
     const isQuant3Mode = internalModel === 'fathom-quant-3';
     const isCyber26Pro = internalModel === 'deepseek-v4-pro-cyber-2.6' || internalModel === 'deepseek-v4-pro-cyber-2.1';
-    const isCyber26Flash = internalModel === 'deepseek-v4-flash-cyber-2.6' || internalModel === 'deepseek-v4-flash-cyber-2.1';
-    const isCyber26Mode = isCyber26Pro || isCyber26Flash;
-    const isCyberMode = isCyber26Mode || internalModel === 'deepseek-v4-flash-cyber';
+    const isCyber26Mode = isCyber26Pro;
+    const isCyberMode = isCyber26Mode;
     const isMediaMode = hasNonImageMedia || internalModel === 'meta/muse-spark-1.2-contributor';
 
     const effectiveDisplayModel = (internalModel === 'fathom-search' || isDeepSearchEffective) ? 'fathom-search' : internalModel;
@@ -316,8 +315,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           const combined = [...prev, ...newOnes].slice(0, 5);
           return combined;
         });
-        setInternalModel('deepseek-v4-flash-cyber-2.6');
-        onSelectModel?.('deepseek-v4-flash-cyber-2.6');
+        setInternalModel('fathom-quant-3');
+        onSelectModel?.('fathom-quant-3');
         setCyberInputUrl('');
       }
     }, [showUrlLimitToast, onSelectModel]);
@@ -352,8 +351,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               }
               return [...prev, ...newOnes].slice(0, 5);
             });
-            setInternalModel('deepseek-v4-flash-cyber-2.6');
-            onSelectModel?.('deepseek-v4-flash-cyber-2.6');
+            setInternalModel('fathom-quant-3');
+            onSelectModel?.('fathom-quant-3');
 
             const remainingClean = extracted.remainingText.trim();
             if (!isControlled) setLocalValue(remainingClean);
@@ -566,9 +565,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           return combined;
         });
 
-        // Always activate Fathom Cyber Flash 2.6 URL Mode on link detection
-        setInternalModel('deepseek-v4-flash-cyber-2.6');
-        onSelectModel?.('deepseek-v4-flash-cyber-2.6');
+        // Always activate Fathom Quant 3 URL Mode on link detection
+        setInternalModel('fathom-quant-3');
+        onSelectModel?.('fathom-quant-3');
 
         if (extracted.remainingText && extracted.remainingText.trim()) {
           const existingValue = value.trim();
@@ -665,7 +664,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         ? 'meta/muse-spark-1.2-contributor'
         : hasAttachments
         ? 'deepseek-v4-flash-vision-exp'
-        : (allUrlsToSubmit.length > 0 && internalModel === 'deepseek-v4-flash' ? 'deepseek-v4-flash-cyber' : activeBackendModel);
+        : activeBackendModel;
 
       const preloadedKeyframes: Record<string, string[]> = {};
       attachments.forEach((a) => {
@@ -920,7 +919,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           sheen: 'bg-gradient-to-r from-transparent via-emerald-400 to-transparent',
         };
       }
-      // Default Fathom 1.1 - White / Silver
+      // Default Fathom Quant 3 - White / Silver
       return {
         strokeRing: 'stroke-white',
         textPercent: 'text-white',
@@ -1006,44 +1005,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   );
                 })()}
 
-                {/* 2. Fathom Search (Deep Multimodal Web Search, Cognitive Memory & AI Forensics) */}
-                {(() => {
-                  const isSelected = internalModel === 'fathom-search' || isDeepSearchEffective;
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setInternalModel('fathom-search');
-                        onSelectModel?.('fathom-search');
-                        if (!isDeepSearchEffective) toggleDeepSearch();
-                        setIsModelMenuOpen(false);
-                      }}
-                      className={cn(
-                        "w-full flex flex-col gap-1 px-3 py-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer border text-right group relative",
-                        isSelected
-                          ? "bg-zinc-900/90 border-emerald-500/40 shadow-sm"
-                          : "bg-transparent hover:bg-zinc-900/50 text-zinc-300 border-transparent hover:border-zinc-800/60"
-                      )}
-                    >
-                      <div className="w-full flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2" dir="ltr">
-                          <span className="font-semibold text-xs tracking-tight bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 bg-clip-text text-transparent">
-                            Fathom Search
-                          </span>
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 font-medium border border-emerald-700/50 font-mono">
-                            Search
-                          </span>
-                        </div>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
-                      </div>
-                      <div dir="rtl" className="text-[11px] text-zinc-400 font-normal leading-normal text-right group-hover:text-zinc-300 transition-colors">
-                        بحث ويب فائق، استرجاع الذاكرة، وفحص وسائط الذكاء الاصطناعي
-                      </div>
-                    </button>
-                  );
-                })()}
-
-                {/* 3. Fathom Cyber Ultra 2.6 (Flagship Heavy Cyber Reasoning) */}
+                {/* 2. Fathom Cyber Ultra 2.6 (Flagship Heavy Cyber Reasoning) */}
                 {(() => {
                   const isSelected = internalModel === 'deepseek-v4-pro-cyber-2.6' || internalModel === 'deepseek-v4-pro-cyber-2.1';
                   return (
@@ -1080,79 +1042,6 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   );
                 })()}
 
-                {/* 3. Fathom Cyber Flash 2.6 (High-Speed Cyber Security) */}
-                {(() => {
-                  const isSelected = internalModel === 'deepseek-v4-flash-cyber-2.6' || internalModel === 'deepseek-v4-flash-cyber-2.1';
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setInternalModel('deepseek-v4-flash-cyber-2.6');
-                        onSelectModel?.('deepseek-v4-flash-cyber-2.6');
-                        if (isDeepSearchEffective) toggleDeepSearch();
-                        setIsModelMenuOpen(false);
-                      }}
-                      className={cn(
-                        "w-full flex flex-col gap-1 px-3 py-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer border text-right group relative",
-                        isSelected
-                          ? "bg-zinc-900/90 border-zinc-700/80 shadow-sm"
-                          : "bg-transparent hover:bg-zinc-900/50 text-zinc-300 border-transparent hover:border-zinc-800/60"
-                      )}
-                    >
-                      <div className="w-full flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2" dir="ltr">
-                          <span className="font-semibold text-xs tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-300 bg-clip-text text-transparent">
-                            Fathom Cyber Flash 2.6
-                          </span>
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 font-medium border border-zinc-700/50 font-mono">
-                            Flash
-                          </span>
-                        </div>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
-                      </div>
-                      <div dir="rtl" className="text-[11px] text-zinc-400 font-normal leading-normal text-right group-hover:text-zinc-300 transition-colors">
-                        فحص أمني واستجابة سيبرانية خاطفة
-                      </div>
-                    </button>
-                  );
-                })()}
-
-                {/* 4. Fathom 1.1 (Standard Fast General Model) */}
-                {(() => {
-                  const isSelected = internalModel === 'deepseek-v4-flash' && !hasAttachments;
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setInternalModel('deepseek-v4-flash');
-                        onSelectModel?.('deepseek-v4-flash');
-                        if (isDeepSearchEffective) toggleDeepSearch();
-                        setIsModelMenuOpen(false);
-                      }}
-                      className={cn(
-                        "w-full flex flex-col gap-1 px-3 py-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer border text-right group relative",
-                        isSelected
-                          ? "bg-zinc-900/90 border-zinc-700/80 shadow-sm"
-                          : "bg-transparent hover:bg-zinc-900/50 text-zinc-300 border-transparent hover:border-zinc-800/60"
-                      )}
-                    >
-                      <div className="w-full flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2" dir="ltr">
-                          <span className="font-semibold text-xs tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-300 bg-clip-text text-transparent">
-                            Fathom 1.1
-                          </span>
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 font-medium border border-zinc-700/50 font-mono">
-                            Base
-                          </span>
-                        </div>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
-                      </div>
-                      <div dir="rtl" className="text-[11px] text-zinc-400 font-normal leading-normal text-right group-hover:text-zinc-300 transition-colors">
-                        محادثة ذكية وتوليد نصوص سريع
-                      </div>
-                    </button>
-                  );
-                })()}
               </div>
             </div>
           </>
@@ -1250,8 +1139,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   type="button"
                   onClick={() => {
                     if (!isCyberMode) {
-                      setInternalModel('deepseek-v4-flash-cyber-2.6');
-                      onSelectModel?.('deepseek-v4-flash-cyber-2.6');
+                      setInternalModel('fathom-quant-3');
+                      onSelectModel?.('fathom-quant-3');
                     }
                     setIsTargetUrlBarOpen(true);
                     setIsActionsMenuOpen(false);

@@ -36,9 +36,9 @@ export async function runSvgStudioTests(harness: TestHarness) {
 
       const result = DynamicParameterTuner.tune(request);
       expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
-      expect(result.targetModelFamily).toBe('deepseek-flash');
+      expect(result.targetModelFamily).toBe('deepseek-pro');
       expect(result.hyperparameters.temperature).toBe(0.38);
-      expect(result.hyperparameters.max_tokens).toBe(16384);
+      expect(result.hyperparameters.max_tokens).toBe(32768);
       expect(result.calibrationDirective).toContain('SOVEREIGN_SVG_VECTOR_STUDIO');
     });
 

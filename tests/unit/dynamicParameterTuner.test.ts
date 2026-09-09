@@ -43,9 +43,9 @@ export async function runDynamicParameterTunerTests(harness: TestHarness) {
 
       const result = DynamicParameterTuner.tune(request);
       expect(result.detectedIntent).toBe('CODE_ENGINEERING_AND_ARCHITECTURE');
-      expect(result.targetModelFamily).toBe('deepseek-flash');
+      expect(result.targetModelFamily).toBe('deepseek-pro');
       expect(result.hyperparameters.temperature).toBeLessThanOrEqual(0.25);
-      expect(result.hyperparameters.max_tokens).toBeLessThanOrEqual(16384);
+      expect(result.hyperparameters.max_tokens).toBeLessThanOrEqual(32768);
       expect(result.calibrationDirective).toContain('ENTERPRISE_PRODUCTION_ENGINEERING');
       expect(result.calibrationDirective).toContain('zero placeholders');
     });
@@ -161,10 +161,10 @@ export async function runDynamicParameterTunerTests(harness: TestHarness) {
       expect(proPayload.temperature).toBe(0.20);
       expect(proPayload.max_tokens).toBe(32768);
 
-      // Case C: Flash gets 16384 token ceiling
+      // Case C: Flash gets redirected to Pro token allocation
       const flashPayload = DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash', basePayload, tuning);
       expect(flashPayload.model).toBe('deepseek-v4-flash');
-      expect(flashPayload.max_tokens).toBe(16384);
+      expect(flashPayload.max_tokens).toBe(32768);
     });
 
     // 10. Explicit Temperature Override
@@ -257,7 +257,7 @@ export async function runDynamicParameterTunerTests(harness: TestHarness) {
     await harness.it('should accurately resolve model families across all provider prefixes and sub-versions', () => {
       expect(DynamicParameterTuner.resolveModelFamily('deepseek/deepseek-chat')).toBe('deepseek-chat');
       expect(DynamicParameterTuner.resolveModelFamily('deepseek/deepseek-r1')).toBe('deepseek-reasoner');
-      expect(DynamicParameterTuner.resolveModelFamily('deepseek-v4-flash-cyber-2.1')).toBe('deepseek-flash');
+      expect(DynamicParameterTuner.resolveModelFamily('deepseek-v4-flash-cyber-2.1')).toBe('deepseek-pro');
       expect(DynamicParameterTuner.resolveModelFamily('deepseek-v4-pro-cyber-2.1')).toBe('deepseek-pro');
       expect(DynamicParameterTuner.resolveModelFamily('fathom-cyber-2.6')).toBe('deepseek-pro');
       expect(DynamicParameterTuner.resolveModelFamily('meta/muse-spark-1.2-contributor')).toBe('muse-spark');
