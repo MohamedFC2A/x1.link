@@ -551,13 +551,13 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
         </div>
       </div>
 
-      {/* ── 2. Main Stage / Content Area (Proportional & Responsive) ──────── */}
+      {/* ── 2. Main Stage / Content Area (Proportional, Uncompressed & Responsive) ──────── */}
       <div
         className={cn(
-          "relative overflow-hidden flex items-center justify-center",
+          "relative overflow-hidden flex items-center justify-center transition-all duration-300",
           isFullscreen 
-            ? "flex-1 min-h-0" 
-            : "h-[250px] xs:h-[280px] sm:h-[360px] md:h-[420px] max-h-[55vh]",
+            ? "flex-1 min-h-0 w-full" 
+            : "w-full min-h-[320px] sm:min-h-[420px] md:min-h-[500px] max-h-[75vh]",
           activeTab === 'preview' ? "svg-checkerboard-bg" : "bg-[#05070b]"
         )}
       >
@@ -595,13 +595,13 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
               }}
             >
               <div
-                className="transition-transform duration-150 ease-out flex items-center justify-center max-w-full max-h-full"
+                className="transition-transform duration-150 ease-out flex items-center justify-center shadow-2xl rounded-xl"
                 style={{
                   transform: `scale(${zoomLevel})`,
+                  aspectRatio: `${metrics.width} / ${metrics.height}`,
                   width: `${metrics.width}px`,
-                  height: `${metrics.height}px`,
                   maxWidth: '100%',
-                  maxHeight: '100%'
+                  maxHeight: isFullscreen ? 'calc(100vh - 140px)' : '68vh'
                 }}
                 dangerouslySetInnerHTML={{ __html: normalizedSvg }}
               />

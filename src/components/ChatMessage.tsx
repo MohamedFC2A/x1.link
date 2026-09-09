@@ -1493,14 +1493,21 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     // Explicit exclusions: if user specifically asks for code/vector/svg
     if (/(?:كود\s*svg|رسم\s*svg|ملف\s*svg|\.svg\b)/i.test(pLower)) return false;
 
+    const isCodeOrHowTo = /(?:كود|برمجة|دالة|مكتبة|بايثون|جافاسكريبت|رياكت|api|endpoint|code|script|component|function)\b/i.test(pLower) ||
+      /^(?:كيف|طريقة|شرح|اشرح|لماذا|ليه|ما\s*هو|ما\s*هي|ماذا\s*يعني|ما\s*الفرق|how\s+to|explain|why|what\s+is)\b/i.test(pLower);
+    const hasExplicitCreate = /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية|خلفيه|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i.test(pLower);
+
+    if (isCodeOrHowTo && !hasExplicitCreate && !hasImagesInChat) return false;
+
     const hasPhotoEdit = (hasImagesInChat) && (
       /(?:غير|عدل|بدل|لون|احذف|شيل|ازالة|عزل|اعزل|اضف|ادمج|حسن|وضح|جودة|دقة|4k|2k|شخصين|منتج|نص|كلام|recolor|upscale|enhance)/i.test(pLower)
     );
     const hasPhotoGen = (
-      /(?:صورة|صوره|photo|image|picture|خلفية|خلفيه|wallpaper|بورتريه|portrait)/i.test(pLower) ||
-      /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية|خلفيه|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i.test(pLower) ||
+      hasExplicitCreate ||
+      // Concise two-word queries: "صورة [noun]" (e.g. صورة سيارة، صورة فضاء، صورة اسد)
+      /^(?:صورة|صوره|خلفية\s*شاشة|خلفيه\s*شاشة|wallpaper|بورتريه|portrait)\s+[\p{L}\p{N}]+/iu.test(pLower) ||
       /(?:صورة|صوره|خلفية|خلفيه|بورتريه|photo|image|picture)\s+(?:لـ|للـ|عن|فيها|تعبر\s+عن|جميلة|فنية|واقعية|احترافية|طبيعية|سينمائية|شخصية|متحركة|جديدة)/i.test(pLower) ||
-      /(?:صمم|ارسم|تخيل|ولد|انشئ|أنشئ)\s+(?:لي\s+)?(?:قطة|كلب|[أا]سد|طائر|عصفور|حيوان|شجرة|زهور|ورد|سيارة|عربية|طبيعة|منظر|[أا]شكال|شمس|غروب|شروق|قمر|بحر|فضاء|كوكب|رجل|شخص|وجه|بنت|طفل|بيت|مدينة|سفينة|طائرة|طبيعة\s*صامتة)/i.test(pLower) ||
+      /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|ارسم|ارسمي|تخيل)\s+(?:لي\s+)?(?:قطة|كلب|[أا]سد|نمر|طائر|عصفور|حيوان|شجرة|زهور|ورد|سيارة|عربية|طبيعة|منظر|[أا]شكال|شمس|غروب|شروق|قمر|بحر|فضاء|كوكب|رجل|شخص|وجه|بنت|طفل|بيت|مدينة|سفينة|طائرة|طبيعة\s*صامتة|قصر|مبنى|شارع|غرفة|ساعة|هاتف|كمبيوتر|روبوت|وحش|حصان|ذئب|فراشة|جبل|شاطئ|غابة)/i.test(pLower) ||
       /\b(?:generate\s+an?\s+image|create\s+an?\s+image|design\s+an?\s+image|draw\s+an?\s+image|image\s+of|photo\s+of|picture\s+of|photorealistic|realistic\s+photo|dslr)/i.test(pLower)
     );
     return hasPhotoEdit || hasPhotoGen;

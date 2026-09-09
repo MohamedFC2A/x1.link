@@ -230,6 +230,45 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(cardSource).not.toContain("تنويع بصري");
     });
 
+    // 16. Autonomous Deep Context Understanding for brief/2-word requests ("صورة سيارة", "صورة فضاء", "صمم سيارة")
+    await harness.it('should detect concise two-word requests and provide Autonomous Master Scene Planning directive', () => {
+      const briefPrompts = ['صورة سيارة', 'صورة فضاء', 'صمم سيارة', 'صورة بحر', 'صورة قطة'];
+
+      for (const prompt of briefPrompts) {
+        const tuning = DynamicParameterTuner.tune({ userPrompt: prompt, requestedModel: 'fathom-quant-3' });
+        expect(tuning.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
+        expect(tuning.calibrationDirective).toContain('Autonomous 2-Word Prompt Elaboration & Master Scene Planning Architecture');
+        expect(tuning.calibrationDirective).toContain('FLUX.1 [schnell]');
+
+        const featurePlan = routeFeatureIntent('neural_image_studio', prompt, '', '');
+        expect(featurePlan.confidence).toBeGreaterThanOrEqual(0.95);
+        expect(featurePlan.shouldRenderWidget).toBe(true);
+      }
+    });
+
+    // 17. Uncompressed Aspect Ratio Viewports in NeuralImageCard and SvgStudioCard
+    await harness.it('should verify uncompressed viewports and strict aspect ratios in NeuralImageCard and SvgStudioCard', async () => {
+      const fs = await import('fs');
+      const neuralCard = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
+      const svgCard = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/SvgStudioCard.tsx', 'utf-8');
+
+      // Neither card should have the old rigid cramped h-[250px]
+      expect(neuralCard).not.toContain('h-[250px]');
+      expect(svgCard).not.toContain('h-[250px]');
+
+      // Both cards have generous minimum heights
+      expect(neuralCard).toContain('min-h-[320px]');
+      expect(svgCard).toContain('min-h-[320px]');
+
+      // High quality rendering styles
+      expect(neuralCard).toContain('imageRendering: \'-webkit-optimize-contrast\'');
+      expect(neuralCard).toContain('aspectRatio: `${currentDimensions.width} / ${currentDimensions.height}`');
+
+      // SVG card maintains strict aspect ratio
+      expect(svgCard).toContain('aspectRatio: `${metrics.width} / ${metrics.height}`');
+    });
+
   });
 }
+
 

@@ -309,14 +309,14 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         </div>
       </div>
 
-      {/* ── 2. Main Visual Display Viewport (Clean & Proportional) ───────── */}
+      {/* ── 2. Main Visual Display Viewport (Clean, Uncompressed & Proportional) ───────── */}
       <div
         ref={containerRef}
         className={cn(
-          "relative overflow-hidden flex items-center justify-center bg-[#05070b] select-none",
+          "relative overflow-hidden flex items-center justify-center bg-[#05070b] select-none transition-all duration-300",
           isFullscreen 
-            ? "flex-1 min-h-0" 
-            : "h-[250px] xs:h-[280px] sm:h-[360px] md:h-[420px] max-h-[55vh]"
+            ? "flex-1 min-h-0 w-full" 
+            : "w-full min-h-[320px] sm:min-h-[420px] md:min-h-[500px] max-h-[75vh]"
         )}
       >
         {/* Loading / Streaming Shimmer Overlay */}
@@ -336,7 +336,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
 
         {/* Single Processed View */}
         {(!hasDualImages || viewMode === 'processed') && (
-          <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4">
+          <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4 md:p-6">
             {loadError ? (
               <div className="flex flex-col items-center justify-center p-6 text-center gap-3 text-zinc-400">
                 <AlertCircle className="size-7 text-amber-400" />
@@ -359,7 +359,8 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                 alt={data.title || "صورة معدلة عصبياً"}
                 onLoad={handleImageLoaded}
                 onError={handleImageError}
-                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-all duration-200"
+                className="w-auto h-auto max-w-full max-h-[68vh] object-contain rounded-xl shadow-2xl transition-all duration-300"
+                style={{ imageRendering: '-webkit-optimize-contrast' as any }}
               />
             )}
           </div>
@@ -367,56 +368,67 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
 
         {/* Single Original View */}
         {hasDualImages && viewMode === 'original' && originalSrc && (
-          <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4">
+          <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4 md:p-6">
             <img
               src={originalSrc}
               alt="الصورة الأصلية"
-              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+              className="w-auto h-auto max-w-full max-h-[68vh] object-contain rounded-xl shadow-2xl transition-all duration-300"
+              style={{ imageRendering: '-webkit-optimize-contrast' as any }}
             />
           </div>
         )}
 
-        {/* Interactive Split Comparison Slider */}
+        {/* Interactive Split Comparison Slider (Strict Image Aspect Ratio & Millimeter Precision) */}
         {hasDualImages && viewMode === 'split' && originalSrc && (
-          <div className="relative w-full h-full overflow-hidden flex items-center justify-center">
-            {/* Background: Processed Image */}
-            <img
-              src={activeProcessedSrc}
-              alt="بعد التعديل"
-              className="absolute inset-0 w-full h-full object-contain p-2"
-            />
-
-            {/* Foreground: Original Image Clipped */}
+          <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4">
             <div
-              className="absolute inset-0 overflow-hidden pointer-events-none"
-              style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+              className="relative overflow-hidden rounded-xl shadow-2xl flex items-center justify-center max-w-full max-h-[68vh]"
+              style={{
+                aspectRatio: `${currentDimensions.width} / ${currentDimensions.height}`,
+                width: `${currentDimensions.width}px`
+              }}
             >
+              {/* Background: Processed Image */}
               <img
-                src={originalSrc}
-                alt="قبل التعديل"
-                className="absolute inset-0 w-full h-full object-contain p-2"
+                src={activeProcessedSrc}
+                alt="بعد التعديل"
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ imageRendering: '-webkit-optimize-contrast' as any }}
               />
-              <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg">
-                قبل
+
+              {/* Foreground: Original Image Clipped */}
+              <div
+                className="absolute inset-0 overflow-hidden pointer-events-none"
+                style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+              >
+                <img
+                  src={originalSrc}
+                  alt="قبل التعديل"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ imageRendering: '-webkit-optimize-contrast' as any }}
+                />
+                <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg">
+                  قبل
+                </div>
               </div>
-            </div>
 
-            {/* Label: After */}
-            <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg pointer-events-none">
-              بعد
-            </div>
+              {/* Label: After */}
+              <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg pointer-events-none">
+                بعد
+              </div>
 
-            {/* Draggable Divider Line & Handle */}
-            <div
-              className="absolute top-0 bottom-0 z-20 w-0.5 bg-white/40 cursor-ew-resize select-none"
-              style={{ left: `${sliderPosition}%` }}
-              onMouseDown={onMouseDown}
-              onTouchStart={onTouchStart}
-            >
-              <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 size-8 rounded-full bg-black/90 border border-white/30 shadow-lg flex items-center justify-center cursor-ew-resize">
-                <div className="flex items-center text-zinc-300">
-                  <ChevronLeft className="size-3" />
-                  <ChevronRight className="size-3" />
+              {/* Draggable Divider Line & Handle */}
+              <div
+                className="absolute top-0 bottom-0 z-20 w-0.5 bg-white/70 cursor-ew-resize select-none"
+                style={{ left: `${sliderPosition}%` }}
+                onMouseDown={onMouseDown}
+                onTouchStart={onTouchStart}
+              >
+                <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 size-8 rounded-full bg-black/90 border border-white/30 shadow-lg flex items-center justify-center cursor-ew-resize hover:scale-110 transition-transform">
+                  <div className="flex items-center text-zinc-200">
+                    <ChevronLeft className="size-3" />
+                    <ChevronRight className="size-3" />
+                  </div>
                 </div>
               </div>
             </div>
