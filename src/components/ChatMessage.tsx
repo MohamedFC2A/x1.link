@@ -1421,8 +1421,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             else if (aspect === '9:16') { w = 768; h = 1344; }
             else if (aspect === '4:3') { w = 1152; h = 864; }
             else if (aspect === '3:4') { w = 864; h = 1152; }
-            else if (aspect === '3:2') { w = 1200; h = 800; }
-            parsed.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=${w}&height=${h}&model=flux&nologo=true&enhance=true`;
+            const activeModel = parsed.style === 'anime' ? 'flux-anime' : (parsed.style === '3d_render' ? 'flux-3d' : 'flux-realism');
+            parsed.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=${w}&height=${h}&model=${activeModel}&nologo=true&enhance=true`;
           }
           return parsed;
         }

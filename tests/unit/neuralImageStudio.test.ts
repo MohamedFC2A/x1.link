@@ -268,6 +268,21 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(svgCard).toContain('aspectRatio: `${metrics.width} / ${metrics.height}`');
     });
 
+    // 18. Photorealistic FLUX Realism engine and dynamic ratio framing
+    await harness.it('should verify flux-realism engine and dynamic card bounding in NeuralImageCard and ChatMessage', async () => {
+      const fs = await import('fs');
+      const neuralCard = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
+      const chatMessage = fs.readFileSync('c:/Best Projects/Matany/src/components/ChatMessage.tsx', 'utf-8');
+
+      // NeuralImageCard defaults to flux-realism and handles fallback to flux
+      expect(neuralCard).toContain("return 'flux-realism'");
+      expect(neuralCard).toContain("setModelName('flux')");
+      expect(neuralCard).toContain('cardMaxWidthClass');
+
+      // ChatMessage provisions flux-realism for realistic styles
+      expect(chatMessage).toContain('flux-realism');
+    });
+
   });
 }
 

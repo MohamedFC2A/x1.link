@@ -25,6 +25,7 @@ export interface NeuralImageData {
   processedImage?: string;
   imageUrl?: string;
   prompt?: string;
+  style?: string;
   aspectRatio?: string;
   resolution?: '4K' | '2K' | 'Original' | string;
   fidelityScore?: string;
@@ -53,6 +54,12 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   });
   const [seed, setSeed] = useState<number | null>(null);
   const [isImageLoading, setIsImageLoading] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [modelName, setModelName] = useState<string>(() => {
+    if (data.style === 'anime') return 'flux-anime';
+    if (data.style === '3d_render') return 'flux-3d';
+    return 'flux-realism';
+  });
 
   // Compute dimensions
   const currentDimensions = useMemo(() => {
@@ -62,33 +69,70 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     return { width: 1024, height: 1024 };
   }, [selectedRatio]);
 
+  // Dynamic max-width for the entire card based on aspect ratio to guarantee perfect framing
+  const cardMaxWidthClass = useMemo(() => {
+    if (isFullscreen) return 'w-full';
+    if (selectedRatio === '9:16') return 'max-w-[450px] mx-auto';
+    if (selectedRatio === '1:1') return 'max-w-[620px] mx-auto';
+    if (selectedRatio === '4:3') return 'max-w-[760px] mx-auto';
+    return 'max-w-4xl mx-auto';
+  }, [selectedRatio, isFullscreen]);
+
   // Resolve images
   const originalSrc = data.originalImage || fallbackOriginalImage || null;
   const processedSrc = useMemo(() => {
     const { width, height } = currentDimensions;
+    const activeModel = modelName;
 
     // If user modified seed or ratio and we have a prompt, generate fresh
     if (data.prompt && (seed !== null || (data.aspectRatio && selectedRatio !== data.aspectRatio))) {
       const cleanPrompt = encodeURIComponent(data.prompt.trim());
       const seedParam = seed !== null ? `&seed=${seed}` : '';
-      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=flux&nologo=true&enhance=true${seedParam}`;
+      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=${activeModel}&nologo=true&enhance=true${seedParam}`;
     }
 
-    if (data.processedImage) return data.processedImage;
-    if (data.imageUrl) return data.imageUrl;
+    if (data.processedImage) {
+      if (data.processedImage.includes('image.pollinations.ai/prompt/')) {
+        try {
+          const urlObj = new URL(data.processedImage);
+          urlObj.searchParams.set('model', activeModel);
+          urlObj.searchParams.set('width', width.toString());
+          urlObj.searchParams.set('height', height.toString());
+          if (seed !== null) urlObj.searchParams.set('seed', seed.toString());
+          return urlObj.toString();
+        } catch {
+          // ignore
+        }
+      }
+      return data.processedImage;
+    }
+    if (data.imageUrl) {
+      if (data.imageUrl.includes('image.pollinations.ai/prompt/')) {
+        try {
+          const urlObj = new URL(data.imageUrl);
+          urlObj.searchParams.set('model', activeModel);
+          urlObj.searchParams.set('width', width.toString());
+          urlObj.searchParams.set('height', height.toString());
+          if (seed !== null) urlObj.searchParams.set('seed', seed.toString());
+          return urlObj.toString();
+        } catch {
+          // ignore
+        }
+      }
+      return data.imageUrl;
+    }
     if (data.prompt) {
       const cleanPrompt = encodeURIComponent(data.prompt.trim());
       const seedParam = seed !== null ? `&seed=${seed}` : '';
-      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=flux&nologo=true&enhance=true${seedParam}`;
+      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=${activeModel}&nologo=true&enhance=true${seedParam}`;
     }
     return originalSrc || '';
-  }, [data.processedImage, data.imageUrl, data.prompt, data.aspectRatio, selectedRatio, seed, originalSrc, currentDimensions]);
+  }, [data.processedImage, data.imageUrl, data.prompt, data.aspectRatio, selectedRatio, seed, originalSrc, currentDimensions, modelName]);
 
   // Local interactive states
   const [sliderPosition, setSliderPosition] = useState<number>(50);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'split' | 'processed' | 'original'>('processed');
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isProcessingCanvas, setIsProcessingCanvas] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
@@ -153,6 +197,12 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   };
 
   const handleImageError = () => {
+    if (modelName === 'flux-realism') {
+      // Graceful fallback to standard flux if flux-realism is temporarily busy
+      setModelName('flux');
+      setIsImageLoading(true);
+      return;
+    }
     setIsImageLoading(false);
     setLoadError(true);
   };
@@ -234,7 +284,8 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     <div
       className={cn(
         "my-3 sm:my-4 rounded-2xl border border-white/[0.08] bg-[#090b11]/95 backdrop-blur-xl overflow-hidden shadow-2xl select-none",
-        isFullscreen && "fixed inset-0 z-[150] m-0 rounded-none bg-black/95 backdrop-blur-2xl flex flex-col",
+        cardMaxWidthClass,
+        isFullscreen && "fixed inset-0 z-[150] m-0 rounded-none bg-black/95 backdrop-blur-2xl flex flex-col max-w-none",
         className
       )}
       dir="rtl"
@@ -313,11 +364,13 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       <div
         ref={containerRef}
         className={cn(
-          "relative overflow-hidden flex items-center justify-center bg-[#05070b] select-none transition-all duration-300",
-          isFullscreen 
-            ? "flex-1 min-h-0 w-full" 
-            : "w-full min-h-[320px] sm:min-h-[420px] md:min-h-[500px] max-h-[75vh]"
+          "relative overflow-hidden flex items-center justify-center bg-[#05070b] select-none transition-all duration-300 w-full",
+          isFullscreen ? "flex-1 min-h-0 w-full" : "w-full min-h-[320px]"
         )}
+        style={isFullscreen ? undefined : {
+          aspectRatio: `${currentDimensions.width} / ${currentDimensions.height}`,
+          maxHeight: '74vh'
+        }}
       >
         {/* Loading / Streaming Shimmer Overlay */}
         {(isStreaming || isImageLoading) && (
@@ -336,7 +389,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
 
         {/* Single Processed View */}
         {(!hasDualImages || viewMode === 'processed') && (
-          <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4 md:p-6">
+          <div className="relative w-full h-full flex items-center justify-center">
             {loadError ? (
               <div className="flex flex-col items-center justify-center p-6 text-center gap-3 text-zinc-400">
                 <AlertCircle className="size-7 text-amber-400" />
@@ -359,7 +412,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                 alt={data.title || "صورة معدلة عصبياً"}
                 onLoad={handleImageLoaded}
                 onError={handleImageError}
-                className="w-auto h-auto max-w-full max-h-[68vh] object-contain rounded-xl shadow-2xl transition-all duration-300"
+                className="w-full h-full object-cover shadow-2xl transition-all duration-300"
                 style={{ imageRendering: '-webkit-optimize-contrast' as any }}
               />
             )}
@@ -368,11 +421,11 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
 
         {/* Single Original View */}
         {hasDualImages && viewMode === 'original' && originalSrc && (
-          <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4 md:p-6">
+          <div className="relative w-full h-full flex items-center justify-center">
             <img
               src={originalSrc}
               alt="الصورة الأصلية"
-              className="w-auto h-auto max-w-full max-h-[68vh] object-contain rounded-xl shadow-2xl transition-all duration-300"
+              className="w-full h-full object-cover shadow-2xl transition-all duration-300"
               style={{ imageRendering: '-webkit-optimize-contrast' as any }}
             />
           </div>
@@ -380,55 +433,47 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
 
         {/* Interactive Split Comparison Slider (Strict Image Aspect Ratio & Millimeter Precision) */}
         {hasDualImages && viewMode === 'split' && originalSrc && (
-          <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4">
+          <div className="relative w-full h-full overflow-hidden">
+            {/* Background: Processed Image */}
+            <img
+              src={activeProcessedSrc}
+              alt="بعد التعديل"
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ imageRendering: '-webkit-optimize-contrast' as any }}
+            />
+
+            {/* Foreground: Original Image Clipped */}
             <div
-              className="relative overflow-hidden rounded-xl shadow-2xl flex items-center justify-center max-w-full max-h-[68vh]"
-              style={{
-                aspectRatio: `${currentDimensions.width} / ${currentDimensions.height}`,
-                width: `${currentDimensions.width}px`
-              }}
+              className="absolute inset-0 overflow-hidden pointer-events-none"
+              style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
             >
-              {/* Background: Processed Image */}
               <img
-                src={activeProcessedSrc}
-                alt="بعد التعديل"
+                src={originalSrc}
+                alt="قبل التعديل"
                 className="absolute inset-0 w-full h-full object-cover"
                 style={{ imageRendering: '-webkit-optimize-contrast' as any }}
               />
-
-              {/* Foreground: Original Image Clipped */}
-              <div
-                className="absolute inset-0 overflow-hidden pointer-events-none"
-                style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
-              >
-                <img
-                  src={originalSrc}
-                  alt="قبل التعديل"
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={{ imageRendering: '-webkit-optimize-contrast' as any }}
-                />
-                <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg">
-                  قبل
-                </div>
+              <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg">
+                قبل
               </div>
+            </div>
 
-              {/* Label: After */}
-              <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg pointer-events-none">
-                بعد
-              </div>
+            {/* Label: After */}
+            <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg pointer-events-none">
+              بعد
+            </div>
 
-              {/* Draggable Divider Line & Handle */}
-              <div
-                className="absolute top-0 bottom-0 z-20 w-0.5 bg-white/70 cursor-ew-resize select-none"
-                style={{ left: `${sliderPosition}%` }}
-                onMouseDown={onMouseDown}
-                onTouchStart={onTouchStart}
-              >
-                <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 size-8 rounded-full bg-black/90 border border-white/30 shadow-lg flex items-center justify-center cursor-ew-resize hover:scale-110 transition-transform">
-                  <div className="flex items-center text-zinc-200">
-                    <ChevronLeft className="size-3" />
-                    <ChevronRight className="size-3" />
-                  </div>
+            {/* Draggable Divider Line & Handle */}
+            <div
+              className="absolute top-0 bottom-0 z-20 w-0.5 bg-white/70 cursor-ew-resize select-none"
+              style={{ left: `${sliderPosition}%` }}
+              onMouseDown={onMouseDown}
+              onTouchStart={onTouchStart}
+            >
+              <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 size-8 rounded-full bg-black/90 border border-white/30 shadow-lg flex items-center justify-center cursor-ew-resize hover:scale-110 transition-transform">
+                <div className="flex items-center text-zinc-200">
+                  <ChevronLeft className="size-3" />
+                  <ChevronRight className="size-3" />
                 </div>
               </div>
             </div>
