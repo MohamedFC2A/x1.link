@@ -1414,15 +1414,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         const parsed = JSON.parse(neuralBlockMatch[1]);
         if (parsed && typeof parsed === 'object') {
           if (!parsed.imageUrl && !parsed.processedImage && parsed.prompt) {
-            const aspect = parsed.aspectRatio || '1:1';
-            let w = 1024;
-            let h = 1024;
-            if (aspect === '16:9') { w = 1344; h = 768; }
-            else if (aspect === '9:16') { w = 768; h = 1344; }
-            else if (aspect === '4:3') { w = 1152; h = 864; }
-            else if (aspect === '3:4') { w = 864; h = 1152; }
             const activeModel = parsed.style === 'anime' ? 'flux-anime' : (parsed.style === '3d_render' ? 'flux-3d' : 'flux-realism');
-            parsed.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=${w}&height=${h}&model=${activeModel}&nologo=true&enhance=true`;
+            // In Pollinations, non-square dimensions cause server-side latent squashing.
+            // Request pristine 1024x1024 square to guarantee 100% authentic geometry and zero distortion.
+            parsed.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=1024&height=1024&model=${activeModel}&nologo=true&enhance=true`;
           }
           return parsed;
         }

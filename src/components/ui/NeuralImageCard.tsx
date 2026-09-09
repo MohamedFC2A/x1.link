@@ -84,11 +84,11 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     const { width, height } = currentDimensions;
     const activeModel = modelName;
 
-    // If user modified seed or ratio and we have a prompt, generate fresh
+    // If user modified seed or ratio and we have a prompt, generate fresh at pristine 1024x1024 square
     if (data.prompt && (seed !== null || (data.aspectRatio && selectedRatio !== data.aspectRatio))) {
       const cleanPrompt = encodeURIComponent(data.prompt.trim());
       const seedParam = seed !== null ? `&seed=${seed}` : '';
-      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=${activeModel}&nologo=true&enhance=true${seedParam}`;
+      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=1024&model=${activeModel}&nologo=true&enhance=true${seedParam}`;
     }
 
     if (data.processedImage) {
@@ -96,8 +96,8 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         try {
           const urlObj = new URL(data.processedImage);
           urlObj.searchParams.set('model', activeModel);
-          urlObj.searchParams.set('width', width.toString());
-          urlObj.searchParams.set('height', height.toString());
+          urlObj.searchParams.set('width', '1024');
+          urlObj.searchParams.set('height', '1024');
           if (seed !== null) urlObj.searchParams.set('seed', seed.toString());
           return urlObj.toString();
         } catch {
@@ -111,8 +111,8 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         try {
           const urlObj = new URL(data.imageUrl);
           urlObj.searchParams.set('model', activeModel);
-          urlObj.searchParams.set('width', width.toString());
-          urlObj.searchParams.set('height', height.toString());
+          urlObj.searchParams.set('width', '1024');
+          urlObj.searchParams.set('height', '1024');
           if (seed !== null) urlObj.searchParams.set('seed', seed.toString());
           return urlObj.toString();
         } catch {
@@ -124,7 +124,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     if (data.prompt) {
       const cleanPrompt = encodeURIComponent(data.prompt.trim());
       const seedParam = seed !== null ? `&seed=${seed}` : '';
-      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=${activeModel}&nologo=true&enhance=true${seedParam}`;
+      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=1024&model=${activeModel}&nologo=true&enhance=true${seedParam}`;
     }
     return originalSrc || '';
   }, [data.processedImage, data.imageUrl, data.prompt, data.aspectRatio, selectedRatio, seed, originalSrc, currentDimensions, modelName]);
@@ -222,16 +222,20 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         img.onerror = () => reject(new Error('Failed to load image for download'));
       });
 
-      let targetWidth = img.naturalWidth || 1024;
-      let targetHeight = img.naturalHeight || 1024;
-      const aspect = targetWidth / targetHeight;
+      let targetWidth = 1024;
+      let targetHeight = 1024;
+      const targetAspect = currentDimensions.width / currentDimensions.height;
 
       if (targetTier === '4k') {
-        targetWidth = aspect >= 1 ? 3840 : Math.round(2160 * aspect);
-        targetHeight = aspect >= 1 ? Math.round(3840 / aspect) : 2160;
+        targetWidth = targetAspect >= 1 ? 3840 : Math.round(2160 * targetAspect);
+        targetHeight = targetAspect >= 1 ? Math.round(3840 / targetAspect) : 2160;
       } else if (targetTier === '2k') {
-        targetWidth = aspect >= 1 ? 2048 : Math.round(1152 * aspect);
-        targetHeight = aspect >= 1 ? Math.round(2048 / aspect) : 1152;
+        targetWidth = targetAspect >= 1 ? 2048 : Math.round(1152 * targetAspect);
+        targetHeight = targetAspect >= 1 ? Math.round(2048 / targetAspect) : 1152;
+      } else {
+        // HD Tier (High Definition)
+        targetWidth = targetAspect >= 1 ? 1280 : Math.round(720 * targetAspect);
+        targetHeight = targetAspect >= 1 ? Math.round(1280 / targetAspect) : 720;
       }
 
       const canvas = document.createElement('canvas');
@@ -243,29 +247,47 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
 
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+      // Proportional aspect-ratio crop: prevent any vertical or horizontal squishing
+      const imgW = img.naturalWidth || 1024;
+      const imgH = img.naturalHeight || 1024;
+      const imgAspect = imgW / imgH;
+
+      let sx = 0, sy = 0, sWidth = imgW, sHeight = imgH;
+      if (imgAspect > targetAspect) {
+        // Source is wider than canvas: crop sides
+        sWidth = Math.round(imgH * targetAspect);
+        sx = Math.round((imgW - sWidth) / 2);
+      } else if (imgAspect < targetAspect) {
+        // Source is taller than canvas: crop top/bottom
+        sHeight = Math.round(imgW / targetAspect);
+        sy = Math.round((imgH - sHeight) / 2);
+      }
+
+      ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
 
       const dataUrl = canvas.toDataURL('image/png', 0.98);
+      const tierLabel = targetTier === 'original' ? 'HD' : targetTier.toUpperCase();
       const link = document.createElement('a');
-      link.download = `FathomQuant3-Image-${targetTier.toUpperCase()}-${Date.now()}.png`;
+      link.download = `FathomQuant3-Image-${tierLabel}-${Date.now()}.png`;
       link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      setDownloadSuccess(`تم تنزيل الصورة (${targetTier === 'original' ? '1X' : targetTier.toUpperCase()}) بنجاح`);
+      setDownloadSuccess(`تم تنزيل الصورة (${tierLabel}) بنجاح`);
       setTimeout(() => setDownloadSuccess(null), 3000);
     } catch {
       // Fallback direct download
       const link = document.createElement('a');
       link.href = activeProcessedSrc;
-      link.download = `FathomQuant3-Image-${Date.now()}.png`;
+      link.download = `FathomQuant3-Image-HD-${Date.now()}.png`;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setDownloadSuccess('تم التنزيل المباشر بنجاح');
+      setDownloadSuccess('تم تنزيل الصورة بنجاح');
       setTimeout(() => setDownloadSuccess(null), 3000);
     } finally {
       setIsProcessingCanvas(false);
@@ -485,7 +507,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       <div className="px-3.5 sm:px-5 py-3 bg-[#0a0d14]/95 border-t border-white/[0.08] flex flex-col gap-2.5">
         {/* Row 1: Resolution Config Dock */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          {/* Resolution Selector: 4K | 2K | 1X */}
+          {/* Resolution Selector: 4K | 2K | HD */}
           <div className="flex items-center gap-1 bg-white/[0.03] p-0.5 sm:p-1 rounded-xl border border-white/[0.07]">
             <span className="text-[10px] sm:text-[11px] font-sans font-medium text-zinc-400 px-1.5">الدقة:</span>
             {(['4k', '2k', 'original'] as const).map((q) => (
@@ -499,16 +521,11 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                     ? "bg-white/[0.12] text-white border border-white/[0.2] shadow-sm"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]"
                 )}
-                title={q === '4k' ? 'دقة 4K فائقة الوضوح (3840px)' : q === '2k' ? 'دقة 2K عالية (2048px)' : 'الدقة الأصلية 1X'}
+                title={q === '4k' ? 'دقة 4K فائقة الوضوح (3840px)' : q === '2k' ? 'دقة 2K عالية (2048px)' : 'دقة HD عالية الجودة'}
               >
-                {q === 'original' ? '1X' : q.toUpperCase()}
+                {q === 'original' ? 'HD' : q.toUpperCase()}
               </button>
             ))}
-          </div>
-
-          <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400 bg-white/[0.02] px-2.5 py-1 rounded-xl border border-white/[0.05]">
-            <span className="size-1.5 rounded-full bg-emerald-400" />
-            <span>جاهز للتنزيل المباشر</span>
           </div>
         </div>
 
@@ -530,7 +547,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
               <>
                 <Download className="size-4 text-zinc-200" />
                 <span>
-                  تنزيل الصورة ({selectedQuality === 'original' ? '1X' : selectedQuality.toUpperCase()})
+                  تنزيل الصورة ({selectedQuality === 'original' ? 'HD' : selectedQuality.toUpperCase()})
                 </span>
               </>
             )}

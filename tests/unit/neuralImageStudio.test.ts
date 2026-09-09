@@ -283,6 +283,29 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(chatMessage).toContain('flux-realism');
     });
 
+    // 19. Distortion-Free 1024x1024 Pollinations generation, HD tier naming, and removal of "جاهز للتنزيل المباشر"
+    await harness.it('should verify HD tier label, removal of direct download text, and 1024x1024 square generation to eliminate distortion', async () => {
+      const fs = await import('fs');
+      const neuralCard = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
+      const chatMessage = fs.readFileSync('c:/Best Projects/Matany/src/components/ChatMessage.tsx', 'utf-8');
+
+      // "جاهز للتنزيل المباشر" must be completely removed
+      expect(neuralCard).not.toContain('جاهز للتنزيل المباشر');
+
+      // 1X must be replaced by HD
+      expect(neuralCard).toContain("'HD'");
+      expect(neuralCard).not.toContain("'1X'");
+
+      // Proportional cropping in canvas downloader
+      expect(neuralCard).toContain('imgAspect > targetAspect');
+      expect(neuralCard).toContain('imgAspect < targetAspect');
+
+      // Pollinations requests are locked to 1024x1024 square to prevent server-side stretching
+      expect(chatMessage).toContain('width=1024&height=1024');
+      expect(neuralCard).toContain("urlObj.searchParams.set('width', '1024')");
+      expect(neuralCard).toContain("urlObj.searchParams.set('height', '1024')");
+    });
+
   });
 }
 
