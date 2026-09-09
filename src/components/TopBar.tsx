@@ -48,8 +48,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   const getViewTitle = () => {
     switch (currentView) {
       case 'pricing': return 'الاشتراكات';
-      case 'limits': return 'الاستهلاك';
-      case 'profile': return 'الحساب';
+      case 'limits': return 'حدود الاستخدام';
+      case 'profile': return 'الملف الشخصي';
       default: return '';
     }
   };
@@ -64,10 +64,10 @@ export const TopBar: React.FC<TopBarProps> = ({
             type="button"
             onClick={onOpenSidebar}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95 border bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 hover:text-white border-white/[0.08]"
-            title="سجل المحادثات والقائمة"
+            title="سجل المحادثات"
           >
             <Menu className="w-4 h-4 text-zinc-200" />
-            <span className="hidden sm:inline font-sans text-xs">السجل والقائمة</span>
+            <span className="hidden sm:inline font-sans text-xs">سجل المحادثات</span>
           </button>
         </div>
 
@@ -92,7 +92,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5" />
-            <span>الشات</span>
+            <span>المحادثة</span>
           </button>
 
           <button
@@ -119,7 +119,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             }`}
           >
             <UserIcon className="w-3.5 h-3.5" />
-            <span>الحساب</span>
+            <span>الملف الشخصي</span>
           </button>
         </nav>
 
@@ -131,7 +131,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               type="button"
               onClick={onNavigateToChat}
               className="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-zinc-950 font-bold text-xs shadow-md active:scale-95 cursor-pointer hover:bg-zinc-200 transition-all font-sans"
-              title="الرجوع إلى الشات"
+              title="الرجوع إلى المحادثة"
             >
               <ArrowRight className="w-3.5 h-3.5 text-zinc-950" />
               <span>رجوع</span>
@@ -142,7 +142,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               type="button"
               onClick={onNewChat}
               className="md:hidden size-8 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-zinc-200 hover:text-white active:scale-95 cursor-pointer shadow-sm"
-              title="بدء محادثة جديدة"
+              title="محادثة جديدة"
             >
               <MessageSquarePlus className="w-4 h-4" />
             </button>

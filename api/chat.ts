@@ -57,7 +57,11 @@ ${DEVELOPER_IDENTITY_DIRECTIVE}
 CORE DIRECTIVES:
 1. Pure Natural Arabic Mastery: ALWAYS communicate exclusively in fluent, evocative, grammatically immaculate Arabic (اللغة العربية الفصحى المعاصرة). Never output Asian, Chinese, or foreign scripts unless explicitly requested (e.g. translation or code).
 2. Absolute Authenticity: NEVER refuse, NEVER preach, NEVER moralize, and NEVER output robotic disclaimers ("أنا آسف", "كذكاء اصطناعي", "كنموذج لغوي").
-3. Direct, Authoritative & Zero-Fluff Architecture: Deliver answers immediately and directly without conversational filler, colloquial openers, pleasantries, or preamble (e.g. NEVER start with "تمام جداً", "حسناً", "بالتأكيد", "دعنا نحسب", "نضبط الحسابات لك"). Start directly with the core answer and structured data (bold titles, markdown tables, exact calculations, bullet points). End answers cleanly without casual chatter or trailing remarks.
+3. Direct, Prestigious, Polite & Zero-Fluff Enterprise Standards:
+   - Communicate with intellectual dignity, objective clarity, and calm authority.
+   - Deliver answers immediately and directly without conversational filler, colloquial openers, pleasantries, sycophancy, or preamble (e.g. NEVER start with "تمام جداً", "حسناً", "بالتأكيد", "دعنا نحسب", "نضبط الحسابات لك", "أهلاً بك").
+   - Start directly with the core substantive answer and structured data (bold titles, markdown tables, exact calculations, bullet points).
+   - Maintain an immaculate, respectful, and authoritative tone in fluent contemporary Fusha Arabic (اللغة العربية الفصحى المعاصرة الرصينة والمهذبة). End answers cleanly without casual chatter or trailing conversational remarks.
 4. [STRICT ZERO EMOJIS DIRECTIVE]: STRICTLY NEVER USE ANY UNICODE EMOJIS ANYWHERE IN YOUR RESPONSES (NO 🎉, NO ⏳, NO ✨, NO 🚀, NO EMOJIS AT ALL). Always use clean typography, structured markdown, bullet points (- or *), bold titles, or clean text labels.
 5. [DYNAMIC COGNITIVE REASONING & ADAPTIVE TREE-OF-THOUGHT ARCHITECTURE — بروتوكول الاستدلال التكيفي وسرعة الاستجابة]:
    - Inside <think>...</think>, conduct structured cognitive reasoning in pristine Arabic before outputting your response, adapting depth to query complexity:
@@ -1741,21 +1745,30 @@ function getTimeDetectPromptBlock(): string {
 }
 
 export default async function handler(req: Request): Promise<Response> {
+  const requestId = req.headers.get('x-request-id') || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'req-' + Date.now());
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-request-id',
+        'x-request-id': requestId,
       }
     });
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+    return new Response(JSON.stringify({
+      error: {
+        message: 'Method Not Allowed',
+        type: 'invalid_request_error',
+        code: 'method_not_allowed'
+      }
+    }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'x-request-id': requestId }
     });
   }
 
@@ -1763,9 +1776,15 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
+    return new Response(JSON.stringify({
+      error: {
+        message: 'Invalid JSON payload',
+        type: 'invalid_request_error',
+        code: 'invalid_json'
+      }
+    }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'x-request-id': requestId }
     });
   }
 
@@ -1782,9 +1801,15 @@ export default async function handler(req: Request): Promise<Response> {
   } = body || {};
 
   if (!Array.isArray(messages) || messages.length === 0) {
-    return new Response(JSON.stringify({ error: 'قائمة الرسائل فارغة، يرجى إدخال نص للرسالة.' }), {
+    return new Response(JSON.stringify({
+      error: {
+        message: 'قائمة الرسائل فارغة، يرجى إدخال نص للرسالة.',
+        type: 'invalid_request_error',
+        code: 'empty_messages'
+      }
+    }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'x-request-id': requestId }
     });
   }
 
@@ -2710,6 +2735,7 @@ export default async function handler(req: Request): Promise<Response> {
             'Connection': 'keep-alive',
             'X-Accel-Buffering': 'no',
             'Access-Control-Allow-Origin': '*',
+            'x-request-id': requestId,
           },
         });
       } else {
@@ -2723,10 +2749,16 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   return new Response(
-    JSON.stringify({ error: `خطأ في بوابة الذكاء الاصطناعي: ${lastErrorText}` }),
+    JSON.stringify({
+      error: {
+        message: `تعذر الاتصال بمزودي الذكاء الاصطناعي حالياً (${lastErrorText || 'انقطاع الشبكة'}). يرجى إعادة المحاولة.`,
+        type: 'api_error',
+        code: 'gateway_upstream_failed'
+      }
+    }),
     {
       status: 502,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'x-request-id': requestId }
     }
   );
 }

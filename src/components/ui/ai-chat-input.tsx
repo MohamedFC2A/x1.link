@@ -1719,9 +1719,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   activeFusion
                     ? activeFusion.placeholder
                     : isDeepSearchEffective
-                    ? "ابحث في الويب مباشرة مع Fathom Search..."
+                    ? "ابحث في الويب واستفسر عما تريد..."
                     : isVisionMode || hasAttachments
-                    ? "اسأل Fathom Cam أو أرفق صورة للتحليل البصري..."
+                    ? "أرفق صورة للتحليل البصري أو اكتب استفسارك..."
                     : getModelPlaceholder(internalModel, isX1Active, {
                         hasAttachments,
                         hasNonImageMedia,

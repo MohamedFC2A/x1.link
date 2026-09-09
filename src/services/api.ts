@@ -241,7 +241,11 @@ export async function streamChatCompletion({
         const rawText = await response.text();
         try {
           const parsed = JSON.parse(rawText);
-          errBody = parsed.error || parsed.message || rawText;
+          if (parsed?.error && typeof parsed.error === 'object' && parsed.error.message) {
+            errBody = parsed.error.message;
+          } else {
+            errBody = parsed.error || parsed.message || rawText;
+          }
         } catch {
           if (rawText.includes('504') || rawText.includes('Gateway time-out') || response.status === 504) {
             errBody = 'استغرق الخادم وقتاً أطول من المتوقع في استطلاع وتحليل الرابط (504 Gateway Timeout). يرجى إعادة المحاولة.';

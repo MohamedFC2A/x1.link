@@ -35,26 +35,26 @@ export function getModelDisplayName(model?: string, isX1?: boolean): string {
 
 export function getModelSubtitle(model?: string, isX1?: boolean): string {
   if (isX1) {
-    return 'الوضع غير المقيد (NSFW OFF) مفعّل بكامل طاقته للتحليل والنقد الحر والواقعية المطلقة';
+    return 'وضع التحليل الحر غير المقيد للواقعية الموضوعية والنقد التحليلي الشامل';
   }
   switch (model) {
     case 'fathom-quant-3':
-      return 'استدلال فائق، توليد وتعديل الصور، استوديو SVG، وتحكم بالسيرفر السحابي VPS';
+      return 'استدلال تحليلي فائق، توليد ومعالجة الصور بدقة عالية، والتحكم السحابي المتقدم';
     case 'deepseek-v4-pro-cyber-2.6':
     case 'deepseek-v4-pro-cyber-2.1':
-      return 'تفكير استدلالي عميق وهندسة سيبرانية سيادية متقدمة باللغة العربية';
+      return 'نموذج الاستدلال العميق والتحليل الهندسي والأمني عالي الدقة';
     case 'deepseek-v4-flash-cyber-2.6':
     case 'deepseek-v4-flash-cyber-2.1':
-      return 'فحص أمني واستجابة سيبرانية لحظية فائقة السرعة باللغة العربية';
+      return 'استجابة سريعة متخصصة في التحليل الأمني والتقني الفوري';
     case 'deepseek-v4-flash-cyber':
-      return 'فحص أمني واستخبارات سيبرانية متقدمة واستكشاف الأهداف';
+      return 'تحليل أمني متقدم واستكشاف معماري للأهداف والشبكات';
     case 'deepseek-v4-flash-vision-exp':
-      return 'تحليل بصري واستكشاف الصور والمستندات بدقة عالية';
+      return 'تحليل الرؤية الحاسوبية وقراءة المستندات والبيانات البصرية';
     case 'meta/muse-spark-1.2-contributor':
-      return 'محرك الوسائط والأكواد: تفكيك الفيديوهات والصوتيات والمستندات';
+      return 'معالجة الوسائط المتعددة: تفكيك وتحليل المقاطع الصوتية والمرئية';
     case 'deepseek-v4-flash':
     default:
-      return 'محادثة عامة ذكية واستيعاب عميق للنصوص والمسائل المتنوعة';
+      return 'معالجة لغوية متقدمة واستيعاب شامل للنصوص والاستفسارات';
   }
 }
 
@@ -72,34 +72,16 @@ export function getModelPlaceholder(
     return options.activeFusion.placeholder;
   }
   if (options?.isDeepSearch) {
-    return 'ابحث في الويب مباشرة مع Fathom Search...';
+    return 'ابحث في الويب واستفسر عما تريد...';
   }
   if (options?.hasNonImageMedia) {
-    return 'محرك Fathom Spark: حلل الفيديوهات، استمع للصوتيات، وافحص المستندات...';
+    return 'أرفق وسائط لتحليلها أو اكتب استفسارك هنا...';
   }
   if (options?.hasAttachments) {
-    return 'اسأل Fathom Cam أو أرفق صورة للتحليل البصري...';
+    return 'أرفق صورة للتحليل البصري أو اكتب استفسارك هنا...';
   }
   if (isX1) {
-    return 'اسأل matany.one في أي شيء (الوضع غير المقيد مفعّل)...';
+    return 'اكتب استفسارك أو رسالتك هنا... (الوضع الحر)';
   }
-  switch (model) {
-    case 'fathom-quant-3':
-      return 'اسأل Fathom Quant 3، صمم أو عدل صوراً، أو تحكم بالسيرفر السحابي VPS...';
-    case 'deepseek-v4-flash-cyber-2.6':
-    case 'deepseek-v4-flash-cyber-2.1':
-      return 'اسأل Fathom Cyber Flash 2.6 أو افحص أمنياً بشكل خاطف...';
-    case 'deepseek-v4-pro-cyber-2.6':
-    case 'deepseek-v4-pro-cyber-2.1':
-      return 'اطرح لغزاً، مسألة معقدة، أو افحص أمنياً مع Fathom Cyber Ultra...';
-    case 'deepseek-v4-flash-cyber':
-      return 'أدخل رابط الهدف أو اسأل استخباراتياً مع Fathom Cyber...';
-    case 'deepseek-v4-flash-vision-exp':
-      return 'اسأل Fathom Cam أو أرفق صورة للتحليل البصري...';
-    case 'meta/muse-spark-1.2-contributor':
-      return 'محرك Fathom Spark: حلل الفيديوهات، استمع للصوتيات، وافحص المستندات...';
-    case 'deepseek-v4-flash':
-    default:
-      return 'اسأل Fathom 1.1 في أي شيء...';
-  }
+  return 'اكتب استفسارك أو رسالتك هنا...';
 }

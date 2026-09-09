@@ -55,6 +55,35 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   onNavigateToProfile,
   onNavigateToChat,
 }) => {
+  const groupedChats = React.useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
+    const last7DaysStart = todayStart - 6 * 24 * 60 * 60 * 1000;
+
+    const groups: { title: string; items: SupabaseChat[] }[] = [
+      { title: 'اليوم', items: [] },
+      { title: 'أمس', items: [] },
+      { title: 'آخر 7 أيام', items: [] },
+      { title: 'الأشهر السابقة', items: [] },
+    ];
+
+    chats.forEach((chat) => {
+      const timestamp = new Date(chat.created_at || chat.updated_at || Date.now()).getTime();
+      if (timestamp >= todayStart) {
+        groups[0].items.push(chat);
+      } else if (timestamp >= yesterdayStart) {
+        groups[1].items.push(chat);
+      } else if (timestamp >= last7DaysStart) {
+        groups[2].items.push(chat);
+      } else {
+        groups[3].items.push(chat);
+      }
+    });
+
+    return groups.filter((g) => g.items.length > 0);
+  }, [chats]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -153,15 +182,15 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
               title="الملف الشخصي"
             >
               <UserIcon className="w-4 h-4 text-zinc-300" />
-              <span>الحساب</span>
+              <span>الملف الشخصي</span>
             </button>
           </div>
         </div>
 
         {/* Chat List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-1.5 smooth-scroll">
-          <div className="text-[11px] font-bold text-zinc-400 px-2 py-1 font-sans flex items-center justify-between">
-            <span>سجل المحادثات السحابية</span>
+        <div className="flex-1 overflow-y-auto p-3 space-y-3 smooth-scroll">
+          <div className="text-[11px] font-semibold text-zinc-400 px-2 py-1 font-sans flex items-center justify-between border-b border-white/[0.04] pb-2">
+            <span>سجل المحادثات</span>
             {chats.length > 0 && (
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-300">
                 {chats.length} محادثة
@@ -175,34 +204,41 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
               لا توجد محادثات سابقة حتى الآن.
             </div>
           ) : (
-            chats.map((chat) => (
-              <div
-                key={chat.id}
-                onClick={() => {
-                  onSelectChat(chat.id);
-                  onClose();
-                }}
-                className={`group flex items-center justify-between p-2.5 rounded-xl text-xs font-medium cursor-pointer border transition-all active:scale-[0.98] ${
-                  currentChatId === chat.id
-                    ? 'bg-white text-zinc-950 border-white shadow-md'
-                    : 'bg-white/[0.03] hover:bg-white/[0.08] text-zinc-200 border-white/[0.06]'
-                }`}
-              >
-                <div className="flex items-center gap-2 truncate flex-1 min-w-0">
-                  <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${currentChatId === chat.id ? 'text-zinc-950' : 'text-zinc-400'}`} />
-                  <span className="truncate font-sans">{chat.title || 'محادثة جديدة'}</span>
+            groupedChats.map((group) => (
+              <div key={group.title} className="space-y-1">
+                <div className="text-[10px] font-semibold text-zinc-400 px-2 pt-1 font-sans">
+                  {group.title}
                 </div>
+                {group.items.map((chat) => (
+                  <div
+                    key={chat.id}
+                    onClick={() => {
+                      onSelectChat(chat.id);
+                      onClose();
+                    }}
+                    className={`group flex items-center justify-between p-2.5 rounded-xl text-xs font-medium cursor-pointer border transition-all active:scale-[0.98] ${
+                      currentChatId === chat.id
+                        ? 'bg-zinc-800 text-white border-zinc-700/80 shadow-sm'
+                        : 'bg-white/[0.02] hover:bg-white/[0.06] text-zinc-300 border-white/[0.04] hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 truncate flex-1 min-w-0">
+                      <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${currentChatId === chat.id ? 'text-zinc-200' : 'text-zinc-400 group-hover:text-zinc-300'}`} />
+                      <span className="truncate font-sans">{chat.title || 'محادثة جديدة'}</span>
+                    </div>
 
-                <button
-                  type="button"
-                  onClick={(e) => onDeleteChat(chat.id, e)}
-                  className={`p-1 rounded-lg transition-colors cursor-pointer ${
-                    currentChatId === chat.id ? 'text-zinc-700 hover:text-red-600' : 'text-zinc-500 hover:text-red-400 hover:bg-white/[0.08]'
-                  }`}
-                  title="حذف المحادثة"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                    <button
+                      type="button"
+                      onClick={(e) => onDeleteChat(chat.id, e)}
+                      className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                        currentChatId === chat.id ? 'text-zinc-400 hover:text-red-400' : 'text-zinc-500 hover:text-red-400 hover:bg-white/[0.06]'
+                      }`}
+                      title="حذف المحادثة"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
             ))
           )}

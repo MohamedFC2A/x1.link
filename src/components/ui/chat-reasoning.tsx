@@ -592,6 +592,31 @@ export default function ChatReasoning({
   const lastActiveIdRef = useRef<string | null>(null);
   const activeStepDetailsRef = useRef<HTMLDivElement>(null);
 
+  const startTimeRef = useRef<number | null>(null);
+  const [durationSeconds, setDurationSeconds] = useState<number>(0);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    if (isThinking) {
+      if (!startTimeRef.current) {
+        startTimeRef.current = Date.now();
+      }
+      interval = setInterval(() => {
+        if (startTimeRef.current) {
+          setDurationSeconds(Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000)));
+        }
+      }, 500);
+    } else {
+      if (startTimeRef.current) {
+        setDurationSeconds(Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000)));
+      }
+      if (interval) clearInterval(interval);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isThinking]);
+
   const toggleStep = (stepId: string) => {
     userToggledRef.current[stepId] = true;
     setOpenStepIds(prev => ({
@@ -703,12 +728,17 @@ export default function ChatReasoning({
                 ) : isSvgStudioActive ? (
                   "جاري انشاء صورة ذو رسومات شعاعية ......"
                 ) : isThinking ? (
-                  <span className="inline-flex items-center gap-1">
-                    <span>جاري التفكير والتحليل المنطقي</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>جاري التفكير والتحليل</span>
+                    {durationSeconds > 0 && (
+                      <span className="text-zinc-400 font-normal">({durationSeconds} ث)</span>
+                    )}
                     <AnimatedDots className="bg-zinc-300" />
                   </span>
                 ) : (
-                  "التفكير والتحليل المنطقي"
+                  <span>
+                    {durationSeconds > 0 ? `فكّر لمدة ${durationSeconds} ثوانٍ` : "مسار الاستدلال والتفكير"}
+                  </span>
                 )}
               </span>
 

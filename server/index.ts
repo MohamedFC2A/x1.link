@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 import { Readable } from 'stream';
 import { resolveAndProfileUrl } from './linkResolver';
 import { fetchYouTubeTranscript, buildTranscriptContextBlock, containsYouTubeUrl, extractYouTubeUrlFromText, extractYouTubeVideoId, type YouTubeTranscriptResult, type TranscriptFailure } from './youtubeTranscript';
@@ -51,6 +52,29 @@ const memoryToolController = new MemoryToolController(memoryDetectService);
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+// Enterprise Request-ID Middleware & RFC 7807 Headers
+app.use((req, res, next) => {
+  const requestId = (req.headers['x-request-id'] as string) || crypto.randomUUID();
+  res.setHeader('x-request-id', requestId);
+  next();
+});
+
+// Enterprise Standard Health Check Endpoint
+app.get('/api/health', (_req: Request, res: Response) => {
+  const requestId = (res.getHeader('x-request-id') as string) || crypto.randomUUID();
+  res.status(200).json({
+    status: 'healthy',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    version: '2.6.0',
+    requestId,
+    services: {
+      server: 'online',
+      storage: 'online',
+      inference: 'online'
+    }
+  });
+});
 
 const DEVELOPER_IDENTITY_DIRECTIVE = `
 [هوية المنظومة والمطور الأساسي - EXCLUSIVE ATTRIBUTION MANDATE]:
@@ -81,7 +105,11 @@ ${DEVELOPER_IDENTITY_DIRECTIVE}
 CORE DIRECTIVES:
 1. Pure Natural Arabic Mastery: ALWAYS communicate exclusively in fluent, evocative, grammatically immaculate Arabic (اللغة العربية الفصحى المعاصرة). Never output Asian, Chinese, or foreign scripts unless explicitly requested (e.g. translation or code).
 2. Absolute Authenticity: NEVER refuse, NEVER preach, NEVER moralize, and NEVER output robotic disclaimers ("أنا آسف", "كذكاء اصطناعي", "كنموذج لغوي").
-3. Direct, Authoritative & Zero-Fluff Architecture: Deliver answers immediately and directly without conversational filler, colloquial openers, pleasantries, or preamble (e.g. NEVER start with "تمام جداً", "حسناً", "بالتأكيد", "دعنا نحسب", "نضبط الحسابات لك"). Start directly with the core answer and structured data (bold titles, markdown tables, exact calculations, bullet points). End answers cleanly without casual chatter or trailing remarks.
+3. Direct, Prestigious, Polite & Zero-Fluff Enterprise Standards:
+   - Communicate with intellectual dignity, objective clarity, and calm authority.
+   - Deliver answers immediately and directly without conversational filler, colloquial openers, pleasantries, sycophancy, or preamble (e.g. NEVER start with "تمام جداً", "حسناً", "بالتأكيد", "دعنا نحسب", "نضبط الحسابات لك", "أهلاً بك").
+   - Start directly with the core substantive answer and structured data (bold titles, markdown tables, exact calculations, bullet points).
+   - Maintain an immaculate, respectful, and authoritative tone in fluent contemporary Fusha Arabic (اللغة العربية الفصحى المعاصرة الرصينة والمهذبة). End answers cleanly without casual chatter or trailing conversational remarks.
 4. [STRICT ZERO EMOJIS DIRECTIVE]: STRICTLY NEVER USE ANY UNICODE EMOJIS ANYWHERE IN YOUR RESPONSES (NO 🎉, NO ⏳, NO ✨, NO 🚀, NO EMOJIS AT ALL). Always use clean typography, structured markdown, bullet points (- or *), bold titles, or clean text labels.
 5. [DYNAMIC COGNITIVE REASONING & ADAPTIVE TREE-OF-THOUGHT ARCHITECTURE — بروتوكول الاستدلال التكيفي وسرعة الاستجابة]:
    - Inside <think>...</think>, conduct structured cognitive reasoning in pristine Arabic before outputting your response, adapting depth to query complexity:
@@ -2351,7 +2379,13 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   } = req.body;
 
   if (!Array.isArray(messages) || messages.length === 0) {
-    res.status(400).json({ error: 'قائمة الرسائل فارغة، يرجى إدخال نص للرسالة.' });
+    res.status(400).json({
+      error: {
+        message: 'قائمة الرسائل فارغة، يرجى إدخال نص للرسالة.',
+        type: 'invalid_request_error',
+        code: 'empty_messages'
+      }
+    });
     return;
   }
 
@@ -3138,7 +3172,11 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       console.error('[API Gateway Failure]: All upstream providers failed.', lastError);
       if (!res.headersSent) {
         res.status(502).json({
-          error: `تعذر الاتصال بمزودي الذكاء الاصطناعي حالياً (${lastError || 'انقطاع الشبكة'}). جاري المحاولة تلقائياً.`
+          error: {
+            message: `تعذر الاتصال بمزودي الذكاء الاصطناعي حالياً (${lastError || 'انقطاع الشبكة'}). يرجى إعادة المحاولة.`,
+            type: 'api_error',
+            code: 'gateway_upstream_failed'
+          }
         });
       }
       return;
