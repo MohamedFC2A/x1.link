@@ -447,8 +447,8 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(normalized).toContain('"seed": 554433');
     });
 
-    // 25. Complete Eradication of Pollinations and Sovereign Meta: Muse Image Enforcement
-    await harness.it('should verify pollinations is completely abolished and meta/muse-image is the sovereign engine', async () => {
+    // 25. Complete Eradication of Pollinations, Zero Muse Mention in UI, and Sovereign Fathom QP3 Enforcement
+    await harness.it('should verify pollinations is completely abolished, UI is branded Fathom QP3, and meta/muse-image is strictly internal', async () => {
       const fs = await import('fs');
       const chatMessage = fs.readFileSync('c:/Best Projects/Matany/src/components/ChatMessage.tsx', 'utf-8');
       const neuralCard = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
@@ -457,10 +457,12 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(chatMessage).not.toContain("image.pollinations.ai/prompt/");
       expect(chatMessage).toContain("parsed.model = 'meta/muse-image'");
 
-      // NeuralImageCard enforces meta/muse-image and contains zero pollinations URL generation
+      // NeuralImageCard enforces FATHOM QP3 in UI and contains zero pollinations URL generation
       expect(neuralCard).not.toContain("image.pollinations.ai/prompt/");
-      expect(neuralCard).toContain("modelName = 'meta/muse-image'");
-      expect(neuralCard).toContain("Meta: Muse Image");
+      expect(neuralCard).toContain("FATHOM QP3");
+      expect(neuralCard).not.toContain("META: MUSE IMAGE");
+      expect(neuralCard).not.toContain("Meta: Muse Image");
+      expect(neuralCard).not.toContain("إعادة المحاولة عبر Muse");
     });
 
   });

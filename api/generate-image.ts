@@ -1,4 +1,5 @@
 export const config = { runtime: 'edge' };
+export const maxDuration = 60;
 
 export default async function handler(req: Request) {
   if (req.method !== 'POST') {
@@ -68,7 +69,7 @@ export default async function handler(req: Request) {
 
     return new Response(JSON.stringify({
       imageUrl,
-      model: 'meta/muse-image',
+      model: 'Fathom QP3',
       provider: 'openrouter'
     }), {
       status: 200,

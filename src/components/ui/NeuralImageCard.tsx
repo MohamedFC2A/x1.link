@@ -140,7 +140,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     return null;
   }, [data.originalImage, fallbackOriginalImage]);
 
-  // Autonomous OpenRouter Meta: Muse Image Fetcher (Zero Pollinations)
+  // Autonomous Sovereign Fathom QP3 Image Fetcher (Zero Pollinations)
   useEffect(() => {
     if (museImageUrl) return;
 
@@ -156,27 +156,44 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       };
 
       const executeGeneration = async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 65000);
+
         try {
           const res = await fetch('/api/generate-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestPayload)
+            body: JSON.stringify(requestPayload),
+            signal: controller.signal
           });
           if (res.ok) {
             const json = await res.json();
-            if (json?.imageUrl) return json;
+            if (json?.imageUrl) {
+              clearTimeout(timeoutId);
+              return json;
+            }
           }
         } catch {
-          // Fall through to /api/chat
+          // Fall through to /api/chat fallback
         }
 
-        const fallbackRes = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestPayload)
-        });
-        if (!fallbackRes.ok) throw new Error(`HTTP ${fallbackRes.status}`);
-        return await fallbackRes.json();
+        try {
+          const fallbackRes = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestPayload),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (fallbackRes.ok) {
+            const json = await fallbackRes.json();
+            if (json?.imageUrl) return json;
+          }
+          throw new Error(`HTTP ${fallbackRes.status}`);
+        } catch (err) {
+          clearTimeout(timeoutId);
+          throw err;
+        }
       };
 
       executeGeneration()
@@ -186,11 +203,11 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             setIsImageLoading(false);
             setLoadError(false);
           } else if (!isCancelled) {
-            throw new Error('No image returned from Meta: Muse Image');
+            throw new Error('No image returned from Fathom QP3');
           }
         })
         .catch((err) => {
-          console.error('[Meta Muse Image Generation Error]:', err);
+          console.error('[Fathom QP3 Image Generation Error]:', err);
           if (!isCancelled) {
             setIsImageLoading(false);
             setLoadError(true);
@@ -415,7 +432,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
           </span>
           <span className="text-zinc-600 text-xs">/</span>
           <span className="text-[11px] font-mono text-cyan-400 font-bold">
-            META: MUSE IMAGE
+            FATHOM QP3
           </span>
           <span className="text-zinc-600 text-xs">/</span>
           <span className="text-[11px] font-mono text-zinc-400">
@@ -504,21 +521,24 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
           maxHeight: '74vh'
         }}
       >
-        {/* Loading / Streaming Shimmer Overlay for Meta: Muse Image */}
+        {/* Loading / Streaming Shimmer Overlay for Fathom QP3 */}
         {(isStreaming || isImageLoading || !activeProcessedSrc) && !loadError && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#05070b]/90 backdrop-blur-md gap-3.5 p-6 text-center animate-pulse select-none">
-            <div className="size-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-white/[0.15] flex items-center justify-center shadow-lg text-zinc-200">
-              <Sparkles className="size-6 text-cyan-300 animate-spin" />
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#05070b]/90 backdrop-blur-md gap-3.5 p-6 text-center select-none">
+            {/* Ultra-sleek Glassy Aperture / Crystal Icon */}
+            <div className="relative size-14 rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] text-white group overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 via-transparent to-purple-500/20" />
+              <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500/30 to-blue-500/30 blur-sm opacity-70 animate-pulse" />
+              <Quant3PerfectionIcon size={28} className="relative z-10 text-cyan-300 animate-spin" style={{ animationDuration: '4s' }} />
             </div>
             <div className="text-xs sm:text-sm font-sans font-bold text-zinc-100 tracking-wide">
               {operationInfo.type === 'addition'
-                ? 'جارٍ إضافة العنصر عبر Meta: Muse Image...'
+                ? 'جارٍ إضافة العنصر عبر Fathom QP3...'
                 : operationInfo.type === 'edit'
-                  ? 'جارٍ تعديل الصورة بدقة عصبية عبر Meta: Muse Image...'
-                  : 'جارٍ توليد الصورة بدقة فائقة عبر Meta: Muse Image...'}
+                  ? 'جارٍ تعديل الصورة بدقة عصبية عبر Fathom QP3...'
+                  : 'جارٍ توليد الصورة بدقة فائقة عبر Fathom QP3...'}
             </div>
             <div className="text-[11px] sm:text-xs text-cyan-400/90 font-mono tracking-tight">
-              استدلال وتحليل بصري فائق الدقة (Reasons Before Rendering)
+              معالجة فوتوغرافية واستدلال كمومي فائق الدقة (Fathom QP3 Quantum Studio)
             </div>
           </div>
         )}
@@ -529,7 +549,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             {loadError ? (
               <div className="flex flex-col items-center justify-center p-6 text-center gap-3 text-zinc-400">
                 <AlertCircle className="size-7 text-amber-400" />
-                <span className="text-xs sm:text-sm font-sans text-zinc-300">تعذر توليد أو تحميل الصورة عبر Meta: Muse Image</span>
+                <span className="text-xs sm:text-sm font-sans text-zinc-300">تعذر توليد أو تحميل الصورة عبر Fathom QP3</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -540,7 +560,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                   className="px-3.5 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-white border border-white/[0.1] text-xs flex items-center gap-1.5 transition font-sans cursor-pointer"
                 >
                   <RefreshCw className="size-3.5 text-cyan-400" />
-                  <span>إعادة المحاولة عبر Muse</span>
+                  <span>إعادة المحاولة عبر Fathom QP3</span>
                 </button>
               </div>
             ) : activeProcessedSrc ? (

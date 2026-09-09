@@ -1848,7 +1848,7 @@ export default async function handler(req: Request): Promise<Response> {
 
       return new Response(JSON.stringify({
         imageUrl: finalUrl,
-        model: 'meta/muse-image',
+        model: 'Fathom QP3',
         provider: 'openrouter'
       }), {
         status: 200,
