@@ -204,6 +204,47 @@ export async function runFathomQuant3Tests(harness: TestHarness): Promise<void> 
       expect(normalized).not.toContain('<رابط الصورة السابقة>');
     });
 
+    await harness.it('Image Lifecycle Turn 6+: Multi-turn editing after 5 sequential turns preserves continuity with Supabase CDN URLs', () => {
+      const longConversationHistory = [
+        { role: 'user', content: 'صمم لي سيارة رياضية سوداء' },
+        { role: 'assistant', content: '```neural-image\n{\n  "title": "تصميم: سيارة رياضية",\n  "operation": "generate",\n  "prompt": "black sports car on wet street",\n  "imageUrl": "https://gyxlvreqwikpujzpyegm.supabase.co/storage/v1/object/public/chat-images/gen-turn1.png",\n  "seed": 482910\n}\n```' },
+        { role: 'user', content: 'خلي لونها أحمر' },
+        { role: 'assistant', content: '```neural-image\n{\n  "title": "تعديل: سيارة حمراء",\n  "operation": "edit",\n  "prompt": "red sports car on wet street",\n  "imageUrl": "https://gyxlvreqwikpujzpyegm.supabase.co/storage/v1/object/public/chat-images/gen-turn2.png",\n  "seed": 482910\n}\n```' },
+        { role: 'user', content: 'ضيف مطر ودخان' },
+        { role: 'assistant', content: '```neural-image\n{\n  "title": "إضافة: مطر ودخان",\n  "operation": "add_element",\n  "prompt": "red sports car in heavy rain with smoke",\n  "imageUrl": "https://gyxlvreqwikpujzpyegm.supabase.co/storage/v1/object/public/chat-images/gen-turn3.png",\n  "seed": 482910\n}\n```' },
+        { role: 'user', content: 'خلي الجنوط ذهبي' },
+        { role: 'assistant', content: '```neural-image\n{\n  "title": "تعديل: جنوط ذهبية",\n  "operation": "edit",\n  "prompt": "red sports car with golden rims in heavy rain",\n  "imageUrl": "https://gyxlvreqwikpujzpyegm.supabase.co/storage/v1/object/public/chat-images/gen-turn4.png",\n  "seed": 482910\n}\n```' },
+        { role: 'user', content: 'حط لوحة مصرية أمامية' },
+        { role: 'assistant', content: '```neural-image\n{\n  "title": "تعديل: لوحة مصرية",\n  "operation": "edit",\n  "prompt": "red sports car with golden rims and authentic Egyptian plate",\n  "imageUrl": "https://gyxlvreqwikpujzpyegm.supabase.co/storage/v1/object/public/chat-images/gen-turn5.png",\n  "seed": 482910\n}\n```' }
+      ];
+
+      // Turn 6 Request: Modifying interior to black leather
+      const turn6Prompt = 'غير لون الكراسي إلى الأسود الفاخر';
+      const tuning = DynamicParameterTuner.tune({
+        userPrompt: turn6Prompt,
+        requestedModel: 'fathom-quant-3',
+        conversationHistory: longConversationHistory
+      });
+
+      expect(tuning.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
+      expect(Boolean(tuning.priorNeuralImage)).toBe(true);
+      expect(tuning.priorNeuralImage?.imageUrl).toBe('https://gyxlvreqwikpujzpyegm.supabase.co/storage/v1/object/public/chat-images/gen-turn5.png');
+      expect(tuning.priorNeuralImage?.seed).toBe(482910);
+      expect(tuning.calibrationDirective).toContain('ZERO TROUBLESHOOTING LECTURES & APOLOGIES');
+      expect(tuning.calibrationDirective).toContain('الحظر الصارم لتشخيصات الدعم الفني');
+
+      // Turn 6 Complaint/Retry Request: "الصورة مش ظاهرة أعد المحاولة"
+      const retryPrompt = 'الصورة مش ظاهرة أعد المحاولة';
+      const retryTuning = DynamicParameterTuner.tune({
+        userPrompt: retryPrompt,
+        requestedModel: 'fathom-quant-3',
+        conversationHistory: longConversationHistory
+      });
+
+      expect(retryTuning.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
+      expect(Boolean(retryTuning.priorNeuralImage)).toBe(true);
+    });
+
     // ═════════════════════════════════════════════════════════════════════════
     // 3. Page Refresh Simulation & Zero-ms Instant State Recovery
     // ═════════════════════════════════════════════════════════════════════════

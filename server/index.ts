@@ -15,6 +15,7 @@ import { FathomCyberReasoningEngine, DeterministicCycleDetector } from '../src/s
 import { DynamicParameterTuner, type DynamicTuningResult } from './dynamicParameterTuner';
 import { GpaengDiagnosticEngine } from './gpaengDiagnosticEngine';
 import { getVpsTelemetry, executeVpsCommand, controlAutomation, isVpsOrCloudRequest, VPS_STATUS_NOTICE } from './vpsService';
+import { uploadImageToSupabaseStorage, normalizeReferenceImages } from './storageService';
 
 dotenv.config();
 
@@ -2418,27 +2419,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         return;
       }
 
-      let formattedReferences: any[] = [];
       const rawRefs = req.body?.input_references || req.body?.referenceImages || (req.body?.originalImage ? [req.body.originalImage] : []);
-      if (Array.isArray(rawRefs)) {
-        for (const item of rawRefs) {
-          if (typeof item === 'string' && item.trim()) {
-            formattedReferences.push({
-              type: 'image_url',
-              image_url: { url: item.trim() }
-            });
-          } else if (item && typeof item === 'object') {
-            if (item.type === 'image_url' && item.image_url?.url) {
-              formattedReferences.push(item);
-            } else if (item.url) {
-              formattedReferences.push({
-                type: 'image_url',
-                image_url: { url: item.url }
-              });
-            }
-          }
-        }
-      }
+      const formattedReferences = await normalizeReferenceImages(rawRefs);
 
       const fetchImg = async (includeRefs = true): Promise<any> => {
         const payload: any = {
@@ -2486,8 +2468,13 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
       let finalUrl = '';
       if (item.b64_json) {
-        const mediaType = item.media_type || 'image/png';
-        finalUrl = `data:${mediaType};base64,${item.b64_json}`;
+        const cdnUrl = await uploadImageToSupabaseStorage(item.b64_json, 'generated');
+        if (cdnUrl && cdnUrl.startsWith('http')) {
+          finalUrl = cdnUrl;
+        } else {
+          const mediaType = item.media_type || 'image/png';
+          finalUrl = `data:${mediaType};base64,${item.b64_json}`;
+        }
       } else if (item.url) {
         finalUrl = item.url;
       }
@@ -2731,6 +2718,9 @@ app.post('/api/chat', async (req: Request, res: Response) => {
    - ابنِ كود SVG نقي متكامل، متعدد الطبقات (<g>), يتضمن viewBox متناسق مع أبعاد الصورة، تدرجات احترافية (<defs>), وظلال ناعمة.
    - يُحظر تماماً كتابة أي تفكير أو نصوص أو مقدمات قبل أو بعد الكود؛ ابدأ فوراً وأخرج كود الـ SVG النقي المكتمل داخل \`\`\`svg ... \`\`\` ليتم عرضه في لوحة التعديل وتصديره كـ 2K و 4K مباشرة.`;
       activeSystemPrompt += `\n\n${imageToSvgGuidance}`;
+    } else if (dynamicTuning.detectedIntent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING') {
+      // Sovereign Neural Image Studio is active; bypass vision inspection directive to avoid IT-support diagnostic hallucination
+      console.log('[X1-PIPELINE] Neural Image Studio active. Bypassing Fathom Cam vision inspection directive.');
     } else {
       const visionGuidance = `
 [توجيه الإدراك البصري وفحص المستندات والواجهات والصور المرفقة — FATHOM CAM UNIVERSAL MULTIMODAL DIRECTIVE]:
@@ -2913,8 +2903,22 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           .trim();
       }
 
+      // Strip any lingering base64 data URIs from past messages
+      contentStr = contentStr.replace(/data:image\/[a-zA-Z0-9+.-]+;base64,[a-zA-Z0-9+/=]{100,}/g, '[صورة سحابية]');
+
       if (!isLatestTurn && contentStr.length > 12000) {
+        // Protect neural-image and svg blocks from being corrupted by truncation
+        const preservedBlocks: string[] = [];
+        contentStr = contentStr.replace(/```(?:neural-image|neural_image|image-studio|image_studio|svg)[\s\S]*?```/gi, (block) => {
+          preservedBlocks.push(block);
+          return `__PRESERVED_BLOCK_${preservedBlocks.length - 1}__`;
+        });
+
         contentStr = `${contentStr.slice(0, 6000)}\n\n[... تم إيجاز جزء من السياق القديم الممتد للحفاظ على أعلى سرعة واستجابة ...]\n\n${contentStr.slice(-4000)}`;
+
+        preservedBlocks.forEach((block, idx) => {
+          contentStr = contentStr.replace(`__PRESERVED_BLOCK_${idx}__`, block);
+        });
       }
 
       return {
@@ -4021,27 +4025,8 @@ app.post('/api/generate-image', async (req: Request, res: Response) => {
       return;
     }
 
-    let formattedReferences: any[] = [];
     const rawRefs = req.body?.input_references || req.body?.referenceImages || (req.body?.originalImage ? [req.body.originalImage] : []);
-    if (Array.isArray(rawRefs)) {
-      for (const item of rawRefs) {
-        if (typeof item === 'string' && item.trim()) {
-          formattedReferences.push({
-            type: 'image_url',
-            image_url: { url: item.trim() }
-          });
-        } else if (item && typeof item === 'object') {
-          if (item.type === 'image_url' && item.image_url?.url) {
-            formattedReferences.push(item);
-          } else if (item.url) {
-            formattedReferences.push({
-              type: 'image_url',
-              image_url: { url: item.url }
-            });
-          }
-        }
-      }
-    }
+    const formattedReferences = await normalizeReferenceImages(rawRefs);
 
     const fetchImg = async (includeRefs = true): Promise<any> => {
       const payload: any = {
@@ -4091,8 +4076,13 @@ app.post('/api/generate-image', async (req: Request, res: Response) => {
 
     let imageUrl = '';
     if (item.b64_json) {
-      const mediaType = item.media_type || 'image/png';
-      imageUrl = `data:${mediaType};base64,${item.b64_json}`;
+      const cdnUrl = await uploadImageToSupabaseStorage(item.b64_json, 'generated');
+      if (cdnUrl && cdnUrl.startsWith('http')) {
+        imageUrl = cdnUrl;
+      } else {
+        const mediaType = item.media_type || 'image/png';
+        imageUrl = `data:${mediaType};base64,${item.b64_json}`;
+      }
     } else if (item.url) {
       imageUrl = item.url;
     }

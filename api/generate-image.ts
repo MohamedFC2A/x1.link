@@ -1,8 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://gyxlvreqwikpujzpyegm.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5eGx2cmVxd2lrcHVqenB5ZWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDkwNzMsImV4cCI6MjEwMzEyNTA3M30.vMnY9PcDrB627Tv8Aumy6BKlMfbzg4LX1B_EUigNL2s';
-const serverSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { serverSupabase, uploadImageToSupabaseStorage, normalizeReferenceImages } from '../server/storageService';
 
 export const config = {
   maxDuration: 60,
@@ -83,28 +79,9 @@ export default async function handler(req: any, res?: any) {
       return sendResponse(500, { error: 'OPENROUTER_API_KEY is not configured' });
     }
 
-    // Parse and normalize visual reference images for Meta: Muse Image agentic conditioning
-    let formattedReferences: any[] = [];
+    // Parse and normalize visual reference images for Meta: Muse Image agentic conditioning (uploading base64 to Supabase CDN if needed)
     const rawRefs = body?.input_references || body?.referenceImages || (body?.originalImage ? [body.originalImage] : []);
-    if (Array.isArray(rawRefs)) {
-      for (const item of rawRefs) {
-        if (typeof item === 'string' && item.trim()) {
-          formattedReferences.push({
-            type: 'image_url',
-            image_url: { url: item.trim() }
-          });
-        } else if (item && typeof item === 'object') {
-          if (item.type === 'image_url' && item.image_url?.url) {
-            formattedReferences.push(item);
-          } else if (item.url) {
-            formattedReferences.push({
-              type: 'image_url',
-              image_url: { url: item.url }
-            });
-          }
-        }
-      }
-    }
+    const formattedReferences = await normalizeReferenceImages(rawRefs);
 
     const fetchImage = async (attempt = 1, includeRefs = true): Promise<any> => {
       const controller = new AbortController();
@@ -171,8 +148,14 @@ export default async function handler(req: any, res?: any) {
 
     let imageUrl = '';
     if (item.b64_json) {
-      const mediaType = item.media_type || 'image/png';
-      imageUrl = `data:${mediaType};base64,${item.b64_json}`;
+      // Upload directly to Supabase Storage CDN to prevent megabyte payloads in chat history & database
+      const cdnUrl = await uploadImageToSupabaseStorage(item.b64_json, 'generated');
+      if (cdnUrl && cdnUrl.startsWith('http')) {
+        imageUrl = cdnUrl;
+      } else {
+        const mediaType = item.media_type || 'image/png';
+        imageUrl = `data:${mediaType};base64,${item.b64_json}`;
+      }
     } else if (item.url) {
       imageUrl = item.url;
     }

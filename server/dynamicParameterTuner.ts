@@ -166,6 +166,7 @@ export const CONTEXTUAL_IMAGE_EDIT_PATTERNS = [
   /(?:ذهبي|ذهبيه|ذهبية|أحمر|احمر|حمرا|حمراء|أزرق|ازرق|زرقا|زرقاء|أخضر|اخضر|خضرا|خضراء|أصفر|اصفر|صفرا|صفراء|أسود|اسود|سودا|سوداء|أبيض|ابيض|بيضا|بيضاء|فضي|فضيه|فضية|كحلي|رمادي|مات|مطفي|لامع|كروم|كربون\s*فايبر|وردي|بنفسجي|برتقالي|بني)/i,
   /(?:بدون\s*(?:دخان|خلفية|سيارات|ناس|اضاءة|إضاءة|مطر)|مع\s*(?:دخان|مطر|ثلج)|بالليل|بالنهار|في\s*الليل|في\s*النهار|وقت\s*الغروب|وقت\s*الشروق|تحت\s*المطر|على\s*البحر)/i,
   /(?:لوحة|لوحه|نمرة|نمره|لوحة\s*مصرية|لوحه\s*مصريه|مصرية|مصريه|لوحة\s*سيارة|نمرة\s*عربية|license\s*plate|car\s*plate|plate)/i,
+  /(?:مش\s*ظاهرة|لم\s*تظهر|ما\s*ظهرت|مظهرتش|فين\s*الصورة|الصورة\s*فين|أعد\s*(?:المحاولة|توليد|إنشاء|انشاء|التعديل|الإنشاء)|اعد\s*(?:المحاولة|توليد|إنشاء|انشاء|التعديل|الإنشاء)|كرر|حاول\s*تاني|جرب\s*تاني|الصورة\s*معلقة|الصورة\s*بايظة|مش\s*باينة|ما\s*بانت|مش\s*شغالة|not\s*showing|retry|regenerate|re-generate|generate\s*again|try\s*again)/i,
   /\b(?:edit\s+(?:it|this|the\s+image|the\s+photo)|modify\s+(?:it|this)|change\s+(?:it|the\s+color|the\s+background)|replace\s+the|remove\s+the|make\s+it\s+(?:night|day|red|blue|dark|bright|gold|golden|silver|matte|glossy|egyptian))\b/i
 ];
 
@@ -335,50 +336,70 @@ export class DynamicParameterTuner {
           ? msg.content.map((c: any) => (c.type === 'text' ? (c.text || '') : (c.text || ''))).join(' ')
           : '';
 
-      const directImg = (msg as any).image || ((msg as any).images && (msg as any).images[0]) || (msg as any).image_url;
+      const directImg = (msg as any).image || ((msg as any).images && (msg as any).images[0]) || (msg as any).image_url || (msg as any).imageUrl;
 
       // 1. Check for ```neural-image ... ``` block in assistant message
       const neuralMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(content);
       if (neuralMatch) {
+        let parsed: any = null;
         try {
-          const parsed = JSON.parse(neuralMatch[1]);
-          if (parsed && typeof parsed === 'object') {
-            const prompt = parsed.prompt || '';
-            let imageUrl = parsed.imageUrl || parsed.processedImage || directImg || '';
-
-            // Extract seed from parsed JSON or its URL parameters
-            let seed: number | undefined = (typeof parsed.seed === 'number' && !isNaN(parsed.seed))
-              ? parsed.seed
-              : (typeof parsed.parameters?.seed === 'number' && !isNaN(parsed.parameters.seed))
-                ? parsed.parameters.seed
-                : undefined;
-
-            if (seed === undefined && imageUrl) {
-              try {
-                const u = new URL(imageUrl);
-                const s = u.searchParams.get('seed');
-                if (s && !isNaN(Number(s))) seed = Number(s);
-              } catch {}
-            }
-
-            return {
-              prompt,
-              imageUrl: imageUrl || undefined,
-              operation: parsed.operation || 'generate',
-              title: parsed.title || '',
-              style: parsed.style || 'photorealistic',
-              aspectRatio: parsed.aspectRatio || '1:1',
-              seed,
-              sourceRole: msg.role
+          parsed = JSON.parse(neuralMatch[1]);
+        } catch {
+          // Robust fallback regex extraction if JSON had trailing comma, unescaped quote or minor cut-off
+          const promptM = neuralMatch[1].match(/"prompt"\s*:\s*"((?:\\.|[^"\\])*)"/);
+          const imgM = neuralMatch[1].match(/"(?:imageUrl|processedImage|originalImage)"\s*:\s*"((?:\\.|[^"\\])*)"/);
+          const seedM = neuralMatch[1].match(/"seed"\s*:\s*(\d+)/);
+          const opM = neuralMatch[1].match(/"operation"\s*:\s*"([^"]+)"/);
+          const titleM = neuralMatch[1].match(/"title"\s*:\s*"([^"]+)"/);
+          const styleM = neuralMatch[1].match(/"style"\s*:\s*"([^"]+)"/);
+          const ratioM = neuralMatch[1].match(/"aspectRatio"\s*:\s*"([^"]+)"/);
+          if (promptM || imgM || seedM) {
+            parsed = {
+              prompt: promptM ? promptM[1].replace(/\\"/g, '"') : '',
+              imageUrl: imgM ? imgM[1] : '',
+              seed: seedM ? parseInt(seedM[1], 10) : undefined,
+              operation: opM ? opM[1] : 'edit',
+              title: titleM ? titleM[1] : '',
+              style: styleM ? styleM[1] : 'photorealistic',
+              aspectRatio: ratioM ? ratioM[1] : '1:1'
             };
           }
-        } catch {
-          // continue
+        }
+
+        if (parsed && typeof parsed === 'object') {
+          const prompt = parsed.prompt || '';
+          let imageUrl = parsed.imageUrl || parsed.processedImage || directImg || '';
+
+          // Extract seed from parsed JSON or its URL parameters
+          let seed: number | undefined = (typeof parsed.seed === 'number' && !isNaN(parsed.seed))
+            ? parsed.seed
+            : (typeof parsed.parameters?.seed === 'number' && !isNaN(parsed.parameters.seed))
+              ? parsed.parameters.seed
+              : undefined;
+
+          if (seed === undefined && imageUrl) {
+            try {
+              const u = new URL(imageUrl);
+              const s = u.searchParams.get('seed');
+              if (s && !isNaN(Number(s))) seed = Number(s);
+            } catch {}
+          }
+
+          return {
+            prompt,
+            imageUrl: imageUrl || undefined,
+            operation: parsed.operation || 'generate',
+            title: parsed.title || '',
+            style: parsed.style || 'photorealistic',
+            aspectRatio: parsed.aspectRatio || '1:1',
+            seed,
+            sourceRole: msg.role
+          };
         }
       }
 
-      // 2. Check for image URL in content (excluding legacy pollinations)
-      const genericImgMatch = content.match(/https?:\/\/[^\s)]+?\.(?:png|jpg|jpeg|webp)(?:\?[^\s)]*)?/i);
+      // 2. Check for image URL in content (including Supabase Storage chat-images and standard image extensions)
+      const genericImgMatch = content.match(/https?:\/\/[^\s)]+?(?:\.(?:png|jpg|jpeg|webp)|supabase\.co\/storage\/v1\/object\/public\/chat-images\/[^\s)]+)(?:\?[^\s)]*)?/i);
       if (genericImgMatch && !genericImgMatch[0].includes('pollinations.ai')) {
         return {
           prompt: '',
@@ -1248,7 +1269,8 @@ export class DynamicParameterTuner {
               `أ) [تحديد النص الدقيق بين علامات تنصيص]: اكتب النص والأرقام بدقة متناهية بالإنجليزية داخل البرومبت: exact text "..." مع تفاصيل واضحة تماماً. ` +
               `ب) [لوحات السيارات المصرية والعربية الرسمية]: إذا طُلبت لوحة سيارة مصرية، صفها بمعايير المرور الرسمية الدقيقة: شريط علوي بلون أزرق سماوي عاكس يحمل كلمة "EGYPT" بالإنجليزية بحروف لاتينية نقية وكلمة "مصر" بالخط العربي الأصيل، ومساحة سفلية عاكسة من المعدن الأبيض النقي تحمل أرقاماً وحروفاً عربية بارزة ومتباعدة بدقة: authentic Egyptian automotive license plate, top cyan-blue header with sharp white text 'EGYPT' and 'مصر', bottom white reflective metal plate with crisp embossed black Arabic letters and Arabic numbers, mathematically aligned kerning, zero distorted glyphs, macro detail, fully legible by humans and optical character recognition (OCR). ` +
               `ج) [منع الهلاوس والتشويه في الحروف تماماً - Zero Gibberish]: أضف دائماً أوصاف منع الهلوسة في الحروف: crisp legible typography, perfectly formed characters, authentic fonts, zero gibberish, zero scrambled letters, sharp embossed edges, legible by optical character recognition (OCR) and humans. ` +
-              `د) [الحظر الصارم لتكرار ملاحظات النظام]: يُحظر تماماً وبشكل قاطع طباعة أو تكرار ملاحظات النظام السياقية مثل "[ملاحظة: ...]" في صلب ردك للمستخدم.`
+              `د) [الحظر الصارم لتكرار ملاحظات النظام]: يُحظر تماماً وبشكل قاطع طباعة أو تكرار ملاحظات النظام السياقية مثل "[ملاحظة: ...]" في صلب ردك للمستخدم. ` +
+              `11) [الحظر الصارم لتشخيصات الدعم الفني والاعتذارات والبدائل الوهمية - ZERO TROUBLESHOOTING LECTURES & APOLOGIES]: يُحظر تماماً وبشكل قاطع كتابة أي رسائل تشخيصية أو اعتذارات دعم فني للمستخدم (مثل: "المشكلة غالباً ليست في التصميم نفسه، بل في عدم تقديم خدمة توليد الصور العصبية للصورة داخل واجهة المحادثة لديك... الأسباب المحتملة: انقطاع مؤقت... متصفحك لا يدعم... يمكنني تزويدك بتصميم إعلاني كود SVG..."). مهما كان عدد التعديلات السابقة (سواء التعديل الخامس أو السادس أو العاشر) ومهما كانت حالة المعالجة، التزم حصراً وبنسبة 100% بإخراج كتلة \`\`\`neural-image\`\`\` النظيفة مع الشرح العربي المباشر لما تم تنفيذه، دون أي تبرير تقني أو تنصل أو اقتراح للـ SVG كبديل.`
             )
             : 'أنت المعماري والمهندس السيادي لتوليد ومعالجة وتعديل الصور عصبياً وفوتوغرافياً باستخدام محرك FLUX.1 [schnell] فائق السرعة والواقعية (Sovereign Neural Image Studio Architect): ' +
               '1) [الحظر الصارم والقطعي لتحويل الصور الفوتوغرافية إلى SVG إلا بطلب صريح]: يُحظر توليد كود SVG لطلبات الصور الفوتوغرافية أو الواقعية البحتة التي لا تذكر صراحة كلمة SVG أو فيكتور. أما إذا ذكر المستخدم صراحة كلمة SVG أو فيكتور أو "اجعلها SVG" (مثل "صمم صورة ... اجعلها SVG")، فإن هذا الطلب يُحال فوراً وحصراً لاستوديو المتجهات SVG ويجب إخراج كود SVG داخل ```svg ويُحظر إخراج كتلة ```neural-image``` نهائياً. أما في غياب أي ذكر لـ SVG، فإن توليد ومعالجة الصور يتم حصراً وبنسبة 100% عبر المعالجة العصبية واستخراج كتلة ```neural-image```. ' +
@@ -1258,7 +1280,8 @@ export class DynamicParameterTuner {
               '5) [بروتوكول تسليم وتوليد المعالجة العصبية الإلزامي - Neural Deliverable Block]: بعد التفكير والتحليل والشرح باللغة العربية، أخرج حتماً كتلة المعالجة العصبية التالية في نهاية الرد: ' +
               '```neural-image\n{\n  "operation": "<generate|portrait_generation|human_edit|recolor|remove_background|enhance_4k|composite|product_edit|text_edit>",\n  "title": "<عنوان وصفي للمعالجة>",\n  "description": "<شرح التعديل أو التوليد المنفذ بدقة 100%>",\n  "prompt": "<Ultra-detailed English visual prompt for FLUX.1 [schnell] specifying subject, 85mm lens, volumetric lighting, micro-pores, 8k resolution>",\n  "seed": 482910,\n  "aspectRatio": "<1:1|16:9|9:16|4:3>",\n  "style": "<photorealistic|cinematic|digital_art|anime|3d_render>",\n  "fidelityScore": "100%",\n  "resolution": "4K"\n}\n``` ' +
               '6) [بروتوكول التخطيط المعماري الذاتي للمشهد البصري للطلبات المقتضبة من كلمتين - Autonomous 2-Word Prompt Elaboration & Master Scene Planning Architecture]: عندما يكتب المستخدم طلباً مقتضباً أو مكوناً من كلمتين فقط (مثل "صمم سيارة"، "صورة فضاء"، "سيارة فخمة"، "صورة أسد"، "بنت جميلة"، "رجل أعمال"، "طبيعة خلابة"): يُحظر تماماً الاكتفاء بوصف سطحي مقتضب، ويُحظر طلب أي توضيحات من المستخدم؛ بل يجب عليك ذاتياً تفكيك وهندسة المشهد بالكامل بأعلى المعايير السينمائية الجاهزة داخل برومبت FLUX.1 [schnell] الإنجليزي: أ) الموضوع وتفاصيله المجهرية (Subject & Micro-Textures): تفاصيل ألياف الكربون أو الطلاء المعدني اللامع، ملمس ومسام الجلد الطبيعية (micro-pores)، خيوط النسيج وتطاير الشعر. ب) الأبعاد الواقعية الصارمة ومنع التشويه (Strict Authentic Proportions & Zero Distortion): إذا كانت مركبة أو سيارة، يجب تضمين أوصاف هندسية مانعة للانضغاط: authentic manufacturer proportions, perfect circular wheels, symmetrical perspective, ray-tracing reflections, 8k raw photograph. ج) البيئة والغلاف الجوي (Atmospheric Setting): عمق بيئي سينمائي، ضباب حجمي، إسفلت ممطر بانعكاسات ضوئية دقيقة، أو أفق معماري متناسق. د) البصريات والكاميرا (Optics & Cinematography): مستشعر Hasselblad H6D-100c أو Sony A7R V، عدسة 85mm f/1.2 للبورتريه، 35mm للقطات السينمائية، أو 24mm للمناظر الواسعة، مع عمق ميدان سطحي وبوكيه طبيعي ناعم. هـ) معمارية الإضاءة (Lighting Architecture): إضاءة ريمبرانت ثلاثية النقاط، إضاءة حواف (Rim Light)، تشتت ضوئي تحت السطح (Subsurface Scattering)، وتفاعل فيزيائي واقعي للظلال بدون أي مظهر بلاستيكي مصطنع. و) النسبة القياسية الذهبية (Aspect Ratio): النسبة القياسية الافتراضية 1:1 لمنع أي تشويه أو انضغاط في أبعاد الكائن، مع دعم 16:9 للمناظر البانورامية، 9:16 للبورتريهات وخلفيات الهواتف، و4:3 للقطات الكلاسيكية. ' +
-              '7) [بروتوكول هندسة النصوص والأحرف واللوحات والشعارات في الصور - Sovereign In-Image Typography & OCR Readability]: عند وجود أي نص، كتابة، لوحة، لافتة، أو شعار في الصورة: حدد النص الدقيق بين علامات تنصيص exact text "..."، وألزم البرومبت بـ: crisp legible typography, authentic fonts, razor-sharp character edges, zero gibberish, zero scrambled letters, fully legible by optical character recognition (OCR) and humans. وعند طلب لوحة سيارة مصرية أو عربية، التزم بالمواصفات الرسمية للشريط العلوي والمعدن السفلي العاكس بحروف وأرقام عربية بارزة مقروءة 100%. يُحظر تماماً تكرار ملاحظات النظام السياقية "[ملاحظة: ...]" في ردك.'
+              '7) [بروتوكول هندسة النصوص والأحرف واللوحات والشعارات في الصور - Sovereign In-Image Typography & OCR Readability]: عند وجود أي نص، كتابة، لوحة، لافتة، أو شعار في الصورة: حدد النص الدقيق بين علامات تنصيص exact text "..."، وألزم البرومبت بـ: crisp legible typography, authentic fonts, razor-sharp character edges, zero gibberish, zero scrambled letters, fully legible by optical character recognition (OCR) and humans. وعند طلب لوحة سيارة مصرية أو عربية، التزم بالمواصفات الرسمية للشريط العلوي والمعدن السفلي العاكس بحروف وأرقام عربية بارزة مقروءة 100%. يُحظر تماماً تكرار ملاحظات النظام السياقية "[ملاحظة: ...]" في ردك. ' +
+              '8) [الحظر الصارم لتشخيصات الدعم الفني والاعتذارات والبدائل الوهمية - ZERO TROUBLESHOOTING LECTURES & APOLOGIES]: يُحظر تماماً وبشكل قاطع كتابة أي رسائل تشخيصية أو اعتذارات دعم فني للمستخدم (مثل: "المشكلة غالباً ليست في التصميم نفسه، بل في عدم تقديم خدمة توليد الصور العصبية للصورة داخل واجهة المحادثة لديك... الأسباب المحتملة: انقطاع مؤقت... متصفحك لا يدعم... يمكنني تزويدك بتصميم إعلاني كود SVG..."). التزم حصراً وبنسبة 100% بإخراج كتلة ```neural-image``` النظيفة مع الشرح العربي المباشر لما تم تنفيذه، دون أي تبرير تقني أو تنصل أو اقتراح للـ SVG كبديل.'
           : 'منظومة المعالجة والتوليد العصبي فائق الدقة للصور (FLUX.1 [schnell] Neural Image Studio) وحفظ التفاصيل الفوتوغرافية بنسبة 100% مخصصة حصرياً لطرازات سايبر وكوانت الفائقة (Fathom Quant 3 / Fathom Cyber Ultra 2.6). وضّح للمستخدم برقي واحترافية أن توليد وتعديل الصور يتطلب تفعيل Fathom Quant 3 أو Fathom Cyber Ultra 2.6 دون تحويل الصورة إلى SVG مع الحظر التام لتحويل الصور إلى متجهات.'
       },
       MATHEMATICAL_AND_DEDUCTIVE_LOGIC: {
