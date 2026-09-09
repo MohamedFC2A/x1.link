@@ -644,12 +644,17 @@ export default function ChatReasoning({
   const camMilestone = useMemo(() => milestones.find(m => m.specialType === 'cam'), [milestones]);
   const sparkMilestone = useMemo(() => milestones.find(m => m.specialType === 'spark'), [milestones]);
 
-  const isSvgStudioActive = useMemo(() => {
-    return activeFeatures.some(f => f.id === 'svg_studio') || /(?:<svg|```svg)/i.test(fullText);
+  const isNeuralImageStudioActive = useMemo(() => {
+    return activeFeatures.some(f => f.id === 'neural_image_studio') || /(?:```neural-image|<neural-image)/i.test(fullText);
   }, [activeFeatures, fullText]);
 
+  const isSvgStudioActive = useMemo(() => {
+    if (isNeuralImageStudioActive) return false;
+    return activeFeatures.some(f => f.id === 'svg_studio') || /(?:<svg|```svg)/i.test(fullText);
+  }, [activeFeatures, fullText, isNeuralImageStudioActive]);
+
   const visibleHeaderFeatures = useMemo(() => {
-    return activeFeatures.filter(f => f.id !== 'fathom_cam' && f.id !== 'fathom_spark' && f.id !== 'fathom_search' && f.id !== 'svg_studio' && f.id !== 'vps_control_room');
+    return activeFeatures.filter(f => f.id !== 'fathom_cam' && f.id !== 'fathom_spark' && f.id !== 'fathom_search' && f.id !== 'svg_studio' && f.id !== 'neural_image_studio' && f.id !== 'vps_control_room');
   }, [activeFeatures]);
 
   if (!fullText && !isThinking) return null;
@@ -673,7 +678,7 @@ export default function ChatReasoning({
         )}
       >
         <AccordionTrigger
-          hideChevron={isSvgStudioActive}
+          hideChevron={isSvgStudioActive || isNeuralImageStudioActive}
           className="text-[11.5px] sm:text-xs font-medium text-zinc-300 hover:text-white hover:no-underline py-2 sm:py-2.5 w-full flex items-center justify-between cursor-pointer group"
         >
           <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
@@ -693,7 +698,9 @@ export default function ChatReasoning({
 
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <span className="font-mono text-[11px] sm:text-xs text-zinc-200 font-semibold tracking-tight">
-                {isSvgStudioActive ? (
+                {isNeuralImageStudioActive ? (
+                  "جاري انشاء صورة واقعية ......"
+                ) : isSvgStudioActive ? (
                   "جاري انشاء صورة ذو رسومات شعاعية ......"
                 ) : isThinking ? (
                   <span className="inline-flex items-center gap-1">

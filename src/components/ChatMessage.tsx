@@ -1489,11 +1489,19 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     if (!isQuant3Model) return false;
     if (activeFeatures.some(f => f.id === 'neural_image_studio')) return true;
     const pLower = (previousUserPrompt || '').toLowerCase();
-    const hasPhotoEdit = (hasImagesInChat) && !pLower.includes('svg') && !pLower.includes('فيكتور') && (
+
+    // Explicit exclusions: if user specifically asks for code/vector/svg
+    if (/(?:كود\s*svg|رسم\s*svg|ملف\s*svg|\.svg\b)/i.test(pLower)) return false;
+
+    const hasPhotoEdit = (hasImagesInChat) && (
       /(?:غير|عدل|بدل|لون|احذف|شيل|ازالة|عزل|اعزل|اضف|ادمج|حسن|وضح|جودة|دقة|4k|2k|شخصين|منتج|نص|كلام|recolor|upscale|enhance)/i.test(pLower)
     );
-    const hasPhotoGen = !pLower.includes('svg') && !pLower.includes('فيكتور') && (
-      /(?:صورة\s+واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|بورتريه\s+فوتوغرافي|photorealistic|realistic\s+photo|dslr)/i.test(pLower)
+    const hasPhotoGen = (
+      /(?:صورة|صوره|photo|image|picture|خلفية|خلفيه|wallpaper|بورتريه|portrait)/i.test(pLower) ||
+      /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية|خلفيه|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i.test(pLower) ||
+      /(?:صورة|صوره|خلفية|خلفيه|بورتريه|photo|image|picture)\s+(?:لـ|للـ|عن|فيها|تعبر\s+عن|جميلة|فنية|واقعية|احترافية|طبيعية|سينمائية|شخصية|متحركة|جديدة)/i.test(pLower) ||
+      /(?:صمم|ارسم|تخيل|ولد|انشئ|أنشئ)\s+(?:لي\s+)?(?:قطة|كلب|[أا]سد|طائر|عصفور|حيوان|شجرة|زهور|ورد|سيارة|عربية|طبيعة|منظر|[أا]شكال|شمس|غروب|شروق|قمر|بحر|فضاء|كوكب|رجل|شخص|وجه|بنت|طفل|بيت|مدينة|سفينة|طائرة|طبيعة\s*صامتة)/i.test(pLower) ||
+      /\b(?:generate\s+an?\s+image|create\s+an?\s+image|design\s+an?\s+image|draw\s+an?\s+image|image\s+of|photo\s+of|picture\s+of|photorealistic|realistic\s+photo|dslr)/i.test(pLower)
     );
     return hasPhotoEdit || hasPhotoGen;
   }, [isQuant3Model, extractedNeuralImageData, activeFeatures, previousUserPrompt, hasImagesInChat]);
@@ -1501,26 +1509,20 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const isSvgStudioActive = useMemo(() => {
     // Only Fathom Quant 3 is empowered to activate SVG Studio
     if (!isQuant3Model) return false;
-    if (isNeuralImageStudioActive && !previousUserPrompt.toLowerCase().includes('svg') && !previousUserPrompt.toLowerCase().includes('فيكتور')) {
-      return false;
-    }
+    // Strict Precedence: If Neural Image Studio is active, SVG Studio must NOT be active
+    if (isNeuralImageStudioActive) return false;
+    if (extractedSvgData !== null) return true;
     if (activeFeatures.some(f => f.id === 'svg_studio')) return true;
     const pLower = (previousUserPrompt || '').toLowerCase();
-    if (/(?:svg|فيكتور|متجهات|vector)/i.test(pLower)) return true;
-    if (/(?:عايز|اريد|أريد|بدي|محتاج|سويلي|اعملي|طلعلي|انشئ|أنشئ|ولد|صمم|ارسم|هات|جهز|رسم)\s+(?:لي\s+)?(?:صورة|رسمة|تصميم|لوحة|شكل|رمز)/i.test(pLower)) return true;
-    if (/(?:صورة|رسمة|لوحة)\s+(?:لـ|للـ|عن|فيها|تعبر\s+عن|جميلة|فنية|كرتونية|واقعية|احترافية|بسيطة|طبيعية)/i.test(pLower)) return true;
-    if (/(?:ارسم|صمم|اعمل|سوي|طلع|هات)\s+(?:لي\s+)?(?:قطة|كلب|[أا]سد|طائر|عصفور|حيوان|شجرة|زهور|ورد|سيارة|طبيعة|منظر|[أا]شكال|شمس|غروب|شروق|قمر|بحر|فضاء|كوكب|رجل|شخص|وجه|بنت|طفل|بيت|مدينة|سفينة|طائرة|طبيعة\s*صامتة)/i.test(pLower)) return true;
-    if (/(?:ارسم|ارسمي)\s+(?:لي\s+)?(?:\S+\s+){0,4}(?:في\s+الطبيعة|في\s+الغابة|في\s+البحر|في\s+الفضاء|في\s+السماء)/i.test(pLower)) return true;
-    if (/(?:تصميم|صمم|ارسم|رسم|اعمل|سوي|ولد|توليد|انشئ|أنشئ|ابني|صنع|draw|design|create|generate)\s+(?:لي\s+)?(?:صورة\s+)?(?:لوجو|شعار|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower)) return true;
-    if (/(?:لوجو|شعار|ايقونة|أيقونة)\s+(?:احترافي|حديث|فكتور|بصري|مبتكر|لـ|للـ|عن|بسيط|متقن)/i.test(pLower)) return true;
-    if (/(?:ارسم|صمم)\s+(?:لي\s+)?(?:رسمة|صورة\s+فيكتور|شكل\s+هندسي|رسم\s+شعاعي)/i.test(pLower)) return true;
-    if (/\b(?:image\s+of|picture\s+of|drawing\s+of|illustration\s+of|draw\s+me|generate\s+an?\s+image|create\s+an?\s+image|paint\s+me|make\s+a\s+picture)\b/i.test(pLower)) return true;
-    if (/\bdraw\s+(?:me\s+)?(?:a|an|the)\b/i.test(pLower)) return true;
-    if (hasImagesInChat && /(?:حول|تحويل|فيكتور|متجهات|عدل|تعديل|غير|أضف|ادخل|احذف|ارسم|صمم|شكل|تشكيل|svg|vector|vectorize|convert\s+to\s+svg)/i.test(pLower)) return true;
+
+    // Strict: SVG requires explicit vector intent
+    if (/(?:svg|فيكتور|متجهات|شعاعي|vector)/i.test(pLower)) return true;
+    if (/(?:شعار|لوجو|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower)) return true;
+    if (/(?:رسم|تصميم)\s+(?:بياني|توضيحي|هندسي|معماري|انسيابي|مخطط|خريطة|diagram|chart|flowchart|infographic)/i.test(pLower)) return true;
     if (message.content && (message.content.includes('<svg') || message.content.includes('```svg'))) return true;
     if (message.reasoning && (message.reasoning.includes('<svg') || message.reasoning.includes('```svg'))) return true;
     return false;
-  }, [isQuant3Model, activeFeatures, previousUserPrompt, message.content, message.reasoning, isNeuralImageStudioActive]);
+  }, [isQuant3Model, isNeuralImageStudioActive, extractedSvgData, activeFeatures, previousUserPrompt, message.content, message.reasoning]);
 
   const isVpsActive = useMemo(() => {
     if (Boolean(message.vpsTelemetry || message.vpsExecution)) return true;
@@ -1816,23 +1818,23 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       </div>
 
       <div className="w-full rounded-2xl p-3.5 sm:p-6 text-right transition-all duration-300 bg-[#0a0b0e]/70 backdrop-blur-md border border-white/[0.07] hover:border-white/[0.12] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] text-zinc-200 overflow-hidden break-words">
-        {isSvgStudioActive ? (
+        {isNeuralImageStudioActive ? (
+          // Neural Image Studio Mode: Clean single-line indicator during processing, suppress thinking button
+          (isThinking || isStreaming) && !extractedNeuralImageData ? (
+            <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
+              <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+              <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
+                جاري انشاء صورة واقعية ......
+              </span>
+            </div>
+          ) : null
+        ) : isSvgStudioActive ? (
           // SVG Studio Mode: Clean single-line indicator during creation, completely remove thinking button during and after
           (isThinking || isStreaming) && !extractedSvgData ? (
             <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
               <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
               <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
                 جاري انشاء صورة ذو رسومات شعاعية ......
-              </span>
-            </div>
-          ) : null
-        ) : isNeuralImageStudioActive ? (
-          // Neural Image Studio Mode: Clean single-line indicator during processing, suppress thinking button
-          (isThinking || isStreaming) && !extractedNeuralImageData ? (
-            <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
-              <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
-              <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
-                جاري توليد الصورة الفوتوغرافية بدقة 4K ......
               </span>
             </div>
           ) : null

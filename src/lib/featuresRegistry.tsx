@@ -1232,48 +1232,34 @@ export function routeFeatureIntent(
     return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No Fathom Search intent.' };
   }
 
-  // 9. SVG Studio Live Vector & High-Res PNG Engine Intent
+  // 9. SVG Studio Live Vector & High-Res PNG Engine Intent (STRICTLY for vectors, svgs, and explicit vector logos)
   if (featureId === 'svg_studio') {
     const hasSvgBadge = cLower.includes('svg studio') || cLower.includes('svg-studio') || cLower.includes('[svg-studio');
     const hasSvgCode = cLower.includes('```svg') || (cLower.includes('<svg') && cLower.includes('</svg>'));
     const hasSvgReasoning = rLower.includes('svg') || rLower.includes('فيكتور') || rLower.includes('vector studio') || rLower.includes('svg studio');
-    const isSvgPrompt = (
-      pLower.includes('svg') &&
-      /(?:تصميم|صمم|ارسم|رسم|رسمة|شعار|لوجو|ايقونة|أيقونة|أيقونات|فيكتور|متجهات|صورة|كود|انشئ|أنشئ|اعمل|سوي|ولد|توليد|إنفوجرافيك|انفوجرافيك|رمز|شارة|طابع|زخرفة|تعديل|عدل|غير|بدل|design|logo|icon|art|vector|graphic|draw|create|generate|illustration|emblem|badge|diagram|format|png|jpg)/i.test(pLower)
-    ) || /(?:فيكتور|متجهات|vector\s*graphics?|vector\s*art|vector\s*illustration)/i.test(pLower) ||
-    /\b(?:draw|create|generate|design)\s+(?:an?\s+)?(?:svg|vector)/i.test(pLower) ||
-    /(?:عايز|اريد|أريد|بدي|محتاج|سويلي|اعملي|طلعلي|انشئ|أنشئ|ولد|صمم|ارسم|هات|جهز|رسم)\s+(?:لي\s+)?(?:صورة|رسمة|تصميم|لوحة|شكل|رمز)/i.test(pLower) ||
-    /(?:صورة|رسمة|لوحة)\s+(?:لـ|للـ|عن|فيها|تعبر\s+عن|جميلة|فنية|كرتونية|واقعية|احترافية|بسيطة|طبيعية)/i.test(pLower) ||
-    /(?:ارسم|صمم|اعمل|سوي|طلع|هات)\s+(?:لي\s+)?(?:قطة|كلب|[أا]سد|طائر|عصفور|حيوان|شجرة|زهور|ورد|سيارة|طبيعة|منظر|[أا]شكال|شمس|غروب|شروق|قمر|بحر|فضاء|كوكب|رجل|شخص|وجه|بنت|طفل|بيت|مدينة|سفينة|طائرة|طبيعة\s*صامتة)/i.test(pLower) ||
-    /(?:ارسم|ارسمي)\s+(?:لي\s+)?(?:\S+\s+){0,4}(?:في\s+الطبيعة|في\s+الغابة|في\s+البحر|في\s+الفضاء|في\s+السماء)/i.test(pLower) ||
-    /(?:تصميم|صمم|ارسم|رسم|اعمل|سوي|ولد|توليد|انشئ|أنشئ|ابني|صنع|draw|design|create|generate)\s+(?:لي\s+)?(?:صورة\s+)?(?:لوجو|شعار|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower) ||
-    /(?:لوجو|شعار|ايقونة|أيقونة)\s+(?:احترافي|حديث|فكتور|بصري|مبتكر|لـ|للـ|عن|بسيط|متقن)/i.test(pLower) ||
-    /(?:ارسم|صمم)\s+(?:لي\s+)?(?:رسمة|صورة\s+فيكتور|شكل\s+هندسي|رسم\s+شعاعي)/i.test(pLower) ||
-    /(?:شخصية\s*كرتونية|كاريكاتير|بورتريه|أفاتار|avatar|character\s*design)/i.test(pLower) ||
-    /(?:رسم|تصميم)\s+(?:بياني|توضيحي|هندسي|معماري|انسيابي|مخطط|خريطة|diagram|chart|flowchart|infographic)/i.test(pLower) ||
-    /\b(?:image\s+of|picture\s+of|drawing\s+of|illustration\s+of|draw\s+me|generate\s+an?\s+image|create\s+an?\s+image|paint\s+me|make\s+a\s+picture)\b/i.test(pLower) ||
-    /\bdraw\s+(?:me\s+)?(?:a|an|the)\b/i.test(pLower) ||
-    /\b(?:vector|svg)\s+(?:art|graphic|illustration|logo|icon|design)\b/i.test(pLower) ||
-    /(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول|ضع|خليه|خلها|اجعله|اجعلها|سوه|سوها)\s+(?:لي\s+)?(?:الخلفية|خلفية|لون|الوان|ألوان|الألوان|الالوان|الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|العنصر|الرمز|الكتابة|ذهبي|فضي|أبيض|ابيض|أسود|اسود|أحمر|احمر|أزرق|ازرق|أخضر|اخضر|شفاف|شفافة|نيون|داكن|مضيء|أغمق|أفتح)/i.test(pLower) ||
-    /\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:background|color|colors|logo|icon|svg|vector|style|design)\b/i.test(pLower);
 
-    const isImageToSvgPrompt = (hasImages || Boolean(context?.hasImagesInHistory)) &&
-      /(?:حول|تحويل|فيكتور|متجهات|عدل|تعديل|غير|أضف|ادخل|احذف|ارسم|صمم|شكل|تشكيل|svg|vector|vectorize|convert\s+to\s+svg)/i.test(pLower);
-
-    // Strict Check: Photo editing or photorealistic prompts without SVG/vector keywords are NOT SVG Studio
-    const hasImageMention = hasImages || Boolean(context?.hasImagesInHistory) || /(?:في\s+الصورة|الصورة\s+المرفقة|الصورة\s+دي|الصورة\s+هذه|الصورة|صورتين|الصورتين|photo|image)/i.test(pLower);
-    const isPhotoEditQuery = hasImageMention && !pLower.includes('svg') && !pLower.includes('فيكتور') && (
-      /(?:لون|القميص|البنطلون|السيارة|العربية|الشعر|العين|خلفية|الخلفية|شخصين|جودة|دقة|وضح|تكبير|منتج|نص|كلام|بشرة|البشرة|recolor|upscale|enhance|4k|2k)/i.test(pLower)
-    );
-    const isRealisticPhotoQuery = !pLower.includes('svg') && !pLower.includes('فيكتور') && (
-      /(?:صورة\s+واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|بورتريه\s+فوتوغرافي|photorealistic|realistic\s+photo|dslr)/i.test(pLower)
+    // Strict Exclusion: If user asked for an image (صورة, photo, image, picture, خلفية شاشة, بورتريه) without mentioning svg/vector, NEVER trigger SVG Studio!
+    const isImageQueryWithoutSvg = !/(?:svg|فيكتور|متجهات|شعاعي|vector)/i.test(pLower) && (
+      /(?:صورة|صوره|photo|image|picture|خلفية\s+شاشة|خلفيه\s+شاشة|wallpaper|بورتريه|portrait)/i.test(pLower) ||
+      /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية\s+شاشة|خلفيه\s+شاشة|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i.test(pLower)
     );
 
-    if (isPhotoEditQuery || isRealisticPhotoQuery) {
-      return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Suppressed: Raster photo editing belongs to Neural Image Studio.' };
+    if (isImageQueryWithoutSvg) {
+      return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Suppressed: General image/photo request belongs exclusively to Neural Image Studio.' };
     }
 
-    if (hasSvgBadge || hasSvgCode || isSvgPrompt || hasSvgReasoning || isImageToSvgPrompt) {
+    const isExplicitVectorPrompt = /(?:svg|فيكتور|متجهات|شعاعي|vector)/i.test(pLower) ||
+      (/(?:كود\s*svg|ملف\s*svg|رسم\s*شعاعي|شكل\s*هندسي)/i.test(pLower)) ||
+      (/\b(?:draw|create|generate|design)\s+(?:an?\s+)?(?:svg|vector)/i.test(pLower)) ||
+      (/(?:شعار|لوجو|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower) && !/(?:صورة\s+واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|photo|dslr)/i.test(pLower)) ||
+      (/(?:رسم|تصميم)\s+(?:بياني|توضيحي|هندسي|معماري|انسيابي|مخطط|خريطة|diagram|chart|flowchart|infographic)/i.test(pLower)) ||
+      (/(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول|ضع|خليه|خلها|اجعله|اجعلها|سوه|سوها)\s+(?:لي\s+)?(?:الخلفية|خلفية|لون|الوان|ألوان|الألوان|الالوان|الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|العنصر|الرمز|الكتابة|ذهبي|فضي|أبيض|ابيض|أسود|اسود|أحمر|احمر|أزرق|ازرق|أخضر|اخضر|شفاف|شفافة|نيون|داكن|مضيء|أغمق|أفتح)/i.test(pLower)) ||
+      (/\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:background|color|colors|logo|icon|svg|vector|style|design)\b/i.test(pLower));
+
+    const isImageToSvgPrompt = (hasImages || Boolean(context?.hasImagesInHistory)) &&
+      /(?:حول|تحويل|فيكتور|متجهات|svg|vector|vectorize|convert\s+to\s+svg)/i.test(pLower);
+
+    if (hasSvgBadge || hasSvgCode || isExplicitVectorPrompt || hasSvgReasoning || isImageToSvgPrompt) {
       return {
         featureId,
         confidence: 1.0,
@@ -1288,11 +1274,11 @@ export function routeFeatureIntent(
     return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'No SVG Studio intent.' };
   }
 
-  // 10. Cyber Ultra Sovereign Neural Image Studio & Photo Processing Intent
+  // 10. Cyber Ultra Sovereign Neural Image Studio & Photo Processing Intent (FLUX.1 [schnell])
   if (featureId === 'neural_image_studio') {
     const hasNeuralBadge = cLower.includes('neural image') || cLower.includes('neural-image') || cLower.includes('[neural-image') || cLower.includes('cyber ultra neural');
     const hasNeuralBlock = cLower.includes('```neural-image') || (cLower.includes('"operation"') && (cLower.includes('"fidelityScore"') || cLower.includes('"resolution"')));
-    const hasNeuralReasoning = rLower.includes('neural image') || rLower.includes('معالجة عصبية') || rLower.includes('تعديل الصور') || rLower.includes('cyber ultra') || rLower.includes('quant 3') || rLower.includes('fathom quant') || rLower.includes('inpainting');
+    const hasNeuralReasoning = rLower.includes('neural image') || rLower.includes('معالجة عصبية') || rLower.includes('تعديل الصور') || rLower.includes('cyber ultra') || rLower.includes('quant 3') || rLower.includes('fathom quant') || rLower.includes('inpainting') || rLower.includes('flux');
 
     const hasImageMentionForNeural = hasImages || Boolean(context?.hasImagesInHistory) || /(?:في\s+الصورة|الصورة\s+المرفقة|الصورة\s+دي|الصورة\s+هذه|الصورة|صورتين|الصورتين|photo|image)/i.test(pLower);
     const isPhotoEditPrompt = (hasImageMentionForNeural || /(?:وجه|ملامح|شخص|بشرة|بشره|عينين|عيون|يد|أصابع|اصابع|retouch)/i.test(pLower)) && (
@@ -1306,9 +1292,13 @@ export function routeFeatureIntent(
       /(?:عدل\s+على\s+الصورة|تعديل\s+الصورة|ظبط\s+الصورة|معالجة\s+الصورة|عدل\s+الصورة|edit\s+photo|modify\s+image|inpaint|recolor|upscale|remove\s+background)/i.test(pLower)
     );
 
-    const isPhotoGenPrompt = !pLower.includes('svg') && !pLower.includes('فيكتور') && (
-      /(?:صورة\s+(?:فائقة\s+)?واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|صورة\s+طبيعية|صورة\s+احترافية|صورة\s+شخصية|بورتريه|صورة\s+شخص|صورة\s+بشر|صورة\s+رجل|صورة\s+بنت|صورة\s+طفل|صورة\s+منتج|ولد\s+لي\s+صورة|انشئ\s+لي\s+صورة|اعملي\s+صورة|صمم\s+لي\s+صورة\s+واقعية)/i.test(pLower) ||
-      /\b(?:photorealistic|realistic\s+photo|dslr\s+shot|hyperrealistic|realistic\s+portrait|realistic\s+human|realistic\s+person)\b/i.test(pLower)
+    // Comprehensive Image Generation Intent (Photo, Scene, Portrait, Wallpaper, or any "صمم صورة" command)
+    const isPhotoGenPrompt = !/(?:كود\s*svg|رسم\s*svg|ملف\s*svg|\.svg\b)/i.test(pLower) && (
+      /(?:صورة|صوره|photo|image|picture|خلفية|خلفيه|wallpaper|بورتريه|portrait)/i.test(pLower) ||
+      /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية|خلفيه|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i.test(pLower) ||
+      /(?:صورة|صوره|خلفية|خلفيه|بورتريه|photo|image|picture)\s+(?:لـ|للـ|عن|فيها|تعبر\s+عن|جميلة|فنية|واقعية|احترافية|طبيعية|سينمائية|شخصية|متحركة|جديدة)/i.test(pLower) ||
+      /(?:صمم|ارسم|تخيل|ولد|انشئ|أنشئ)\s+(?:لي\s+)?(?:قطة|كلب|[أا]سد|طائر|عصفور|حيوان|شجرة|زهور|ورد|سيارة|عربية|طبيعة|منظر|[أا]شكال|شمس|غروب|شروق|قمر|بحر|فضاء|كوكب|رجل|شخص|وجه|بنت|طفل|بيت|مدينة|سفينة|طائرة|طبيعة\s*صامتة)/i.test(pLower) ||
+      /\b(?:generate\s+an?\s+image|create\s+an?\s+image|design\s+an?\s+image|draw\s+an?\s+image|image\s+of|photo\s+of|picture\s+of|photorealistic|realistic\s+photo|dslr\s+shot|hyperrealistic|realistic\s+portrait|realistic\s+human|realistic\s+person)\b/i.test(pLower)
     );
 
     if (hasNeuralBadge || hasNeuralBlock || isPhotoEditPrompt || isPhotoGenPrompt || hasNeuralReasoning) {

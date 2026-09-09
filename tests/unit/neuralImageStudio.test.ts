@@ -172,5 +172,25 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       }
     });
 
+    // 13. General "صمم صورة" command MUST route to Neural Image Studio and NEVER to SVG
+    await harness.it('should route "صمم صورة" to NEURAL_IMAGE_STUDIO_AND_PROCESSING and NOT to SVG', () => {
+      const request: DynamicTuningRequest = {
+        userPrompt: 'صمم صورة لسيارة رياضية فارهة تسير في شوارع طوكيو ليلاً',
+        requestedModel: 'fathom-quant-3',
+        hasMultimodalImages: false,
+      };
+
+      const result = DynamicParameterTuner.tune(request);
+      expect(result.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
+      expect(result.calibrationDirective).toContain('FLUX.1 [schnell]');
+
+      // Check Feature Registry
+      const planSvg = routeFeatureIntent('svg_studio', 'صمم صورة لسيارة رياضية فارهة', '', '');
+      expect(planSvg.confidence).toBe(0.0);
+
+      const planNeural = routeFeatureIntent('neural_image_studio', 'صمم صورة لسيارة رياضية فارهة', '', '');
+      expect(planNeural.confidence).toBeGreaterThanOrEqual(0.95);
+    });
+
   });
 }

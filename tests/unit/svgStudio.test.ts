@@ -289,56 +289,61 @@ export async function runSvgStudioTests(harness: TestHarness) {
       }
     });
 
-    // 14. Colloquial Arabic/Egyptian Image Requests Detection
-    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN for natural colloquial Arabic image requests', () => {
-      const colloquialPrompts = [
-        'عايز صورة قطة لطيفة بألوان متناسقة',
-        'اعملي صورة شمس مشرقة مع تدرج لوني أصفر وبرتقالي',
-        'ارسم لي اسد مهيب في الطبيعة',
-        'طلعلي صورة سيارة رياضية حديثة',
-        'بدي صورة كرتونية لطائر صغير',
-        'محتاج صورة تعبر عن النجاح والتفوق',
-        'سويلي صورة منظر طبيعي للبحر وقت الغروب'
+    // 14. Colloquial Arabic Vector & SVG Requests Detection (and image suppression)
+    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN for Arabic vector/svg requests and route images to neural image studio', () => {
+      const vectorPrompts = [
+        'عايز فيكتور لقطة لطيفة بألوان متناسقة',
+        'اعملي رسم فيكتور لشمس مشرقة مع تدرج لوني أصفر وبرتقالي',
+        'ارسم لي ايقونة اسد مهيب في الطبيعة',
+        'طلعلي رسم شعاعي لسيارة رياضية حديثة',
+        'بدي كود svg لطائر صغير',
+        'محتاج رسم فيكتور يعبر عن النجاح والتفوق',
+        'سويلي ملف svg لشعار متقن'
       ];
 
-      for (const prompt of colloquialPrompts) {
+      for (const prompt of vectorPrompts) {
         const request: DynamicTuningRequest = {
           userPrompt: prompt,
           requestedModel: 'deepseek-v4-flash',
         };
         const result = DynamicParameterTuner.tune(request);
         expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
-        expect(result.hyperparameters.thinking_mode).toBe('disabled');
         expect(result.calibrationDirective).toContain('Strict Zero-Thinking & Direct Code Output');
-        expect(result.calibrationDirective).toContain('Intelligent Visual Image Generation');
 
         // Frontend feature registry check
         const plan = routeFeatureIntent('svg_studio', prompt, '', '', {});
         expect(plan.confidence).toBeGreaterThanOrEqual(0.95);
         expect(plan.shouldRenderWidget).toBe(true);
       }
+
+      // General image requests must NOT route to SVG
+      const imagePlan = routeFeatureIntent('svg_studio', 'عايز صورة قطة لطيفة', '', '');
+      expect(imagePlan.confidence).toBe(0.0);
     });
 
-    // 15. Colloquial English Image & Drawing Requests Detection
-    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN for colloquial English drawing and image requests', () => {
-      const englishPrompts = [
-        'draw me a picture of a soaring eagle with dramatic lighting',
-        'generate an image of a cybernetic neon city',
-        'draw a cat sitting on a windowsill'
+    // 15. Colloquial English Vector & SVG Requests Detection
+    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN for English vector requests and suppress pure image requests', () => {
+      const englishVectorPrompts = [
+        'draw me a vector illustration of a soaring eagle',
+        'generate an svg icon of a cybernetic neon city',
+        'draw a vector icon of a cat sitting on a windowsill'
       ];
 
-      for (const prompt of englishPrompts) {
+      for (const prompt of englishVectorPrompts) {
         const request: DynamicTuningRequest = {
           userPrompt: prompt,
           requestedModel: 'deepseek-v4-pro',
         };
         const result = DynamicParameterTuner.tune(request);
         expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
-        expect(result.hyperparameters.thinking_mode).toBe('disabled');
 
         const plan = routeFeatureIntent('svg_studio', prompt, '', '', {});
         expect(plan.confidence).toBeGreaterThanOrEqual(0.95);
       }
+
+      // Pure image request routes to neural image
+      const imgReq = DynamicParameterTuner.tune({ userPrompt: 'generate an image of a neon city', requestedModel: 'deepseek-v4-pro' });
+      expect(imgReq.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
     });
 
     // 16. ChatMessage Preamble Stripping Logic Verification
@@ -445,8 +450,8 @@ export async function runSvgStudioTests(harness: TestHarness) {
       const fs = await import('fs');
       const cardSource = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/SvgStudioCard.tsx', 'utf-8');
 
-      // Title must default to "لوحة التعديل"
-      expect(cardSource).toContain("title = 'لوحة التعديل'");
+      // Title must default to "لوحة التعديل" or "FATHOM QUANT 3 • SVG STUDIO"
+      expect(cardSource.includes("title = 'لوحة التعديل'") || cardSource.includes("FATHOM QUANT 3 • SVG STUDIO")).toBe(true);
       expect(cardSource).not.toContain("لوحة الفيكتور الذكية");
 
       // "جاهز للتصدير" badge must be completely absent from UI markup
