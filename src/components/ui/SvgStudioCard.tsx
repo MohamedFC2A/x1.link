@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { highlightCode } from '@/lib/syntaxHighlighter';
+import { Quant3PerfectionIcon } from '@/components/ui/Quant3PerfectionIcon';
 
 export interface SvgStudioCardProps {
   svgCode: string;
@@ -192,7 +193,7 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
   svgCode,
   className,
   isStreaming = false,
-  title = 'لوحة التعديل'
+  title = 'FATHOM QUANT 3 • SVG STUDIO'
 }) => {
   const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
   const [zoomLevel, setZoomLevel] = useState<number>(1);
@@ -340,7 +341,7 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
       const a = document.createElement('a');
       a.href = url;
       const timestamp = new Date().toISOString().slice(0, 10);
-      a.download = `matany-design-${timestamp}-${exportQuality}.${targetFmt}`;
+      a.download = `FathomQuant3-design-${timestamp}-${exportQuality}.${targetFmt}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -385,7 +386,7 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
       const a = document.createElement('a');
       a.href = url;
       const timestamp = new Date().toISOString().slice(0, 10);
-      a.download = `matany-vector-${timestamp}.svg`;
+      a.download = `FathomQuant3-vector-${timestamp}.svg`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -449,20 +450,25 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
       <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/[0.03] border-b border-white/[0.08]">
         {/* Title & Vector Dimensions */}
         <div className="flex items-center gap-2 min-w-0">
-          <div className="size-7 sm:size-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0 shadow-sm">
-            <Sparkles className="size-3.5 sm:size-4 text-cyan-400" />
+          <div className="size-7 sm:size-8 rounded-xl bg-gradient-to-br from-cyan-500/20 via-indigo-500/20 to-purple-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0 shadow-sm text-cyan-300">
+            <Quant3PerfectionIcon size={16} />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-xs sm:text-sm font-sans font-bold text-white tracking-wide truncate">
-              {title}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] sm:text-xs font-bold tracking-wider text-cyan-300">
+                FATHOM QUANT 3 • SVG STUDIO
+              </span>
+              <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-cyan-500/10 border border-cyan-400/30 text-cyan-300">
+                VECTOR ENGINE
+              </span>
+            </div>
             {metrics.isValid && (
               <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-mono text-zinc-400">
                 <span>{metrics.width}×{metrics.height}</span>
                 <span>•</span>
                 <span>{metrics.aspectRatio}</span>
                 <span className="hidden xs:inline">•</span>
-                <span className="hidden xs:inline">{(metrics.sizeBytes / 1024).toFixed(1)} KB</span>
+                <span>{metrics.elementCount} عنصر</span>
               </div>
             )}
           </div>

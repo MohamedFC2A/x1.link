@@ -1414,7 +1414,15 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         const parsed = JSON.parse(neuralBlockMatch[1]);
         if (parsed && typeof parsed === 'object') {
           if (!parsed.imageUrl && !parsed.processedImage && parsed.prompt) {
-            parsed.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=1024&height=1024&model=flux&nologo=true&enhance=true`;
+            const aspect = parsed.aspectRatio || '1:1';
+            let w = 1024;
+            let h = 1024;
+            if (aspect === '16:9') { w = 1344; h = 768; }
+            else if (aspect === '9:16') { w = 768; h = 1344; }
+            else if (aspect === '4:3') { w = 1152; h = 864; }
+            else if (aspect === '3:4') { w = 864; h = 1152; }
+            else if (aspect === '3:2') { w = 1200; h = 800; }
+            parsed.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=${w}&height=${h}&model=flux&nologo=true&enhance=true`;
           }
           return parsed;
         }
@@ -1471,9 +1479,14 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const isTimeIntent = activeFeatures.some(f => f.id === 'time_detect');
   const hasDownloadDetect = activeFeatures.some(f => f.id === 'download_detect');
 
-  // Cyber Ultra Neural Image Studio Activity Check
+  // Fathom Quant 3 Exclusive Neural Image Studio Activity Check
+  const isQuant3Model = message.model === 'fathom-quant-3' || (typeof message.model === 'string' && message.model.includes('quant-3'));
+
   const isNeuralImageStudioActive = useMemo(() => {
+    // If extracted image data is present, immediately activate
     if (extractedNeuralImageData !== null) return true;
+    // Only Fathom Quant 3 is empowered to activate Neural Image Studio
+    if (!isQuant3Model) return false;
     if (activeFeatures.some(f => f.id === 'neural_image_studio')) return true;
     const pLower = (previousUserPrompt || '').toLowerCase();
     const hasPhotoEdit = (hasImagesInChat) && !pLower.includes('svg') && !pLower.includes('فيكتور') && (
@@ -1483,9 +1496,11 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       /(?:صورة\s+واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|بورتريه\s+فوتوغرافي|photorealistic|realistic\s+photo|dslr)/i.test(pLower)
     );
     return hasPhotoEdit || hasPhotoGen;
-  }, [extractedNeuralImageData, activeFeatures, previousUserPrompt, hasImagesInChat]);
+  }, [isQuant3Model, extractedNeuralImageData, activeFeatures, previousUserPrompt, hasImagesInChat]);
 
   const isSvgStudioActive = useMemo(() => {
+    // Only Fathom Quant 3 is empowered to activate SVG Studio
+    if (!isQuant3Model) return false;
     if (isNeuralImageStudioActive && !previousUserPrompt.toLowerCase().includes('svg') && !previousUserPrompt.toLowerCase().includes('فيكتور')) {
       return false;
     }
@@ -1505,7 +1520,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     if (message.content && (message.content.includes('<svg') || message.content.includes('```svg'))) return true;
     if (message.reasoning && (message.reasoning.includes('<svg') || message.reasoning.includes('```svg'))) return true;
     return false;
-  }, [activeFeatures, previousUserPrompt, message.content, message.reasoning, isNeuralImageStudioActive]);
+  }, [isQuant3Model, activeFeatures, previousUserPrompt, message.content, message.reasoning, isNeuralImageStudioActive]);
 
   const isVpsActive = useMemo(() => {
     if (Boolean(message.vpsTelemetry || message.vpsExecution)) return true;
@@ -1755,7 +1770,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           {message.model === 'fathom-quant-3' && (
             <span className="inline-flex items-center gap-1.5 text-[10.5px] font-mono font-medium px-2 py-0.5 rounded bg-white/[0.04] text-zinc-200 border border-white/[0.09] select-none">
               <Quant3PerfectionIcon size={12} className="text-zinc-300" />
-              <span>Quant 3</span>
+              <span>Fathom Quant 3</span>
             </span>
           )}
           {message.isX1 && (
@@ -1763,7 +1778,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               X1 MAX
             </span>
           )}
-          {message.model === 'deepseek-v4-flash-cyber-2.6' && (
+          {(message.model === 'deepseek-v4-flash-cyber-2.6' || message.model === 'deepseek-v4-flash-cyber-2.1') && (
             <span className="text-[10px] font-mono font-bold text-amber-300/90 tracking-wide px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
               Fathom Cyber Flash 2.6
             </span>
@@ -1771,6 +1786,16 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           {(message.model === 'deepseek-v4-pro-cyber-2.6' || message.model === 'deepseek-v4-pro-cyber-2.1') && (
             <span className="text-[10px] font-mono font-bold text-indigo-300/90 tracking-wide px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
               Fathom Cyber Ultra 2.6
+            </span>
+          )}
+          {message.model === 'deepseek-v4-flash-cyber' && (
+            <span className="text-[10px] font-mono font-bold text-cyan-300/90 tracking-wide px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20">
+              Fathom Cyber
+            </span>
+          )}
+          {message.model === 'deepseek-v4-flash-vision-exp' && (
+            <span className="text-[10px] font-mono font-bold text-emerald-300/90 tracking-wide px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+              Fathom Cam
             </span>
           )}
 
@@ -1804,10 +1829,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         ) : isNeuralImageStudioActive ? (
           // Neural Image Studio Mode: Clean single-line indicator during processing, suppress thinking button
           (isThinking || isStreaming) && !extractedNeuralImageData ? (
-            <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 select-none w-fit" dir="rtl">
-              <span className="inline-block w-2 h-2 rounded-full bg-indigo-400 animate-pulse shrink-0" />
-              <span className="text-xs sm:text-sm font-sans font-medium text-indigo-200">
-                جاري المعالجة العصبية الفائقة للصورة (Cyber Ultra 4K)...
+            <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
+              <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+              <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
+                جاري توليد الصورة الفوتوغرافية بدقة 4K ......
               </span>
             </div>
           ) : null

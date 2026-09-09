@@ -2,7 +2,8 @@ import React from 'react';
 import { ModelType } from '../types';
 import { memoryEngine } from '../services/memoryManager';
 import { scientificDiscoveryEngine } from '../services/scientificDiscoveryEngine';
-import { Brain, Cpu, History, Network, GitMerge, ShieldCheck, Atom, Sparkles, Award } from 'lucide-react';
+import { getModelDisplayName } from '../lib/modelUtils';
+import { Brain, Cpu, History, Network, GitMerge, ShieldCheck, Atom, Sparkles } from 'lucide-react';
 
 interface TelemetryDrawerProps {
   isOpen: boolean;
@@ -11,7 +12,6 @@ interface TelemetryDrawerProps {
   isX1Active: boolean;
   isX1Unlocked: boolean;
   messagesCount: number;
-  onOpenBenchmark?: () => void;
 }
 
 export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
@@ -20,8 +20,7 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
   activeModel,
   isX1Active,
   isX1Unlocked,
-  messagesCount,
-  onOpenBenchmark
+  messagesCount
 }) => {
   if (!isOpen) return null;
 
@@ -60,12 +59,12 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
             <div className="bg-black/50 p-3 rounded-xl border border-white/[0.08]">
               <span className="text-zinc-400 block text-[10px] uppercase font-bold">CURRENT ACTIVE MODEL</span>
               <span className="text-white font-bold block mt-1">
-                {isCyber26 
-                  ? (activeModel === 'deepseek-v4-flash-cyber-2.6' ? 'Fathom Cyber Flash 2.6' : 'Fathom Cyber Ultra 2.6')
-                  : activeModel}
+                {getModelDisplayName(activeModel, isX1Active)}
               </span>
               <span className="text-[10px] text-cyan-400 block mt-0.5 font-bold">
-                {isCyber26
+                {activeModel === 'fathom-quant-3'
+                  ? 'QUANT-3 REASONING ENGINE // LATENT PERFECTION & VPS ORCHESTRATION'
+                  : isCyber26
                   ? 'V4-PRO ENGINE // HYPER-DEDUCTIVE REASONING & 3-TIER MEMORY'
                   : activeModel.includes('vision') 
                   ? 'MULTIMODAL_IMAGE_PROCESSING' 
@@ -193,20 +192,7 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
               </div>
             </div>
 
-            {/* Benchmark Matrix Action Button */}
-            {onOpenBenchmark && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenBenchmark();
-                }}
-                className="w-full mt-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-950/60 to-emerald-950/40 border border-cyan-500/30 hover:border-cyan-500/60 text-cyan-300 hover:text-white font-sans text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer active:scale-98"
-              >
-                <Award className="w-4 h-4 text-cyan-400" />
-                <span>عرض مقارنة النماذج والذكاء (Benchmark Matrix)</span>
-              </button>
-            )}
+
           </div>
         </div>
 

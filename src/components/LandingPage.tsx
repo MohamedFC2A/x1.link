@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, ShieldOff, Eye, Camera, ShieldCheck, ArrowLeft, MessageSquarePlus, Zap, Lock, MessageSquare, CreditCard, Activity, User as UserIcon, Award } from 'lucide-react';
+import { Sparkles, ShieldOff, Eye, Camera, ShieldCheck, ArrowLeft, MessageSquarePlus, Zap, Lock, MessageSquare, CreditCard, Activity, User as UserIcon } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { motion } from 'framer-motion';
 
@@ -11,7 +11,6 @@ interface LandingPageProps {
   onNavigateToPricing?: () => void;
   onNavigateToLimits?: () => void;
   onNavigateToProfile?: () => void;
-  onOpenBenchmark?: () => void;
   user: User | null;
 }
 
@@ -23,7 +22,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onNavigateToPricing,
   onNavigateToLimits,
   onNavigateToProfile,
-  onOpenBenchmark,
   user,
 }) => {
   return (
@@ -57,17 +55,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </button>
             )}
 
-            {onOpenBenchmark && (
-              <button
-                type="button"
-                onClick={onOpenBenchmark}
-                className="glass-button flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-cyan-300 hover:text-white border-cyan-500/30 hover:border-cyan-500/60 bg-cyan-950/20 text-xs font-semibold cursor-pointer active:scale-95 shadow-sm"
-                title="مقارنة بينش مارك النماذج والذكاء الاصطناعي"
-              >
-                <Award className="w-4 h-4 text-cyan-400" />
-                <span className="hidden sm:inline font-sans">المقارنة والمعايير</span>
-              </button>
-            )}
 
             <button
               type="button"

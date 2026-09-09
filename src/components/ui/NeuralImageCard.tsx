@@ -6,22 +6,16 @@ import {
   Minimize2,
   Copy,
   Check,
-  Split,
-  Layers,
-  Scissors,
-  Wand2,
-  Sliders,
   Eye,
   RefreshCw,
-  Zap,
-  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  Split,
   ChevronLeft,
-  ChevronRight,
-  Info,
-  User
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { NeuralImageStudioIcon } from '@/lib/featuresRegistry';
+import { Quant3PerfectionIcon } from '@/components/ui/Quant3PerfectionIcon';
 
 export interface NeuralImageData {
   operation?: 'recolor' | 'remove_background' | 'enhance_4k' | 'composite' | 'product_edit' | 'text_edit' | 'generate' | 'portrait_generation' | 'human_edit' | string;
@@ -50,64 +44,60 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   isStreaming = false,
   className
 }) => {
+  // Dynamic Aspect Ratio and Seed variation controls for Fathom Quant 3
+  const [selectedRatio, setSelectedRatio] = useState<string>(() => {
+    if (data.aspectRatio && ['1:1', '16:9', '9:16', '4:3'].includes(data.aspectRatio)) {
+      return data.aspectRatio;
+    }
+    return '1:1';
+  });
+  const [seed, setSeed] = useState<number | null>(null);
+  const [isImageLoading, setIsImageLoading] = useState<boolean>(false);
+
+  // Compute dimensions
+  const currentDimensions = useMemo(() => {
+    if (selectedRatio === '16:9') return { width: 1344, height: 768 };
+    if (selectedRatio === '9:16') return { width: 768, height: 1344 };
+    if (selectedRatio === '4:3') return { width: 1152, height: 864 };
+    return { width: 1024, height: 1024 };
+  }, [selectedRatio]);
+
   // Resolve images
   const originalSrc = data.originalImage || fallbackOriginalImage || null;
   const processedSrc = useMemo(() => {
+    const { width, height } = currentDimensions;
+
+    // If user modified seed or ratio and we have a prompt, generate fresh
+    if (data.prompt && (seed !== null || (data.aspectRatio && selectedRatio !== data.aspectRatio))) {
+      const cleanPrompt = encodeURIComponent(data.prompt.trim());
+      const seedParam = seed !== null ? `&seed=${seed}` : '';
+      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=flux&nologo=true&enhance=true${seedParam}`;
+    }
+
     if (data.processedImage) return data.processedImage;
     if (data.imageUrl) return data.imageUrl;
     if (data.prompt) {
       const cleanPrompt = encodeURIComponent(data.prompt.trim());
-      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true`;
+      const seedParam = seed !== null ? `&seed=${seed}` : '';
+      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=flux&nologo=true&enhance=true${seedParam}`;
     }
     return originalSrc || '';
-  }, [data.processedImage, data.imageUrl, data.prompt, originalSrc]);
+  }, [data.processedImage, data.imageUrl, data.prompt, data.aspectRatio, selectedRatio, seed, originalSrc, currentDimensions]);
 
   // Local interactive states
   const [sliderPosition, setSliderPosition] = useState<number>(50);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'split' | 'processed' | 'original'>('split');
+  const [viewMode, setViewMode] = useState<'split' | 'processed' | 'original'>('processed');
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isProcessingCanvas, setIsProcessingCanvas] = useState<boolean>(false);
-  const [processingStatus, setProcessingStatus] = useState<string>('');
+  const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
   const [selectedQuality, setSelectedQuality] = useState<'4k' | '2k' | 'original'>('4k');
-  const [activeFilter, setActiveFilter] = useState<'none' | 'enhanced' | 'bg_removed' | 'recolored'>('none');
-  const [recolorHue, setRecolorHue] = useState<number>(0);
-  const [showRecolorControl, setShowRecolorControl] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const activeProcessedSrc = processedSrc;
-
-  // Operation translation & badges
-  const operationMeta = useMemo(() => {
-    const op = (data.operation || '').toLowerCase();
-    if (op.includes('portrait') || op.includes('human_gen') || op.includes('face_gen')) {
-      return { label: 'توليد بورتريه فوتوغرافي واقعي', icon: User, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/30' };
-    }
-    if (op.includes('human_edit') || op.includes('anatomy') || op.includes('retouch')) {
-      return { label: 'معالجة وتعديل بشري جراحي', icon: Sparkles, color: 'text-teal-400', bg: 'bg-teal-500/10 border-teal-500/30' };
-    }
-    if (op.includes('recolor') || op.includes('color')) {
-      return { label: 'تغيير لون انتقائي', icon: Sliders, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' };
-    }
-    if (op.includes('background') || op.includes('bg') || op.includes('cutout')) {
-      return { label: 'عزل وتفريغ الخلفية', icon: Scissors, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' };
-    }
-    if (op.includes('enhance') || op.includes('4k') || op.includes('upscale')) {
-      return { label: 'ترقية فائقة الدقة 4K', icon: Wand2, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/30' };
-    }
-    if (op.includes('composite') || op.includes('merge')) {
-      return { label: 'دمج عناصر ووجوه', icon: Layers, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/30' };
-    }
-    if (op.includes('text')) {
-      return { label: 'تعديل نصوص فوتوغرافي', icon: Sparkles, color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10 border-fuchsia-500/30' };
-    }
-    if (op.includes('product')) {
-      return { label: 'تعديل صورة منتج', icon: ShieldCheck, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/30' };
-    }
-    return { label: 'توليد عصبي واقعي فائق', icon: Zap, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/30' };
-  }, [data.operation]);
+  const hasDualImages = Boolean(originalSrc && processedSrc && originalSrc !== processedSrc);
 
   // Handle slider mouse/touch drag
   const handleDrag = useCallback((clientX: number) => {
@@ -144,11 +134,33 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     };
   }, [isDragging, handleDrag]);
 
-  // 1-Click High-DPI Canvas Master Downloader
+  const handleRegenerateVariation = useCallback(() => {
+    const newSeed = Math.floor(Math.random() * 1000000);
+    setSeed(newSeed);
+    setLoadError(false);
+    setIsImageLoading(true);
+  }, []);
+
+  const handleRatioChange = useCallback((ratio: string) => {
+    setSelectedRatio(ratio);
+    setLoadError(false);
+    setIsImageLoading(true);
+  }, []);
+
+  const handleImageLoaded = () => {
+    setIsImageLoading(false);
+    setLoadError(false);
+  };
+
+  const handleImageError = () => {
+    setIsImageLoading(false);
+    setLoadError(true);
+  };
+
+  // High-Resolution Canvas Master Downloader (4K / 2K / 1X)
   const handleDownload = async (targetTier: '4k' | '2k' | 'original' = selectedQuality) => {
     if (!activeProcessedSrc) return;
     setIsProcessingCanvas(true);
-    setProcessingStatus(`جاري تجهيز الصورة بدقة ${targetTier.toUpperCase()}...`);
 
     try {
       const img = new Image();
@@ -179,233 +191,165 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
 
       if (!ctx) throw new Error('Canvas context not available');
 
-      // High-quality image smoothing
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-
-      // Apply active filters if selected
-      if (activeFilter === 'recolored' && recolorHue !== 0) {
-        ctx.filter = `hue-rotate(${recolorHue}deg) saturate(1.15)`;
-      } else if (activeFilter === 'enhanced') {
-        ctx.filter = 'contrast(1.08) saturate(1.1) brightness(1.02)';
-      }
-
       ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
-      // Perform instant background cutout if filter active
-      if (activeFilter === 'bg_removed') {
-        const imgData = ctx.getImageData(0, 0, targetWidth, targetHeight);
-        const dataArr = imgData.data;
-        // Sample corner pixels as reference background color
-        const bgR = dataArr[0];
-        const bgG = dataArr[1];
-        const bgB = dataArr[2];
-        const threshold = 40;
-
-        for (let i = 0; i < dataArr.length; i += 4) {
-          const r = dataArr[i];
-          const g = dataArr[i + 1];
-          const b = dataArr[i + 2];
-          const dist = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
-          if (dist < threshold) {
-            dataArr[i + 3] = 0; // set transparent
-          }
-        }
-        ctx.putImageData(imgData, 0, 0);
-      }
-
-      const mimeType = activeFilter === 'bg_removed' ? 'image/png' : 'image/png';
-      const dataUrl = canvas.toDataURL(mimeType, 0.98);
-
+      const dataUrl = canvas.toDataURL('image/png', 0.98);
       const link = document.createElement('a');
-      link.download = `CyberUltra-${data.operation || 'photo'}-${targetTier.toUpperCase()}-${Date.now()}.png`;
+      link.download = `FathomQuant3-Image-${targetTier.toUpperCase()}-${Date.now()}.png`;
       link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      setProcessingStatus('تم التنزيل بنجاح');
-      setTimeout(() => setProcessingStatus(''), 2000);
+      setDownloadSuccess(`تم تنزيل الصورة (${targetTier === 'original' ? '1X' : targetTier.toUpperCase()}) بنجاح`);
+      setTimeout(() => setDownloadSuccess(null), 3000);
     } catch {
       // Fallback direct download
       const link = document.createElement('a');
       link.href = activeProcessedSrc;
-      link.download = `CyberUltra-${data.operation || 'photo'}-${Date.now()}.png`;
+      link.download = `FathomQuant3-Image-${Date.now()}.png`;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setProcessingStatus('تم التنزيل المباشر');
-      setTimeout(() => setProcessingStatus(''), 2000);
+      setDownloadSuccess('تم التنزيل المباشر بنجاح');
+      setTimeout(() => setDownloadSuccess(null), 3000);
     } finally {
       setIsProcessingCanvas(false);
     }
   };
 
-  // Instant In-Browser Background Removal Toggle
-  const toggleBackgroundRemoval = () => {
-    if (activeFilter === 'bg_removed') {
-      setActiveFilter('none');
-      setProcessingStatus('تمت استعادة الخلفية الأصلية');
-    } else {
-      setActiveFilter('bg_removed');
-      setProcessingStatus('تم تفعيل العزل الفوري للخلفية');
-    }
-    setTimeout(() => setProcessingStatus(''), 2000);
-  };
-
-  // Instant In-Browser Super-Resolution Enhance Toggle
-  const toggleSuperResolution = () => {
-    if (activeFilter === 'enhanced') {
-      setActiveFilter('none');
-      setProcessingStatus('تم إلغاء تحسين الإضاءة');
-    } else {
-      setActiveFilter('enhanced');
-      setSelectedQuality('4k');
-      setProcessingStatus('تم تفعيل التحسين العصبي الفائق 4K');
-    }
-    setTimeout(() => setProcessingStatus(''), 2000);
-  };
-
-  // Copy Prompt / Meta
+  // Copy Prompt
   const handleCopyPrompt = () => {
-    const textToCopy = data.prompt || data.description || data.title || 'Cyber Ultra Neural Image';
+    const textToCopy = data.prompt || data.description || data.title || 'Fathom Quant 3 Neural Image';
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const hasDualImages = Boolean(originalSrc && processedSrc && originalSrc !== processedSrc);
-
   return (
     <div
       className={cn(
-        "relative my-3 w-full rounded-2xl border border-cyan-500/30 bg-[#090d16]/90 backdrop-blur-xl shadow-[0_8px_32px_rgba(6,182,212,0.15)] overflow-hidden transition-all duration-300",
-        isFullscreen && "fixed inset-0 z-[150] m-0 rounded-none bg-black/95 flex flex-col justify-between p-4 sm:p-6 overflow-y-auto",
+        "my-3 sm:my-4 rounded-2xl border border-white/[0.08] bg-[#090b11]/95 backdrop-blur-xl overflow-hidden shadow-2xl select-none",
+        isFullscreen && "fixed inset-0 z-[150] m-0 rounded-none bg-black/95 backdrop-blur-2xl flex flex-col",
         className
       )}
       dir="rtl"
     >
-      {/* ── Top Header Toolbar ──────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 sm:px-4 sm:py-3 select-none">
-        {/* Brand & Operation Badge */}
+      {/* ── 1. Header Toolbar (Identical to SvgStudioCard) ────────────────── */}
+      <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/[0.03] border-b border-white/[0.08]">
+        {/* Title & Image Dimensions */}
         <div className="flex items-center gap-2 min-w-0">
-          <div className="flex size-7 sm:size-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-violet-500/20 border border-cyan-400/40 shadow-inner shrink-0">
-            <NeuralImageStudioIcon size={16} />
+          <div className="size-7 sm:size-8 rounded-xl bg-gradient-to-br from-cyan-500/20 via-indigo-500/20 to-purple-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0 shadow-sm text-cyan-300">
+            <Quant3PerfectionIcon size={16} />
           </div>
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-mono text-[10px] sm:text-xs font-bold tracking-wider text-cyan-300">
-                CYBER ULTRA STUDIO
+                FATHOM QUANT 3 • IMAGE STUDIO
               </span>
               <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-cyan-500/10 border border-cyan-400/30 text-cyan-300">
-                4K UHD
+                IMAGE STUDIO
               </span>
             </div>
-            <div className="flex items-center gap-1.5 truncate">
-              <span className={cn("inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold px-2 py-0.5 rounded-md border", operationMeta.bg, operationMeta.color)}>
-                <operationMeta.icon className="w-3 h-3" />
-                {operationMeta.label}
-              </span>
-              {data.fidelityScore && (
-                <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
-                  دقة {data.fidelityScore}
-                </span>
-              )}
+            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-mono text-zinc-400">
+              <span>{currentDimensions.width}×{currentDimensions.height}</span>
+              <span>•</span>
+              <span>{selectedRatio}</span>
+              <span className="hidden xs:inline">•</span>
+              <span>Flux AI</span>
             </div>
           </div>
         </div>
 
-        {/* View Mode Switcher (When original and processed both exist) */}
-        {hasDualImages && (
-          <div className="flex items-center rounded-xl bg-black/40 border border-white/10 p-0.5 text-xs font-sans">
-            <button
-              type="button"
-              onClick={() => setViewMode('split')}
-              className={cn(
-                "flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all duration-150 text-[11px] font-medium",
-                viewMode === 'split' ? "bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-bold" : "text-zinc-400 hover:text-white"
-              )}
-            >
-              <Split className="w-3 h-3" />
-              <span>مقارنة منزلقة</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('processed')}
-              className={cn(
-                "flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all duration-150 text-[11px] font-medium",
-                viewMode === 'processed' ? "bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-bold" : "text-zinc-400 hover:text-white"
-              )}
-            >
-              <Eye className="w-3 h-3" />
-              <span>بعد التعديل</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('original')}
-              className={cn(
-                "flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all duration-150 text-[11px] font-medium",
-                viewMode === 'original' ? "bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-bold" : "text-zinc-400 hover:text-white"
-              )}
-            >
-              <span>الأصلية</span>
-            </button>
-          </div>
-        )}
-
-        {/* Header Action Buttons */}
-        <div className="flex items-center gap-1.5">
-          {data.prompt && (
-            <button
-              type="button"
-              onClick={handleCopyPrompt}
-              title="نسخ الوصف البصري"
-              className="flex size-7 sm:size-8 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.1] text-zinc-300 hover:text-white hover:bg-white/[0.08] transition"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            </button>
+        {/* Action Controls & Fullscreen */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Dual Image View Mode Switcher (if both original & processed exist) */}
+          {hasDualImages && (
+            <div className="flex items-center bg-white/[0.04] p-0.5 rounded-xl border border-white/[0.08]">
+              <button
+                type="button"
+                onClick={() => setViewMode('split')}
+                className={cn(
+                  "flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  viewMode === 'split' ? "bg-white/[0.1] text-white shadow-sm" : "text-zinc-400 hover:text-white"
+                )}
+                title="مقارنة منزلقة"
+              >
+                <Split className="size-3" />
+                <span className="hidden sm:inline">مقارنة</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('processed')}
+                className={cn(
+                  "flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  viewMode === 'processed' ? "bg-white/[0.1] text-white shadow-sm" : "text-zinc-400 hover:text-white"
+                )}
+                title="الصورة المعدلة"
+              >
+                <Eye className="size-3" />
+                <span className="hidden sm:inline">المعدلة</span>
+              </button>
+            </div>
           )}
 
+          {/* Fullscreen Toggle */}
           <button
             type="button"
             onClick={() => setIsFullscreen(!isFullscreen)}
-            title={isFullscreen ? "تصغير" : "تكبير كامل الشاشة"}
-            className="flex size-7 sm:size-8 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.1] text-zinc-300 hover:text-white hover:bg-white/[0.08] transition"
+            className="p-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white border border-white/[0.08] transition-colors cursor-pointer"
+            title={isFullscreen ? "تصغير النافذة" : "تكبير ملء الشاشة"}
           >
-            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            {isFullscreen ? <Minimize2 className="size-3.5 sm:size-4" /> : <Maximize2 className="size-3.5 sm:size-4" />}
           </button>
         </div>
       </div>
 
-      {/* ── Main Visual Display Viewport ────────────────────────────────────── */}
+      {/* ── 2. Main Visual Display Viewport (Clean & Proportional) ───────── */}
       <div
         ref={containerRef}
         className={cn(
-          "relative w-full overflow-hidden bg-zinc-950/90 flex items-center justify-center select-none",
-          isFullscreen ? "flex-1 min-h-[60vh]" : "min-h-[280px] sm:min-h-[380px] max-h-[550px]"
+          "relative overflow-hidden flex items-center justify-center bg-[#05070b] select-none",
+          isFullscreen 
+            ? "flex-1 min-h-0" 
+            : "h-[250px] xs:h-[280px] sm:h-[360px] md:h-[420px] max-h-[55vh]"
         )}
       >
-        {isStreaming && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm gap-2 text-cyan-300">
-            <RefreshCw className="w-6 h-6 animate-spin text-cyan-400" />
-            <span className="text-xs font-semibold">جاري المعالجة العصبية الفائقة (Cyber Ultra 4K)...</span>
+        {/* Loading / Streaming Shimmer Overlay */}
+        {(isStreaming || isImageLoading) && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm gap-3 p-6 text-center animate-pulse">
+            <div className="size-11 sm:size-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shadow-lg shadow-cyan-950/20">
+              <Sparkles className="size-5 sm:size-6 text-cyan-400 animate-spin" />
+            </div>
+            <div className="text-xs sm:text-sm font-sans font-bold text-white">
+              جاري توليد الصورة الفوتوغرافية بدقة 4K...
+            </div>
+            <div className="text-[11px] sm:text-xs text-zinc-400 font-sans max-w-xs">
+              توليد عصبي دقيق عبر Fathom Quant 3 والنسب الذهبية المختارة
+            </div>
           </div>
         )}
 
         {/* Single Processed View */}
         {(!hasDualImages || viewMode === 'processed') && (
-          <div className="relative w-full h-full flex items-center justify-center p-2">
+          <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4">
             {loadError ? (
               <div className="flex flex-col items-center justify-center p-6 text-center gap-3 text-zinc-400">
-                <span className="text-sm font-sans">جاري مزامنة الصورة أو تعذر العرض مؤقتاً</span>
+                <AlertCircle className="size-7 text-amber-400" />
+                <span className="text-xs sm:text-sm font-sans text-zinc-300">تعذر تحميل الصورة مؤقتاً</span>
                 <button
                   type="button"
-                  onClick={() => setLoadError(false)}
-                  className="px-3.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white text-xs flex items-center gap-1.5 transition font-sans"
+                  onClick={() => {
+                    setLoadError(false);
+                    setIsImageLoading(true);
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-white border border-white/[0.1] text-xs flex items-center gap-1.5 transition font-sans cursor-pointer"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+                  <RefreshCw className="size-3.5 text-cyan-400" />
                   <span>إعادة المحاولة</span>
                 </button>
               </div>
@@ -413,47 +357,36 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
               <img
                 src={activeProcessedSrc}
                 alt={data.title || "صورة معدلة عصبياً"}
-                onError={() => setLoadError(true)}
-                className={cn(
-                  "max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-all duration-200",
-                  activeFilter === 'enhanced' && "contrast-[1.08] saturate-[1.1] brightness-[1.02]",
-                  activeFilter === 'recolored' && recolorHue !== 0 && `hue-rotate-[${recolorHue}deg]`
-                )}
-                style={activeFilter === 'recolored' && recolorHue !== 0 ? { filter: `hue-rotate(${recolorHue}deg) saturate(1.15)` } : undefined}
+                onLoad={handleImageLoaded}
+                onError={handleImageError}
+                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-all duration-200"
               />
             )}
-            <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-cyan-500/30 text-[10px] font-mono text-cyan-200 font-bold shadow-lg">
-              معالجة عصبية 100%
-            </div>
           </div>
         )}
 
         {/* Single Original View */}
         {hasDualImages && viewMode === 'original' && originalSrc && (
-          <div className="relative w-full h-full flex items-center justify-center p-2">
+          <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4">
             <img
               src={originalSrc}
               alt="الصورة الأصلية"
               className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
             />
-            <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg">
-              الأصلية قبل التعديل
-            </div>
           </div>
         )}
 
         {/* Interactive Split Comparison Slider */}
         {hasDualImages && viewMode === 'split' && originalSrc && (
-          <div className="relative w-full h-full min-h-[300px] sm:min-h-[420px] overflow-hidden flex items-center justify-center">
-            {/* Background Layer: Processed Image */}
+          <div className="relative w-full h-full overflow-hidden flex items-center justify-center">
+            {/* Background: Processed Image */}
             <img
               src={activeProcessedSrc}
               alt="بعد التعديل"
               className="absolute inset-0 w-full h-full object-contain p-2"
-              style={activeFilter === 'recolored' && recolorHue !== 0 ? { filter: `hue-rotate(${recolorHue}deg) saturate(1.15)` } : undefined}
             />
 
-            {/* Foreground Layer: Original Image Clipped */}
+            {/* Foreground: Original Image Clipped */}
             <div
               className="absolute inset-0 overflow-hidden pointer-events-none"
               style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
@@ -464,26 +397,26 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                 className="absolute inset-0 w-full h-full object-contain p-2"
               />
               <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg">
-                قبل (الأصلية)
+                قبل
               </div>
             </div>
 
-            {/* Label for "After" */}
-            <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-cyan-500/30 text-[10px] font-mono text-cyan-200 font-bold shadow-lg pointer-events-none">
-              بعد (المعدلة 100%)
+            {/* Label: After */}
+            <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg pointer-events-none">
+              بعد
             </div>
 
             {/* Draggable Divider Line & Handle */}
             <div
-              className="absolute top-0 bottom-0 z-20 w-1 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 cursor-ew-resize select-none"
+              className="absolute top-0 bottom-0 z-20 w-0.5 bg-white/40 cursor-ew-resize select-none"
               style={{ left: `${sliderPosition}%` }}
               onMouseDown={onMouseDown}
               onTouchStart={onTouchStart}
             >
-              <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 size-9 rounded-full bg-black/90 border-2 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.8)] flex items-center justify-center cursor-ew-resize">
-                <div className="flex items-center text-cyan-300">
-                  <ChevronLeft className="w-3 h-3" />
-                  <ChevronRight className="w-3 h-3" />
+              <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 size-8 rounded-full bg-black/90 border border-white/30 shadow-lg flex items-center justify-center cursor-ew-resize">
+                <div className="flex items-center text-zinc-300">
+                  <ChevronLeft className="size-3" />
+                  <ChevronRight className="size-3" />
                 </div>
               </div>
             </div>
@@ -491,142 +424,109 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         )}
       </div>
 
-      {/* ── Recolor Hue Adjustment Control ──────────────────────────────────── */}
-      {showRecolorControl && (
-        <div className="border-t border-cyan-500/20 bg-cyan-950/40 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <Sliders className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-semibold text-zinc-200">ضبط درجة اللون الحية:</span>
-            <span className="font-mono text-amber-300 font-bold">{recolorHue}°</span>
+      {/* ── 3. Unified Action Footer Dock (Matching SvgStudioCard 1:1) ──── */}
+      <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-[#0a0d14]/95 border-t border-white/[0.08] flex flex-col gap-2 sm:gap-2.5">
+        {/* Row 1: Unified Config Dock (Aspect Ratio & Resolution) */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          {/* Aspect Ratio Selector: 1:1 | 16:9 | 9:16 | 4:3 */}
+          <div className="flex items-center gap-1 bg-white/[0.03] p-0.5 sm:p-1 rounded-xl border border-white/[0.07]">
+            <span className="text-[10px] sm:text-[11px] font-sans font-medium text-zinc-400 px-1">الأبعاد:</span>
+            {(['1:1', '16:9', '9:16', '4:3'] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => handleRatioChange(r)}
+                className={cn(
+                  "px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-mono font-bold transition-all cursor-pointer",
+                  selectedRatio === r
+                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]"
+                )}
+              >
+                {r}
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-3 flex-1 max-w-xs">
-            <input
-              type="range"
-              min="-180"
-              max="180"
-              value={recolorHue}
-              onChange={(e) => {
-                setRecolorHue(parseInt(e.target.value, 10));
-                setActiveFilter('recolored');
-              }}
-              className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                setRecolorHue(0);
-                setActiveFilter('none');
-              }}
-              className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[10px] text-zinc-300"
-            >
-              إعادة ضبط
-            </button>
+
+          {/* Resolution Selector: 4K | 2K | 1X */}
+          <div className="flex items-center gap-1 bg-white/[0.03] p-0.5 sm:p-1 rounded-xl border border-white/[0.07]">
+            <span className="text-[10px] sm:text-[11px] font-sans font-medium text-zinc-400 px-1">الدقة:</span>
+            {(['4k', '2k', 'original'] as const).map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => setSelectedQuality(q)}
+                className={cn(
+                  "px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-mono font-bold uppercase transition-all cursor-pointer",
+                  selectedQuality === q
+                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]"
+                )}
+                title={q === '4k' ? 'دقة 4K فائقة الوضوح (3840px)' : q === '2k' ? 'دقة 2K عالية (2048px)' : 'الدقة الأصلية 1X'}
+              >
+                {q === 'original' ? '1X' : q.toUpperCase()}
+              </button>
+            ))}
           </div>
         </div>
-      )}
 
-      {/* ── Processing Notification Bar ─────────────────────────────────────── */}
-      {processingStatus && (
-        <div className="bg-cyan-500/20 border-t border-cyan-500/30 px-3 py-1.5 text-center text-xs font-semibold text-cyan-200 animate-in fade-in duration-150">
-          {processingStatus}
-        </div>
-      )}
-
-      {/* ── Bottom Action Tools & High-DPI Download ─────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-white/[0.08] bg-white/[0.015] px-3.5 py-3 sm:px-4 select-none">
-        {/* Instant 1-Click Processing Tools */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={toggleBackgroundRemoval}
-            className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-all duration-150",
-              activeFilter === 'bg_removed'
-                ? "bg-emerald-500/20 border-emerald-400/50 text-emerald-300 font-bold"
-                : "bg-white/[0.04] border-white/[0.1] text-zinc-300 hover:text-white hover:bg-white/[0.08]"
-            )}
-          >
-            <Scissors className="w-3.5 h-3.5 text-emerald-400" />
-            <span>عزل الخلفية</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleSuperResolution}
-            className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-all duration-150",
-              activeFilter === 'enhanced'
-                ? "bg-cyan-500/20 border-cyan-400/50 text-cyan-300 font-bold"
-                : "bg-white/[0.04] border-white/[0.1] text-zinc-300 hover:text-white hover:bg-white/[0.08]"
-            )}
-          >
-            <Wand2 className="w-3.5 h-3.5 text-cyan-400" />
-            <span>تحسين 4K</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowRecolorControl(!showRecolorControl)}
-            className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-all duration-150",
-              showRecolorControl
-                ? "bg-amber-500/20 border-amber-400/50 text-amber-300 font-bold"
-                : "bg-white/[0.04] border-white/[0.1] text-zinc-300 hover:text-white hover:bg-white/[0.08]"
-            )}
-          >
-            <Sliders className="w-3.5 h-3.5 text-amber-400" />
-            <span>تعديل الألوان</span>
-          </button>
-        </div>
-
-        {/* Quality Selector & Download Button */}
+        {/* Row 2: Streamlined Action Bar (100% Mobile Responsive) */}
         <div className="flex items-center gap-2">
-          {/* Quality Tiers */}
-          <div className="flex items-center rounded-xl bg-black/40 border border-white/10 p-0.5 text-xs font-mono">
-            <button
-              type="button"
-              onClick={() => setSelectedQuality('4k')}
-              className={cn(
-                "px-2 py-1 rounded-lg text-[11px] font-bold transition",
-                selectedQuality === '4k' ? "bg-cyan-500/30 text-cyan-200 border border-cyan-400/40" : "text-zinc-400 hover:text-white"
-              )}
-            >
-              4K
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedQuality('2k')}
-              className={cn(
-                "px-2 py-1 rounded-lg text-[11px] font-bold transition",
-                selectedQuality === '2k' ? "bg-cyan-500/30 text-cyan-200 border border-cyan-400/40" : "text-zinc-400 hover:text-white"
-              )}
-            >
-              2K
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedQuality('original')}
-              className={cn(
-                "px-2 py-1 rounded-lg text-[11px] font-bold transition",
-                selectedQuality === 'original' ? "bg-cyan-500/30 text-cyan-200 border border-cyan-400/40" : "text-zinc-400 hover:text-white"
-              )}
-            >
-              1X
-            </button>
-          </div>
-
-          {/* Master Download Action */}
+          {/* Primary Download Button */}
           <button
             type="button"
-            disabled={isProcessingCanvas}
             onClick={() => handleDownload(selectedQuality)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-bold text-xs shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all duration-150 active:scale-95 disabled:opacity-50"
+            disabled={isProcessingCanvas}
+            className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-cyan-600/90 via-sky-600/90 to-blue-600/90 hover:from-cyan-500 hover:to-blue-500 text-white text-xs sm:text-sm font-sans font-bold shadow-lg shadow-cyan-950/30 border border-cyan-400/25 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Download className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>تحميل {selectedQuality.toUpperCase()}</span>
+            {isProcessingCanvas ? (
+              <>
+                <Sparkles className="size-3.5 sm:size-4 animate-spin text-cyan-200" />
+                <span>جاري معالجة الصورة...</span>
+              </>
+            ) : (
+              <>
+                <Download className="size-3.5 sm:size-4 text-cyan-100" />
+                <span>
+                  تنزيل الصورة ({selectedQuality === 'original' ? '1X' : selectedQuality.toUpperCase()})
+                </span>
+              </>
+            )}
           </button>
+
+          {/* Secondary Action: Variation Button */}
+          <button
+            type="button"
+            onClick={handleRegenerateVariation}
+            disabled={isProcessingCanvas || !data.prompt}
+            className="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] text-zinc-200 hover:text-white border border-white/[0.1] text-xs sm:text-sm font-sans font-semibold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 shrink-0"
+            title="توليد تنويع بصري جديد برقم عشوائي (Seed)"
+          >
+            <RefreshCw className={cn("size-3.5 sm:size-4 text-zinc-300", isImageLoading && "animate-spin")} />
+            <span>تنويع بصري</span>
+          </button>
+
+          {/* Copy Prompt Button */}
+          {data.prompt && (
+            <button
+              type="button"
+              onClick={handleCopyPrompt}
+              className="p-2 sm:p-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] text-zinc-300 hover:text-white border border-white/[0.1] transition-all cursor-pointer active:scale-[0.98] shrink-0"
+              title="نسخ الوصف البصري"
+            >
+              {copied ? <Check className="size-3.5 sm:size-4 text-emerald-400" /> : <Copy className="size-3.5 sm:size-4" />}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Success Notification Banner */}
+      {downloadSuccess && (
+        <div className="px-4 py-1.5 bg-emerald-500/10 border-t border-emerald-500/20 text-emerald-300 text-xs font-sans flex items-center gap-2 animate-in fade-in duration-200">
+          <CheckCircle2 className="size-3.5 shrink-0 text-emerald-400" />
+          <span>{downloadSuccess}</span>
+        </div>
+      )}
     </div>
   );
 };

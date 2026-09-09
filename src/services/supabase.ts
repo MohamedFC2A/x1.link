@@ -1,6 +1,7 @@
 import { createClient, User } from '@supabase/supabase-js';
 import { ChatMessageItem, ModelType } from '../types';
 import { formatEnglishTimestamp } from '../lib/utils';
+import { getModelDisplayName } from '../lib/modelUtils';
 
 const SUPABASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_URL : undefined) || 'https://gyxlvreqwikpujzpyegm.supabase.co';
 const SUPABASE_ANON_KEY = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) || (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_ANON_KEY : undefined) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5eGx2cmVxd2lrcHVqenB5ZWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDkwNzMsImV4cCI6MjEwMzEyNTA3M30.vMnY9PcDrB627Tv8Aumy6BKlMfbzg4LX1B_EUigNL2s';
@@ -118,7 +119,7 @@ export async function createCloudChat(userId: string | null, title: string, mode
     const payload: any = {
       title: title.slice(0, 60),
       mode: isX1 ? 'x1' : 'base',
-      model: model === 'deepseek-v4-flash-cyber-2.6' ? 'Fathom Cyber Flash 2.6' : model === 'deepseek-v4-pro-cyber-2.6' ? 'Fathom Cyber Ultra 2.6' : (model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') ? 'Fathom Cyber Ultra 2.6' : model === 'deepseek-v4-flash-vision-exp' ? 'Fathom Cam' : 'Fathom 1.1',
+      model: getModelDisplayName(model),
       device_id: deviceId,
     };
 

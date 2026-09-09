@@ -40,6 +40,7 @@ import { SmartTooltip } from "@/components/ui/SmartTooltip";
 import { PlatformLogo } from "@/components/ui/PlatformLogo";
 import { ImageForensicsModal } from "@/components/ui/ImageForensicsModal";
 import { Quant3PerfectionIcon } from "./Quant3PerfectionIcon";
+import { getModelDisplayName, getModelPlaceholder } from "@/lib/modelUtils";
 
 // ----------------------------------------------------------------------
 // Types
@@ -277,19 +278,13 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
     const isVisionMode = hasAttachments && !hasNonImageMedia;
     const isQuant3Mode = internalModel === 'fathom-quant-3';
-    const isCyber26Mode = isQuant3Mode || internalModel === 'deepseek-v4-pro-cyber-2.6' || internalModel === 'deepseek-v4-flash-cyber-2.6' || internalModel === 'deepseek-v4-pro-cyber-2.1' || internalModel === 'deepseek-v4-flash-cyber-2.1';
-    const isCyberMode = isCyber26Mode;
-    const isMediaMode = hasNonImageMedia;
+    const isCyber26Pro = internalModel === 'deepseek-v4-pro-cyber-2.6' || internalModel === 'deepseek-v4-pro-cyber-2.1';
+    const isCyber26Flash = internalModel === 'deepseek-v4-flash-cyber-2.6' || internalModel === 'deepseek-v4-flash-cyber-2.1';
+    const isCyber26Mode = isCyber26Pro || isCyber26Flash;
+    const isCyberMode = isCyber26Mode || internalModel === 'deepseek-v4-flash-cyber';
+    const isMediaMode = hasNonImageMedia || internalModel === 'meta/muse-spark-1.2-contributor';
 
-    const activeModelDisplayName = internalModel === 'fathom-quant-3'
-      ? "Fathom Quant 3"
-      : internalModel === 'deepseek-v4-flash-cyber-2.6'
-      ? "Fathom Cyber Flash 2.6"
-      : internalModel === 'deepseek-v4-pro-cyber-2.6'
-      ? "Fathom Cyber Ultra 2.6"
-      : isCyber26Mode
-      ? "Fathom Cyber Ultra 2.6"
-      : "Fathom 1.1";
+    const activeModelDisplayName = getModelDisplayName(internalModel, isX1Active);
 
     const activeBackendModel = effectiveModel;
 
@@ -648,9 +643,24 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         formattedContent = "";
       }
 
-      const targetModel = hasNonImageMedia
+      // Sovereign routing: Fathom Quant 3 is the SOLE engine for photorealistic image generation and SVG vector design
+      const isImageOrSvgIntent = /(?:ارسم|صمم|توليد|ولد|رسم|انشئ|أنشئ|اعمل|سوي)\s+(?:لي\s+)?(?:صورة|رسمة|لوحة|تصميم|بورتريه|خلفية|رمز|شعار|لوجو|ايقونة|أيقونة|svg)/i.test(effectivePrompt) ||
+        /\b(?:صورة|رسمة|بورتريه|شعار|لوجو|لوحة)\s+(?:فوتوغرافية|واقعية|فنية|سينمائية|متجهية|svg)\b/i.test(effectivePrompt) ||
+        /\b(?:generate|draw|paint|render|create|design)\s+(?:an?\s+)?(?:image|picture|photo|portrait|artwork|wallpaper|svg|vector|logo|icon)\b/i.test(effectivePrompt) ||
+        /\b(?:svg\s+code|vector\s+graphics?|svg\s+icon)\b/i.test(effectivePrompt);
+
+      if (isImageOrSvgIntent && internalModel !== 'fathom-quant-3') {
+        setInternalModel('fathom-quant-3');
+        onSelectModel?.('fathom-quant-3');
+      }
+
+      const targetModel = isImageOrSvgIntent
+        ? 'fathom-quant-3'
+        : (internalModel === 'fathom-quant-3')
+        ? 'fathom-quant-3'
+        : hasNonImageMedia
         ? 'meta/muse-spark-1.2-contributor'
-        : (hasAttachments)
+        : hasAttachments
         ? 'deepseek-v4-flash-vision-exp'
         : (allUrlsToSubmit.length > 0 && internalModel === 'deepseek-v4-flash' ? 'deepseek-v4-flash-cyber' : activeBackendModel);
 
@@ -946,15 +956,16 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             />
             <div
               dir="rtl"
-              className="absolute bottom-full right-2 mb-3 w-[320px] sm:w-[350px] bg-[#0a0a0d]/95 backdrop-blur-2xl rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none border border-white/[0.10] shadow-[0_16px_36px_rgba(0,0,0,0.7)]"
+              className="absolute bottom-full right-1 sm:right-2 mb-3 w-[310px] sm:w-[340px] bg-[#0c0d12]/95 backdrop-blur-2xl rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none border border-white/[0.12] shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_1px_1px_rgba(255,255,255,0.08)]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-2.5 py-1.5 border-b border-white/[0.08] mb-1.5 text-right">
+              <div className="px-2.5 py-1.5 border-b border-white/[0.07] mb-1.5 flex items-center justify-between">
                 <span className="text-xs font-sans font-bold text-white tracking-wide">اختيار النموذج</span>
+                <span className="text-[10px] font-mono text-zinc-500 font-medium">النماذج الذكية</span>
               </div>
 
               <div className="space-y-1">
-                {/* Model 0: Fathom Quant 3 (Flagship Premier Sovereign Model) */}
+                {/* 1. Fathom Quant 3 (Flagship Premier Sovereign Model) */}
                 {(() => {
                   const isSelected = internalModel === 'fathom-quant-3';
                   return (
@@ -966,28 +977,31 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         setIsModelMenuOpen(false);
                       }}
                       className={cn(
-                        "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group relative overflow-hidden",
+                        "w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group relative",
                         isSelected
-                          ? "bg-white/[0.08] text-white font-bold border-white/[0.18]"
-                          : "bg-white/[0.02] hover:bg-white/[0.05] text-zinc-300 border-white/[0.06] hover:border-white/[0.12]"
+                          ? "bg-white/[0.08] border-white/20 text-white font-semibold shadow-sm"
+                          : "bg-white/[0.015] hover:bg-white/[0.05] text-zinc-300 border-transparent hover:border-white/[0.08]"
                       )}
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         <div className={cn(
-                          "size-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                          "size-8 rounded-lg flex items-center justify-center shrink-0 transition-all",
                           isSelected
-                            ? "bg-white/[0.1] border border-white/20 text-zinc-100"
-                            : "bg-white/[0.04] border border-white/[0.08] text-zinc-400 group-hover:text-zinc-200"
+                            ? "bg-white/[0.12] border border-white/25 text-white"
+                            : "bg-white/[0.04] border border-white/[0.08] text-zinc-400 group-hover:text-zinc-200 group-hover:bg-white/[0.07]"
                         )}>
-                          <Quant3PerfectionIcon size={18} className="text-zinc-200" />
+                          <Quant3PerfectionIcon size={16} className="text-zinc-200" />
                         </div>
                         <div className="min-w-0 flex-1 text-right">
                           <div className="flex items-center justify-between gap-1.5">
-                            <span className="font-bold text-xs text-white">Fathom Quant 3</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-xs text-white">Fathom Quant 3</span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.08] text-zinc-300 border border-white/10 font-normal">الأقوى</span>
+                            </div>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-zinc-100 shrink-0" />}
                           </div>
-                          <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5 group-hover:text-zinc-300 transition-colors">
-                            تصميم وتعديل الصور بدقة خارقة، استوديو SVG، واستدلال عميق مع تحكم بالكمبيوتر السحابي VPS
+                          <div className="text-[11px] text-zinc-400 font-normal leading-normal mt-0.5 group-hover:text-zinc-300 transition-colors truncate">
+                            توليد وتعديل الصور، SVG، واستدلال عميق
                           </div>
                         </div>
                       </div>
@@ -995,89 +1009,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   );
                 })()}
 
-                {/* Model 1: Fathom 1.1 */}
-                {(() => {
-                  const isSelected = internalModel === 'deepseek-v4-flash' && !hasAttachments;
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setInternalModel('deepseek-v4-flash');
-                        onSelectModel?.('deepseek-v4-flash');
-                        setIsModelMenuOpen(false);
-                      }}
-                      className={cn(
-                        "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group",
-                        isSelected
-                          ? "bg-white/[0.07] text-white font-bold border-white/[0.16]"
-                          : "bg-transparent hover:bg-white/[0.04] text-zinc-300 border-transparent hover:border-white/[0.06]"
-                      )}
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className={cn(
-                          "size-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
-                          isSelected
-                            ? "bg-white/[0.08] border border-white/[0.16] text-white"
-                            : "bg-white/[0.04] border border-white/[0.08] text-zinc-300 group-hover:bg-white/[0.06] group-hover:text-white"
-                        )}>
-                          <Zap className="w-4 h-4 text-zinc-200 fill-zinc-200/20" />
-                        </div>
-                        <div className="min-w-0 flex-1 text-right">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <span className="font-bold text-xs text-white">Fathom 1.1</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
-                          </div>
-                          <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5 group-hover:text-zinc-300 transition-colors">
-                            توليد لغوي حر وتحليل فكري متقدم
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })()}
-
-                {/* Model 2: Fathom Cyber Flash 2.6 */}
-                {(() => {
-                  const isSelected = internalModel === 'deepseek-v4-flash-cyber-2.6' || internalModel === 'deepseek-v4-flash-cyber-2.1';
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setInternalModel('deepseek-v4-flash-cyber-2.6');
-                        onSelectModel?.('deepseek-v4-flash-cyber-2.6');
-                        setIsModelMenuOpen(false);
-                      }}
-                      className={cn(
-                        "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group",
-                        isSelected
-                          ? "bg-white/[0.07] text-white font-bold border-white/[0.16]"
-                          : "bg-transparent hover:bg-white/[0.04] text-zinc-300 border-transparent hover:border-white/[0.06]"
-                      )}
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className={cn(
-                          "size-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
-                          isSelected
-                            ? "bg-amber-500/15 border border-amber-400/30 text-amber-300"
-                            : "bg-amber-500/10 border border-amber-500/20 text-amber-400 group-hover:bg-amber-500/15"
-                        )}>
-                          <Zap className="w-4 h-4 text-amber-400" />
-                        </div>
-                        <div className="min-w-0 flex-1 text-right">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <span className="font-bold text-xs text-white">Fathom Cyber Flash 2.6</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
-                          </div>
-                          <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5 group-hover:text-zinc-200 transition-colors">
-                            محرك سيبراني فائق السرعة، استجابة لحظية، واستدلال خاطف باللغة العربية
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })()}
-
-                {/* Model 3: Fathom Cyber Ultra 2.6 */}
+                {/* 2. Fathom Cyber Ultra 2.6 (Flagship Heavy Cyber Reasoning) */}
                 {(() => {
                   const isSelected = internalModel === 'deepseek-v4-pro-cyber-2.6' || internalModel === 'deepseek-v4-pro-cyber-2.1';
                   return (
@@ -1089,28 +1021,119 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         setIsModelMenuOpen(false);
                       }}
                       className={cn(
-                        "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group",
+                        "w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group relative",
                         isSelected
-                          ? "bg-white/[0.07] text-white font-bold border-white/[0.16]"
-                          : "bg-transparent hover:bg-white/[0.04] text-zinc-300 border-transparent hover:border-white/[0.06]"
+                          ? "bg-indigo-950/40 border-indigo-500/35 text-indigo-100 font-semibold shadow-sm"
+                          : "bg-white/[0.015] hover:bg-white/[0.05] text-zinc-300 border-transparent hover:border-white/[0.08]"
                       )}
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         <div className={cn(
-                          "size-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                          "size-8 rounded-lg flex items-center justify-center shrink-0 transition-all",
                           isSelected
-                            ? "bg-indigo-500/15 border border-indigo-400/30 text-indigo-300"
+                            ? "bg-indigo-500/20 border border-indigo-400/40 text-indigo-300"
                             : "bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 group-hover:bg-indigo-500/15"
                         )}>
                           <ShieldCheck className="w-4 h-4 text-indigo-400" />
                         </div>
                         <div className="min-w-0 flex-1 text-right">
                           <div className="flex items-center justify-between gap-1.5">
-                            <span className="font-bold text-xs text-white">Fathom Cyber Ultra 2.6</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-xs text-white">Fathom Cyber Ultra 2.6</span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/20 font-normal">Ultra</span>
+                            </div>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-indigo-300 shrink-0" />}
                           </div>
-                          <div className="text-[11px] text-zinc-400 font-normal leading-relaxed mt-0.5 group-hover:text-zinc-200 transition-colors">
-                            استدلال اختطافي فائق، تفكير عميق باللغة العربية، وهندسة معمارية سيادية متقدمة
+                          <div className="text-[11px] text-zinc-400 font-normal leading-normal mt-0.5 group-hover:text-zinc-200 transition-colors truncate">
+                            تفكير استدلالي وهندسة سيبرانية متقدمة
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()}
+
+                {/* 3. Fathom Cyber Flash 2.6 (High-Speed Cyber Security) */}
+                {(() => {
+                  const isSelected = internalModel === 'deepseek-v4-flash-cyber-2.6' || internalModel === 'deepseek-v4-flash-cyber-2.1';
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInternalModel('deepseek-v4-flash-cyber-2.6');
+                        onSelectModel?.('deepseek-v4-flash-cyber-2.6');
+                        setIsModelMenuOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group relative",
+                        isSelected
+                          ? "bg-amber-950/30 border-amber-500/35 text-amber-100 font-semibold shadow-sm"
+                          : "bg-white/[0.015] hover:bg-white/[0.05] text-zinc-300 border-transparent hover:border-white/[0.08]"
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className={cn(
+                          "size-8 rounded-lg flex items-center justify-center shrink-0 transition-all",
+                          isSelected
+                            ? "bg-amber-500/20 border border-amber-400/40 text-amber-300"
+                            : "bg-amber-500/10 border border-amber-500/20 text-amber-400 group-hover:bg-amber-500/15"
+                        )}>
+                          <Zap className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <div className="min-w-0 flex-1 text-right">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-xs text-white">Fathom Cyber Flash 2.6</span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/20 font-normal">Flash</span>
+                            </div>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-amber-300 shrink-0" />}
+                          </div>
+                          <div className="text-[11px] text-zinc-400 font-normal leading-normal mt-0.5 group-hover:text-zinc-200 transition-colors truncate">
+                            فحص أمني واستجابة سيبرانية خاطفة
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()}
+
+                {/* 4. Fathom 1.1 (Standard Fast General Model) */}
+                {(() => {
+                  const isSelected = internalModel === 'deepseek-v4-flash' && !hasAttachments;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInternalModel('deepseek-v4-flash');
+                        onSelectModel?.('deepseek-v4-flash');
+                        setIsModelMenuOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group relative",
+                        isSelected
+                          ? "bg-white/[0.07] border-white/20 text-white font-semibold shadow-sm"
+                          : "bg-white/[0.015] hover:bg-white/[0.05] text-zinc-300 border-transparent hover:border-white/[0.08]"
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className={cn(
+                          "size-8 rounded-lg flex items-center justify-center shrink-0 transition-all",
+                          isSelected
+                            ? "bg-white/[0.1] border border-white/20 text-zinc-100"
+                            : "bg-white/[0.04] border border-white/[0.08] text-zinc-400 group-hover:text-zinc-200 group-hover:bg-white/[0.07]"
+                        )}>
+                          <Zap className="w-4 h-4 text-zinc-200 fill-zinc-200/20" />
+                        </div>
+                        <div className="min-w-0 flex-1 text-right">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-xs text-white">Fathom 1.1</span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.04] text-zinc-400 border border-white/[0.08] font-normal">خفيف</span>
+                            </div>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-zinc-100 shrink-0" />}
+                          </div>
+                          <div className="text-[11px] text-zinc-400 font-normal leading-normal mt-0.5 group-hover:text-zinc-300 transition-colors truncate">
+                            محادثة ذكية وتوليد نصوص سريع
                           </div>
                         </div>
                       </div>
@@ -1697,13 +1720,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     ? activeFusion.placeholder
                     : isDeepSearchEffective
                     ? "ابحث في الويب مباشرة مع Fathom Search..."
-                    : isCyber26Mode
-                    ? "اطرح لغزاً، مسألة معقدة، أو افحص أمنياً..."
                     : isVisionMode || hasAttachments
-                    ? "اسأل Fathom Cam أو أرفق صورة..."
-                    : isX1Active
-                    ? "اسأل matany.one في أي شيء..."
-                    : (placeholder || "اسأل Fathom 1.1 في أي شيء...")
+                    ? "اسأل Fathom Cam أو أرفق صورة للتحليل البصري..."
+                    : getModelPlaceholder(internalModel, isX1Active, {
+                        hasAttachments,
+                        hasNonImageMedia,
+                        isDeepSearch: isDeepSearchEffective,
+                        activeFusion
+                      })
                 }
                 rows={1}
                 className={cn(
@@ -1786,8 +1810,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               >
                 {isMediaMode ? (
                   <Sparkles className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                ) : isCyber26Mode ? (
+                ) : isQuant3Mode ? (
+                  <Quant3PerfectionIcon size={14} className="text-zinc-200 shrink-0" />
+                ) : isCyber26Pro ? (
                   <ShieldCheck className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                ) : isCyber26Flash ? (
+                  <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20 shrink-0" />
                 ) : isCyberMode ? (
                   <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                 ) : isVisionMode ? (

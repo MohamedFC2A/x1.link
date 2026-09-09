@@ -711,11 +711,11 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
     name: 'SVG Studio',
     nameAr: 'استوديو الفيكتور وتصميم رسومات الـ SVG',
     badgeLabel: 'SVG STUDIO',
-    textClassName: 'text-pink-400 font-bold',
-    glassClassName: 'bg-pink-950/70 border border-pink-400/50 text-pink-300 shadow-[0_0_15px_rgba(236,72,153,0.3)]',
-    badgeClassName: 'bg-pink-950/70 text-pink-300 border border-pink-400/40',
-    accentColor: '#ec4899',
-    borderHoverColor: 'border-pink-400/50',
+    textClassName: 'text-zinc-200 font-bold',
+    glassClassName: 'bg-white/[0.04] border border-white/[0.08] text-zinc-300',
+    badgeClassName: 'bg-white/[0.04] text-zinc-300 border border-white/[0.08]',
+    accentColor: '#38bdf8',
+    borderHoverColor: 'border-white/20',
     icon: SvgStudioIcon,
     detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
       const plan = routeFeatureIntent('svg_studio', prompt, reasoning, content, context);
@@ -725,28 +725,28 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
       return {
         id: 'svg_studio',
         name: 'SVG Studio',
-        nameAr: 'استوديو الفيكتور وتصميم رسومات الـ SVG',
-        badgeLabel: 'SVG STUDIO',
-        summary: 'محرك تصميم الفيكتور وتوليد رسومات SVG فائقة الجودة والدقة',
+        nameAr: 'استوديو الفيكتور وتصميم رسومات الـ SVG (Fathom Quant 3)',
+        badgeLabel: 'QUANT 3 SVG STUDIO',
+        summary: 'محرك تصميم الفيكتور وتوليد رسومات SVG فائقة الجودة والدقة عبر Fathom Quant 3',
         details: 'تم إنشاء كود SVG نقي ومتكامل مع إمكانية التنزيل الفوري بصيغة PNG عالية الدقة (1x, 2x, 4x)',
-        statusPill: 'VECTOR ENGINE & PNG EXPORT',
+        statusPill: 'QUANT 3 VECTOR ENGINE',
         confidence: 0.99,
         category: 'actionable'
       };
     }
   },
 
-  // ── 10. Neural Image Studio (Cyber Ultra Sovereign Inpainting, Editing & 4K Super-Resolution)
+  // ── 10. Neural Image Studio (Fathom Quant 3 Sovereign Inpainting, Generation & 4K Super-Resolution)
   neural_image_studio: {
     id: 'neural_image_studio',
     name: 'Neural Image Studio',
-    nameAr: 'استوديو المعالجة والتوليد العصبي للصور (سايبر الترا)',
-    badgeLabel: 'CYBER ULTRA NEURAL IMAGE',
-    textClassName: 'text-cyan-400 font-bold',
-    glassClassName: 'bg-cyan-950/70 border border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]',
-    badgeClassName: 'bg-cyan-950/70 text-cyan-300 border border-cyan-400/40',
-    accentColor: '#06b6d4',
-    borderHoverColor: 'border-cyan-400/50',
+    nameAr: 'استوديو المعالجة والتوليد العصبي للصور (Fathom Quant 3)',
+    badgeLabel: 'QUANT 3 NEURAL IMAGE',
+    textClassName: 'text-zinc-200 font-bold',
+    glassClassName: 'bg-white/[0.04] border border-white/[0.08] text-zinc-300',
+    badgeClassName: 'bg-white/[0.04] text-zinc-300 border border-white/[0.08]',
+    accentColor: '#38bdf8',
+    borderHoverColor: 'border-white/20',
     icon: NeuralImageStudioIcon,
     detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
       const plan = routeFeatureIntent('neural_image_studio', prompt, reasoning, content, context);
@@ -756,11 +756,11 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
       return {
         id: 'neural_image_studio',
         name: 'Neural Image Studio',
-        nameAr: 'استوديو المعالجة والتوليد العصبي للصور (سايبر الترا)',
-        badgeLabel: 'CYBER ULTRA NEURAL IMAGE',
-        summary: 'المعالجة الفوتوغرافية العصبية وتعديل الصور الجراحي بنسبة مطابقة 100%',
-        details: 'تم إجراء التعديل العصبي النقطي الجراحي (Inpainting / Background Removal / 4K Super-Resolution) مع الحفاظ الكامل على ملامح وتفاصيل الصورة الأصلية',
-        statusPill: 'NEURAL INPAINTING & 4K STUDIO',
+        nameAr: 'استوديو المعالجة والتوليد العصبي للصور (Fathom Quant 3)',
+        badgeLabel: 'QUANT 3 NEURAL IMAGE',
+        summary: 'التوليد والمعالجة الفوتوغرافية العصبية الفائقة بدقة 4K عبر Fathom Quant 3',
+        details: 'تم إجراء التوليد والتعديل العصبي النقطي الجراحي (Flux Ultra 4K / Inpainting / Background Removal) مع الحفاظ الكامل على دقة الملامح والنسب الذهبية',
+        statusPill: 'QUANT 3 IMAGE STUDIO 4K',
         confidence: 0.99,
         category: 'actionable'
       };

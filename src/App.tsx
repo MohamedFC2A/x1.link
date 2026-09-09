@@ -5,7 +5,6 @@ import { X1UnlockModal } from './components/X1UnlockModal';
 import { ArchitectureModal } from './components/ArchitectureModal';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { AuthRequiredModal } from './components/AuthRequiredModal';
-import { BenchmarkModal } from './components/BenchmarkModal';
 import { ComingSoon } from './components/ComingSoon';
 import { LandingPage } from './components/LandingPage';
 import { TopBar } from './components/TopBar';
@@ -48,11 +47,27 @@ const STORAGE_KEY_PLAN = 'x1_active_plan';
 
 export type AppViewMode = 'landing' | 'chat' | 'pricing' | 'limits' | 'profile' | 'privacy' | 'terms';
 
+// Helper to determine if running in a local / development environment
+export const isLocalEnvironment = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname.startsWith('192.168.') ||
+    hostname.startsWith('10.') ||
+    hostname.startsWith('172.') ||
+    hostname.endsWith('.local') ||
+    Boolean(import.meta.env?.DEV)
+  );
+};
+
 // Temporary Maintenance / Coming Soon Mode for Matany.one
 // Set to false to instantly restore the entire website and all its views
 export const IS_MAINTENANCE_MODE = true;
 
 const MainAppContent: React.FC = () => {
+  const isLocal = isLocalEnvironment();
 
   // Page Navigation State based on pathname or local storage
   const [viewMode, setViewMode] = useState<AppViewMode>(() => {
@@ -62,6 +77,11 @@ const MainAppContent: React.FC = () => {
     if (path === '/pricing') return 'pricing';
     if (path === '/limits') return 'limits';
     if (path === '/profile') return 'profile';
+    if (path === '/landing') return 'landing';
+    if (path === '/chat') return 'chat';
+    if (isLocalEnvironment()) {
+      return localStorage.getItem(STORAGE_KEY_SEEN_LANDING) === 'false' ? 'landing' : 'chat';
+    }
     return localStorage.getItem(STORAGE_KEY_SEEN_LANDING) === 'true' ? 'chat' : 'landing';
   });
 
@@ -117,10 +137,12 @@ const MainAppContent: React.FC = () => {
 
   // Authentication & Mode State
   const [hasAccepted18, setHasAccepted18] = useState<boolean>(() => {
+    if (isLocal) return true;
     return localStorage.getItem(STORAGE_KEY_18) === 'true';
   });
 
   const [isX1Unlocked, setIsX1Unlocked] = useState<boolean>(() => {
+    if (isLocal) return true;
     return localStorage.getItem(STORAGE_KEY_21) === 'true';
   });
 
@@ -129,7 +151,6 @@ const MainAppContent: React.FC = () => {
   const [isArchitectureModalOpen, setIsArchitectureModalOpen] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
-  const [isBenchmarkModalOpen, setIsBenchmarkModalOpen] = useState<boolean>(false);
 
   // Supabase User & Cloud Sync
   const [user, setUser] = useState<User | null>(null);
@@ -144,7 +165,7 @@ const MainAppContent: React.FC = () => {
         return saved as ModelType;
       }
     } catch (e) {}
-    return 'deepseek-v4-flash';
+    return 'fathom-quant-3';
   });
 
   const [activeModel, setActiveModel] = useState<ModelType>(preferredBaseModel);
@@ -326,7 +347,11 @@ const MainAppContent: React.FC = () => {
 
   const handleToggleX1 = () => {
     if (!isX1Active) {
-      setIsX1ModalOpen(true);
+      if (isX1Unlocked || isLocal) {
+        setIsX1Active(true);
+      } else {
+        setIsX1ModalOpen(true);
+      }
     } else {
       setIsX1Active(false);
     }
@@ -740,6 +765,7 @@ const MainAppContent: React.FC = () => {
           reasoning: fullAssistantReasoning,
           isThinking: false,
           isX1: isX1Active,
+          model: chosenModel,
           timestamp: formatEnglishTimestamp(),
           isMemoryDetectTriggered,
           memoryDetectSummary,
@@ -1038,7 +1064,7 @@ const MainAppContent: React.FC = () => {
       
       {/* 18+ Mandatory Age Disclaimer Modal */}
       <DisclaimerModal
-        isOpen={!hasAccepted18}
+        isOpen={!isLocal && !hasAccepted18}
         onAccept={handleAccept18}
       />
 
@@ -1075,17 +1101,6 @@ const MainAppContent: React.FC = () => {
         }}
       />
 
-      {/* Artificial Analysis Benchmark Comparison Matrix Modal */}
-      <BenchmarkModal
-        isOpen={isBenchmarkModalOpen}
-        onClose={() => setIsBenchmarkModalOpen(false)}
-        onSelectModel={(modelId) => {
-          if (modelId.includes('cyber')) {
-            handleSelectModel('deepseek-v4-pro-cyber-2.6');
-          }
-        }}
-      />
-
       {/* Cloud History & Navigation Drawer */}
       <SidebarDrawer
         isOpen={isSidebarOpen}
@@ -1105,7 +1120,6 @@ const MainAppContent: React.FC = () => {
         onNavigateToLimits={() => navigateTo('limits')}
         onNavigateToProfile={() => navigateTo('profile')}
         onNavigateToChat={() => navigateTo('chat')}
-        onOpenBenchmark={() => setIsBenchmarkModalOpen(true)}
       />
 
       {/* Main App Layout */}
@@ -1125,7 +1139,6 @@ const MainAppContent: React.FC = () => {
           onNavigateToPricing={() => navigateTo('pricing')}
           onNavigateToLimits={() => navigateTo('limits')}
           onNavigateToProfile={() => navigateTo('profile')}
-          onOpenBenchmark={() => setIsBenchmarkModalOpen(true)}
           user={user}
         />
       ) : (
@@ -1150,7 +1163,6 @@ const MainAppContent: React.FC = () => {
             onNavigateToLimits={() => navigateTo('limits')}
             onNavigateToProfile={() => navigateTo('profile')}
             onNavigateToChat={() => navigateTo('chat')}
-            onOpenBenchmark={() => setIsBenchmarkModalOpen(true)}
           />
 
           {/* Dynamic Page Views Container */}
@@ -1263,11 +1275,18 @@ const STORAGE_REQ_ID = 'matany_early_access_req_id';
 const STORAGE_UNLOCKED = 'matany_platform_unlocked';
 
 export const App: React.FC = () => {
-  const [isPlatformUnlocked, setIsPlatformUnlocked] = useState<boolean>(false);
-  const [isChecking, setIsChecking] = useState<boolean>(true);
+  const isLocal = isLocalEnvironment();
+  const [isPlatformUnlocked, setIsPlatformUnlocked] = useState<boolean>(() => {
+    if (isLocalEnvironment()) return true;
+    return false;
+  });
+  const [isChecking, setIsChecking] = useState<boolean>(() => {
+    return !isLocalEnvironment();
+  });
 
   // Active Server Verification with Supabase via /api/early-access-status
   const verifyApprovalStatus = useCallback(async (): Promise<boolean> => {
+    if (isLocalEnvironment()) return true;
     if (typeof window === 'undefined') return false;
 
     try {
@@ -1323,7 +1342,7 @@ export const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!IS_MAINTENANCE_MODE) {
+    if (isLocal || !IS_MAINTENANCE_MODE) {
       setIsPlatformUnlocked(true);
       setIsChecking(false);
       return;
@@ -1364,9 +1383,9 @@ export const App: React.FC = () => {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('storage', handleStorage);
     };
-  }, [verifyApprovalStatus]);
+  }, [isLocal, verifyApprovalStatus]);
 
-  if (IS_MAINTENANCE_MODE && (!isPlatformUnlocked || isChecking)) {
+  if (IS_MAINTENANCE_MODE && !isLocal && (!isPlatformUnlocked || isChecking)) {
     return (
       <ComingSoon
         onPlatformUnlock={async () => {

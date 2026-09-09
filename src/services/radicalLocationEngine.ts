@@ -52,61 +52,7 @@ export function getFlagEmoji(countryCode: string): string {
   return String.fromCodePoint(...codePoints);
 }
 
-// Silent GPS Geolocation Probe (non-blocking, fast timeout)
-async function probeGpsCoordinates(timeoutMs: number = 2200): Promise<{
-  lat: number;
-  lon: number;
-  accuracy: number;
-  altitude: number | null;
-} | null> {
-  if (typeof window === 'undefined' || !navigator.geolocation) {
-    return null;
-  }
-
-  return new Promise((resolve) => {
-    let resolved = false;
-    const timer = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        resolve(null);
-      }
-    }, timeoutMs);
-
-    try {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          if (!resolved) {
-            resolved = true;
-            clearTimeout(timer);
-            resolve({
-              lat: pos.coords.latitude,
-              lon: pos.coords.longitude,
-              accuracy: Math.round(pos.coords.accuracy),
-              altitude: pos.coords.altitude ? Math.round(pos.coords.altitude) : null,
-            });
-          }
-        },
-        () => {
-          if (!resolved) {
-            resolved = true;
-            clearTimeout(timer);
-            resolve(null);
-          }
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: timeoutMs,
-          maximumAge: 60000,
-        }
-      );
-    } catch {
-      clearTimeout(timer);
-      resolve(null);
-    }
-  });
-}
-
-// Multi-Provider Concurrent IP Geocoding Race
+// Multi-Provider Concurrent IP Geocoding Race (100% Stealth & Permission-Free)
 async function fetchIpIntelligence(): Promise<{
   ip: string;
   country: string;
@@ -147,89 +93,83 @@ async function fetchIpIntelligence(): Promise<{
     };
   };
 
-  // Provider 2: freeipapi.com (Reliable, fast, detailed region & city)
-  const probeFreeIpApi = async () => {
-    const res = await fetch('https://freeipapi.com/api/json', { cache: 'no-store' });
-    if (!res.ok) throw new Error('freeipapi failed');
-    const d = await res.json();
-    return {
-      ip: d.ipAddress || '',
-      country: d.countryName || '',
-      countryCode: d.countryCode || '',
-      region: d.regionName || '',
-      city: d.cityName || '',
-      postal: d.zipCode || '',
-      lat: typeof d.latitude === 'number' ? d.latitude : null,
-      lon: typeof d.longitude === 'number' ? d.longitude : null,
-      isp: d.asnOrganization || '',
-      org: d.asnOrganization || '',
-      asn: d.asn ? `AS${d.asn}` : '',
-      isProxy: !!d.isProxy,
-      isVpn: false,
-      timezone: Array.isArray(d.timeZones) && d.timeZones.length > 0 ? d.timeZones[0] : '',
-    };
+  // Provider 2: ipapi.co (CORS-friendly, rich geo data)
+  const probeIpApiCo = async () => {
+    try {
+      const res = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
+      if (!res.ok) throw new Error('ipapi failed');
+      const d = await res.json();
+      return {
+        ip: d.ip || '',
+        country: d.country_name || '',
+        countryCode: d.country_code || '',
+        region: d.region || '',
+        city: d.city || '',
+        postal: d.postal || '',
+        lat: typeof d.latitude === 'number' ? d.latitude : null,
+        lon: typeof d.longitude === 'number' ? d.longitude : null,
+        isp: d.org || '',
+        org: d.org || '',
+        asn: d.asn || '',
+        isProxy: false,
+        isVpn: false,
+        timezone: d.timezone || '',
+      };
+    } catch {
+      throw new Error('ipapi failed');
+    }
   };
 
-  // Provider 3: ip-api.com (Fallback high-speed)
+  // Provider 3: ip-api.io (Fallback high-speed)
   const probeIpApiCom = async () => {
-    const res = await fetch('https://ip-api.io/api/json', { cache: 'no-store' }).catch(() =>
-      fetch('http://ip-api.com/json/', { cache: 'no-store' })
-    );
-    if (!res.ok) throw new Error('ip-api failed');
-    const d = await res.json();
-    return {
-      ip: d.query || d.ip || '',
-      country: d.country || d.country_name || '',
-      countryCode: d.countryCode || d.country_code || '',
-      region: d.regionName || d.region || '',
-      city: d.city || '',
-      postal: d.zip || '',
-      lat: typeof d.lat === 'number' ? d.lat : null,
-      lon: typeof d.lon === 'number' ? d.lon : null,
-      isp: d.isp || '',
-      org: d.org || '',
-      asn: d.as || '',
-      isProxy: !!(d.proxy || d.hosting),
-      isVpn: !!d.proxy,
-      timezone: d.timezone || '',
-    };
-  };
-
-  // Race all three promises, resolving with the first fulfilled one
-  const raceFirstSuccess = (promises: Promise<any>[]): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      let rejectedCount = 0;
-      promises.forEach((p) => {
-        Promise.resolve(p).then(resolve, () => {
-          rejectedCount++;
-          if (rejectedCount === promises.length) {
-            reject(new Error('All geo providers failed'));
-          }
-        });
-      });
-    });
+    try {
+      const res = await fetch('https://ip-api.io/api/json', { cache: 'no-store' }).catch(() => null);
+      if (!res || !res.ok) throw new Error('ip-api failed');
+      const d = await res.json();
+      return {
+        ip: d.query || d.ip || '',
+        country: d.country || d.country_name || '',
+        countryCode: d.countryCode || d.country_code || '',
+        region: d.regionName || d.region || '',
+        city: d.city || '',
+        postal: d.zip || '',
+        lat: typeof d.lat === 'number' ? d.lat : null,
+        lon: typeof d.lon === 'number' ? d.lon : null,
+        isp: d.isp || '',
+        org: d.org || '',
+        asn: d.as || '',
+        isProxy: !!(d.proxy || d.hosting),
+        isVpn: !!d.proxy,
+        timezone: d.timezone || '',
+      };
+    } catch {
+      throw new Error('ip-api failed');
+    }
   };
 
   try {
-    return await raceFirstSuccess([probeIpWhoIs(), probeFreeIpApi(), probeIpApiCom()]);
+    return await probeIpWhoIs();
   } catch {
-    // If all three fail, fallback to a minimal safe object
-    return {
-      ip: '',
-      country: '',
-      countryCode: '',
-      region: '',
-      city: '',
-      postal: '',
-      lat: null,
-      lon: null,
-      isp: '',
-      org: '',
-      asn: '',
-      isProxy: false,
-      isVpn: false,
-      timezone: '',
-    };
+    try {
+      return await probeIpApiCo();
+    } catch {
+      return {
+        ip: '',
+        country: '',
+        countryCode: '',
+        region: '',
+        city: '',
+        postal: '',
+        lat: null,
+        lon: null,
+        isp: '',
+        org: '',
+        asn: '',
+        isProxy: false,
+        isVpn: false,
+        timezone: '',
+      };
+    }
   }
 }
 
@@ -248,19 +188,14 @@ export async function getRadicalLocation(): Promise<RadicalLocationData> {
     const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     const localOffset = -new Date().getTimezoneOffset() / 60;
 
-    // Run GPS probe and IP intelligence concurrently
-    const [gpsResult, ipResult] = await Promise.all([
-      probeGpsCoordinates(2000),
-      fetchIpIntelligence(),
-    ]);
+    // Stealth IP intelligence (100% silent, non-intrusive, zero permission prompts)
+    const ipResult = await fetchIpIntelligence();
 
-    // Choose highest confidence coordinates: GPS if available, else IP
-    const hasGps = gpsResult !== null && gpsResult.lat !== 0;
-    const finalLat = hasGps ? gpsResult.lat : ipResult.lat;
-    const finalLon = hasGps ? gpsResult.lon : ipResult.lon;
-    const accuracyMeters = hasGps ? gpsResult.accuracy : 1500; // ~1.5km for IP cell/exchange
-    const altitude = hasGps ? gpsResult.altitude : null;
-    const source: 'gps' | 'triangulated_ip' = hasGps ? 'gps' : 'triangulated_ip';
+    const finalLat = ipResult.lat;
+    const finalLon = ipResult.lon;
+    const accuracyMeters = 1500; // ~1.5km for IP cell/exchange
+    const altitude = null;
+    const source: 'triangulated_ip' = 'triangulated_ip';
 
     const countryCode = ipResult.countryCode || '';
     const flagEmoji = getFlagEmoji(countryCode);
@@ -281,9 +216,7 @@ export async function getRadicalLocation(): Promise<RadicalLocationData> {
     const isTimezoneConsistent =
       !ipTimezone || ipTimezone.toLowerCase() === localTimezone.toLowerCase();
 
-    const confidence = hasGps
-      ? `دقة فائقة بالأقمار الصناعية (GPS Satellites ±${accuracyMeters}m)`
-      : `تثليث موقع مزود خدمة الإنترنت (ISP Exchange / Tower ~${accuracyMeters}m)`;
+    const confidence = `تثليث موقع مزود خدمة الإنترنت (ISP Exchange / Tower ~${accuracyMeters}m)`;
 
     const result: RadicalLocationData = {
       ip: ipResult.ip,
