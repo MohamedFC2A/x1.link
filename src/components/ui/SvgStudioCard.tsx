@@ -19,6 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 import { highlightCode } from '@/lib/syntaxHighlighter';
 import { Quant3PerfectionIcon } from '@/components/ui/Quant3PerfectionIcon';
+import { incidentDiagnosticService } from '@/services/incidentDiagnosticService';
 
 export interface SvgStudioCardProps {
   svgCode: string;
@@ -219,6 +220,44 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
     return highlightCode(cleanSvg, 'markup');
   }, [cleanSvg]);
 
+  // Track SVG XML Parsing Defects (millimeter precision)
+  useEffect(() => {
+    if (metrics.error && cleanSvg) {
+      incidentDiagnosticService.trackSvgEvent(
+        'SVG_PARSER_ERROR',
+        {
+          errorMessage: metrics.error,
+          errorCode: 'SVG_XML_PARSER_ERROR',
+          svgLength: metrics.sizeBytes,
+          severity: 'HIGH',
+          metadata: {
+            snippet: cleanSvg.slice(0, 250),
+            title: title || 'SVG Graphic'
+          }
+        }
+      );
+    }
+  }, [metrics.error, cleanSvg, metrics.sizeBytes, title]);
+
+  // Track Unclosed or Truncated SVG Streams (token cutoffs)
+  useEffect(() => {
+    if (!isStreaming && !isComplete && svgCode && svgCode.length > 50) {
+      incidentDiagnosticService.trackSvgEvent(
+        'SVG_TRUNCATION_DEFECT',
+        {
+          errorMessage: 'SVG stream completed without closing </svg> tag (detected truncation or token cutoff)',
+          errorCode: 'SVG_TRUNCATED_OR_UNCLOSED',
+          svgLength: svgCode.length,
+          severity: 'HIGH',
+          metadata: {
+            snippet: svgCode.slice(-200),
+            title: title || 'SVG Graphic'
+          }
+        }
+      );
+    }
+  }, [isStreaming, isComplete, svgCode, title]);
+
   // Zoom handlers
   const handleZoomIn = useCallback(() => setZoomLevel((z) => Math.min(3, Number((z + 0.25).toFixed(2)))), []);
   const handleZoomOut = useCallback(() => setZoomLevel((z) => Math.max(0.25, Number((z - 0.25).toFixed(2)))), []);
@@ -318,6 +357,15 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
 
           img.onerror = () => {
             URL.revokeObjectURL(blobUrl);
+            incidentDiagnosticService.trackSvgEvent(
+              'SVG_EXPORT_FAILURE',
+              {
+                errorMessage: 'Failed to render SVG blob into Image element for rasterization',
+                errorCode: 'SVG_IMAGE_BLOB_LOAD_FAILED',
+                severity: 'MEDIUM',
+                metadata: { quality, format, width: targetWidth, height: targetHeight }
+              }
+            );
             reject(new Error('فشل تحميل مسار الـ SVG لمعالج الرسم'));
           };
 
@@ -351,6 +399,15 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
       setTimeout(() => setDownloadSuccess(null), 3000);
     } catch (err: any) {
       console.error('[SVG Studio] Error downloading image:', err);
+      incidentDiagnosticService.trackSvgEvent(
+        'SVG_EXPORT_FAILURE',
+        {
+          errorMessage: err?.message || 'Failed to export SVG raster image',
+          errorCode: 'SVG_RASTER_DOWNLOAD_ERROR',
+          severity: 'MEDIUM',
+          metadata: { quality: exportQuality, format: exportFormat }
+        }
+      );
       alert(err?.message || 'حدث خطأ أثناء تنزيل الصورة. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsExporting(false);

@@ -590,6 +590,10 @@ CREATE TABLE IF NOT EXISTS public.x1_diagnostic_incidents (
     user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     category TEXT NOT NULL DEFAULT 'SYSTEM_ERROR',
     severity TEXT NOT NULL DEFAULT 'MEDIUM',
+    incident_type TEXT NOT NULL DEFAULT 'HARD_ERROR',
+    component TEXT NOT NULL DEFAULT 'CLIENT_UI',
+    duration_ms INT DEFAULT NULL,
+    client_metrics JSONB DEFAULT '{}'::jsonb,
     user_prompt TEXT,
     model_used TEXT,
     error_code TEXT,
@@ -606,6 +610,8 @@ CREATE TABLE IF NOT EXISTS public.x1_diagnostic_incidents (
 CREATE INDEX IF NOT EXISTS idx_x1_incidents_created_at ON public.x1_diagnostic_incidents(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_x1_incidents_category ON public.x1_diagnostic_incidents(category);
 CREATE INDEX IF NOT EXISTS idx_x1_incidents_severity ON public.x1_diagnostic_incidents(severity);
+CREATE INDEX IF NOT EXISTS idx_x1_incidents_comp_type ON public.x1_diagnostic_incidents(component, incident_type);
+CREATE INDEX IF NOT EXISTS idx_x1_incidents_duration ON public.x1_diagnostic_incidents(duration_ms) WHERE duration_ms IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS public.x1_system_lessons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -623,3 +629,126 @@ CREATE INDEX IF NOT EXISTS idx_x1_lessons_category ON public.x1_system_lessons(i
 
 ALTER TABLE public.x1_diagnostic_incidents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.x1_system_lessons ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public insert on x1_diagnostic_incidents" ON public.x1_diagnostic_incidents FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public select on x1_diagnostic_incidents" ON public.x1_diagnostic_incidents FOR SELECT USING (true);
+CREATE POLICY "Allow public update on x1_diagnostic_incidents" ON public.x1_diagnostic_incidents FOR UPDATE USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public read on x1_system_lessons" ON public.x1_system_lessons FOR SELECT USING (true);
+CREATE POLICY "Allow public insert on x1_system_lessons" ON public.x1_system_lessons FOR INSERT WITH CHECK (true);
+
+-- Sovereign GPAENG Master Analytics Aggregation RPC
+CREATE OR REPLACE FUNCTION public.get_gpaeng_master_analytics(p_hours INT DEFAULT 168)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_start_time TIMESTAMPTZ := NOW() - (p_hours || ' hours')::INTERVAL;
+    v_total_count INT := 0;
+    v_resolved_count INT := 0;
+    v_type_counts JSONB := '{}'::jsonb;
+    v_comp_counts JSONB := '{}'::jsonb;
+    v_cat_counts JSONB := '{}'::jsonb;
+    v_sev_counts JSONB := '{}'::jsonb;
+    v_model_counts JSONB := '{}'::jsonb;
+    v_avg_duration NUMERIC := 0;
+    v_total_lessons INT := 0;
+    v_recent_incidents JSONB := '[]'::jsonb;
+    v_lessons JSONB := '[]'::jsonb;
+BEGIN
+    SELECT 
+        COUNT(*),
+        COUNT(*) FILTER (WHERE resolved = true),
+        COALESCE(ROUND(AVG(duration_ms) FILTER (WHERE duration_ms IS NOT NULL), 1), 0)
+    INTO 
+        v_total_count, 
+        v_resolved_count,
+        v_avg_duration
+    FROM public.x1_diagnostic_incidents
+    WHERE created_at >= v_start_time;
+
+    SELECT COALESCE(jsonb_object_agg(COALESCE(incident_type, 'HARD_ERROR'), cnt), '{}'::jsonb)
+    INTO v_type_counts
+    FROM (
+        SELECT COALESCE(incident_type, 'HARD_ERROR') as incident_type, COUNT(*) as cnt
+        FROM public.x1_diagnostic_incidents
+        WHERE created_at >= v_start_time
+        GROUP BY incident_type
+    ) t;
+
+    SELECT COALESCE(jsonb_object_agg(COALESCE(component, 'CLIENT_UI'), cnt), '{}'::jsonb)
+    INTO v_comp_counts
+    FROM (
+        SELECT COALESCE(component, 'CLIENT_UI') as component, COUNT(*) as cnt
+        FROM public.x1_diagnostic_incidents
+        WHERE created_at >= v_start_time
+        GROUP BY component
+    ) c;
+
+    SELECT COALESCE(jsonb_object_agg(severity, cnt), '{}'::jsonb)
+    INTO v_sev_counts
+    FROM (
+        SELECT severity, COUNT(*) as cnt
+        FROM public.x1_diagnostic_incidents
+        WHERE created_at >= v_start_time
+        GROUP BY severity
+    ) s;
+
+    SELECT COALESCE(jsonb_object_agg(category, cnt), '{}'::jsonb)
+    INTO v_cat_counts
+    FROM (
+        SELECT category, COUNT(*) as cnt
+        FROM public.x1_diagnostic_incidents
+        WHERE created_at >= v_start_time
+        GROUP BY category
+    ) cat;
+
+    SELECT COALESCE(jsonb_object_agg(COALESCE(model_used, 'UNKNOWN'), cnt), '{}'::jsonb)
+    INTO v_model_counts
+    FROM (
+        SELECT COALESCE(model_used, 'UNKNOWN') as model_used, COUNT(*) as cnt
+        FROM public.x1_diagnostic_incidents
+        WHERE created_at >= v_start_time
+        GROUP BY model_used
+    ) m;
+
+    SELECT COALESCE(jsonb_agg(row_to_json(i)), '[]'::jsonb)
+    INTO v_recent_incidents
+    FROM (
+        SELECT 
+            id, category, severity, COALESCE(incident_type, 'HARD_ERROR') as incident_type,
+            COALESCE(component, 'CLIENT_UI') as component, user_prompt, model_used,
+            error_code, error_message, error_stack, endpoint, device_info, metadata,
+            resolved, resolution_notes, duration_ms, created_at
+        FROM public.x1_diagnostic_incidents
+        ORDER BY created_at DESC
+        LIMIT 25
+    ) i;
+
+    SELECT COUNT(*), COALESCE(jsonb_agg(row_to_json(l)), '[]'::jsonb)
+    INTO v_total_lessons, v_lessons
+    FROM (
+        SELECT id, incident_category, trigger_signature, distilled_rule, remediation_action, times_triggered, created_at
+        FROM public.x1_system_lessons
+        ORDER BY times_triggered DESC
+        LIMIT 15
+    ) l;
+
+    RETURN jsonb_build_object(
+        'period_hours', p_hours,
+        'total_incidents', v_total_count,
+        'resolved_incidents', v_resolved_count,
+        'resolution_rate_percent', CASE WHEN v_total_count > 0 THEN ROUND((v_resolved_count::numeric / v_total_count::numeric) * 100, 1) ELSE 100 END,
+        'average_duration_ms', v_avg_duration,
+        'by_type', v_type_counts,
+        'by_component', v_comp_counts,
+        'by_severity', v_sev_counts,
+        'by_category', v_cat_counts,
+        'by_model', v_model_counts,
+        'total_lessons', v_total_lessons,
+        'recent_incidents', v_recent_incidents,
+        'lessons', v_lessons
+    );
+END;
+$$;

@@ -208,14 +208,34 @@ export async function streamChatCompletion({
       deviceId: deviceId || undefined,
     };
 
-    let response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestPayload),
-      signal: controller.signal
-    });
+    let response: Response | null = null;
+    let lastNetworkErr: any = null;
+
+    // Resilient transport-level retry for transient mobile/cellular network drops (TypeError: Failed to fetch)
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestPayload),
+          signal: controller.signal
+        });
+        break;
+      } catch (fetchErr: any) {
+        lastNetworkErr = fetchErr;
+        if (controller.signal.aborted || attempt === 1) {
+          throw fetchErr;
+        }
+        console.warn(`[API Stream] Transient network drop on attempt ${attempt + 1}, retrying in 300ms...`, fetchErr);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+    }
+
+    if (!response) {
+      throw lastNetworkErr || new Error('تعذر إنشاء اتصال أولي بالخادم.');
+    }
 
     // Automatic single resilient retry on 504 Gateway Timeout or 502/503
     if (!response.ok && (response.status === 504 || response.status === 502 || response.status === 503)) {

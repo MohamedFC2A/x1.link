@@ -3582,6 +3582,10 @@ app.post(['/api/telemetry/incident', '/api/telemetry-incident'], async (req: Req
       user_id: body.userId || null,
       category: body.category || 'SYSTEM_ERROR',
       severity: body.severity || 'MEDIUM',
+      incident_type: body.incidentType || body.incident_type || 'HARD_ERROR',
+      component: body.component || 'CLIENT_UI',
+      duration_ms: typeof body.durationMs === 'number' ? body.durationMs : (typeof body.duration_ms === 'number' ? body.duration_ms : null),
+      client_metrics: body.clientMetrics || body.client_metrics || {},
       user_prompt: body.userPrompt,
       model_used: body.modelUsed,
       error_code: body.errorCode,
@@ -4077,11 +4081,15 @@ app.post('/api/generate-image', async (req: Request, res: Response) => {
   }
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`[X1-SERVER] Running on http://localhost:${PORT}`);
-  console.log(`[X1-SERVER] Synthesis Engine: anthracite-org/magnum-v4-72b (NSFW NANO +21 MAX)`);
-  console.log(`[X1-SERVER] Perception Engine: deepseek-v4-flash-vision-exp (Native DeepSeek Multi-Vision)`);
-});
+const isTestEnv = process.env.NODE_ENV === 'test' || process.argv.some(arg => arg.toLowerCase().includes('test'));
+let server: any = null;
+if (!isTestEnv) {
+  server = app.listen(PORT, () => {
+    console.log(`[X1-SERVER] Running on http://localhost:${PORT}`);
+    console.log(`[X1-SERVER] Synthesis Engine: anthracite-org/magnum-v4-72b (NSFW NANO +21 MAX)`);
+    console.log(`[X1-SERVER] Perception Engine: deepseek-v4-flash-vision-exp (Native DeepSeek Multi-Vision)`);
+  });
+}
 
 process.on('uncaughtException', (err) => {
   console.error('[X1-SERVER UncaughtException]:', err);

@@ -20,7 +20,8 @@
     "test:cyber": "tsx tests/performance/fathomCyper26StressSuite.ts",
     "test:ultimate": "tsx tests/performance/fathomCyper26UltimateBenchmark.ts",
     "test:headless": "tsx tests/performance/fathomHeadlessUxLiveBenchmark.ts",
-    "test:matrix": "npx tsx tests/performance/frontierBenchmarkMatrix.ts"
+    "test:matrix": "npx tsx tests/performance/frontierBenchmarkMatrix.ts",
+    "test:quant3": "tsx tests/unit/fathomQuant3.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.20",

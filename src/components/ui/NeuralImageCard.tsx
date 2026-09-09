@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Quant3PerfectionIcon } from '@/components/ui/Quant3PerfectionIcon';
+import { incidentDiagnosticService } from '@/services/incidentDiagnosticService';
 
 export interface NeuralImageData {
   operation?: 'recolor' | 'remove_background' | 'enhance_4k' | 'composite' | 'product_edit' | 'text_edit' | 'generate' | 'portrait_generation' | 'human_edit' | 'add_element' | 'edit' | string;
@@ -112,6 +113,8 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   const [retryCount, setRetryCount] = useState<number>(0);
   const [isImageLoading, setIsImageLoading] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const lastGenerationTimeRef = useRef<number>(Date.now());
+  const generationStartTimeRef = useRef<number>(0);
   const [museImageUrl, setMuseImageUrl] = useState<string | null>(() => {
     if (data.imageUrl && !data.imageUrl.includes('pollinations.ai') && (data.imageUrl.startsWith('data:image') || data.imageUrl.startsWith('http'))) {
       return data.imageUrl;
@@ -284,6 +287,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     let isCancelled = false;
     setIsImageLoading(true);
     setLoadError(false);
+    generationStartTimeRef.current = performance.now();
 
     const requestPayload = {
       action: 'generate_image',
@@ -335,6 +339,17 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     executeGeneration()
       .then((payload) => {
         clearTimeout(timeoutId);
+        const durationMs = Math.round(performance.now() - (generationStartTimeRef.current || performance.now()));
+        lastGenerationTimeRef.current = Date.now();
+
+        if (durationMs > 25000) {
+          incidentDiagnosticService.trackPerformanceMetric(
+            'IMAGE_STUDIO',
+            durationMs,
+            { prompt: promptText.slice(0, 120), ratio: selectedRatio }
+          );
+        }
+
         if (!isCancelled && payload?.imageUrl) {
           setMuseImageUrl(payload.imageUrl);
           setIsImageLoading(false);
@@ -360,10 +375,25 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       })
       .catch((err) => {
         clearTimeout(timeoutId);
+        const durationMs = Math.round(performance.now() - (generationStartTimeRef.current || performance.now()));
         if (!isCancelled) {
           console.error('[Fathom QP3 Image Generation Error]:', err);
           setIsImageLoading(false);
           setLoadError(true);
+          incidentDiagnosticService.trackImageEvent(
+            'IMAGE_GENERATION_DEFECT',
+            {
+              errorMessage: err?.message || 'Neural image generation API failed',
+              errorCode: 'GENERATION_DISPATCH_FAILED',
+              userPrompt: promptText.slice(0, 150),
+              durationMs,
+              severity: 'HIGH',
+              metadata: {
+                aspect_ratio: selectedRatio,
+                retry_count: retryCount
+              }
+            }
+          );
         }
       });
 
@@ -471,12 +501,30 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   }, [isDragging, handleDrag]);
 
   const handleRegenerateVariation = useCallback(() => {
+    const elapsedSinceLast = Date.now() - lastGenerationTimeRef.current;
+    if (elapsedSinceLast < 20000 && activeProcessedSrc) {
+      incidentDiagnosticService.trackImageEvent(
+        'IMAGE_FRICTION_REVARIATION',
+        {
+          errorMessage: 'User triggered new variation within 20s of generation (aesthetic dissatisfaction or friction)',
+          errorCode: 'USER_RAPID_REVARIATION',
+          userPrompt: data.prompt ? data.prompt.slice(0, 150) : undefined,
+          severity: 'LOW',
+          metadata: {
+            elapsed_ms: elapsedSinceLast,
+            aspect_ratio: selectedRatio,
+            previous_seed: seed
+          }
+        }
+      );
+    }
+    lastGenerationTimeRef.current = Date.now();
     const newSeed = Math.floor(Math.random() * 1000000);
     setSeed(newSeed);
     setMuseImageUrl(null);
     setLoadError(false);
     setIsImageLoading(true);
-  }, []);
+  }, [activeProcessedSrc, data.prompt, selectedRatio, seed]);
 
   const handleRatioChange = useCallback((ratio: string) => {
     setSelectedRatio(ratio);
@@ -493,6 +541,20 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   const handleImageError = () => {
     setIsImageLoading(false);
     setLoadError(true);
+    incidentDiagnosticService.trackImageEvent(
+      'IMAGE_RENDER_DEFECT',
+      {
+        errorMessage: 'HTMLImageElement failed to render image URI in browser',
+        errorCode: 'IMAGE_RENDER_FAILED',
+        userPrompt: data.prompt ? data.prompt.slice(0, 150) : undefined,
+        severity: 'MEDIUM',
+        metadata: {
+          uri_type: activeProcessedSrc?.startsWith('data:') ? 'base64' : activeProcessedSrc?.startsWith('blob:') ? 'blob' : 'http_url',
+          uri_preview: activeProcessedSrc ? activeProcessedSrc.slice(0, 100) : null,
+          aspect_ratio: selectedRatio
+        }
+      }
+    );
   };
 
   // High-Resolution Canvas Master Downloader (4K / 2K / 1X)
@@ -563,9 +625,19 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       link.click();
       document.body.removeChild(link);
 
-      setDownloadSuccess(`تم تنزيل الصورة (${tierLabel}) بنجاح`);
-      setTimeout(() => setDownloadSuccess(null), 3000);
-    } catch {
+    } catch (err: any) {
+      incidentDiagnosticService.trackImageEvent(
+        'IMAGE_DOWNLOAD_FAILURE',
+        {
+          errorMessage: err?.message || 'Failed to export image canvas',
+          errorCode: 'CANVAS_DOWNLOAD_ERROR',
+          severity: 'MEDIUM',
+          metadata: {
+            targetTier,
+            uri_preview: activeProcessedSrc ? activeProcessedSrc.slice(0, 100) : null
+          }
+        }
+      );
       // Fallback direct download
       const link = document.createElement('a');
       link.href = activeProcessedSrc;

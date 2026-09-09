@@ -734,7 +734,7 @@ export class DynamicParameterTuner {
     }
 
     // 6.b. SVG Vector Studio & Design Check with Sovereign Precedence (evaluated BEFORE neural generation when explicit SVG is requested)
-    const isExplicitSvgRequested = /(?:\bsvg\b|فيكتور|متجهات|شعاعي|vector|كود\s*svg|ملف\s*svg|\.svg\b|اجعلها\s*svg)/i.test(text);
+    const isExplicitSvgRequested = /(?:\bsvg\b|فيكتور|متجهات|شعاعي|vector|كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|\.svg\b|اجعلها\s*svg|مقطوع|مش\s*كامل|أكمل\s*(?:كود\s*)?svg)/i.test(text);
 
     // Strict Guard: If it's a general image query without svg/vector keywords, it must NOT trigger SVG!
     const isImageQueryWithoutSvg = !isExplicitSvgRequested && (
@@ -1024,10 +1024,13 @@ export class DynamicParameterTuner {
         // Flash Ultra-Velocity Engine: Sub-second TTFT, peak token efficiency, high signal-to-noise ratio
         if (complexity === 'LIGHT') {
           max_tokens = 4096;
-        } else if (complexity === 'STANDARD') {
-          max_tokens = 8192;
         } else if (intent === 'SYSTEM_DIAGNOSTIC_GPAENG') {
           max_tokens = 32768;
+        } else if (intent === 'SVG_VECTOR_STUDIO_AND_DESIGN') {
+          // Provide expansive 16K token budget to prevent incomplete vector canvas cutoffs while maintaining sub-second velocity
+          max_tokens = 16384;
+        } else if (complexity === 'STANDARD') {
+          max_tokens = 8192;
         } else {
           max_tokens = Math.min(max_tokens, 16384);
         }

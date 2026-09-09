@@ -27,6 +27,7 @@ import { VpsControlRoomCard } from './ui/VpsControlRoomCard';
 import { Quant3PerfectionIcon } from './ui/Quant3PerfectionIcon';
 import { isVpsOrCloudRequest } from '@/lib/vpsUtils';
 import { getActiveDetectedFeatures, MemoryDetectIcon, TimeDetectIcon, AiDetectIcon, MetadataDetectIcon, DownloadDetectIcon, SvgStudioIcon, NeuralImageStudioIcon, FathomSparkIcon, VpsControlRoomIcon } from '@/lib/featuresRegistry';
+import { incidentDiagnosticService } from '@/services/incidentDiagnosticService';
 
 const YouTubeIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -1129,6 +1130,7 @@ function CodeBlock({ className, children, language }: { className?: string; chil
     navigator.clipboard.writeText(codeText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    incidentDiagnosticService.trackCodeCopy(codeText, language);
   };
 
   const highlightedHtml = useMemo(() => {
