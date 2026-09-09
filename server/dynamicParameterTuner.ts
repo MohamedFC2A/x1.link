@@ -83,6 +83,7 @@ export interface PriorNeuralImageContext {
   title?: string;
   style?: string;
   aspectRatio?: string;
+  seed?: number;
   sourceRole?: string;
 }
 
@@ -340,9 +341,31 @@ export class DynamicParameterTuner {
           if (parsed && typeof parsed === 'object') {
             const prompt = parsed.prompt || '';
             let imageUrl = parsed.imageUrl || parsed.processedImage || '';
+
+            // Extract seed from parsed JSON or its URL parameters
+            let seed: number | undefined = (typeof parsed.seed === 'number' && !isNaN(parsed.seed))
+              ? parsed.seed
+              : (typeof parsed.parameters?.seed === 'number' && !isNaN(parsed.parameters.seed))
+                ? parsed.parameters.seed
+                : undefined;
+
+            if (seed === undefined && imageUrl) {
+              try {
+                const u = new URL(imageUrl);
+                const s = u.searchParams.get('seed');
+                if (s && !isNaN(Number(s))) seed = Number(s);
+              } catch {}
+            }
+
             if (!imageUrl && prompt) {
               const activeModel = parsed.style === 'anime' ? 'flux-anime' : (parsed.style === '3d_render' ? 'flux-3d' : 'flux-realism');
-              imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt.trim())}?width=1024&height=1024&model=${activeModel}&nologo=true&enhance=true`;
+              let w = 1024;
+              let h = 1024;
+              if (parsed.aspectRatio === '16:9') { w = 1344; h = 768; }
+              else if (parsed.aspectRatio === '9:16') { w = 768; h = 1344; }
+              else if (parsed.aspectRatio === '4:3') { w = 1152; h = 864; }
+              const seedParam = seed !== undefined ? `&seed=${seed}` : '';
+              imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt.trim())}?width=${w}&height=${h}&model=${activeModel}&nologo=true&enhance=true${seedParam}`;
             }
             return {
               prompt,
@@ -351,6 +374,7 @@ export class DynamicParameterTuner {
               title: parsed.title || '',
               style: parsed.style || 'photorealistic',
               aspectRatio: parsed.aspectRatio || '1:1',
+              seed,
               sourceRole: msg.role
             };
           }
@@ -368,6 +392,14 @@ export class DynamicParameterTuner {
         } catch {
           decodedPrompt = polliMatch[1];
         }
+        let seed: number | undefined = undefined;
+        if (polliMatch[2]) {
+          try {
+            const params = new URLSearchParams(polliMatch[2]);
+            const s = params.get('seed');
+            if (s && !isNaN(Number(s))) seed = Number(s);
+          } catch {}
+        }
         return {
           prompt: decodedPrompt,
           imageUrl: polliMatch[0],
@@ -375,6 +407,7 @@ export class DynamicParameterTuner {
           title: 'صورة سابقة',
           style: 'photorealistic',
           aspectRatio: '1:1',
+          seed,
           sourceRole: msg.role
         };
       }
@@ -495,9 +528,30 @@ export class DynamicParameterTuner {
               parsed.operation = expectedOp;
             }
 
-            // Inject original image link if missing and prior image context exists
-            if (!parsed.originalImage && priorImageContext?.imageUrl) {
+            // Inject original image link if missing or if filled with invalid placeholder string
+            const isInvalidOrig = !parsed.originalImage ||
+              typeof parsed.originalImage !== 'string' ||
+              parsed.originalImage.includes('<') ||
+              parsed.originalImage.includes('>') ||
+              parsed.originalImage.startsWith('رابط') ||
+              parsed.originalImage.startsWith('الصورة') ||
+              (!parsed.originalImage.startsWith('http') && !parsed.originalImage.startsWith('data:image/'));
+
+            if (isInvalidOrig && priorImageContext?.imageUrl) {
               parsed.originalImage = priorImageContext.imageUrl;
+            }
+
+            // Guarantee preservation of prior seed to lock environment and lighting 100%
+            if (priorImageContext?.seed !== undefined) {
+              parsed.seed = priorImageContext.seed;
+            } else if (typeof parsed.seed !== 'number' || isNaN(parsed.seed)) {
+              // Deterministic fallback seed
+              parsed.seed = 482910;
+            }
+
+            // Ensure aspectRatio is maintained
+            if (!parsed.aspectRatio && priorImageContext?.aspectRatio) {
+              parsed.aspectRatio = priorImageContext.aspectRatio;
             }
 
             // Sanitize description
@@ -1132,15 +1186,15 @@ export class DynamicParameterTuner {
               `3) [قاعدة العنوان الإلزامية في كتلة المعالجة العصبية]: يجب أن يبدأ حقل "title" داخل كتلة \`\`\`neural-image\`\`\` حتماً وبشكل صريح بـ: "${isContextualAddition ? 'إضافة: ' : 'تعديل: '}[تفاصيل ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة باللغة العربية]" (مثال: "${isContextualAddition ? 'إضافة: شخص يقف بجانب السيارة' : 'تعديل: تغيير لون السيارة إلى الأحمر'}"). ` +
               `4) [قاعدة حقل العملية operation في JSON]: عيّن حقل "operation" حتماً كـ "${isContextualAddition ? 'add_element' : 'edit'}"${!isContextualAddition ? ' (أو "recolor" إذا كان التعديل تغييراً للون فقط)' : ' (أو "composite" إذا كان دمجاً لعناصر)'}. ` +
               `5) [قاعدة الشرح باللغة العربية]: في حقل "description" وفي صلب الرد بعد </think>، ابدأ صراحة بـ "${isContextualAddition ? 'تمت إضافة' : 'تم تعديل'} [العنصر المستهدف]..." واشرح بدقة وبلاغة ما تم تنفيذه مع التأكيد على الحفاظ على هوية وتكوين الصورة الأصلية. ` +
-              `6) [الحفظ الصارم والمطلق لعناصر وتكوين الصورة الأصلية بنسبة 100% - Zero Unwanted Alterations]: ` +
+              `6) [الحفظ الصارم والمطلق لعناصر وتكوين الصورة الأصلية بنسبة 100% ومعالم البيئة والمكان دون أي تغيير عدا المطلوب - Zero Unwanted Alterations]: ` +
               (priorImage?.prompt
                 ? `البرومبت البصري الدقيق للصورة السابقة في الشات هو:\n"""${priorImage.prompt.trim()}"""\n` +
-                  `[أمر سيادي حاسم لمنع أي تغيير غير مطلوب]: يُحظر تماماً وبشكل مطلق إعادة ابتكار المشهد من الصفر، أو تغيير نوع الكائن أو موديل السيارة أو ملامح الشخص أو الخلفية أو زاوية الكاميرا أو نوع العدسة أو الإضاءة إذا لم يطلب المستخدم ذلك! ` +
-                  `يجب عليك أخذ البرومبت الأصلي السابق بالكامل، وتطبيق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط على الكلمة أو العبارة المستهدفة (مثال: ${isContextualAddition ? 'إضافة الكائن المطلوب في موقعه الصحيح داخل المشهد السابق مع إبقاء بقية النص الإنجليزي متطابقاً 100%' : 'استبدال لون الطلاء فقط من الأسود إلى الأحمر مع إبقاء كافة أوصاف السيارة والشارع والمطر متطابقة 100%'}). `
-                : `حافظ بنسبة 100% على كافة عناصر وزوايا وتكوين وأبعاد الصورة الأصلية، وطبّق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط دون تغيير أي شيء آخر في المشهد. `) +
+                  `[أمر سيادي حاسم لمنع أي تغيير في معالم البيئة أو المكان]: يُحظر تماماً وبشكل مطلق إعادة ابتكار المشهد من الصفر، أو تغيير نوع الكائن أو موديل السيارة أو ملامح الشخص أو الخلفية أو المكان أو زاوية الكاميرا أو نوع العدسة أو الإضاءة إذا لم يطلب المستخدم ذلك! ` +
+                  `يجب عليك حتماً نقل واستخدام نفس رقم الـ seed السابق (${priorImage.seed !== undefined ? priorImage.seed : 482910}) لحفظ بنية الضوضاء العصبية واستقرار المشهد، وأخذ البرومبت الأصلي السابق بالكامل مع إبقاء كافة أوصاف البيئة والمكان والشارع والإضاءة متطابقة 100%، وتطبيق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط على الكلمة أو العبارة المستهدفة (مثال: ${isContextualAddition ? 'إضافة الكائن المطلوب في موقعه الصحيح داخل المشهد السابق مع إبقاء بقية النص الإنجليزي متطابقاً 100%' : 'استبدال لون الطلاء فقط من الأسود إلى الأحمر مع إبقاء كافة أوصاف السيارة والشارع والمطر متطابقة 100%'}). `
+                : `حافظ بنسبة 100% على كافة عناصر وزوايا وتكوين وأبعاد وبيئة الصورة الأصلية، واستخدم نفس الـ seed (${priorImage?.seed !== undefined ? priorImage.seed : 482910})، وطبّق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط دون تغيير أي شيء آخر في المشهد. `) +
               `7) [الحفاظ على النسبة الأصلية]: حافظ على نفس نسبة العرض الأصلية aspectRatio: "${priorImage?.aspectRatio || '1:1'}". ` +
               `8) [بروتوكول تسليم وتوليد المعالجة العصبية الإلزامي - Neural Deliverable Block]: بعد التفكير التحليلي والشرح باللغة العربية، أخرج حتماً كتلة المعالجة العصبية التالية: ` +
-              `\`\`\`neural-image\n{\n  "operation": "${isContextualAddition ? 'add_element' : 'edit'}",\n  "title": "${isContextualAddition ? 'إضافة' : 'تعديل'}: <تفاصيل ال${isContextualAddition ? 'إضافة' : 'تعديل'}>",\n  "description": "${isContextualAddition ? 'تمت إضافة' : 'تم تعديل'} <التفاصيل المنفذة بدقة 100%>",\n  "prompt": "<English prompt preserving 100% of original prompt with only surgical ${isContextualAddition ? 'addition' : 'modification'} delta>",\n  "originalImage": "${priorImage?.imageUrl || ''}",\n  "aspectRatio": "${priorImage?.aspectRatio || '1:1'}",\n  "style": "photorealistic",\n  "fidelityScore": "100%",\n  "resolution": "4K"\n}\n\`\`\` ` +
+              `\`\`\`neural-image\n{\n  "operation": "${isContextualAddition ? 'add_element' : 'edit'}",\n  "title": "${isContextualAddition ? 'إضافة' : 'تعديل'}: <تفاصيل ال${isContextualAddition ? 'إضافة' : 'تعديل'}>",\n  "description": "${isContextualAddition ? 'تمت إضافة' : 'تم تعديل'} <التفاصيل المنفذة بدقة 100%>",\n  "prompt": "<English prompt preserving 100% of original scene environment, lighting, and camera angle with only surgical ${isContextualAddition ? 'addition' : 'modification'} delta>",\n  "seed": ${priorImage?.seed !== undefined ? priorImage.seed : 482910},\n  "originalImage": "${priorImage?.imageUrl || ''}",\n  "aspectRatio": "${priorImage?.aspectRatio || '1:1'}",\n  "style": "${priorImage?.style || 'photorealistic'}",\n  "fidelityScore": "100%",\n  "resolution": "4K"\n}\n\`\`\` ` +
               `9) [الحظر الصارم للـ SVG]: يُحظر تماماً إخراج أي كود SVG عند تعديل أو إضافة الصور الفوتوغرافية.`
             )
             : 'أنت المعماري والمهندس السيادي لتوليد ومعالجة وتعديل الصور عصبياً وفوتوغرافياً باستخدام محرك FLUX.1 [schnell] فائق السرعة والواقعية (Sovereign Neural Image Studio Architect): ' +
@@ -1149,7 +1203,7 @@ export class DynamicParameterTuner {
               '3) [المعيار السيادي لتشريح البشر والبورتريهات الواقعية - Flawless Human Anatomy & Photorealistic Faces & 100% Identity, Texture, and Face Preservation]: خمسة أصابع طبيعية وسليمة لكل يد دون أي تشويه أو تداخل، عيون متناظرة مع لمعان طبيعي للقرنية، نسيج جلد حقيقي مع مسام مجهرية واضحة (photorealistic skin micro-pores)، وتشتت ضوئي طبيعي يمنع أي مظهر شمعي أو بلاستيكي. ' +
               '4) [التعديل الانتقائي الجراحي الدقيق والحفاظ الصارم بنسبة 100% على الهوية]: عند طلب أي تعديل على صورة مرفقة (تغيير ملابس، تغيير لون، عزل أو تغيير خلفية، دمج شخصين معاً مع دمج الشخصين بنفس الإضاءة والملامح، تحسين الجودة والدقة إلى 2K/4K، تعديل منتج، أو استبدال نص)، حافظ بنسبة 100% على ملامح الوجه وتفاصيل الشخص الأصلية وطبّق التعديل المطلوب جراحياً على العنصر المستهدف فقط (استبدال النص مع مطابقة نوع الخط). ' +
               '5) [بروتوكول تسليم وتوليد المعالجة العصبية الإلزامي - Neural Deliverable Block]: بعد التفكير والتحليل والشرح باللغة العربية، أخرج حتماً كتلة المعالجة العصبية التالية في نهاية الرد: ' +
-              '```neural-image\n{\n  "operation": "<generate|portrait_generation|human_edit|recolor|remove_background|enhance_4k|composite|product_edit|text_edit>",\n  "title": "<عنوان وصفي للمعالجة>",\n  "description": "<شرح التعديل أو التوليد المنفذ بدقة 100%>",\n  "prompt": "<Ultra-detailed English visual prompt for FLUX.1 [schnell] specifying subject, 85mm lens, volumetric lighting, micro-pores, 8k resolution>",\n  "aspectRatio": "<1:1|16:9|9:16|4:3>",\n  "style": "<photorealistic|cinematic|digital_art|anime|3d_render>",\n  "fidelityScore": "100%",\n  "resolution": "4K"\n}\n``` ' +
+              '```neural-image\n{\n  "operation": "<generate|portrait_generation|human_edit|recolor|remove_background|enhance_4k|composite|product_edit|text_edit>",\n  "title": "<عنوان وصفي للمعالجة>",\n  "description": "<شرح التعديل أو التوليد المنفذ بدقة 100%>",\n  "prompt": "<Ultra-detailed English visual prompt for FLUX.1 [schnell] specifying subject, 85mm lens, volumetric lighting, micro-pores, 8k resolution>",\n  "seed": 482910,\n  "aspectRatio": "<1:1|16:9|9:16|4:3>",\n  "style": "<photorealistic|cinematic|digital_art|anime|3d_render>",\n  "fidelityScore": "100%",\n  "resolution": "4K"\n}\n``` ' +
               '6) [بروتوكول التخطيط المعماري الذاتي للمشهد البصري للطلبات المقتضبة من كلمتين - Autonomous 2-Word Prompt Elaboration & Master Scene Planning Architecture]: عندما يكتب المستخدم طلباً مقتضباً أو مكوناً من كلمتين فقط (مثل "صمم سيارة"، "صورة فضاء"، "سيارة فخمة"، "صورة أسد"، "بنت جميلة"، "رجل أعمال"، "طبيعة خلابة"): يُحظر تماماً الاكتفاء بوصف سطحي مقتضب، ويُحظر طلب أي توضيحات من المستخدم؛ بل يجب عليك ذاتياً تفكيك وهندسة المشهد بالكامل بأعلى المعايير السينمائية الجاهزة داخل برومبت FLUX.1 [schnell] الإنجليزي: أ) الموضوع وتفاصيله المجهرية (Subject & Micro-Textures): تفاصيل ألياف الكربون أو الطلاء المعدني اللامع، ملمس ومسام الجلد الطبيعية (micro-pores)، خيوط النسيج وتطاير الشعر. ب) الأبعاد الواقعية الصارمة ومنع التشويه (Strict Authentic Proportions & Zero Distortion): إذا كانت مركبة أو سيارة، يجب تضمين أوصاف هندسية مانعة للانضغاط: authentic manufacturer proportions, perfect circular wheels, symmetrical perspective, ray-tracing reflections, 8k raw photograph. ج) البيئة والغلاف الجوي (Atmospheric Setting): عمق بيئي سينمائي، ضباب حجمي، إسفلت ممطر بانعكاسات ضوئية دقيقة، أو أفق معماري متناسق. د) البصريات والكاميرا (Optics & Cinematography): مستشعر Hasselblad H6D-100c أو Sony A7R V، عدسة 85mm f/1.2 للبورتريه، 35mm للقطات السينمائية، أو 24mm للمناظر الواسعة، مع عمق ميدان سطحي وبوكيه طبيعي ناعم. هـ) معمارية الإضاءة (Lighting Architecture): إضاءة ريمبرانت ثلاثية النقاط، إضاءة حواف (Rim Light)، تشتت ضوئي تحت السطح (Subsurface Scattering)، وتفاعل فيزيائي واقعي للظلال بدون أي مظهر بلاستيكي مصطنع. و) النسبة القياسية الذهبية (Aspect Ratio): النسبة القياسية الافتراضية 1:1 لمنع أي تشويه أو انضغاط في أبعاد الكائن، مع دعم 16:9 للمناظر البانورامية، 9:16 للبورتريهات وخلفيات الهواتف، و4:3 للقطات الكلاسيكية.'
           : 'منظومة المعالجة والتوليد العصبي فائق الدقة للصور (FLUX.1 [schnell] Neural Image Studio) وحفظ التفاصيل الفوتوغرافية بنسبة 100% مخصصة حصرياً لطرازات سايبر وكوانت الفائقة (Fathom Quant 3 / Fathom Cyber Ultra 2.6). وضّح للمستخدم برقي واحترافية أن توليد وتعديل الصور يتطلب تفعيل Fathom Quant 3 أو Fathom Cyber Ultra 2.6 دون تحويل الصورة إلى SVG مع الحظر التام لتحويل الصور إلى متجهات.'
       },

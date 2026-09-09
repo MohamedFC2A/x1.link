@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { Quant3PerfectionIcon } from '@/components/ui/Quant3PerfectionIcon';
 
 export interface NeuralImageData {
-  operation?: 'recolor' | 'remove_background' | 'enhance_4k' | 'composite' | 'product_edit' | 'text_edit' | 'generate' | 'portrait_generation' | 'human_edit' | string;
+  operation?: 'recolor' | 'remove_background' | 'enhance_4k' | 'composite' | 'product_edit' | 'text_edit' | 'generate' | 'portrait_generation' | 'human_edit' | 'add_element' | 'edit' | string;
   title?: string;
   description?: string;
   originalImage?: string;
@@ -29,7 +29,31 @@ export interface NeuralImageData {
   aspectRatio?: string;
   resolution?: '4K' | '2K' | 'Original' | string;
   fidelityScore?: string;
+  seed?: number;
   parameters?: Record<string, any>;
+}
+
+export function isValidImageUri(uri: unknown): uri is string {
+  if (typeof uri !== 'string') return false;
+  const trimmed = uri.trim();
+  if (!trimmed || trimmed.length < 5) return false;
+  if (
+    trimmed.includes('<') ||
+    trimmed.includes('>') ||
+    trimmed.startsWith('رابط') ||
+    trimmed.startsWith('الصورة') ||
+    trimmed === 'none' ||
+    trimmed === 'null' ||
+    trimmed === 'undefined'
+  ) {
+    return false;
+  }
+  return (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('data:image/') ||
+    trimmed.startsWith('blob:')
+  );
 }
 
 export interface NeuralImageCardProps {
@@ -52,7 +76,11 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     }
     return '1:1';
   });
-  const [seed, setSeed] = useState<number | null>(null);
+  const [seed, setSeed] = useState<number | null>(() => {
+    if (typeof data.seed === 'number' && !isNaN(data.seed)) return data.seed;
+    if (data.parameters?.seed && typeof data.parameters.seed === 'number') return data.parameters.seed;
+    return null;
+  });
   const [isImageLoading, setIsImageLoading] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [modelName, setModelName] = useState<string>(() => {
@@ -60,6 +88,13 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     if (data.style === '3d_render') return 'flux-3d';
     return 'flux-realism';
   });
+
+  // Keep seed synchronized if data.seed is updated from incoming stream/props
+  useEffect(() => {
+    if (typeof data.seed === 'number' && !isNaN(data.seed)) {
+      setSeed(data.seed);
+    }
+  }, [data.seed]);
 
   // Compute dimensions
   const currentDimensions = useMemo(() => {
@@ -91,17 +126,26 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     return { label: 'إنشاء بصري', type: 'generation' as const };
   }, [data.operation, data.title]);
 
-  // Resolve images
-  const originalSrc = data.originalImage || fallbackOriginalImage || null;
+  const isEditOrAddition = operationInfo.type === 'addition' || operationInfo.type === 'edit';
+
+  // Resolve images with robust validation against placeholder strings
+  const originalSrc = useMemo(() => {
+    if (isValidImageUri(data.originalImage)) return data.originalImage.trim();
+    if (isValidImageUri(fallbackOriginalImage)) return fallbackOriginalImage.trim();
+    return null;
+  }, [data.originalImage, fallbackOriginalImage]);
+
   const processedSrc = useMemo(() => {
     const { width, height } = currentDimensions;
     const activeModel = modelName;
+    // For edits and additions, NEVER pass enhance=true to prevent Pollinations from hallucinating random new environments
+    const enhanceParam = isEditOrAddition ? '&enhance=false' : '&enhance=true';
 
-    // If user modified seed or ratio and we have a prompt, generate fresh at pristine 1024x1024 square
+    // If user modified seed or ratio and we have a prompt, generate fresh at pristine proportional dimensions
     if (data.prompt && (seed !== null || (data.aspectRatio && selectedRatio !== data.aspectRatio))) {
       const cleanPrompt = encodeURIComponent(data.prompt.trim());
       const seedParam = seed !== null ? `&seed=${seed}` : '';
-      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=1024&model=${activeModel}&nologo=true&enhance=true${seedParam}`;
+      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=${activeModel}&nologo=true${enhanceParam}${seedParam}`;
     }
 
     if (data.processedImage) {
@@ -109,8 +153,11 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         try {
           const urlObj = new URL(data.processedImage);
           urlObj.searchParams.set('model', activeModel);
-          urlObj.searchParams.set('width', '1024');
-          urlObj.searchParams.set('height', '1024');
+          urlObj.searchParams.set('width', width.toString());
+          urlObj.searchParams.set('height', height.toString());
+          if (isEditOrAddition) {
+            urlObj.searchParams.set('enhance', 'false');
+          }
           if (seed !== null) urlObj.searchParams.set('seed', seed.toString());
           return urlObj.toString();
         } catch {
@@ -124,8 +171,11 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         try {
           const urlObj = new URL(data.imageUrl);
           urlObj.searchParams.set('model', activeModel);
-          urlObj.searchParams.set('width', '1024');
-          urlObj.searchParams.set('height', '1024');
+          urlObj.searchParams.set('width', width.toString());
+          urlObj.searchParams.set('height', height.toString());
+          if (isEditOrAddition) {
+            urlObj.searchParams.set('enhance', 'false');
+          }
           if (seed !== null) urlObj.searchParams.set('seed', seed.toString());
           return urlObj.toString();
         } catch {
@@ -137,24 +187,37 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     if (data.prompt) {
       const cleanPrompt = encodeURIComponent(data.prompt.trim());
       const seedParam = seed !== null ? `&seed=${seed}` : '';
-      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=1024&model=${activeModel}&nologo=true&enhance=true${seedParam}`;
+      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=${activeModel}&nologo=true${enhanceParam}${seedParam}`;
     }
     return originalSrc || '';
-  }, [data.processedImage, data.imageUrl, data.prompt, data.aspectRatio, selectedRatio, seed, originalSrc, currentDimensions, modelName]);
+  }, [data.processedImage, data.imageUrl, data.prompt, data.aspectRatio, selectedRatio, seed, originalSrc, currentDimensions, modelName, isEditOrAddition]);
 
   // Local interactive states
   const [sliderPosition, setSliderPosition] = useState<number>(50);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'split' | 'processed' | 'original'>('processed');
+  const [loadError, setLoadError] = useState<boolean>(false);
+  const [originalLoadError, setOriginalLoadError] = useState<boolean>(false);
+  const activeProcessedSrc = processedSrc;
+  const hasDualImages = Boolean(originalSrc && activeProcessedSrc && originalSrc !== activeProcessedSrc && !originalLoadError);
+
+  const [viewMode, setViewMode] = useState<'split' | 'processed' | 'original'>(() => {
+    if (originalSrc && isEditOrAddition) return 'split';
+    return 'processed';
+  });
+
+  // Automatically switch to split view when both images are ready for an edit or addition
+  useEffect(() => {
+    if (hasDualImages && isEditOrAddition && viewMode === 'processed') {
+      setViewMode('split');
+    }
+  }, [hasDualImages, isEditOrAddition]);
+
   const [isProcessingCanvas, setIsProcessingCanvas] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
   const [selectedQuality, setSelectedQuality] = useState<'4k' | '2k' | 'original'>('4k');
-  const [loadError, setLoadError] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const activeProcessedSrc = processedSrc;
-  const hasDualImages = Boolean(originalSrc && processedSrc && originalSrc !== processedSrc);
 
   // Handle slider mouse/touch drag
   const handleDrag = useCallback((clientX: number) => {
@@ -347,6 +410,12 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
               <span>4K UHD</span>
               <span>•</span>
               <span>FLUX.1</span>
+              {seed !== null && (
+                <>
+                  <span>•</span>
+                  <span className="text-zinc-400" title={`Seed: ${seed}`}>#{seed}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -363,7 +432,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                   "flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                   viewMode === 'split' ? "bg-white/[0.1] text-white shadow-sm" : "text-zinc-400 hover:text-white"
                 )}
-                title="مقارنة منزلقة"
+                title="مقارنة تفاعلية منزلقة"
               >
                 <Split className="size-3" />
                 <span className="hidden sm:inline">مقارنة</span>
@@ -375,10 +444,21 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                   "flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                   viewMode === 'processed' ? "bg-white/[0.1] text-white shadow-sm" : "text-zinc-400 hover:text-white"
                 )}
-                title="الصورة المعدلة"
+                title="الصورة بعد التعديل"
               >
                 <Eye className="size-3" />
                 <span className="hidden sm:inline">المعدلة</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('original')}
+                className={cn(
+                  "flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  viewMode === 'original' ? "bg-white/[0.1] text-white shadow-sm" : "text-zinc-400 hover:text-white"
+                )}
+                title="الصورة الأصلية قبل التعديل"
+              >
+                <span className="hidden sm:inline">الأصلية</span>
               </button>
             </div>
           )}
@@ -486,12 +566,25 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
 
         {/* Interactive Split Comparison Slider (Strict Image Aspect Ratio & Millimeter Precision) */}
         {hasDualImages && viewMode === 'split' && originalSrc && (
-          <div className="relative w-full h-full overflow-hidden">
+          <div
+            className="relative w-full h-full overflow-hidden select-none cursor-ew-resize touch-none"
+            dir="ltr"
+            onMouseDown={(e) => {
+              handleDrag(e.clientX);
+              setIsDragging(true);
+            }}
+            onTouchStart={(e) => {
+              if (e.touches[0]) {
+                handleDrag(e.touches[0].clientX);
+                setIsDragging(true);
+              }
+            }}
+          >
             {/* Background: Processed Image */}
             <img
               src={activeProcessedSrc}
               alt="بعد التعديل"
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
               style={{ imageRendering: '-webkit-optimize-contrast' as any }}
             />
 
@@ -503,28 +596,37 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
               <img
                 src={originalSrc}
                 alt="قبل التعديل"
-                className="absolute inset-0 w-full h-full object-cover"
+                onError={() => setOriginalLoadError(true)}
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                 style={{ imageRendering: '-webkit-optimize-contrast' as any }}
               />
-              <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg">
+              <div
+                className={cn(
+                  "absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg transition-opacity duration-200 pointer-events-none",
+                  isDragging && "opacity-30"
+                )}
+              >
                 قبل
               </div>
             </div>
 
             {/* Label: After */}
-            <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg pointer-events-none">
+            <div
+              className={cn(
+                "absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono text-zinc-300 font-bold shadow-lg transition-opacity duration-200 pointer-events-none",
+                isDragging && "opacity-30"
+              )}
+            >
               بعد
             </div>
 
             {/* Draggable Divider Line & Handle */}
             <div
-              className="absolute top-0 bottom-0 z-20 w-0.5 bg-white/70 cursor-ew-resize select-none"
+              className="absolute top-0 bottom-0 z-20 w-1 bg-white/90 shadow-[0_0_12px_rgba(255,255,255,0.7)] select-none pointer-events-none"
               style={{ left: `${sliderPosition}%` }}
-              onMouseDown={onMouseDown}
-              onTouchStart={onTouchStart}
             >
-              <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 size-8 rounded-full bg-black/90 border border-white/30 shadow-lg flex items-center justify-center cursor-ew-resize hover:scale-110 transition-transform">
-                <div className="flex items-center text-zinc-200">
+              <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 size-8 rounded-full bg-black/90 border border-white/40 shadow-2xl flex items-center justify-center cursor-ew-resize pointer-events-auto hover:scale-110 active:scale-95 transition-transform">
+                <div className="flex items-center text-zinc-200 pointer-events-none">
                   <ChevronLeft className="size-3" />
                   <ChevronRight className="size-3" />
                 </div>

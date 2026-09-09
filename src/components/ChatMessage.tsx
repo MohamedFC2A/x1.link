@@ -22,7 +22,7 @@ import { MemoryDetectBadge } from './ui/MemoryDetectBadge';
 import { DownloadDetectCard } from './ui/DownloadDetectCard';
 import { DownloadButton } from './ui/DownloadButton';
 import { SvgStudioCard } from './ui/SvgStudioCard';
-import { NeuralImageCard, type NeuralImageData } from './ui/NeuralImageCard';
+import { NeuralImageCard, isValidImageUri, type NeuralImageData } from './ui/NeuralImageCard';
 import { VpsControlRoomCard } from './ui/VpsControlRoomCard';
 import { Quant3PerfectionIcon } from './ui/Quant3PerfectionIcon';
 import { isVpsOrCloudRequest } from '@/lib/vpsUtils';
@@ -1415,11 +1415,33 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       try {
         const parsed = JSON.parse(neuralBlockMatch[1]);
         if (parsed && typeof parsed === 'object') {
+          const isEditOrAdd = parsed.operation === 'edit' ||
+            parsed.operation === 'add_element' ||
+            parsed.operation === 'addition' ||
+            parsed.operation === 'recolor' ||
+            parsed.operation === 'remove_background' ||
+            parsed.operation === 'composite' ||
+            parsed.operation === 'human_edit' ||
+            parsed.operation === 'product_edit' ||
+            (typeof parsed.title === 'string' && (parsed.title.includes('تعديل') || parsed.title.includes('إضافة') || parsed.title.includes('اضافة')));
+
+          // Sanitize originalImage against invalid placeholders (e.g. "<رابط...>") and fallback to priorImage
+          if (!isValidImageUri(parsed.originalImage) && priorImage && isValidImageUri(priorImage)) {
+            parsed.originalImage = priorImage;
+          }
+
           if (!parsed.imageUrl && !parsed.processedImage && parsed.prompt) {
             const activeModel = parsed.style === 'anime' ? 'flux-anime' : (parsed.style === '3d_render' ? 'flux-3d' : 'flux-realism');
-            // In Pollinations, non-square dimensions cause server-side latent squashing.
-            // Request pristine 1024x1024 square to guarantee 100% authentic geometry and zero distortion.
-            parsed.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=1024&height=1024&model=${activeModel}&nologo=true&enhance=true`;
+            let w = 1024;
+            let h = 1024;
+            if (parsed.aspectRatio === '16:9') { w = 1344; h = 768; }
+            else if (parsed.aspectRatio === '9:16') { w = 768; h = 1344; }
+            else if (parsed.aspectRatio === '4:3') { w = 1152; h = 864; }
+
+            const seedParam = (typeof parsed.seed === 'number' && !isNaN(parsed.seed)) ? `&seed=${parsed.seed}` : '';
+            // For edits and additions, NEVER pass enhance=true to keep the environment, layout and background 100% consistent
+            const enhanceParam = isEditOrAdd ? '&enhance=false' : '&enhance=true';
+            parsed.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=${w}&height=${h}&model=${activeModel}&nologo=true${enhanceParam}${seedParam}`;
           }
           return parsed;
         }
@@ -2043,7 +2065,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                     title: imageOpType === 'addition' ? 'إضافة ذكية على الصورة' : imageOpType === 'edit' ? 'تعديل موضعي دقيق' : 'صورة فوتوغرافية فائقة',
                     fidelityScore: '100%',
                     resolution: '4K',
-                    processedImage: message.image || (message.images && message.images[0]) || ''
+                    processedImage: message.image || (message.images && message.images[0]) || '',
+                    originalImage: (imageOpType === 'addition' || imageOpType === 'edit') ? (priorImage || undefined) : undefined
                   }}
                   fallbackOriginalImage={priorImage || message.image || (message.images && message.images[0]) || undefined}
                   isStreaming={isStreaming}

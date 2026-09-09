@@ -37,7 +37,13 @@ function extractPriorImageFromHistory(precedingMessages: ChatMessageItem[]): str
           if (parsed.processedImage) return parsed.processedImage;
           if (parsed.prompt) {
             const activeModel = parsed.style === 'anime' ? 'flux-anime' : (parsed.style === '3d_render' ? 'flux-3d' : 'flux-realism');
-            return `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=1024&height=1024&model=${activeModel}&nologo=true&enhance=true`;
+            let w = 1024;
+            let h = 1024;
+            if (parsed.aspectRatio === '16:9') { w = 1344; h = 768; }
+            else if (parsed.aspectRatio === '9:16') { w = 768; h = 1344; }
+            else if (parsed.aspectRatio === '4:3') { w = 1152; h = 864; }
+            const seedParam = (typeof parsed.seed === 'number' && !isNaN(parsed.seed)) ? `&seed=${parsed.seed}` : '';
+            return `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=${w}&height=${h}&model=${activeModel}&nologo=true&enhance=true${seedParam}`;
           }
         } catch {}
       }

@@ -283,8 +283,8 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(chatMessage).toContain('flux-realism');
     });
 
-    // 19. Distortion-Free 1024x1024 Pollinations generation, HD tier naming, and removal of "جاهز للتنزيل المباشر"
-    await harness.it('should verify HD tier label, removal of direct download text, and 1024x1024 square generation to eliminate distortion', async () => {
+    // 19. Distortion-Free Proportional Pollinations generation, HD tier naming, and removal of "جاهز للتنزيل المباشر"
+    await harness.it('should verify HD tier label, removal of direct download text, and proportional dimensions generation to eliminate distortion', async () => {
       const fs = await import('fs');
       const neuralCard = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
       const chatMessage = fs.readFileSync('c:/Best Projects/Matany/src/components/ChatMessage.tsx', 'utf-8');
@@ -300,10 +300,11 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(neuralCard).toContain('imgAspect > targetAspect');
       expect(neuralCard).toContain('imgAspect < targetAspect');
 
-      // Pollinations requests are locked to 1024x1024 square to prevent server-side stretching
-      expect(chatMessage).toContain('width=1024&height=1024');
-      expect(neuralCard).toContain("urlObj.searchParams.set('width', '1024')");
-      expect(neuralCard).toContain("urlObj.searchParams.set('height', '1024')");
+      // Pollinations requests dynamically set width & height based on aspect ratio (1024 for square, 1344x768 for 16:9, etc.)
+      expect(chatMessage).toContain('let w = 1024;');
+      expect(chatMessage).toContain('let h = 1024;');
+      expect(neuralCard).toContain("urlObj.searchParams.set('width'");
+      expect(neuralCard).toContain("urlObj.searchParams.set('height'");
     });
 
     // 20. Deep Contextual Understanding: Discerning Edit vs Addition vs Generation
@@ -400,6 +401,70 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(neuralCard).toContain("label: 'إضافة ذكية'");
       expect(neuralCard).toContain("label: 'إنشاء بصري'");
       expect(neuralCard).toContain('{data.title}');
+    });
+
+    // 23. Seed Persistence & Environment Stability across Conversational Turns
+    await harness.it('should extract and preserve seed from prior image context in DynamicParameterTuner and normalizeNeuralImageBlock', () => {
+      const priorHistoryWithSeed = [
+        {
+          role: 'user',
+          content: 'صورة قطة بيضاء على شاطئ البحر وقت الغروب'
+        },
+        {
+          role: 'assistant',
+          content: '```neural-image\n{\n  "operation": "generate",\n  "title": "إنشاء: قطة بيضاء على الشاطئ",\n  "prompt": "white cat on tropical beach sunset, 8k raw photograph",\n  "seed": 918273,\n  "imageUrl": "https://image.pollinations.ai/prompt/white%20cat?seed=918273"\n}\n```'
+        }
+      ];
+
+      const extracted = DynamicParameterTuner.extractPriorNeuralImage(priorHistoryWithSeed);
+      expect(extracted).toBeTruthy();
+      expect(extracted?.seed).toBe(918273);
+
+      // Verify seed is passed into the edit directive
+      const editRequest: DynamicTuningRequest = {
+        userPrompt: 'غير لون عيون القطة إلى الأزرق',
+        requestedModel: 'fathom-quant-3',
+        conversationHistory: priorHistoryWithSeed,
+      };
+      const editResult = DynamicParameterTuner.tune(editRequest);
+      expect(editResult.calibrationDirective).toContain('"seed": 918273');
+      expect(editResult.calibrationDirective).toContain('نفس رقم الـ seed السابق (918273)');
+
+      // Verify normalizeNeuralImageBlock injects seed if omitted by model
+      const rawBlockWithoutSeed = '```neural-image\n{\n  "operation": "edit",\n  "title": "تعديل: عيون زرقاء",\n  "prompt": "white cat with blue eyes on beach"\n}\n```';
+      const normalized = DynamicParameterTuner.normalizeNeuralImageBlock(rawBlockWithoutSeed, 'edit', extracted);
+      expect(normalized).toContain('"seed": 918273');
+    });
+
+    // 24. Sanitization of Placeholder Strings in originalImage (Fixing Broken Comparison Slider)
+    await harness.it('should sanitize placeholder text like <رابط...> from originalImage and fallback to prior image URL', () => {
+      const priorContext = {
+        prompt: 'vintage red sports car',
+        imageUrl: 'https://image.pollinations.ai/prompt/vintage%20red%20sports%20car',
+        seed: 554433,
+      };
+
+      // Model hallucinated the prompt template placeholder literally
+      const rawBlockWithPlaceholder = '```neural-image\n{\n  "operation": "edit",\n  "title": "تعديل: طلاء أزرق",\n  "prompt": "vintage blue sports car",\n  "originalImage": "<رابط الصورة الأصلية السابقة عند التعديل أو الإضافة لتمكين شريط المقارنة>"\n}\n```';
+      const normalized = DynamicParameterTuner.normalizeNeuralImageBlock(rawBlockWithPlaceholder, 'edit', priorContext);
+      
+      expect(normalized).not.toContain('<رابط');
+      expect(normalized).toContain('"originalImage": "https://image.pollinations.ai/prompt/vintage%20red%20sports%20car"');
+      expect(normalized).toContain('"seed": 554433');
+    });
+
+    // 25. Strict Enforcement of enhance=false on Edits to Prevent Hallucinated Environments
+    await harness.it('should verify enhance=false is strictly enforced on edits and additions to preserve scene environment', async () => {
+      const fs = await import('fs');
+      const chatMessage = fs.readFileSync('c:/Best Projects/Matany/src/components/ChatMessage.tsx', 'utf-8');
+      const neuralCard = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
+
+      // ChatMessage sets enhance=false for edits/additions
+      expect(chatMessage).toContain("isEditOrAdd ? '&enhance=false' : '&enhance=true'");
+
+      // NeuralImageCard preserves or overrides enhance=false on edits/additions
+      expect(neuralCard).toContain("urlObj.searchParams.set('enhance', 'false')");
+      expect(neuralCard).toContain("isEditOrAddition");
     });
 
   });
