@@ -180,7 +180,13 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
         localStorage.setItem(STORAGE_SUBMIT_FLAG, 'true');
         setCookie(STORAGE_REQ_ID, id, 365);
         setRequestStatus(result.status === 'approved' ? 'approved' : result.status === 'rejected' ? 'rejected' : 'pending');
-        setErrorMessage(isArabic ? 'لقد قمت بإرسال طلب وصول مبكر مسبقاً، ولا يُسمح بأكثر من طلب واحد. طلبك مسجل بالفعل وقيد المراجعة.' : 'You have already submitted an early access request. Only one request is permitted.');
+        if (result.status === 'approved') {
+          setErrorMessage(null);
+        } else if (result.status === 'rejected') {
+          setErrorMessage(isArabic ? 'تمت مراجعة طلبك والاعتذار عنه في الوقت الحالي.' : 'Your request was reviewed and declined.');
+        } else {
+          setErrorMessage(isArabic ? 'طلبك مسجل بالفعل وقيد المراجعة الفورية من الرئيس التنفيذي محمد مطعني.' : 'Your request is recorded and under review.');
+        }
         setIsSubmitting(false);
         return;
       }

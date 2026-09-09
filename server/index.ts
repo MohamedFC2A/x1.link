@@ -999,6 +999,123 @@ app.get('/api/early-access-status', (_req: Request, res: Response) => {
   });
 });
 
+// Early Access Submission endpoint (Full Parity with Edge Serverless)
+app.post('/api/early-access', async (req: Request, res: Response) => {
+  try {
+    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8505397370:AAHaWajm8k0TFBafpkiHPsQQ4dSk4KITt7U';
+    const PRIMARY_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8495121463';
+    const SUPABASE_URL = process.env.SUPABASE_URL || 'https://gyxlvreqwikpujzpyegm.supabase.co';
+    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5eGx2cmVxd2lrcHVqenB5ZWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDkwNzMsImV4cCI6MjEwMzEyNTA3M30.vMnY9PcDrB627Tv8Aumy6BKlMfbzg4LX1B_EUigNL2s';
+
+    const { name, contact, platform = 'كل المنصات (Matany.one & UpStore)', note = '', telemetry = {}, botTrap } = req.body || {};
+
+    if (botTrap) {
+      return res.status(400).json({ error: 'Invalid submission' });
+    }
+
+    const cleanName = String(name || '').trim().slice(0, 100);
+    const cleanContact = String(contact || '').trim().slice(0, 150);
+    const cleanNote = String(note || '').trim().slice(0, 500);
+    const cleanPlatform = String(platform || 'كل المنصات (Matany.one & UpStore)').trim().slice(0, 80);
+
+    if (!cleanName || cleanName.length < 2) {
+      return res.status(400).json({ error: 'يرجى إدخال اسم صحيح' });
+    }
+    if (!cleanContact || cleanContact.length < 4) {
+      return res.status(400).json({ error: 'يرجى إدخال وسيلة تواصل صحيحة' });
+    }
+
+    const finalIp = req.ip || '127.0.0.1';
+    const requestId = `REQ-${Math.random().toString(16).slice(2, 8).toUpperCase()}`;
+    const approvalSecret = `SEC-${Math.random().toString(16).slice(2, 18).toUpperCase()}`;
+
+    // Persist to Supabase
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/early_access_requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          id: requestId,
+          created_at: new Date().toISOString(),
+          visitor_id: telemetry.visitorId || 'dev_visitor',
+          name: cleanName,
+          contact: cleanContact,
+          note: cleanNote,
+          status: 'pending',
+          ip_address: finalIp,
+          country: 'EG',
+          city: 'Cairo (Local Dev)',
+          device_model: `${telemetry.phoneBrand || ''} ${telemetry.phoneModel || ''}`.trim() || 'Local Dev Client',
+          phone_brand: telemetry.phoneBrand || 'Local',
+          phone_model: telemetry.phoneModel || 'Dev',
+          os_info: `${telemetry.osName || ''} ${telemetry.osVersion || ''}`.trim(),
+          browser_info: `${telemetry.browserName || ''} ${telemetry.browserVersion || ''}`.trim(),
+          telemetry_payload: telemetry,
+          approval_secret: approvalSecret,
+        }),
+      });
+    } catch (e) {
+      console.warn('[Local Server Supabase Insert Error]:', e);
+    }
+
+    // Dispatch to Telegram
+    const approveUrl = `https://matany.one/api/early-access-action?id=${requestId}&secret=${approvalSecret}&intent=approve`;
+    const rejectUrl = `https://matany.one/api/early-access-action?id=${requestId}&secret=${approvalSecret}&intent=reject`;
+
+    const telegramMessage = `
+👑 <b>[طلب وصول مبكر رسمي - VIP SOVEREIGN ACCESS (بيئة التطوير)]</b>
+━━━━━━━━━━━━━━━━━━━━━
+مرسل إلى: <b>الرئيس التنفيذي والمطور CEO Mohamed Matany</b>
+
+👤 <b>بيانات مقدم الطلب:</b>
+• الاسم: <b>${cleanName}</b>
+• وسيلة التواصل: <code>${cleanContact}</code>
+• المنصة: <b>${cleanPlatform}</b>
+• الرسالة: <i>"${cleanNote || 'طلب وصول مبكر'}"</i>
+• رقم الطلب: <code>${requestId}</code>
+• التوقيت: ${new Date().toLocaleString('ar-EG', { dateStyle: 'full', timeStyle: 'medium', hour12: true })}
+━━━━━━━━━━━━━━━━━━━━━
+⚡ <b>إجراء الرئيس التنفيذي:</b>
+`;
+
+    const inlineKeyboard = [
+      [
+        { text: '✅ قبول ومنح الوصول الفوري (Approve)', url: approveUrl },
+        { text: '❌ رفض الطلب نهائياً (Reject)', url: rejectUrl },
+      ],
+    ];
+
+    try {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: PRIMARY_CHAT_ID,
+          text: telegramMessage,
+          parse_mode: 'HTML',
+          disable_web_page_preview: true,
+          reply_markup: { inline_keyboard: inlineKeyboard },
+        }),
+      });
+    } catch (tgErr) {
+      console.warn('[Local Telegram Dispatch Error]:', tgErr);
+    }
+
+    res.json({
+      success: true,
+      requestId,
+      status: 'pending',
+      message: 'تم إرسال طلبك بنجاح إلى الرئيس التنفيذي محمد مطعني، وهو الآن قيد المراجعة الفورية.',
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'فشل معالجة الطلب محلياً' });
+  }
+});
+
 // Anti-Bruteforce Rate Limiter for Subscription Verification (Passcode: 012727)
 const SUBSCRIPTION_SECRET_CODE = '012727';
 const activationRateLimits = new Map<string, { failedAttempts: number; lockedUntil: number | null }>();

@@ -32,6 +32,54 @@ function generateRandomHex(length: number): string {
   return res;
 }
 
+// Resilient, fail-safe Telegram Dispatcher with HTML-to-Plaintext automatic fallback
+async function dispatchTelegramSafe(chatId: string | number, text: string, inlineKeyboard?: any[][]): Promise<{ ok: boolean; messageId?: number; error?: string }> {
+  try {
+    // 1. First Attempt: Rich HTML Mode
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+        reply_markup: inlineKeyboard ? { inline_keyboard: inlineKeyboard } : undefined,
+      }),
+    });
+
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.ok) {
+      return { ok: true, messageId: data.result?.message_id };
+    }
+
+    console.warn(`[Telegram HTML Dispatch Failed]: ${data?.description || res.statusText}, attempting fallback plain text...`);
+
+    // 2. Automatic Fallback: Strip HTML tags and send plain text to guarantee delivery
+    const plainText = text.replace(/<[^>]+>/g, '').slice(0, 4000);
+    const fallbackRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: plainText,
+        disable_web_page_preview: true,
+        reply_markup: inlineKeyboard ? { inline_keyboard: inlineKeyboard } : undefined,
+      }),
+    });
+
+    const fallbackData = await fallbackRes.json().catch(() => null);
+    if (fallbackRes.ok && fallbackData?.ok) {
+      return { ok: true, messageId: fallbackData.result?.message_id };
+    }
+
+    return { ok: false, error: fallbackData?.description || 'Failed both HTML and PlainText dispatch' };
+  } catch (err: any) {
+    console.error('[Telegram Dispatch Exception]:', err);
+    return { ok: false, error: err.message };
+  }
+}
+
 export default async function handler(req: Request) {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -59,11 +107,10 @@ export default async function handler(req: Request) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { name, contact, platform = 'كل المنصات (All)', note = '', telemetry = {}, botTrap, submissionTimestamp } = body;
+    const { name, contact, platform = 'كل المنصات (Matany.one & UpStore)', note = '', telemetry = {}, botTrap } = body;
 
     // 1. Anti-Bot Honeypot Defense
     if (botTrap) {
-      // Instantly drop bots that fill hidden honeypots
       return new Response(JSON.stringify({ error: 'Invalid submission detected' }), {
         status: 400,
         headers: corsHeaders,
@@ -74,7 +121,7 @@ export default async function handler(req: Request) {
     const cleanName = String(name || '').trim().slice(0, 100);
     const cleanContact = String(contact || '').trim().slice(0, 150);
     const cleanNote = String(note || '').trim().slice(0, 500);
-    const cleanPlatform = String(platform || 'Matany.one').trim().slice(0, 80);
+    const cleanPlatform = String(platform || 'كل المنصات (Matany.one & UpStore)').trim().slice(0, 80);
 
     if (!cleanName || cleanName.length < 2) {
       return new Response(JSON.stringify({ error: 'يرجى إدخال اسم صحيح' }), {
@@ -96,55 +143,9 @@ export default async function handler(req: Request) {
     const xForwardedFor = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
     const finalIp = cfIp || xRealIp || xForwardedFor || 'غير متاح';
 
-    // 4. Strict Once-Only Submission Verification (Check Supabase for ANY prior submission)
+    // 4. Client Identifiers
     const clientVisitorId = telemetry.visitorId && telemetry.visitorId !== 'anon' ? String(telemetry.visitorId).trim() : '';
     const clientMasterHash = telemetry.masterFingerprintHash && telemetry.masterFingerprintHash !== 'N/A' ? String(telemetry.masterFingerprintHash).trim() : '';
-    
-    // Construct multi-vector duplicate check query (strictly based on device/contact identity, NEVER shared IP)
-    const duplicateOrFilters: string[] = [];
-    if (cleanContact && cleanContact.length >= 4) {
-      duplicateOrFilters.push(`contact.ilike.*${encodeURIComponent(cleanContact)}*`);
-    }
-    if (clientMasterHash && clientMasterHash.length >= 6 && clientMasterHash !== 'N/A') {
-      duplicateOrFilters.push(`master_hash.eq.${encodeURIComponent(clientMasterHash)}`);
-    }
-    if (clientVisitorId && clientVisitorId.length >= 8 && clientVisitorId !== 'anon') {
-      duplicateOrFilters.push(`visitor_id.eq.${encodeURIComponent(clientVisitorId)}`);
-    }
-
-    if (duplicateOrFilters.length > 0) {
-      try {
-        const checkRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/early_access_requests?or=(${duplicateOrFilters.join(',')})&select=id,status,name,created_at&limit=1`,
-          {
-            headers: {
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            },
-          }
-        );
-
-        if (checkRes.ok) {
-          const existingList = await checkRes.json();
-          if (Array.isArray(existingList) && existingList.length > 0) {
-            const existing = existingList[0];
-            return new Response(
-              JSON.stringify({
-                success: false,
-                alreadySubmitted: true,
-                requestId: existing.id,
-                status: existing.status || 'pending',
-                createdAt: existing.created_at,
-                error: 'لقد قمت بإرسال طلب وصول مبكر مسبقاً، ولا يُسمح بإرسال أكثر من طلب واحد على الإطلاق. طلبك مسجل بالفعل وقيد المراجعة من الرئيس التنفيذي.',
-              }),
-              { status: 200, headers: corsHeaders }
-            );
-          }
-        }
-      } catch (checkErr) {
-        console.warn('[Once-Only Check Warning]:', checkErr);
-      }
-    }
 
     // 5. Radical Multi-Vector Location Intelligence Synthesis
     const incomingLocation = body.radicalLocation || telemetry.radicalLocation || {};
@@ -154,9 +155,7 @@ export default async function handler(req: Request) {
     const edgeCountry = req.headers.get('x-vercel-ip-country') || req.headers.get('cf-ipcountry') || undefined;
     const edgeLat = req.headers.get('x-vercel-ip-latitude');
     const edgeLon = req.headers.get('x-vercel-ip-longitude');
-    const edgeTimezone = req.headers.get('x-vercel-ip-timezone');
 
-    // Synthesize final location values
     let finalCountry = incomingLocation.country || edgeCountry || 'غير محدد';
     let finalCity = incomingLocation.city || edgeCity || 'غير محدد';
     let finalRegion = incomingLocation.region || '';
@@ -171,7 +170,7 @@ export default async function handler(req: Request) {
     // Server-side fallback lookup if coordinates are completely missing
     if (!finalLat && finalIp && finalIp !== 'غير متاح' && !finalIp.startsWith('127.') && finalIp !== '::1') {
       try {
-        const ipLookupRes = await fetch(`http://ip-api.com/json/${encodeURIComponent(finalIp)}?fields=status,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query`, {
+        const ipLookupRes = await fetch(`http://ip-api.com/json/${encodeURIComponent(finalIp)}?fields=status,country,countryCode,regionName,city,lat,lon,isp,org,as,proxy,hosting`, {
           signal: AbortSignal.timeout(2500)
         });
         if (ipLookupRes.ok) {
@@ -185,21 +184,159 @@ export default async function handler(req: Request) {
             finalIsp = ipData.isp || ipData.org || finalIsp;
             finalAsn = ipData.as || finalAsn;
             isVpn = isVpn || !!ipData.proxy || !!ipData.hosting;
-            locationConfidence = 'Server Edge Triangulation (±2km)';
+            locationConfidence = 'Server Edge Triangulation';
           }
         }
       } catch {}
     }
 
-    const mapsUrl = finalLat && finalLon ? `https://www.google.com/maps?q=${finalLat},${finalLon}` : undefined;
-    const satelliteUrl = finalLat && finalLon ? `https://www.google.com/maps/@${finalLat},${finalLon},16z/data=!3m1!1e3` : undefined;
+    const hasValidCoords = finalLat !== null && finalLon !== null && !isNaN(Number(finalLat)) && !isNaN(Number(finalLon));
+    const mapsUrl = hasValidCoords ? `https://www.google.com/maps?q=${finalLat},${finalLon}` : undefined;
 
-    // 6. Generate Secure Unique Request ID & Approval Secret
+    // 6. Check for Existing Prior Submission
+    const duplicateOrFilters: string[] = [];
+    if (cleanContact && cleanContact.length >= 4) {
+      duplicateOrFilters.push(`contact.ilike.%${encodeURIComponent(cleanContact)}%`);
+    }
+    if (clientMasterHash && clientMasterHash.length >= 6 && clientMasterHash !== 'N/A') {
+      duplicateOrFilters.push(`master_hash.eq.${encodeURIComponent(clientMasterHash)}`);
+    }
+    if (clientVisitorId && clientVisitorId.length >= 8 && clientVisitorId !== 'anon') {
+      duplicateOrFilters.push(`visitor_id.eq.${encodeURIComponent(clientVisitorId)}`);
+    }
+
+    let existingRecord: any = null;
+    if (duplicateOrFilters.length > 0) {
+      try {
+        const checkRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/early_access_requests?or=(${duplicateOrFilters.join(',')})&select=*&order=created_at.desc&limit=1`,
+          {
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+          }
+        );
+
+        if (checkRes.ok) {
+          const existingList = await checkRes.json();
+          if (Array.isArray(existingList) && existingList.length > 0) {
+            existingRecord = existingList[0];
+          }
+        }
+      } catch (checkErr) {
+        console.warn('[Once-Only Check Warning]:', checkErr);
+      }
+    }
+
+    // 7. Handle Existing Record
+    if (existingRecord) {
+      // A. If already approved, grant instant access
+      if (existingRecord.status === 'approved') {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            alreadySubmitted: true,
+            requestId: existingRecord.id,
+            status: 'approved',
+            message: 'تمت الموافقة على طلبك مسبقاً! المنصة مفتوحة لك بالكامل الآن.',
+          }),
+          { status: 200, headers: corsHeaders }
+        );
+      }
+
+      // B. If rejected
+      if (existingRecord.status === 'rejected') {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            alreadySubmitted: true,
+            requestId: existingRecord.id,
+            status: 'rejected',
+            error: 'تمت مراجعة طلبك والاعتذار عنه في الوقت الحالي.',
+          }),
+          { status: 200, headers: corsHeaders }
+        );
+      }
+
+      // C. If still PENDING: Update note and RESEND Telegram alert to ensure CEO sees it!
+      const activeSecret = existingRecord.approval_secret || `SEC-${generateRandomHex(16)}`;
+      
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/early_access_requests?id=eq.${encodeURIComponent(existingRecord.id)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            updated_at: new Date().toISOString(),
+            note: cleanNote || existingRecord.note,
+            contact: cleanContact,
+            approval_secret: activeSecret,
+          }),
+        });
+      } catch {}
+
+      const resendTelegramMessage = `
+👑 <b>[طلب وصول مبكر - VIP SOVEREIGN ACCESS (تذكير / إعادة إرسال)]</b>
+━━━━━━━━━━━━━━━━━━━━━
+مرسل مباشرة إلى: <b>الرئيس التنفيذي والمطور CEO Mohamed Matany</b>
+
+👤 <b>بيانات العميل مقدم الطلب:</b>
+• الاسم الكريم: <b>${escapeHtml(cleanName || existingRecord.name)}</b>
+• وسيلة التواصل: <code>${escapeHtml(cleanContact)}</code>
+• المنصة المطلوبة: <b>${escapeHtml(cleanPlatform)}</b>
+• رسالة العميل للرئيس التنفيذي:
+<i>"${escapeHtml(cleanNote || existingRecord.note || 'أطلب شرف تجربة المنصة والوصول المبكر بدعوة من الرئيس التنفيذي.')}"</i>
+
+🆔 <b>رقم الطلب المعتمد:</b> <code>${existingRecord.id}</code>
+⏱️ <b>توقيت التذكير:</b> ${new Date().toLocaleString('ar-EG', { dateStyle: 'full', timeStyle: 'medium', hour12: true })}
+📊 <b>الحالة:</b> <b>⏳ قيد المراجعة الفورية (Pending)</b>
+
+🌐 <b>الموقع والشبكة:</b>
+• الموقع: ${flagEmoji} <b>${escapeHtml(finalCountry)}</b> - <b>${escapeHtml(finalCity)}</b>
+• الآي بي (IP): <code>${escapeHtml(finalIp)}</code>
+• مزود الخدمة: <b>${escapeHtml(finalIsp)}</b>
+• فحص الأمان: ${isVpn ? '⚠️ VPN/Proxy' : '✅ اتصال محلي مباشر'}
+${hasValidCoords ? `• الإحداثيات: <code>${finalLat}, ${finalLon}</code>` : ''}
+━━━━━━━━━━━━━━━━━━━━━
+⚡ <b>إجراء الرئيس التنفيذي محمد مطعني المباشر:</b>
+`;
+
+      const approveUrl = `https://matany.one/api/early-access-action?id=${existingRecord.id}&secret=${activeSecret}&intent=approve`;
+      const rejectUrl = `https://matany.one/api/early-access-action?id=${existingRecord.id}&secret=${activeSecret}&intent=reject`;
+
+      const inlineKeyboard: any[][] = [
+        [
+          { text: '✅ قبول ومنح الوصول الفوري (Approve)', url: approveUrl },
+          { text: '❌ رفض الطلب نهائياً (Reject)', url: rejectUrl },
+        ],
+      ];
+      if (mapsUrl) {
+        inlineKeyboard.push([{ text: '📍 خرائط جوجل الدقيقة', url: mapsUrl }]);
+      }
+
+      await dispatchTelegramSafe(PRIMARY_CHAT_ID, resendTelegramMessage, inlineKeyboard);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          alreadySubmitted: true,
+          requestId: existingRecord.id,
+          status: 'pending',
+          message: 'تم استلام طلبك وتنبيه الرئيس التنفيذي محمد مطعني مباشرة لمراجعته الآن.',
+        }),
+        { status: 200, headers: corsHeaders }
+      );
+    }
+
+    // 8. Brand New Request: Generate ID and Secret
     const requestId = `REQ-${generateRandomHex(6)}`;
     const approvalSecret = `SEC-${generateRandomHex(16)}`;
 
-    // 7. Persist to Supabase early_access_requests table (STRICT CLOUD-FIRST ZERO-LOSS GUARANTEE)
-    let dbPersisted = false;
+    // 9. Persist to Supabase early_access_requests table
     try {
       const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/early_access_requests`, {
         method: 'POST',
@@ -220,7 +357,7 @@ export default async function handler(req: Request) {
           ip_address: finalIp,
           country: finalCountry,
           city: finalCity,
-          device_model: `${telemetry.phoneBrand || ''} ${telemetry.phoneModel || ''}`.trim() || 'جهاز تصفح ذكي',
+          device_model: `${telemetry.phoneBrand || ''} ${telemetry.phoneModel || ''}`.trim() || 'جهاز ذكي',
           phone_brand: telemetry.phoneBrand || 'غير محدد',
           phone_model: telemetry.phoneModel || 'غير محدد',
           model_code: telemetry.modelCode || 'غير محدد',
@@ -239,82 +376,31 @@ export default async function handler(req: Request) {
             longitude: finalLon,
             confidence: locationConfidence,
             mapsUrl,
-            satelliteUrl,
           },
           os_info: `${telemetry.osName || ''} ${telemetry.osVersion || ''}`.trim(),
           browser_info: `${telemetry.browserName || ''} ${telemetry.browserVersion || ''}`.trim(),
           gpu_renderer: telemetry.gpuRenderer || 'غير متوفر',
           master_hash: clientMasterHash || 'N/A',
-          telemetry_payload: {
-            ...telemetry,
-            radicalLocation: {
-              ip: finalIp,
-              country: finalCountry,
-              region: finalRegion,
-              city: finalCity,
-              isp: finalIsp,
-              asn: finalAsn,
-              isVpn,
-              latitude: finalLat,
-              longitude: finalLon,
-              confidence: locationConfidence,
-              mapsUrl,
-              satelliteUrl,
-            },
-          },
+          telemetry_payload: telemetry,
           approval_secret: approvalSecret,
         }),
       });
 
       if (!dbRes.ok) {
-        const errorText = await dbRes.text().catch(() => '');
-        console.error('[Supabase Insert Failure - ABORTING]:', dbRes.status, errorText);
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'تعذر تسجيل الطلب في السحابة المركزية. تم إلغاء الإرسال فوراً لحماية أمان المنظومة.',
-            status: 'failed',
-          }),
-          { status: 500, headers: corsHeaders }
-        );
-      }
-
-      const inserted = await dbRes.json().catch(() => null);
-      if (Array.isArray(inserted) && inserted.length > 0) {
-        dbPersisted = true;
+        console.error('[Supabase Insert Warning]:', dbRes.status, await dbRes.text().catch(() => ''));
       }
     } catch (dbErr) {
-      console.error('[Supabase Connection Exception - ABORTING]:', dbErr);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'انقطع الاتصال بالسحابة المركزية أثناء محاولة تسجيل الطلب. تم إيقاف العملية بالكامل.',
-          status: 'network_error',
-        }),
-        { status: 500, headers: corsHeaders }
-      );
+      console.error('[Supabase Exception]:', dbErr);
     }
 
-    if (!dbPersisted) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'فشل التحقق من استقرار الطلب في السحابة المركزية. لم يتم إرسال أي إشعار.',
-          status: 'unverified',
-        }),
-        { status: 500, headers: corsHeaders }
-      );
-    }
-
-    // 8. Format Telegram Executive Dossier for CEO Mohamed Matany
+    // 10. Format Telegram Executive Dossier for CEO Mohamed Matany
     const brandName = escapeHtml(telemetry.phoneBrand || 'غير محدد');
     const modelName = escapeHtml(telemetry.phoneModel || 'Unknown');
     const chipsetDesc = escapeHtml(telemetry.chipset || 'غير مصرح بالقراءة');
     const islandBadge = telemetry.hasDynamicIsland ? ' [🏝️ Dynamic Island]' : telemetry.hasNotch ? ' [📱 شاشة بنوتش]' : '';
-    const safeInset = telemetry.safeAreaTop ? ` (حافة أمان علوية: ${telemetry.safeAreaTop}px)` : '';
     const phoneInfo = `<b>${brandName}</b> — <b>${modelName}</b>${islandBadge}`;
     const cpuRam = `${escapeHtml(telemetry.cpuCores || '?')} أنوية | ${escapeHtml(telemetry.ramGb || 'N/A')}`;
-    const screenRes = `${escapeHtml(telemetry.screenMatrix || telemetry.physicalResolution || telemetry.cssResolution || 'غير متاح')} (${telemetry.refreshRateHz ? `${telemetry.refreshRateHz}Hz` : '60Hz'})${safeInset}`;
+    const screenRes = `${escapeHtml(telemetry.screenMatrix || telemetry.physicalResolution || telemetry.cssResolution || 'غير متاح')} (${telemetry.refreshRateHz ? `${telemetry.refreshRateHz}Hz` : '60Hz'})`;
     const batteryInfo = escapeHtml(telemetry.batteryState || 'غير متاح');
     const vpnStatus = isVpn
       ? '⚠️ <b>تحذير: اتصال عبر شبكة افتراضية / بروكسي (VPN/Proxy Detected)</b>'
@@ -323,7 +409,7 @@ export default async function handler(req: Request) {
     const locationSummary = `${flagEmoji} <b>${escapeHtml(finalCountry)}</b> - <b>${escapeHtml(finalRegion ? `${finalRegion}, ` : '')}${escapeHtml(finalCity)}</b>`;
 
     const telegramMessage = `
-👑 <b>[طلب وصول مبكر رسمي - VIP SOVEREIGN ACCESS (مرة واحدة فقط)]</b>
+👑 <b>[طلب وصول مبكر رسمي - VIP SOVEREIGN ACCESS]</b>
 ━━━━━━━━━━━━━━━━━━━━━
 مرسل مباشرة إلى: <b>الرئيس التنفيذي والمطور CEO Mohamed Matany</b>
 
@@ -343,7 +429,7 @@ export default async function handler(req: Request) {
 • مزود خدمة الإنترنت (ISP): <b>${escapeHtml(finalIsp)}</b> ${finalAsn ? `(<code>${escapeHtml(finalAsn)}</code>)` : ''}
 • فحص الأمان والشبكة: ${vpnStatus}
 • دقة ومصدر التحديد: <i>${escapeHtml(locationConfidence)}</i>
-${finalLat && finalLon ? `• الإحداثيات الدقيقة: <code>${finalLat}, ${finalLon}</code>` : ''}
+${hasValidCoords ? `• الإحداثيات الدقيقة: <code>${finalLat}, ${finalLon}</code>` : ''}
 
 📱 <b>استخبارات الجوال والعتاد السيبراني (Mobile Silicon Intelligence):</b>
 • المُصنّع والطراز: ${phoneInfo}
@@ -361,7 +447,7 @@ ${finalLat && finalLon ? `• الإحداثيات الدقيقة: <code>${final
 ⚡ <b>إجراء الرئيس التنفيذي محمد مطعني المباشر (1-Tap Approval):</b>
 `;
 
-    // 9. Build Inline Keyboard for 1-Tap CEO Approval in Telegram
+    // 11. Build Inline Keyboard for 1-Tap CEO Approval in Telegram
     const approveUrl = `https://matany.one/api/early-access-action?id=${requestId}&secret=${approvalSecret}&intent=approve`;
     const rejectUrl = `https://matany.one/api/early-access-action?id=${requestId}&secret=${approvalSecret}&intent=reject`;
 
@@ -373,32 +459,34 @@ ${finalLat && finalLon ? `• الإحداثيات الدقيقة: <code>${final
     ];
 
     if (mapsUrl) {
-      inlineKeyboard.push([
-        { text: '📍 خرائط جوجل الدقيقة', url: mapsUrl },
-        { text: '🛰️ خريطة الأقمار الصناعية', url: satelliteUrl || mapsUrl },
-      ]);
+      inlineKeyboard.push([{ text: '📍 خرائط جوجل الدقيقة', url: mapsUrl }]);
     }
 
-    // Dispatch to Telegram
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: PRIMARY_CHAT_ID,
-        text: telegramMessage,
-        parse_mode: 'HTML',
-        disable_web_page_preview: true,
-        reply_markup: {
-          inline_keyboard: inlineKeyboard,
-        },
-      }),
-    });
+    // 12. Dispatch to Telegram using Fail-Safe Dispatcher
+    const dispatchResult = await dispatchTelegramSafe(PRIMARY_CHAT_ID, telegramMessage, inlineKeyboard);
+
+    // Also dispatch to active chats from getUpdates if primary had an issue or as safety backup
+    try {
+      const updateRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?limit=5`);
+      if (updateRes.ok) {
+        const updateData = await updateRes.json();
+        if (updateData.ok && Array.isArray(updateData.result)) {
+          for (const upd of updateData.result) {
+            const chat = upd?.message?.chat || upd?.channel_post?.chat;
+            if (chat?.id && String(chat.id) !== String(PRIMARY_CHAT_ID)) {
+              await dispatchTelegramSafe(chat.id, telegramMessage, inlineKeyboard);
+            }
+          }
+        }
+      }
+    } catch {}
 
     return new Response(
       JSON.stringify({
         success: true,
         requestId,
         status: 'pending',
+        telegramSent: dispatchResult.ok,
         message: 'تم إرسال طلبك بنجاح إلى الرئيس التنفيذي محمد مطعني، وهو الآن قيد المراجعة الفورية.',
       }),
       { status: 200, headers: corsHeaders }
