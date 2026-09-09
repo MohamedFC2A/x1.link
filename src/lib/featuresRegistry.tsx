@@ -758,8 +758,8 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
         name: 'Neural Image Studio',
         nameAr: 'استوديو المعالجة والتوليد العصبي للصور (Fathom Quant 3)',
         badgeLabel: 'QUANT 3 NEURAL IMAGE',
-        summary: 'التوليد والمعالجة الفوتوغرافية العصبية الفائقة بدقة 4K عبر Fathom Quant 3',
-        details: 'تم إجراء التوليد والتعديل العصبي النقطي الجراحي (Flux Ultra 4K / Inpainting / Background Removal) مع الحفاظ الكامل على دقة الملامح والنسب الذهبية',
+        summary: 'التوليد والمعالجة الفوتوغرافية العصبية الفائقة بدقة 4K عبر Fathom Quant 3 (FLUX.1 [schnell])',
+        details: 'تم إجراء التوليد والتعديل العصبي النقطي الجراحي عبر نموذج FLUX.1 [schnell] فائق السرعة والكفاءة مع الحفاظ الكامل على دقة الملامح والنسب الذهبية',
         statusPill: 'QUANT 3 IMAGE STUDIO 4K',
         confidence: 0.99,
         category: 'actionable'

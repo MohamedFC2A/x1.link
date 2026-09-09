@@ -260,7 +260,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
               <span>•</span>
               <span>{selectedRatio}</span>
               <span className="hidden xs:inline">•</span>
-              <span>Flux AI</span>
+              <span className="text-cyan-400 font-semibold">FLUX.1 [schnell]</span>
             </div>
           </div>
         </div>
