@@ -1238,23 +1238,33 @@ export function routeFeatureIntent(
     const hasSvgCode = cLower.includes('```svg') || (cLower.includes('<svg') && cLower.includes('</svg>'));
     const hasSvgReasoning = rLower.includes('svg') || rLower.includes('فيكتور') || rLower.includes('vector studio') || rLower.includes('svg studio');
 
+    // Strict Exclusion: If query is an informational question about SVG or negative mention
+    const isSvgQuestion = /^(?:ما\s*هو|ما\s*هي|ماذا\s*يعني|كيف\s*(?:أفتح|افتح|استخدم|أستخدم|أتعامل|اتعامل)|اشرح|شرح|ما\s*الفرق\s*بين|قارن\s*بين|how\s+to|what\s+is|explain)\b/i.test(pLower) ||
+      /(?:بدون\s*svg|لا\s*تستخدم\s*svg|مش\s*svg|ليس\s*svg|not\s+svg|without\s+svg|instead\s+of\s+svg)/i.test(pLower);
+    if (isSvgQuestion && !hasSvgCode) {
+      return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Suppressed: Question or negative mention about SVG.' };
+    }
+
+    const hasSvgHistory = Boolean(context?.hasSvgInHistory || context?.priorSvgContent);
+    const isSvgFollowupEdit = (hasSvgCode || hasSvgHistory) &&
+      /(?:غير|عدل|بدل|لون|الخلفية|خلفية|الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|ذهبي|فضي|أبيض|ابيض|اسود|أسود)/i.test(pLower);
+
     // Strict Exclusion: If user asked for an image (صورة, photo, image, picture, خلفية شاشة, بورتريه) without mentioning svg/vector, NEVER trigger SVG Studio!
-    const isImageQueryWithoutSvg = !/(?:svg|فيكتور|متجهات|شعاعي|vector)/i.test(pLower) && (
-      /(?:صورة|صوره|photo|image|picture|خلفية\s+شاشة|خلفيه\s+شاشة|wallpaper|بورتريه|portrait)/i.test(pLower) ||
+    const isImageQueryWithoutSvg = !isSvgFollowupEdit && !/(?:svg|فيكتور|متجهات|شعاعي|vector)/i.test(pLower) && (
+      /(?:صورة|صوره|photo|image|picture|خلفية\s+شاشة|خلفيه\s+شاشة|wallpaper|بورتريه|portrait|واقعي|واقعية|فوتوغراف)/i.test(pLower) ||
       /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية\s+شاشة|خلفيه\s+شاشة|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i.test(pLower)
     );
 
-    if (isImageQueryWithoutSvg) {
+    if (isImageQueryWithoutSvg && !hasSvgCode) {
       return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Suppressed: General image/photo request belongs exclusively to Neural Image Studio.' };
     }
 
-    const isExplicitVectorPrompt = /(?:svg|فيكتور|متجهات|شعاعي|vector)/i.test(pLower) ||
-      (/(?:كود\s*svg|ملف\s*svg|رسم\s*شعاعي|شكل\s*هندسي)/i.test(pLower)) ||
-      (/\b(?:draw|create|generate|design)\s+(?:an?\s+)?(?:svg|vector)/i.test(pLower)) ||
-      (/(?:شعار|لوجو|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower) && !/(?:صورة|photo|dslr)/i.test(pLower)) ||
-      (/(?:رسم|تصميم)\s+(?:بياني|توضيحي|هندسي|معماري|انسيابي|مخطط|خريطة|diagram|chart|flowchart|infographic)/i.test(pLower)) ||
-      (/(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول|ضع|خليه|خلها|اجعله|اجعلها)\s+(?:لي\s+)?(?:في\s+)?(?:الخلفية|خلفية|خلفية\s+التصميم|اللون|الألوان|الالوان|الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|العنصر|الرمز|الكتابة|ذهبي|فضي|شفاف|شفافة|نيون)/i.test(pLower) && !/(?:صورة|صوره|photo|image|سيارة|السيارة|عربية|العربية|قميص|القميص|فستان|الفستان|شخص|الشخص|بشرة|بشره|وجه|الوجه)/i.test(pLower)) ||
-      (/\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:logo|icon|svg|vector|design\s+background)\b/i.test(pLower));
+    const isExplicitVectorPrompt = hasSvgCode || isSvgFollowupEdit ||
+      /(?:كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|رسم\s*(?:الـ\s*)?svg|تصميم\s*(?:الـ\s*)?svg|\.svg\b|بصيغة\s*svg|صيغة\s*svg|اجعلها\s*svg|رسم\s*(?:شعاعي|فيكتور)|متجهات\s*شعاعية|رسومات\s*فيكتور|رسمة\s*فيكتور|تصميم\s*فيكتور|فيكتور|vector\s*graphics?|vector\s*art|vector\s*illustration)/i.test(pLower) ||
+      /\b(?:draw|create|generate|design|output|export|code)\s+(?:an?\s+)?(?:svg|vector)\b/i.test(pLower) ||
+      ((/(?:شعار|لوجو|ايقونة|أيقونة|شارة|رمز\s*بصري)/i.test(pLower)) && /(?:svg|فيكتور|متجهات|vector)/i.test(pLower)) ||
+      (/(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول)\s+(?:لي\s+)?(?:في\s+)?(?:كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|تصميم\s*svg|الفيكتور)/i.test(pLower)) ||
+      (/\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:svg\s+code|svg\s+file|vector\s+graphic)\b/i.test(pLower));
 
     const isImageToSvgPrompt = (hasImages || Boolean(context?.hasImagesInHistory)) &&
       /(?:حول|تحويل|فيكتور|متجهات|svg|vector|vectorize|convert\s+to\s+svg)/i.test(pLower);

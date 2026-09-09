@@ -81,36 +81,54 @@ export async function runSvgStudioTests(harness: TestHarness) {
       expect(multi.executionPipelineOrder).toContain('svg_studio');
     });
 
-    // 7. Arabic Icon Design without explicit 'svg' keyword
-    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN for "صمم ايقونة للهندسة" without explicit svg keyword', () => {
+    // 7. Arabic Icon Design with direct SVG keyword
+    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN for "صمم ايقونة للهندسة بصيغة SVG" and suppress without SVG', () => {
       const request: DynamicTuningRequest = {
-        userPrompt: 'صمم ايقونة للهندسة المعمارية بدقة وألوان عصرية',
+        userPrompt: 'صمم ايقونة للهندسة المعمارية بصيغة SVG بدقة وألوان عصرية',
         requestedModel: 'deepseek-v4-flash',
       };
       const result = DynamicParameterTuner.tune(request);
       expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
       expect(result.calibrationDirective).toContain('Strict Zero-Thinking & Direct Code Output');
       expect(result.calibrationDirective).toContain('```svg');
+
+      // Without SVG, it must NOT trigger SVG Studio
+      const withoutSvg = DynamicParameterTuner.tune({
+        userPrompt: 'صمم ايقونة للهندسة المعمارية بدقة وألوان عصرية',
+        requestedModel: 'deepseek-v4-flash',
+      });
+      expect(withoutSvg.detectedIntent).not.toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
     });
 
-    // 8. Arabic Logo Design without explicit 'svg' keyword
-    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN for "صمم لوجو لشركة عقارات" and enforce Strict Zero-Thinking directive', () => {
+    // 8. Arabic Logo Design with direct SVG keyword
+    await harness.it('should detect SVG_VECTOR_STUDIO_AND_DESIGN for "صمم لوجو لشركة عقارات بصيغة SVG" and suppress without SVG', () => {
       const request: DynamicTuningRequest = {
-        userPrompt: 'صمم لوجو لشركة عقارات فخمة مع برج سكني',
+        userPrompt: 'صمم لوجو لشركة عقارات فخمة بصيغة SVG مع برج سكني',
         requestedModel: 'deepseek-v4-pro',
       };
       const result = DynamicParameterTuner.tune(request);
       expect(result.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
       expect(result.calibrationDirective).toContain('SOVEREIGN_SVG_VECTOR_STUDIO');
       expect(result.calibrationDirective).toContain('viewBox');
+
+      // Without SVG keyword, general request routes to neural or assistant
+      const withoutSvg = DynamicParameterTuner.tune({
+        userPrompt: 'صمم لوجو لشركة عقارات فخمة مع برج سكني',
+        requestedModel: 'deepseek-v4-pro',
+      });
+      expect(withoutSvg.detectedIntent).not.toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
     });
 
-    // 9. Feature Registry routes logo query without svg keyword
-    await harness.it('should route svg_studio in featuresRegistry for "ارسم شعار لمطعم"', () => {
-      const plan = routeFeatureIntent('svg_studio', 'ارسم شعار لمطعم مأكولات بحرية حديث', '', '');
+    // 9. Feature Registry routes logo query with direct svg keyword
+    await harness.it('should route svg_studio in featuresRegistry for "ارسم شعار لمطعم بصيغة SVG" and suppress without SVG', () => {
+      const plan = routeFeatureIntent('svg_studio', 'ارسم شعار لمطعم مأكولات بحرية حديث بصيغة SVG', '', '');
       expect(plan.confidence).toBeGreaterThanOrEqual(0.95);
       expect(plan.category).toBe('actionable');
       expect(plan.shouldRenderWidget).toBe(true);
+
+      const planWithoutSvg = routeFeatureIntent('svg_studio', 'ارسم شعار لمطعم مأكولات بحرية حديث', '', '');
+      expect(planWithoutSvg.confidence).toBe(0.0);
+      expect(planWithoutSvg.shouldRenderWidget).toBe(false);
     });
 
     // 10. Filter svg_studio out of reasoning header features
@@ -138,7 +156,7 @@ export async function runSvgStudioTests(harness: TestHarness) {
           userPrompt: prompt,
           requestedModel: 'deepseek-v4-flash',
           conversationHistory: [
-            { role: 'user', content: 'صمم لي لوجو لشركة تقنية' },
+            { role: 'user', content: 'صمم لي لوجو لشركة تقنية بصيغة SVG' },
             { role: 'assistant', content: '```svg\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><circle cx="400" cy="300" r="100" fill="#06b6d4"/></svg>\n```' }
           ]
         };
@@ -148,7 +166,7 @@ export async function runSvgStudioTests(harness: TestHarness) {
         expect(result.calibrationDirective).toContain('عند طلب أي تعديل على تصميم سابق');
         expect(result.calibrationDirective).toContain('```svg');
 
-        const plan = routeFeatureIntent('svg_studio', prompt, '', '', {});
+        const plan = routeFeatureIntent('svg_studio', prompt, '', '', { hasSvgInHistory: true });
         expect(plan.confidence).toBeGreaterThanOrEqual(0.95);
         expect(plan.shouldRenderWidget).toBe(true);
       }
@@ -294,7 +312,7 @@ export async function runSvgStudioTests(harness: TestHarness) {
       const vectorPrompts = [
         'عايز فيكتور لقطة لطيفة بألوان متناسقة',
         'اعملي رسم فيكتور لشمس مشرقة مع تدرج لوني أصفر وبرتقالي',
-        'ارسم لي ايقونة اسد مهيب في الطبيعة',
+        'ارسم لي ايقونة فيكتور لاسد مهيب في الطبيعة',
         'طلعلي رسم شعاعي لسيارة رياضية حديثة',
         'بدي كود svg لطائر صغير',
         'محتاج رسم فيكتور يعبر عن النجاح والتفوق',
@@ -520,5 +538,15 @@ export async function runSvgStudioTests(harness: TestHarness) {
       }
     });
 
+  });
+}
+
+// Standalone runner support for debugging
+const isDirectRun = process.argv[1] && process.argv[1].replace(/\\/g, '/').includes('svgStudio.test');
+if (isDirectRun) {
+  const harness = new TestHarness();
+  runSvgStudioTests(harness).then(() => {
+    const passed = harness.printSummary('SVG VECTOR STUDIO UNIT SUITE');
+    process.exit(passed ? 0 : 1);
   });
 }

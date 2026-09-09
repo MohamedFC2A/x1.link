@@ -180,22 +180,40 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     }
   }, [data.seed]);
 
-  // Compute dimensions
+  // Natural image dimensions to adapt viewport and preserve 100% of non-standard or ultra-wide images without cropping
+  const [naturalDimensions, setNaturalDimensions] = useState<{ width: number; height: number } | null>(null);
+
+  // Compute dimensions (dynamically reflects natural image dimensions when loaded to prevent cropping)
   const currentDimensions = useMemo(() => {
+    if (naturalDimensions && naturalDimensions.width > 0 && naturalDimensions.height > 0) {
+      return naturalDimensions;
+    }
     if (selectedRatio === '16:9') return { width: 1344, height: 768 };
     if (selectedRatio === '9:16') return { width: 768, height: 1344 };
     if (selectedRatio === '4:3') return { width: 1152, height: 864 };
     return { width: 1024, height: 1024 };
-  }, [selectedRatio]);
+  }, [selectedRatio, naturalDimensions]);
+
+  // Active aspect ratio & numeric ratio calculated from real image dimensions
+  const activeAspectRatio = useMemo(() => {
+    return `${currentDimensions.width} / ${currentDimensions.height}`;
+  }, [currentDimensions]);
+
+  const numericRatio = useMemo(() => {
+    return currentDimensions.width / currentDimensions.height;
+  }, [currentDimensions]);
 
   // Dynamic max-width for the entire card based on aspect ratio to guarantee perfect framing
+  // Ultra-wide images (e.g. 21:9, 32:9) expand up to max-w-6xl so they are never constrained or cropped
   const cardMaxWidthClass = useMemo(() => {
     if (isFullscreen) return 'w-full';
-    if (selectedRatio === '9:16') return 'max-w-[450px] mx-auto';
-    if (selectedRatio === '1:1') return 'max-w-[620px] mx-auto';
-    if (selectedRatio === '4:3') return 'max-w-[760px] mx-auto';
+    if (numericRatio >= 2.0) return 'max-w-6xl w-full mx-auto';
+    if (numericRatio >= 1.6) return 'max-w-5xl mx-auto';
+    if (numericRatio <= 0.65) return 'max-w-[440px] mx-auto';
+    if (numericRatio <= 0.85) return 'max-w-[540px] mx-auto';
+    if (numericRatio <= 1.15) return 'max-w-[640px] mx-auto';
     return 'max-w-4xl mx-auto';
-  }, [selectedRatio, isFullscreen]);
+  }, [numericRatio, isFullscreen]);
 
   // Contextual operation classification
   const operationInfo = useMemo(() => {
@@ -528,15 +546,35 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
 
   const handleRatioChange = useCallback((ratio: string) => {
     setSelectedRatio(ratio);
+    setNaturalDimensions(null);
     setMuseImageUrl(null);
     setLoadError(false);
     setIsImageLoading(true);
   }, []);
 
-  const handleImageLoaded = () => {
+  const handleImageLoaded = (e?: React.SyntheticEvent<HTMLImageElement>) => {
     setIsImageLoading(false);
     setLoadError(false);
+    if (e?.currentTarget) {
+      const nw = e.currentTarget.naturalWidth;
+      const nh = e.currentTarget.naturalHeight;
+      if (nw > 0 && nh > 0) {
+        setNaturalDimensions({ width: nw, height: nh });
+      }
+    }
   };
+
+  // Synchronize natural dimensions whenever activeProcessedSrc changes
+  useEffect(() => {
+    if (!activeProcessedSrc) return;
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        setNaturalDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+      }
+    };
+    img.src = activeProcessedSrc;
+  }, [activeProcessedSrc]);
 
   const handleImageError = () => {
     setIsImageLoading(false);
@@ -574,7 +612,9 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
 
       let targetWidth = 1024;
       let targetHeight = 1024;
-      const targetAspect = currentDimensions.width / currentDimensions.height;
+      const imgW = img.naturalWidth || 1024;
+      const imgH = img.naturalHeight || 1024;
+      const targetAspect = (imgW && imgH) ? (imgW / imgH) : (currentDimensions.width / currentDimensions.height);
 
       if (targetTier === '4k') {
         targetWidth = targetAspect >= 1 ? 3840 : Math.round(2160 * targetAspect);
@@ -599,8 +639,6 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       ctx.imageSmoothingQuality = 'high';
 
       // Proportional aspect-ratio crop: prevent any vertical or horizontal squishing
-      const imgW = img.naturalWidth || 1024;
-      const imgH = img.naturalHeight || 1024;
       const imgAspect = imgW / imgH;
 
       let sx = 0, sy = 0, sWidth = imgW, sHeight = imgH;
@@ -768,7 +806,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         )}
         style={isFullscreen ? undefined : {
           aspectRatio: `${currentDimensions.width} / ${currentDimensions.height}`,
-          maxHeight: '74vh'
+          maxHeight: '78vh'
         }}
       >
         {/* Loading / Streaming Overlay with clean, authentic, real-feeling Progress Bar */}
@@ -830,7 +868,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                 alt={data.title || (operationInfo.type === 'addition' ? "صورة مضاف إليها عناصر" : operationInfo.type === 'edit' ? "صورة معدلة عصبياً" : "صورة فوتوغرافية فائقة")}
                 onLoad={handleImageLoaded}
                 onError={handleImageError}
-                className="w-full h-full object-cover shadow-2xl transition-all duration-300"
+                className="max-w-full max-h-full w-auto h-auto object-contain mx-auto shadow-2xl transition-all duration-300"
                 style={{ imageRendering: '-webkit-optimize-contrast' as any }}
               />
             ) : (
@@ -848,7 +886,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             <img
               src={originalSrc}
               alt="الصورة الأصلية"
-              className="w-full h-full object-cover shadow-2xl transition-all duration-300"
+              className="max-w-full max-h-full w-auto h-auto object-contain mx-auto shadow-2xl transition-all duration-300"
               style={{ imageRendering: '-webkit-optimize-contrast' as any }}
             />
           </div>
@@ -874,7 +912,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             <img
               src={activeProcessedSrc}
               alt="بعد التعديل"
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
               style={{ imageRendering: '-webkit-optimize-contrast' as any }}
             />
 
@@ -887,7 +925,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                 src={originalSrc}
                 alt="قبل التعديل"
                 onError={() => setOriginalLoadError(true)}
-                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                className="absolute inset-0 w-full h-full object-contain pointer-events-none"
                 style={{ imageRendering: '-webkit-optimize-contrast' as any }}
               />
               <div

@@ -188,19 +188,15 @@ const NEURAL_IMAGE_GENERATION_PATTERNS = [
 const SVG_DESIGN_PATTERNS = [
   /<svg[\s\S]*?<\/svg>/i,
   /```svg/i,
-  /(?=.*\b(?:svg|فيكتور|متجهات|شعاعي|vector)\b)(?=.*(?:تصميم|صمم|ارسم|رسم|رسمة|شعار|لوجو|ايقونة|أيقونة|أيقونات|كود|انشئ|أنشئ|اعمل|سوي|ولد|توليد|إنفوجرافيك|انفوجرافيك|رمز|شارة|طابع|زخرفة|تعديل|عدل|غير|بدل|design|logo|icon|art|vector|graphic|draw|create|generate|illustration|emblem|badge|diagram)).*/is,
-  /(?:فيكتور|متجهات|شعاعي|vector\s*graphics?|vector\s*art|vector\s*illustration)/i,
-  /\b(?:draw|create|generate|design)\s+(?:an?\s+)?(?:svg|vector)/i,
-  /(?:كود\s*svg|ملف\s*svg|رسم\s*شعاعي|شكل\s*هندسي|تصميم\s*svg)/i,
-  /(?:اجعلها|خليها|خليه|اجعله|بصيغة|كـ|على\s*شكل|كود|ملف)\s*(?:svg|فيكتور|متجهات|شعاعي|vector)/i,
-  /\b(?:make\s+it|convert\s+to|output\s+as)\s+(?:svg|vector)/i,
-  /(?:تصميم|صمم|ارسم|رسم|اعمل|سوي|ولد|توليد|انشئ|أنشئ|ابني|صنع|draw|design|create|generate)\s+(?:لي\s+)?(?:لوجو|شعار|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)(?!\s*(?:واقعي|فوتوغرافي|صورة|photo))/i,
-  // Concise two-word queries: "لوجو كافيه"، "شعار شركة"، "ايقونة سحابية"
-  /^(?:لوجو|شعار|ايقونة|أيقونة|شارة|رمز\s*بصري|logo|icon|icons|emblem|badge|symbol)\s+[\p{L}\p{N}]+/iu,
-  /(?:لوجو|شعار|ايقونة|أيقونة)\s+(?:احترافي|حديث|فكتور|بصري|مبتكر|لـ|للـ|عن|بسيط|متقن)/i,
-  // Strict SVG editing: MUST explicitly mention vector, logo, icon, or SVG
-  /(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول)\s+(?:لي\s+)?(?:في\s+)?(?:الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|كود\s*svg|ملف\s*svg|تصميم\s*svg)/i,
-  /\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:logo|icon|svg|vector)\b/i
+  // Explicit request for SVG or vector code/file creation:
+  /(?:كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|رسم\s*(?:الـ\s*)?svg|تصميم\s*(?:الـ\s*)?svg|\.svg\b|بصيغة\s*svg|صيغة\s*svg|كـ\s*svg|على\s*شكل\s*svg|رسم\s*شعاعي|متجهات\s*شعاعية|رسومات\s*فيكتور|vector\s*graphics?|vector\s*art|vector\s*illustration)/i,
+  /\b(?:draw|create|generate|design|output|export|code)\s+(?:an?\s+)?(?:svg|vector)\b/i,
+  /\b(?:make\s+it|convert\s+to|output\s+as)\s+(?:svg|vector)\b/i,
+  // Direct combination: creation verb + explicit svg/vector target
+  /(?=.*\b(?:svg|فيكتور|متجهات|شعاعي|vector)\b)(?=.*(?:كود|ملف|رسم|انشئ|أنشئ|صمم|ولد|توليد|اعمل|سوي|draw|create|generate|code)).*/is,
+  // Strict SVG editing: MUST explicitly mention SVG code or vector file
+  /(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول)\s+(?:لي\s+)?(?:في\s+)?(?:كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|تصميم\s*svg|الفيكتور)/i,
+  /\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:svg\s+code|svg\s+file|vector\s+graphic)\b/i
 ];
 
 const MATH_DEDUCTIVE_LOGIC_PATTERNS = [
@@ -743,21 +739,33 @@ export class DynamicParameterTuner {
       };
     }
 
-    // 6.b. SVG Vector Studio & Design Check with Sovereign Precedence (evaluated BEFORE neural generation when explicit SVG is requested)
-    const isExplicitSvgRequested = /(?:\bsvg\b|فيكتور|متجهات|شعاعي|vector|كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|\.svg\b|اجعلها\s*svg|مقطوع|مش\s*كامل|أكمل\s*(?:كود\s*)?svg)/i.test(text);
+    // 6.b. SVG Vector Studio & Design Check with Sovereign Precedence (evaluated ONLY upon DIRECT, explicit SVG/Vector creation intent)
+    const isSvgInformationalOrNegative =
+      /^(?:ما\s*هو|ما\s*هي|ماذا\s*يعني|كيف\s*(?:أفتح|افتح|استخدم|أستخدم|أتعامل|اتعامل)|اشرح|شرح|ما\s*الفرق\s*بين|قارن\s*بين|how\s+to|what\s+is|explain|difference\s+between)\b/i.test(text) ||
+      /(?:بدون\s*svg|لا\s*تستخدم\s*svg|مش\s*svg|ليس\s*svg|not\s+svg|without\s+svg|instead\s+of\s+svg)/i.test(text);
 
-    // Strict Guard: If it's a general image query without svg/vector keywords, it must NOT trigger SVG!
-    const isImageQueryWithoutSvg = !isExplicitSvgRequested && (
+    const isDirectSvgCreation = /(?:كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|رسم\s*(?:الـ\s*)?svg|تصميم\s*(?:الـ\s*)?svg|\.svg\b|بصيغة\s*svg|صيغة\s*svg|اجعلها\s*svg|مقطوع|مش\s*كامل|أكمل\s*(?:كود\s*)?svg|رسم\s*(?:شعاعي|فيكتور)|رسومات\s*فيكتور|رسمة\s*فيكتور|تصميم\s*فيكتور|متجهات\s*شعاعية|فيكتور|vector\s*graphics?|vector\s*art|vector\s*illustration|\b(?:draw|create|generate|design|output|export|code)\s+(?:an?\s+)?(?:svg|vector)\b)/i.test(text);
+
+    const isExplicitSvgRequested = !isSvgInformationalOrNegative && isDirectSvgCreation;
+
+    const isSvgHistoryFollowup = isFollowUpPrompt && /(?:```svg|<svg)/i.test(historyText);
+    const isSvgDesignFollowup = isSvgHistoryFollowup &&
+      /(?:غير|عدل|بدل|تعديل|تغيير|لون|الوان|ألوان|الخلفية|خلفية|الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|ذهبي|فضي|أبيض|ابيض|اسود|أسود|احمر|أحمر|ازرق|أزرق|اخضر|أخضر|شفافة|شفاف|خليه|اجعله|كبر|صغر|احذف|شيل)/i.test(text) &&
+      !/(?:صورة|صوره|photo|image|picture|فوتوغراف|واقعي|واقعية)/i.test(text);
+
+    // Strict Guard: If it's a general image query without direct svg keywords, it must NOT trigger SVG!
+    const isImageQueryWithoutSvg = !isExplicitSvgRequested && !isSvgDesignFollowup && (
       Boolean(priorNeuralImage) ||
-      /(?:صورة|صوره|photo|image|picture|خلفية\s+شاشة|خلفيه\s+شاشة|wallpaper|بورتريه|portrait)/i.test(text) ||
+      /(?:صورة|صوره|photo|image|picture|خلفية\s+شاشة|خلفيه\s+شاشة|wallpaper|بورتريه|portrait|واقعي|واقعية|فوتوغراف|فوتوغرافية|dslr|سينمائي)/i.test(text) ||
       /(?:لون\s+(?:السيارة|العربية|القميص|الفستان|الشعر|العين|البنطلون|الخلفية|الباب|الجدار)|تعديل\s+الصورة|غير\s+الصورة|تغيير\s+الصورة|edit\s+photo|edit\s+image|recolor)/i.test(text) ||
       /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع)\s+(?:لي\s+)?(?:صورة|صوره|خلفية\s+شاشة|لوحة|بورتريه)/i.test(text)
     );
 
-    const matchesSvg = !isImageQueryWithoutSvg && (
+    const matchesSvg = !isSvgInformationalOrNegative && !isImageQueryWithoutSvg && (
       isExplicitSvgRequested ||
+      isSvgDesignFollowup ||
       SVG_DESIGN_PATTERNS.some(p => p.test(text)) ||
-      (isFollowUpPrompt && SVG_DESIGN_PATTERNS.some(p => p.test(historyText)))
+      (isFollowUpPrompt && isDirectSvgCreation && SVG_DESIGN_PATTERNS.some(p => p.test(historyText)))
     );
     if (matchesSvg) {
       const combined = `${historyText} ${text}`;
@@ -772,7 +780,6 @@ export class DynamicParameterTuner {
     }
 
     // 6.c. Cyber Ultra & Fathom Quant Neural Image Studio & Photorealistic Generation Check
-    const isSvgHistoryFollowup = /(?:```svg|<svg)/i.test(historyText);
     const isCodeOrHowToQuery = /(?:كود|برمجة|دالة|مكتبة|بايثون|جافاسكريبت|رياكت|api|endpoint|code|script|component|function)\b/i.test(text) ||
       /^(?:كيف|طريقة|شرح|اشرح|لماذا|ليه|ما\s*هو|ما\s*هي|ماذا\s*يعني|ما\s*الفرق|how\s+to|explain|why|what\s+is)\b/i.test(text);
     const hasExplicitCreateCmd = /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية|خلفيه|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i.test(text);
@@ -782,7 +789,7 @@ export class DynamicParameterTuner {
       (isFollowUpPrompt && !isSvgHistoryFollowup && NEURAL_IMAGE_GENERATION_PATTERNS.some(p => p.test(historyText)))
     );
 
-    if (matchesNeuralGen && !/(?:svg|فيكتور|متجهات|vector)/i.test(text) && !(isSvgHistoryFollowup && /(?:الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|الخلفية|لون|الوان|ألوان|ذهبي|فضي)/i.test(text))) {
+    if (matchesNeuralGen && (!isExplicitSvgRequested || isSvgInformationalOrNegative) && !(isSvgHistoryFollowup && /(?:الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|الخلفية|لون|الوان|ألوان|ذهبي|فضي)/i.test(text))) {
       return {
         intent: 'NEURAL_IMAGE_STUDIO_AND_PROCESSING',
         confidence: 0.98,

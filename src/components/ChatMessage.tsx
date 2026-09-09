@@ -1398,6 +1398,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   }, [displayContent]);
 
   // Clean markdown content excluding the SVG code block to prevent ReactMarkdown layout thrashing
+  // and sanitize any stray SVG/XML tags that may have leaked outside code fences
   const displayContentWithoutSvg = useMemo(() => {
     if (!displayContent) return '';
     return displayContent
@@ -1405,6 +1406,11 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       .replace(/<svg[\s\S]*?<\/svg>/gi, '')
       .replace(/```(?:svg|xml|html|markup)?\s*<svg[\s\S]*$/gi, '') // during active stream
       .replace(/<svg[\s\S]*$/gi, '') // during active stream
+      // Sanitize stray leaked XML/SVG tags that might have spilled outside code fences:
+      .replace(/<\/?(?:path|rect|circle|g|defs|linearGradient|radialGradient|stop|polygon|polyline|ellipse|text|tspan|filter|feDropShadow|feGaussianBlur|use|symbol|clipPath)[\s\S]*?>/gi, '')
+      .replace(/<\/?svg[\s\S]*?>/gi, '')
+      .replace(/xmlns(?::[a-z0-9]+)?="[^"]*"/gi, '')
+      .replace(/viewBox="[^"]*"/gi, '')
       .trim();
   }, [displayContent]);
 
@@ -1648,30 +1654,33 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     // Only Fathom Quant 3 is empowered to activate SVG Studio
     if (!isQuant3Model) return false;
     const pLower = (previousUserPrompt || '').toLowerCase();
-    const hasExplicitSvgKeyword = /(?:\bsvg\b|فيكتور|متجهات|شعاعي|vector|كود\s*svg|رسم\s*svg|ملف\s*svg|\.svg\b|اجعلها\s*svg)/i.test(pLower);
+
+    // Check for negative mentions or informational questions about SVG:
+    const isSvgQuestion = /^(?:ما\s*هو|ما\s*هي|ماذا\s*يعني|كيف|اشرح|شرح|ما\s*الفرق|how\s+to|what\s+is|explain)\b/i.test(pLower);
+    const hasNegativeSvg = /(?:بدون\s*svg|لا\s*تستخدم\s*svg|مش\s*svg|ليس\s*svg|not\s+svg|without\s+svg|instead\s+of\s+svg)/i.test(pLower);
+    if (isSvgQuestion || hasNegativeSvg) return false;
+
+    const hasExplicitSvgKeyword = /(?:كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|رسم\s*(?:الـ\s*)?svg|تصميم\s*(?:الـ\s*)?svg|\.svg\b|بصيغة\s*svg|صيغة\s*svg|اجعلها\s*svg|رسم\s*شعاعي|متجهات\s*شعاعية|رسومات\s*فيكتور|vector\s*graphics?|vector\s*art|\b(?:draw|create|generate|output|export|code)\s+(?:an?\s+)?(?:svg|vector)\b)/i.test(pLower);
 
     // Sovereign SVG Priority: If explicit SVG requested and no neural image block extracted, SVG Studio has priority
     if (hasExplicitSvgKeyword && !extractedNeuralImageData) return true;
 
-    // Strict Precedence: If Neural Image Studio is active, SVG Studio must NOT be active
+    // Strict Precedence: If Neural Image Studio is active or photo requested, SVG Studio must NOT be active
     if (isNeuralImageStudioActive) return false;
-    if (extractedSvgData !== null) return true;
+    if (extractedSvgData !== null && !extractedNeuralImageData) return true;
 
     // If there is prior image or photo edit/addition prompt, SVG MUST NOT activate unless explicitly asked for SVG
-    if ((hasImagesInChat || Boolean(priorImage) || /(?:صورة|صوره|photo|image|portrait)/i.test(pLower)) && !hasExplicitSvgKeyword) {
+    if ((hasImagesInChat || Boolean(priorImage) || /(?:صورة|صوره|photo|image|portrait|واقعي|واقعية)/i.test(pLower)) && !hasExplicitSvgKeyword) {
       return false;
     }
 
     if (activeFeatures.some(f => f.id === 'svg_studio')) return true;
 
-    // Strict: SVG requires explicit vector intent
+    // Strict: SVG requires explicit vector intent or actual clean SVG tags in content
     if (hasExplicitSvgKeyword) return true;
-    if (/(?:شعار|لوجو|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower) && !/(?:صورة|photo)/i.test(pLower)) return true;
-    if (/(?:رسم|تصميم)\s+(?:بياني|توضيحي|هندسي|معماري|انسيابي|مخطط|خريطة|diagram|chart|flowchart|infographic)/i.test(pLower)) return true;
-    if (message.content && (message.content.includes('<svg') || message.content.includes('```svg'))) return true;
-    if (message.reasoning && (message.reasoning.includes('<svg') || message.reasoning.includes('```svg'))) return true;
+    if (message.content && (message.content.includes('<svg') && message.content.includes('</svg>'))) return true;
     return false;
-  }, [isQuant3Model, isNeuralImageStudioActive, extractedSvgData, extractedNeuralImageData, activeFeatures, previousUserPrompt, hasImagesInChat, priorImage, message.content, message.reasoning]);
+  }, [isQuant3Model, isNeuralImageStudioActive, extractedSvgData, extractedNeuralImageData, activeFeatures, previousUserPrompt, hasImagesInChat, priorImage, message.content]);
 
   const isImageOrSvg = Boolean(
     extractedNeuralImageData !== null ||

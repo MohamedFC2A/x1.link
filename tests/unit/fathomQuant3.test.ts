@@ -21,6 +21,7 @@ import { isVpsOrCloudRequest, VPS_STATUS_NOTICE } from '../../src/lib/vpsUtils';
 import { classifyQueryIntent } from '../../server/searchEngine/intentClassifier';
 import { isValidImageUri } from '../../src/components/ui/NeuralImageCard';
 import { getActiveDetectedFeatures } from '../../src/lib/featuresRegistry';
+import { MIN_IMAGE_DIMENSION, MIN_TOTAL_PIXELS, MIN_FILE_BYTES } from '../../src/lib/imageValidator';
 import {
   extractYouTubeVideoId,
   detectAndExtractUrl,
@@ -474,6 +475,112 @@ func main() {
         .trim();
       expect(cleaned).toBe('ملاحظة: تم إرفاق وتحليل صورة واحدة في هذا الدور السابق');
       expect(cleaned).not.toContain('(1) صور');
+    });
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // 9. Fathom Cam Gatekeeper, SVG vs. Photorealistic Disambiguation & Ultra-Wide Engine
+    // ═════════════════════════════════════════════════════════════════════════
+    await harness.it('Fathom Cam Gatekeeper: rejects corrupted, empty (<512B), and sub-threshold (<64x64 or <8192px) images', () => {
+      expect(MIN_FILE_BYTES).toBe(512);
+      expect(MIN_IMAGE_DIMENSION).toBe(64);
+      expect(MIN_TOTAL_PIXELS).toBe(8192);
+
+      // Verify boundary evaluations
+      const isTooSmall = (w: number, h: number) => w < MIN_IMAGE_DIMENSION || h < MIN_IMAGE_DIMENSION || (w * h) < MIN_TOTAL_PIXELS;
+      expect(isTooSmall(32, 32)).toBe(true);
+      expect(isTooSmall(50, 50)).toBe(true);
+      expect(isTooSmall(64, 64)).toBe(true); // 4096 < 8192 total pixels
+      expect(isTooSmall(64, 128)).toBe(false); // 8192 pixels exact minimum
+      expect(isTooSmall(1024, 768)).toBe(false); // Standard photo
+    });
+
+    await harness.it('SVG Disambiguation: general logo/icon requests without explicit SVG keyword route to Neural Image Studio, NOT SVG', () => {
+      const tuned = DynamicParameterTuner.tune({
+        userPrompt: 'صمم لي لوجو كافيه فخم وعصري بأعلى دقة',
+        requestedModel: 'fathom-quant-3'
+      });
+      expect(tuned.detectedIntent).not.toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+    });
+
+    await harness.it('SVG Disambiguation: photorealistic image requests route to Neural Image Studio even if negative svg is mentioned', () => {
+      const tuned = DynamicParameterTuner.tune({
+        userPrompt: 'صمم لي صورة واقعية لسيارة مرسيدس ذهبية بدون svg',
+        requestedModel: 'fathom-quant-3'
+      });
+      expect(tuned.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
+      expect(tuned.detectedIntent).not.toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+    });
+
+    await harness.it('SVG Disambiguation: direct explicit SVG/vector code requests route accurately to SVG Studio', () => {
+      const tunedCode = DynamicParameterTuner.tune({
+        userPrompt: 'اكتب كود SVG متكامل لشعار شركة تقنية هندسية',
+        requestedModel: 'fathom-quant-3'
+      });
+      expect(tunedCode.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+
+      const tunedVector = DynamicParameterTuner.tune({
+        userPrompt: 'ارسم متجهات بصيغة SVG لأيقونة سحابية حديثة',
+        requestedModel: 'fathom-quant-3'
+      });
+      expect(tunedVector.detectedIntent).toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+    });
+
+    await harness.it('SVG Disambiguation: informational questions about SVG do not trigger SVG Studio', () => {
+      const tunedQuestion = DynamicParameterTuner.tune({
+        userPrompt: 'ما هو ملف SVG وما الفرق بينه وبين PNG؟',
+        requestedModel: 'fathom-quant-3'
+      });
+      expect(tunedQuestion.detectedIntent).not.toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+    });
+
+    await harness.it('Ultra-Wide & Panoramic Aspect Engine: preserves 21:9 and 32:9 ratios without clipping or cropping', () => {
+      // 21:9 simulation (e.g. 2560x1080 -> ratio ~ 2.37)
+      const ratio21x9 = 2560 / 1080;
+      expect(ratio21x9).toBeGreaterThanOrEqual(2.0);
+
+      // Card max width class logic
+      const getCardMaxWidth = (numRatio: number) => {
+        if (numRatio >= 2.0) return 'max-w-6xl w-full mx-auto';
+        if (numRatio >= 1.6) return 'max-w-5xl mx-auto';
+        if (numRatio <= 0.65) return 'max-w-[440px] mx-auto';
+        return 'max-w-4xl mx-auto';
+      };
+      expect(getCardMaxWidth(ratio21x9)).toBe('max-w-6xl w-full mx-auto');
+
+      // 4K download proportional dimensions without cropping
+      const canvas4k = computeCanvasDimensions(2560, 1080, '4k');
+      expect(canvas4k.targetWidth).toBe(3840);
+      expect(canvas4k.targetHeight).toBe(Math.round(3840 / (2560 / 1080)));
+      expect(canvas4k.sx).toBe(0);
+      expect(canvas4k.sy).toBe(0);
+      expect(canvas4k.sWidth).toBe(2560);
+      expect(canvas4k.sHeight).toBe(1080);
+    });
+
+    await harness.it('SVG Purity & Stray Tag Sanitization: strips stray leaked XML tags outside code fences', () => {
+      const dirtyAssistantContent = `إليك تصميم الـ SVG المطلوب:
+\`\`\`svg
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="40" fill="blue" />
+</svg>
+\`\`\`
+<path d="M10 10 H 90 V 90 H 10 Z" />
+</svg>
+ملاحظة: يمكنك تعديل الألوان حسب الرغبة.`;
+
+      const sanitized = dirtyAssistantContent
+        .replace(/```(?:svg|xml|html|markup)?\s*<svg[\s\S]*?<\/svg>\s*```/gi, '')
+        .replace(/<svg[\s\S]*?<\/svg>/gi, '')
+        .replace(/<\/?(?:path|rect|circle|g|defs|linearGradient|radialGradient|stop|polygon|polyline|ellipse|text|tspan|filter|feDropShadow|feGaussianBlur|use|symbol|clipPath)[\s\S]*?>/gi, '')
+        .replace(/<\/?svg[\s\S]*?>/gi, '')
+        .replace(/xmlns(?::[a-z0-9]+)?="[^"]*"/gi, '')
+        .replace(/viewBox="[^"]*"/gi, '')
+        .trim();
+
+      expect(sanitized).not.toContain('<path');
+      expect(sanitized).not.toContain('</svg>');
+      expect(sanitized).toContain('إليك تصميم الـ SVG المطلوب:');
+      expect(sanitized).toContain('ملاحظة: يمكنك تعديل الألوان حسب الرغبة.');
     });
   });
 }

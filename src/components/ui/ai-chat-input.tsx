@@ -31,10 +31,12 @@ import {
   FileType,
   FileSearch,
   Loader2,
-  Check
+  Check,
+  AlertCircle
 } from "lucide-react";
 import { ModelType, MediaType } from "@/types";
 import { classifyFileType, formatFileSize, formatMediaDuration, extractVideoClientMetadata, extractAudioClientMetadata, extractTextClientMetadata, extractVideoKeyframes } from "@/lib/mediaExtractor";
+import { validateImageFileForFathomCam } from "@/lib/imageValidator";
 import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 import { SmartTooltip } from "@/components/ui/SmartTooltip";
 import { PlatformLogo } from "@/components/ui/PlatformLogo";
@@ -234,6 +236,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     const [attachedUrls, setAttachedUrls] = useState<string[]>([]);
     const [urlLimitToast, setUrlLimitToast] = useState<string | null>(null);
     const urlLimitTimerRef = useRef<any>(null);
+    const [uploadAlertToast, setUploadAlertToast] = useState<string | null>(null);
+    const uploadAlertTimerRef = useRef<any>(null);
     const [internalModel, setInternalModel] = useState<ModelType>(activeModel);
     const [internalDeepSearch, setInternalDeepSearch] = useState(false);
 
@@ -243,6 +247,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       urlLimitTimerRef.current = setTimeout(() => {
         setUrlLimitToast(null);
       }, 3500);
+    }, []);
+
+    const showUploadAlertToast = useCallback((msg: string) => {
+      setUploadAlertToast(msg);
+      if (uploadAlertTimerRef.current) clearTimeout(uploadAlertTimerRef.current);
+      uploadAlertTimerRef.current = setTimeout(() => {
+        setUploadAlertToast(null);
+      }, 5000);
     }, []);
 
     const isDeepSearchEffective = onToggleDeepSearch
@@ -356,54 +368,41 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     );
 
     // Helper to convert any File to a persistent Attachment with real natural dimensions & metadata
-    const processFileToAttachment = useCallback(async (file: File, fallbackName?: string): Promise<Attachment> => {
+    // Rejects corrupted, empty, or low-quality images that Fathom Cam cannot parse
+    const processFileToAttachment = useCallback(async (file: File, fallbackName?: string): Promise<Attachment | null> => {
       const mediaType = classifyFileType(file);
       const id = `${file.name || 'file'}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
       if (mediaType === 'image') {
+        const validation = await validateImageFileForFathomCam(file);
+        if (!validation.valid) {
+          showUploadAlertToast(validation.reason || 'تم رفض الصورة المرفقة لأنها معطوبة أو غير صالحة للقراءة البصرية.');
+          return null;
+        }
+
         return new Promise((resolve) => {
           const reader = new FileReader();
           reader.onload = (e) => {
             const dataUrl = (e.target?.result as string) || '';
-            const img = new Image();
-            img.onload = () => {
-              resolve({
-                id,
-                file,
-                url: dataUrl,
-                name: file.name || fallbackName || 'صورة مرفقة',
-                mediaType: 'image',
-                width: img.naturalWidth || 800,
-                height: img.naturalHeight || 600,
-                size: file.size,
-              });
-            };
-            img.onerror = () => {
-              resolve({
-                id,
-                file,
-                url: dataUrl,
-                name: file.name || fallbackName || 'صورة مرفقة',
-                mediaType: 'image',
-                width: 800,
-                height: 600,
-                size: file.size,
-              });
-            };
-            img.src = dataUrl;
-          };
-          reader.onerror = () => {
-            const objectUrl = URL.createObjectURL(file);
+            if (!dataUrl) {
+              showUploadAlertToast('تعذر استخراج بيانات الصورة المرفوعة.');
+              resolve(null);
+              return;
+            }
             resolve({
               id,
               file,
-              url: objectUrl,
+              url: dataUrl,
               name: file.name || fallbackName || 'صورة مرفقة',
               mediaType: 'image',
-              width: 800,
-              height: 600,
+              width: validation.width || 800,
+              height: validation.height || 600,
               size: file.size,
             });
+          };
+          reader.onerror = () => {
+            showUploadAlertToast('تعذر استخراج بيانات الصورة المرفوعة.');
+            resolve(null);
           };
           reader.readAsDataURL(file);
         });
@@ -536,9 +535,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         }
         
         Promise.all(imageFiles.map((f, idx) => processFileToAttachment(f, `صورة ملصقة ${idx + 1}`))).then((newAtts) => {
+          const validAtts = newAtts.filter((a): a is Attachment => a !== null);
+          if (validAtts.length === 0) return;
           setAttachments((prev) => {
             const existingKeys = new Set(prev.map((a) => `${a.file.name}-${a.file.size}`));
-            const nonDuplicate = newAtts.filter((a) => !existingKeys.has(`${a.file.name}-${a.file.size}`));
+            const nonDuplicate = validAtts.filter((a) => !existingKeys.has(`${a.file.name}-${a.file.size}`));
             const currentCount = prev.length;
             const remainingSlots = Math.max(0, 5 - currentCount);
             if (remainingSlots <= 0 || nonDuplicate.length === 0) return prev;
@@ -700,9 +701,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
       if (files.length === 0) return;
       const processed = await Promise.all(files.map((f, idx) => processFileToAttachment(f, `ملف مرفق ${idx + 1}`)));
+      const validProcessed = processed.filter((a): a is Attachment => a !== null);
+      if (validProcessed.length === 0) return;
       setAttachments((prev) => {
         const existingKeys = new Set(prev.map((a) => `${a.file.name}-${a.file.size}`));
-        const nonDuplicate = processed.filter((a) => !existingKeys.has(`${a.file.name}-${a.file.size}`));
+        const nonDuplicate = validProcessed.filter((a) => !existingKeys.has(`${a.file.name}-${a.file.size}`));
         const currentCount = prev.length;
         const remainingSlots = Math.max(0, maxAttachments - currentCount);
         if (remainingSlots <= 0 || nonDuplicate.length === 0) return prev;
@@ -1332,6 +1335,32 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 type="button"
                 onClick={() => setUrlLimitToast(null)}
                 className="size-6 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white flex items-center justify-center transition-all cursor-pointer shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
+          )}
+
+          {uploadAlertToast && (
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="absolute bottom-full mb-3 inset-x-2 sm:inset-x-6 p-3 rounded-2xl bg-[#180808]/95 border border-red-500/50 backdrop-blur-2xl text-red-200 text-xs font-sans font-medium flex items-center justify-between shadow-2xl z-50 select-none"
+              dir="rtl"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="size-6 rounded-lg bg-red-500/20 flex items-center justify-center text-red-400 shrink-0">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                </div>
+                <span className="leading-snug text-zinc-200">{uploadAlertToast}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUploadAlertToast(null)}
+                className="size-6 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white flex items-center justify-center transition-all cursor-pointer shrink-0"
+                title="إغلاق التنبيه"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
