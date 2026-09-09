@@ -161,7 +161,7 @@ export const DownloadDetectCard: React.FC<DownloadDetectCardProps> = ({
     return (
       <div
         className={cn(
-          "my-3 rounded-2xl border border-emerald-500/30 bg-gradient-to-b from-[#06140e]/95 via-[#030d09]/95 to-[#010805]/95 p-3 sm:p-3.5 text-right shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_16px_rgba(16,185,129,0.12)] backdrop-blur-2xl relative overflow-hidden select-none space-y-3",
+          "my-3 rounded-2xl border border-zinc-800 bg-[#0c0d12] p-3 sm:p-3.5 text-right shadow-[0_8px_30px_rgba(0,0,0,0.6)] backdrop-blur-2xl relative overflow-hidden select-none space-y-3",
           className
         )}
         dir="rtl"

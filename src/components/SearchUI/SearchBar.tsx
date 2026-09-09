@@ -86,7 +86,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         onSubmit={handleSubmit}
         className={`relative flex items-center gap-2 p-1.5 rounded-2xl bg-zinc-900/90 border transition-all duration-300 backdrop-blur-xl ${
           isOpenSuggestions
-            ? 'border-cyan-500/50 shadow-[0_0_25px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/30'
+            ? 'border-zinc-500 ring-1 ring-white/10 shadow-none'
             : 'border-zinc-800 hover:border-zinc-700'
         }`}
       >

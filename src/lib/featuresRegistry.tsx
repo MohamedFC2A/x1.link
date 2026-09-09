@@ -619,10 +619,10 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
     nameAr: 'الإدراك البصري الفائق وقراءة الجداول والصور',
     badgeLabel: 'FATHOM CAM',
     textClassName: 'text-emerald-400 font-bold',
-    glassClassName: 'bg-emerald-950/70 border border-emerald-400/50 text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.3)]',
-    badgeClassName: 'bg-emerald-950/70 text-emerald-300 border border-emerald-400/40',
+    glassClassName: 'bg-[#0c0e14] border border-zinc-800 text-zinc-300',
+    badgeClassName: 'bg-zinc-900 text-zinc-300 border border-zinc-800',
     accentColor: '#34d399',
-    borderHoverColor: 'border-emerald-400/50',
+    borderHoverColor: 'border-zinc-700',
     icon: FathomCamIcon,
     detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
       const plan = routeFeatureIntent('fathom_cam', prompt, reasoning, content, context);
@@ -650,10 +650,10 @@ export const FEATURES_REGISTRY: Record<string, FeatureDefinition> = {
     nameAr: 'استيعاب وفحص الوسائط والمستندات والأكواد',
     badgeLabel: 'FATHOM SPARK',
     textClassName: 'text-violet-400 font-bold',
-    glassClassName: 'bg-violet-950/70 border border-violet-400/50 text-violet-300 shadow-[0_0_15px_rgba(167,139,250,0.3)]',
-    badgeClassName: 'bg-violet-950/70 text-violet-300 border border-violet-400/40',
+    glassClassName: 'bg-[#0c0e14] border border-zinc-800 text-zinc-300',
+    badgeClassName: 'bg-zinc-900 text-zinc-300 border border-zinc-800',
     accentColor: '#a78bfa',
-    borderHoverColor: 'border-violet-400/50',
+    borderHoverColor: 'border-zinc-700',
     icon: FathomSparkIcon,
     detectIntent: (prompt = '', reasoning = '', content = '', context = {}) => {
       const plan = routeFeatureIntent('fathom_spark', prompt, reasoning, content, context);

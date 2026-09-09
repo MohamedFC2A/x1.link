@@ -264,7 +264,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               <div className="relative flex items-center justify-center size-10">
                 <div className="absolute inset-0 rounded-full border-2 border-zinc-800" />
                 <div className="absolute inset-0 rounded-full border-2 border-t-zinc-200 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
-                <div className="size-1.5 rounded-full bg-zinc-300 shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
+                <div className="size-1.5 rounded-full bg-zinc-300" />
               </div>
               
               <div className="space-y-1.5">

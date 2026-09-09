@@ -34,7 +34,7 @@ export const SearchStatus: React.FC<SearchStatusProps> = ({
     <div
       className={`flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl text-xs backdrop-blur-md border transition-all ${
         isLoading
-          ? 'bg-cyan-950/30 border-cyan-500/30 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
+          ? 'bg-zinc-900/80 border-zinc-700 text-zinc-200 shadow-none'
           : 'bg-zinc-900/60 border-zinc-800 text-zinc-300'
       } ${className}`}
     >

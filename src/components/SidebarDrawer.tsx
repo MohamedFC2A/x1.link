@@ -256,7 +256,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
             </div>
             <div className="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden border border-white/[0.08]">
               <div
-                className="bg-white/90 shadow-[0_0_8px_rgba(255,255,255,0.4)] h-full rounded-full transition-all duration-300"
+                className="bg-white/90 h-full rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(Math.max((totalTokens / 1000000) * 100, 1), 100)}%` }}
               />
             </div>

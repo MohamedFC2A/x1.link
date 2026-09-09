@@ -969,7 +969,7 @@ export const TimeDetectAutoDelete: React.FC<{
 
           {!isCancelled && !isDestroyed && (
             <div className="flex items-center gap-3 mt-2">
-              <div className="text-2xl sm:text-3xl font-mono font-black text-amber-400 dir-ltr text-right tracking-tight drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]">
+              <div className="text-2xl sm:text-3xl font-mono font-black text-amber-400 dir-ltr text-right tracking-tight">
                 {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
               </div>
               <div className="flex-1 h-2 rounded-full bg-white/[0.08] overflow-hidden border border-white/[0.1]">
@@ -1005,14 +1005,9 @@ export const ContextualNoteBadge: React.FC<{ text: string }> = ({ text }) => {
     .trim();
 
   return (
-    <div className="my-2.5 inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-cyan-950/30 border border-cyan-500/25 text-cyan-200 text-xs font-sans select-none backdrop-blur-md shadow-[0_2px_12px_rgba(6,182,212,0.08)] transition-all hover:border-cyan-500/40 w-fit max-w-full animate-in fade-in duration-200" dir="rtl">
-      <div className="flex items-center justify-center size-5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 shrink-0">
-        <Sparkles className="size-3 text-cyan-400" />
-      </div>
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="font-bold text-cyan-300 tracking-wide shrink-0">ملاحظة سياقية:</span>
-        <span className="text-zinc-200 font-medium">{cleanedText.replace(/^ملاحظة(?:\s*سياقية)?\s*:\s*/i, '')}</span>
-      </div>
+    <div className="my-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0a0c10] border border-zinc-800/90 text-xs font-sans select-none text-zinc-400 w-fit max-w-full shadow-none transition-colors" dir="rtl">
+      <span className="font-medium text-zinc-300 shrink-0">ملاحظة سياقية:</span>
+      <span className="text-zinc-400 font-normal leading-relaxed">{cleanedText.replace(/^ملاحظة(?:\s*سياقية)?\s*:\s*/i, '')}</span>
     </div>
   );
 };

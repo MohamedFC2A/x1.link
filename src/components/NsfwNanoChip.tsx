@@ -32,7 +32,7 @@ export const NsfwNanoChip: React.FC<NsfwNanoChipProps> = ({
       onClick={handleClick}
       className={`group relative flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[10px] sm:text-xs font-sans font-bold transition-all duration-200 select-none overflow-hidden cursor-pointer shrink-0 shadow-sm ${
         isActive
-          ? 'bg-white text-zinc-950 border-white shadow-[0_0_15px_rgba(255,255,255,0.25)]'
+          ? 'bg-white text-zinc-950 border-white shadow-none'
           : 'bg-zinc-900/80 border-white/[0.1] hover:border-white/30 text-zinc-300 hover:text-white'
       }`}
       title={

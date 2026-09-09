@@ -107,8 +107,8 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
         className={cn(
           "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-sans font-bold transition-all cursor-pointer select-none active:scale-95 shadow-md border backdrop-blur-xl group/btn",
           isDownloaded
-            ? "bg-emerald-400 text-black border-emerald-300 shadow-[0_0_16px_rgba(52,211,153,0.5)] font-black"
-            : "bg-gradient-to-r from-emerald-600/90 via-emerald-500/90 to-teal-500/90 hover:from-emerald-500 hover:to-teal-400 text-black border-emerald-400/60 shadow-[0_0_14px_rgba(16,185,129,0.35)]"
+            ? "bg-emerald-400 text-black border-emerald-400 shadow-sm font-bold"
+            : "bg-emerald-500 hover:bg-emerald-400 text-black border-emerald-500 shadow-sm"
         )}
       >
         {isDownloading ? (

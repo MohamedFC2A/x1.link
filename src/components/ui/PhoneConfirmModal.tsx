@@ -115,7 +115,7 @@ export const PhoneConfirmModal: React.FC<PhoneConfirmModalProps> = ({ phoneNumbe
               <button
                 type="button"
                 onClick={handleCall}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs sm:text-sm font-sans transition-all cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95"
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs sm:text-sm font-sans transition-all cursor-pointer shadow-sm active:scale-95"
               >
                 <PhoneCall className="size-4 stroke-[2.5]" />
                 <span>إجراء الاتصال</span>

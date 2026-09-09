@@ -134,28 +134,28 @@ export const ImageForensicsModal: React.FC<ImageForensicsModalProps> = ({
     switch (level) {
       case 'CRITICAL':
         return (
-          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5 shadow-[0_0_12px_rgba(244,63,94,0.3)]">
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5 shadow-none">
             <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
             مخاطر حرجة (موقع مكشوف)
           </span>
         );
       case 'WARNING':
         return (
-          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.3)]">
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 shadow-none">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
             تحذير أمني (بصمة عتاد)
           </span>
         );
       case 'LOW':
         return (
-          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1.5">
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1.5 shadow-none">
             <Info className="w-3.5 h-3.5 text-cyan-400" />
             مستوى منخفض (معلومات عادية)
           </span>
         );
       default:
         return (
-          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.3)]">
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-none">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             آمن ومطهر (خالٍ من الميتاداتا)
           </span>
@@ -181,7 +181,7 @@ export const ImageForensicsModal: React.FC<ImageForensicsModalProps> = ({
           {/* Header Bar */}
           <div className="p-4 sm:p-5 border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)] shrink-0">
+              <div className="size-10 rounded-2xl bg-zinc-800/80 border border-zinc-700 flex items-center justify-center text-zinc-300 shadow-none shrink-0">
                 <FileSearch className="w-5 h-5" />
               </div>
               <div className="text-right">
