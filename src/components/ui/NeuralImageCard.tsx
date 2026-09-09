@@ -57,13 +57,19 @@ export function isValidImageUri(uri: unknown): uri is string {
 }
 
 function simplePromptHash(str: string): string {
+  const clean = (str || '').trim().toLowerCase().replace(/\s+/g, ' ');
   let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
+  for (let i = 0; i < clean.length; i++) {
+    const char = clean.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
     hash |= 0;
   }
   return Math.abs(hash).toString(36);
+}
+
+function getGlobalImageCache(): Map<string, string> {
+  if (typeof window === 'undefined') return new Map();
+  return ((window as any).__FATHOM_IMAGE_CACHE__ = (window as any).__FATHOM_IMAGE_CACHE__ || new Map<string, string>());
 }
 
 export interface NeuralImageCardProps {
@@ -105,18 +111,34 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     if (data.processedImage && !data.processedImage.includes('pollinations.ai') && (data.processedImage.startsWith('data:image') || data.processedImage.startsWith('http'))) {
       return data.processedImage;
     }
+    // Check in-memory global cache
+    const gCache = getGlobalImageCache();
+    if (messageId && gCache.has(messageId)) {
+      const cached = gCache.get(messageId)!;
+      if (isValidImageUri(cached) && !cached.includes('pollinations.ai')) return cached;
+    }
+    const promptText = (data.prompt || '').trim();
+    if (promptText) {
+      const hashKey = simplePromptHash(promptText);
+      if (gCache.has(hashKey)) {
+        const cached = gCache.get(hashKey)!;
+        if (isValidImageUri(cached) && !cached.includes('pollinations.ai')) return cached;
+      }
+    }
     // Instant 0ms cache retrieval on page refresh or component remount
     if (typeof window !== 'undefined' && window.localStorage) {
       if (messageId) {
         const cached = localStorage.getItem(`fathom_img_${messageId}`);
         if (cached && !cached.includes('pollinations.ai') && (cached.startsWith('data:image') || cached.startsWith('http'))) {
+          gCache.set(messageId, cached);
           return cached;
         }
       }
-      const promptText = (data.prompt || '').trim();
       if (promptText) {
-        const cachedByHash = localStorage.getItem(`fathom_img_${simplePromptHash(promptText)}`);
+        const hashKey = simplePromptHash(promptText);
+        const cachedByHash = localStorage.getItem(`fathom_img_${hashKey}`);
         if (cachedByHash && !cachedByHash.includes('pollinations.ai') && (cachedByHash.startsWith('data:image') || cachedByHash.startsWith('http'))) {
+          gCache.set(hashKey, cachedByHash);
           return cachedByHash;
         }
       }
@@ -124,6 +146,21 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     return null;
   });
   const modelName = 'meta/muse-image';
+
+  // Synchronize museImageUrl from incoming data props instantly
+  useEffect(() => {
+    const nextUrl = data.imageUrl || data.processedImage;
+    if (nextUrl && isValidImageUri(nextUrl) && !nextUrl.includes('pollinations.ai')) {
+      setMuseImageUrl(nextUrl);
+      setIsImageLoading(false);
+      setGenerationProgress(100);
+      setLoadError(false);
+      const gCache = getGlobalImageCache();
+      if (messageId) gCache.set(messageId, nextUrl);
+      const promptText = (data.prompt || '').trim();
+      if (promptText) gCache.set(simplePromptHash(promptText), nextUrl);
+    }
+  }, [data.imageUrl, data.processedImage, messageId, data.prompt]);
 
   // Keep seed synchronized if data.seed is updated from incoming stream/props
   useEffect(() => {
@@ -175,8 +212,67 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   useEffect(() => {
     if (museImageUrl && retryCount === 0) return;
 
+    // 1. Direct props check
+    const existingPropUrl = data.imageUrl || data.processedImage;
+    if (existingPropUrl && isValidImageUri(existingPropUrl) && !existingPropUrl.includes('pollinations.ai')) {
+      setMuseImageUrl(existingPropUrl);
+      setIsImageLoading(false);
+      setGenerationProgress(100);
+      return;
+    }
+
     const promptText = (data.prompt || '').trim();
     if (!promptText) return;
+
+    // 2. Memory and Storage multi-layer check before initiating generation
+    const gCache = getGlobalImageCache();
+    if (messageId && gCache.has(messageId)) {
+      const cached = gCache.get(messageId)!;
+      if (isValidImageUri(cached) && !cached.includes('pollinations.ai')) {
+        setMuseImageUrl(cached);
+        setIsImageLoading(false);
+        setGenerationProgress(100);
+        return;
+      }
+    }
+
+    const promptHashKey = simplePromptHash(promptText);
+    if (gCache.has(promptHashKey)) {
+      const cached = gCache.get(promptHashKey)!;
+      if (isValidImageUri(cached) && !cached.includes('pollinations.ai')) {
+        setMuseImageUrl(cached);
+        setIsImageLoading(false);
+        setGenerationProgress(100);
+        return;
+      }
+    }
+
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (messageId) {
+        const cached = localStorage.getItem(`fathom_img_${messageId}`);
+        if (cached && isValidImageUri(cached) && !cached.includes('pollinations.ai')) {
+          gCache.set(messageId, cached);
+          setMuseImageUrl(cached);
+          setIsImageLoading(false);
+          setGenerationProgress(100);
+          return;
+        }
+      }
+      const cachedByHash = localStorage.getItem(`fathom_img_${promptHashKey}`);
+      if (cachedByHash && isValidImageUri(cachedByHash) && !cachedByHash.includes('pollinations.ai')) {
+        gCache.set(promptHashKey, cachedByHash);
+        setMuseImageUrl(cachedByHash);
+        setIsImageLoading(false);
+        setGenerationProgress(100);
+        return;
+      }
+    }
+
+    // 3. Page Refresh Safeguard: Never auto-trigger generation on page refresh or historical message viewing
+    if (!isStreaming && retryCount === 0) {
+      setIsImageLoading(false);
+      return;
+    }
 
     let isCancelled = false;
     setIsImageLoading(true);
@@ -234,6 +330,10 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
           setMuseImageUrl(payload.imageUrl);
           setIsImageLoading(false);
           setLoadError(false);
+          setGenerationProgress(100);
+          const gCache = getGlobalImageCache();
+          if (messageId) gCache.set(messageId, payload.imageUrl);
+          if (promptText) gCache.set(simplePromptHash(promptText), payload.imageUrl);
           if (typeof window !== 'undefined' && window.localStorage) {
             if (messageId) {
               try { localStorage.setItem(`fathom_img_${messageId}`, payload.imageUrl); } catch {}
@@ -311,7 +411,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       setGenerationProgress(100);
       return;
     }
-    if (isImageLoading || !activeProcessedSrc) {
+    if (isImageLoading) {
       setGenerationProgress(8);
       const interval = setInterval(() => {
         setGenerationProgress((prev) => {
@@ -590,7 +690,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         }}
       >
         {/* Loading / Streaming Overlay with clean, authentic, real-feeling Progress Bar */}
-        {(isStreaming || isImageLoading || !activeProcessedSrc) && !loadError && (
+        {isImageLoading && !activeProcessedSrc && !loadError && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#07090e]/95 backdrop-blur-md gap-4 p-8 text-center select-none" dir="rtl">
             <div className="w-full max-w-sm flex flex-col items-center gap-3">
               {/* Header row with model name and percentage */}
@@ -651,7 +751,23 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                 className="w-full h-full object-cover shadow-2xl transition-all duration-300"
                 style={{ imageRendering: '-webkit-optimize-contrast' as any }}
               />
-            ) : null}
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 text-center gap-3 text-zinc-400">
+                <span className="text-xs sm:text-sm font-sans text-zinc-300">الصورة جاهزة للعرض عبر Fathom QP3</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoadError(false);
+                    setIsImageLoading(true);
+                    setRetryCount((c) => c + 1);
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/[0.15] text-xs flex items-center gap-1.5 transition font-sans cursor-pointer active:scale-95"
+                >
+                  <RefreshCw className="size-3.5 text-zinc-200" />
+                  <span>توليد الصورة الآن</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 

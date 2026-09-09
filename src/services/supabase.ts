@@ -25,6 +25,22 @@ export interface SupabaseChat {
   updated_at: string;
 }
 
+export function isUuid(val: any): boolean {
+  if (typeof val !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
+}
+
+export function generateUuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 // Pure 100% Cloud-First Architecture: Purge and wipe all local storage chat remnants
 export function purgeAllLocalChatArtifacts(): void {
   if (typeof window === 'undefined') return;
@@ -195,25 +211,12 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
       });
     }
 
-    // If saving assistant message, check if already persisted by server to prevent double-insert
-    if (msg.role === 'assistant') {
-      const { data: recentMsgs } = await supabase
-        .from('x1_messages')
-        .select('id, content')
-        .eq('chat_id', chatId)
-        .eq('role', 'assistant')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (recentMsgs && recentMsgs.length > 0) {
-        const lastContent = (recentMsgs[0].content || '').trim();
-        if (lastContent === finalContent.trim() || (finalContent.includes(lastContent) && lastContent.length > 50)) {
-          return;
-        }
-      }
-    }
+    // Assign or validate RFC 4122 UUID to guarantee 100% 1:1 client-to-database parity
+    const messageUuid = isUuid(msg.id) ? msg.id : generateUuid();
+    msg.id = messageUuid;
 
     const payload: any = {
+      id: messageUuid,
       chat_id: chatId,
       role: msg.role,
       content: finalContent,
@@ -234,6 +237,10 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
 
     if (error) {
       console.warn('[Supabase saveMessage Error]:', error.message);
+    } else if (payload.image_url && typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem(`fathom_img_${messageUuid}`, payload.image_url);
+      } catch {}
     }
   } catch (err) {
     console.warn('[Supabase saveMessage Exception]:', err);
@@ -306,21 +313,48 @@ export async function fetchChatMessages(chatId: string): Promise<ChatMessageItem
 
       // If row.image_url exists and content has a neural-image block missing imageUrl, inject it
       const primaryImg = images?.[0] || row.image_url || undefined;
-      if (primaryImg && content.includes('neural-image')) {
-        content = content.replace(
-          /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/gi,
-          (fullBlock: string, jsonStr: string) => {
-            try {
-              const parsed = JSON.parse(jsonStr);
-              if (!parsed.imageUrl && !parsed.processedImage) {
-                parsed.imageUrl = primaryImg;
-                parsed.processedImage = primaryImg;
-                return `\`\`\`neural-image\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+      if (primaryImg) {
+        if (content.includes('neural-image')) {
+          content = content.replace(
+            /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/gi,
+            (fullBlock: string, jsonStr: string) => {
+              try {
+                const parsed = JSON.parse(jsonStr);
+                if (!parsed.imageUrl && !parsed.processedImage) {
+                  parsed.imageUrl = primaryImg;
+                  parsed.processedImage = primaryImg;
+                  return `\`\`\`neural-image\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+                }
+              } catch {}
+              return fullBlock;
+            }
+          );
+        }
+
+        // Prime local storage and in-memory cache instantly on message fetch
+        if (typeof window !== 'undefined') {
+          try {
+            if (row.id) {
+              localStorage.setItem(`fathom_img_${row.id}`, primaryImg);
+            }
+            const gCache = ((window as any).__FATHOM_IMAGE_CACHE__ = (window as any).__FATHOM_IMAGE_CACHE__ || new Map<string, string>());
+            if (row.id) gCache.set(row.id, primaryImg);
+
+            // Also hash prompt if available
+            const promptMatch = /"prompt"\s*:\s*"([^"]+)"/i.exec(content);
+            if (promptMatch && promptMatch[1]) {
+              const cleanPrompt = promptMatch[1].trim().toLowerCase().replace(/\s+/g, ' ');
+              let hash = 0;
+              for (let i = 0; i < cleanPrompt.length; i++) {
+                hash = ((hash << 5) - hash) + cleanPrompt.charCodeAt(i);
+                hash |= 0;
               }
-            } catch {}
-            return fullBlock;
-          }
-        );
+              const hashKey = Math.abs(hash).toString(36);
+              localStorage.setItem(`fathom_img_${hashKey}`, primaryImg);
+              gCache.set(hashKey, primaryImg);
+            }
+          } catch {}
+        }
       }
 
       return {
@@ -365,24 +399,24 @@ export async function fetchChatMessages(chatId: string): Promise<ChatMessageItem
 export async function updateMessageImage(chatId: string, messageId: string | undefined, imageUrl: string): Promise<boolean> {
   if (!imageUrl) return false;
   try {
-    let targetId = messageId;
+    let targetId: string | undefined = undefined;
     let existingContent = '';
 
-    if (targetId) {
+    // Only query by UUID if messageId is a syntactically valid UUID to prevent Postgres 22P02 error
+    if (messageId && isUuid(messageId)) {
       const { data: row } = await supabase
         .from('x1_messages')
         .select('id, content')
-        .eq('id', targetId)
+        .eq('id', messageId)
         .maybeSingle();
 
       if (row) {
+        targetId = row.id;
         existingContent = row.content || '';
-      } else {
-        targetId = undefined;
       }
     }
 
-    // Fallback: If targetId not found or not provided, locate latest assistant message in this chat
+    // Fallback: If targetId not found or not provided, locate latest assistant message with neural-image in this chat
     if (!targetId && chatId) {
       const { data: latestRows } = await supabase
         .from('x1_messages')
@@ -390,11 +424,12 @@ export async function updateMessageImage(chatId: string, messageId: string | und
         .eq('chat_id', chatId)
         .eq('role', 'assistant')
         .order('created_at', { ascending: false })
-        .limit(1);
+        .limit(3);
 
       if (latestRows && latestRows.length > 0) {
-        targetId = latestRows[0].id;
-        existingContent = latestRows[0].content || '';
+        const neuralRow = latestRows.find(r => r.content?.includes('neural-image')) || latestRows[0];
+        targetId = neuralRow.id;
+        existingContent = neuralRow.content || '';
       }
     }
 
@@ -429,6 +464,17 @@ export async function updateMessageImage(chatId: string, messageId: string | und
     if (error) {
       console.warn('[Supabase updateMessageImage Error]:', error.message);
       return false;
+    }
+
+    // Instantly prime client cache
+    if (typeof window !== 'undefined') {
+      try {
+        if (targetId) localStorage.setItem(`fathom_img_${targetId}`, imageUrl);
+        if (messageId && messageId !== targetId) localStorage.setItem(`fathom_img_${messageId}`, imageUrl);
+        const gCache = ((window as any).__FATHOM_IMAGE_CACHE__ = (window as any).__FATHOM_IMAGE_CACHE__ || new Map<string, string>());
+        if (targetId) gCache.set(targetId, imageUrl);
+        if (messageId) gCache.set(messageId, imageUrl);
+      } catch {}
     }
 
     // Touch chat updated_at

@@ -38,6 +38,8 @@ import {
   purgeAllLocalChatArtifacts,
   getOrCreateDeviceId,
   updateMessageImage,
+  generateUuid,
+  isUuid,
   SupabaseChat
 } from './services/supabase';
 
@@ -245,6 +247,15 @@ const MainAppContent: React.FC = () => {
   const handleImageGenerated = useCallback((messageId: string | undefined, imageUrl: string) => {
     if (!imageUrl) return;
 
+    // 1. Prime in-memory cache and localStorage synchronously for instant 0ms retrieval
+    if (typeof window !== 'undefined') {
+      try {
+        if (messageId) localStorage.setItem(`fathom_img_${messageId}`, imageUrl);
+        const gCache = ((window as any).__FATHOM_IMAGE_CACHE__ = (window as any).__FATHOM_IMAGE_CACHE__ || new Map<string, string>());
+        if (messageId) gCache.set(messageId, imageUrl);
+      } catch {}
+    }
+
     setMessages(prev => {
       return prev.map((msg, idx) => {
         const isTarget = messageId ? msg.id === messageId : (idx === prev.length - 1 && msg.role === 'assistant');
@@ -256,6 +267,19 @@ const MainAppContent: React.FC = () => {
               const parsed = JSON.parse(neuralMatch[1]);
               parsed.imageUrl = imageUrl;
               parsed.processedImage = imageUrl;
+              if (parsed.prompt) {
+                const cleanPrompt = parsed.prompt.trim().toLowerCase().replace(/\s+/g, ' ');
+                let hash = 0;
+                for (let i = 0; i < cleanPrompt.length; i++) {
+                  hash = ((hash << 5) - hash) + cleanPrompt.charCodeAt(i);
+                  hash |= 0;
+                }
+                const hashKey = Math.abs(hash).toString(36);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem(`fathom_img_${hashKey}`, imageUrl);
+                  ((window as any).__FATHOM_IMAGE_CACHE__ = (window as any).__FATHOM_IMAGE_CACHE__ || new Map<string, string>()).set(hashKey, imageUrl);
+                }
+              }
               updatedContent = updatedContent.replace(
                 neuralMatch[0],
                 `\`\`\`neural-image\n${JSON.stringify(parsed, null, 2)}\n\`\`\``
@@ -273,8 +297,9 @@ const MainAppContent: React.FC = () => {
       });
     });
 
-    if (currentChatId) {
-      updateMessageImage(currentChatId, messageId, imageUrl).catch(err => {
+    const activeTargetChatId = currentChatId || getTargetChatIdFromUrlOrStorage();
+    if (activeTargetChatId) {
+      updateMessageImage(activeTargetChatId, messageId, imageUrl).catch(err => {
         console.warn('[Supabase updateMessageImage Error]:', err);
       });
     }
@@ -315,6 +340,33 @@ const MainAppContent: React.FC = () => {
         setCurrentChatId(activeTarget);
         updateActiveChatUrlAndStorage(activeTarget);
         const msgs = await fetchChatMessages(activeTarget);
+        // Instant 0ms cache priming for all restored messages with images
+        if (typeof window !== 'undefined') {
+          try {
+            const gCache = ((window as any).__FATHOM_IMAGE_CACHE__ = (window as any).__FATHOM_IMAGE_CACHE__ || new Map<string, string>());
+            msgs.forEach(m => {
+              const img = m.image || (m.images && m.images[0]);
+              if (img) {
+                if (m.id) {
+                  gCache.set(m.id, img);
+                  localStorage.setItem(`fathom_img_${m.id}`, img);
+                }
+                const promptMatch = /"prompt"\s*:\s*"([^"]+)"/i.exec(m.content || '');
+                if (promptMatch && promptMatch[1]) {
+                  const cleanPrompt = promptMatch[1].trim().toLowerCase().replace(/\s+/g, ' ');
+                  let hash = 0;
+                  for (let i = 0; i < cleanPrompt.length; i++) {
+                    hash = ((hash << 5) - hash) + cleanPrompt.charCodeAt(i);
+                    hash |= 0;
+                  }
+                  const hashKey = Math.abs(hash).toString(36);
+                  gCache.set(hashKey, img);
+                  localStorage.setItem(`fathom_img_${hashKey}`, img);
+                }
+              }
+            });
+          } catch {}
+        }
         setMessages(msgs);
         if (msgs.length > 0) {
           const targetChat = chats.find(c => c.id === activeTarget);
@@ -556,13 +608,13 @@ const MainAppContent: React.FC = () => {
       setMessages(prev => [
         ...prev,
         {
-          id: 'user-' + Date.now(),
+          id: generateUuid(),
           role: 'user',
           content: effectivePrompt,
           timestamp: formatEnglishTimestamp(),
         },
         {
-          id: 'assistant-' + Date.now(),
+          id: generateUuid(),
           role: 'assistant',
           content: limitMsg,
           timestamp: formatEnglishTimestamp(),
@@ -591,7 +643,7 @@ const MainAppContent: React.FC = () => {
     );
 
     const userMessage: ChatMessageItem = {
-      id: 'user-' + Date.now(),
+      id: generateUuid(),
       role: 'user',
       content: userCleanDisplayContent,
       image: uniqueImagesDataUrls[0],
@@ -603,7 +655,7 @@ const MainAppContent: React.FC = () => {
       model: chosenModel,
     };
 
-    const assistantPlaceholderId = 'assistant-' + Date.now();
+    const assistantPlaceholderId = generateUuid();
     const assistantMessage: ChatMessageItem = {
       id: assistantPlaceholderId,
       role: 'assistant',
@@ -1057,6 +1109,33 @@ const MainAppContent: React.FC = () => {
     setCurrentChatId(chatId);
     updateActiveChatUrlAndStorage(chatId);
     const history = await fetchChatMessages(chatId);
+    // Instant 0ms cache priming for all messages with images
+    if (typeof window !== 'undefined') {
+      try {
+        const gCache = ((window as any).__FATHOM_IMAGE_CACHE__ = (window as any).__FATHOM_IMAGE_CACHE__ || new Map<string, string>());
+        history.forEach(m => {
+          const img = m.image || (m.images && m.images[0]);
+          if (img) {
+            if (m.id) {
+              gCache.set(m.id, img);
+              localStorage.setItem(`fathom_img_${m.id}`, img);
+            }
+            const promptMatch = /"prompt"\s*:\s*"([^"]+)"/i.exec(m.content || '');
+            if (promptMatch && promptMatch[1]) {
+              const cleanPrompt = promptMatch[1].trim().toLowerCase().replace(/\s+/g, ' ');
+              let hash = 0;
+              for (let i = 0; i < cleanPrompt.length; i++) {
+                hash = ((hash << 5) - hash) + cleanPrompt.charCodeAt(i);
+                hash |= 0;
+              }
+              const hashKey = Math.abs(hash).toString(36);
+              gCache.set(hashKey, img);
+              localStorage.setItem(`fathom_img_${hashKey}`, img);
+            }
+          }
+        });
+      } catch {}
+    }
     setMessages(history);
     const targetChat = cloudChats.find(c => c.id === chatId);
     if (history.length > 0) {

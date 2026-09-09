@@ -140,14 +140,19 @@ export default async function handler(req: any, res?: any) {
     const messageId = body?.messageId;
     if (messageId && imageUrl) {
       try {
-        const { data: row } = await serverSupabase
-          .from('x1_messages')
-          .select('id, content')
-          .eq('id', messageId)
-          .maybeSingle();
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(messageId);
+        let targetRow: { id: string; content?: string } | null = null;
+        if (isUuid) {
+          const { data: row } = await serverSupabase
+            .from('x1_messages')
+            .select('id, content')
+            .eq('id', messageId)
+            .maybeSingle();
+          if (row) targetRow = row;
+        }
 
-        if (row) {
-          let updatedContent = row.content || '';
+        if (targetRow) {
+          let updatedContent = targetRow.content || '';
           const neuralMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(updatedContent);
           if (neuralMatch) {
             try {
@@ -163,7 +168,7 @@ export default async function handler(req: any, res?: any) {
           await serverSupabase
             .from('x1_messages')
             .update({ image_url: imageUrl, content: updatedContent })
-            .eq('id', messageId);
+            .eq('id', targetRow.id);
         }
       } catch (dbErr) {
         console.warn('[generate-image Supabase persistence warning]:', dbErr);

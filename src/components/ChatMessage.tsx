@@ -1432,26 +1432,42 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             parsed.originalImage = priorImage;
           }
 
-          // Fallback to message.image, message.images or instant localStorage cache if imageUrl was not embedded in JSON
+          // Fallback to message.image, message.images, in-memory cache, or instant localStorage cache if imageUrl was not embedded in JSON
           if (!parsed.imageUrl && !parsed.processedImage) {
             const fallbackImg = message.image || (message.images && message.images[0]);
             if (fallbackImg && isValidImageUri(fallbackImg)) {
               parsed.imageUrl = fallbackImg;
               parsed.processedImage = fallbackImg;
-            } else if (typeof window !== 'undefined' && window.localStorage) {
-              if (message.id) {
+            } else if (typeof window !== 'undefined') {
+              const gCache = (window as any).__FATHOM_IMAGE_CACHE__;
+              if (message.id && gCache?.get(message.id) && isValidImageUri(gCache.get(message.id))) {
+                parsed.imageUrl = gCache.get(message.id);
+                parsed.processedImage = parsed.imageUrl;
+              } else if (message.id && window.localStorage) {
                 const cached = localStorage.getItem(`fathom_img_${message.id}`);
                 if (cached && isValidImageUri(cached)) {
                   parsed.imageUrl = cached;
                   parsed.processedImage = cached;
                 }
               }
+
               if (!parsed.imageUrl && parsed.prompt) {
-                const promptHash = Math.abs(parsed.prompt.split('').reduce((a: number, b: string) => (((a << 5) - a) + b.charCodeAt(0)) | 0, 0)).toString(36);
-                const cachedByHash = localStorage.getItem(`fathom_img_${promptHash}`);
-                if (cachedByHash && isValidImageUri(cachedByHash)) {
-                  parsed.imageUrl = cachedByHash;
-                  parsed.processedImage = cachedByHash;
+                const cleanPrompt = parsed.prompt.trim().toLowerCase().replace(/\s+/g, ' ');
+                let hash = 0;
+                for (let i = 0; i < cleanPrompt.length; i++) {
+                  hash = ((hash << 5) - hash) + cleanPrompt.charCodeAt(i);
+                  hash |= 0;
+                }
+                const promptHash = Math.abs(hash).toString(36);
+                if (gCache?.get(promptHash) && isValidImageUri(gCache.get(promptHash))) {
+                  parsed.imageUrl = gCache.get(promptHash);
+                  parsed.processedImage = parsed.imageUrl;
+                } else if (window.localStorage) {
+                  const cachedByHash = localStorage.getItem(`fathom_img_${promptHash}`);
+                  if (cachedByHash && isValidImageUri(cachedByHash)) {
+                    parsed.imageUrl = cachedByHash;
+                    parsed.processedImage = cachedByHash;
+                  }
                 }
               }
             }
@@ -1496,7 +1512,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     }
 
     return null;
-  }, [displayContent, activeFeatures]);
+  }, [displayContent, activeFeatures, message.id, message.image, message.images, priorImage]);
 
   // Clean markdown content excluding both SVG and Neural Image blocks to prevent layout thrashing
   const displayContentWithoutSvgOrNeural = useMemo(() => {
