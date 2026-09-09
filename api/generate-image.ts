@@ -71,6 +71,13 @@ export default async function handler(req: any, res?: any) {
       return sendResponse(400, { error: 'Prompt is required' });
     }
 
+    let finalPrompt = prompt.trim();
+    // Defensive Typography Enhancement: If prompt requests text, letters, numbers, or vehicle license plates, ensure OCR & human readability
+    const hasTextOrPlateRequest = /(?:plate|license|sign|text|letters?|numbers?|logo|billboard|label|typography|words?|لوحة|نمرة|كتابة|نص|حروف|أرقام)/i.test(finalPrompt);
+    if (hasTextOrPlateRequest && !finalPrompt.includes('readable by OCR')) {
+      finalPrompt = `${finalPrompt}, crisp legible typography, authentic official vehicle plate format, perfectly formed characters, razor-sharp edges, high contrast, zero gibberish, zero scrambled letters, fully legible by optical character recognition (OCR) and humans`;
+    }
+
     const openRouterKey = process.env.OPENROUTER_API_KEY || '';
     if (!openRouterKey) {
       return sendResponse(500, { error: 'OPENROUTER_API_KEY is not configured' });
@@ -105,7 +112,7 @@ export default async function handler(req: any, res?: any) {
       try {
         const payload: any = {
           model: 'meta/muse-image',
-          prompt: prompt.trim()
+          prompt: finalPrompt
         };
 
         if (includeRefs && formattedReferences.length > 0) {

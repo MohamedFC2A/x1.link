@@ -114,7 +114,7 @@ export async function streamChatCompletion({
         if (!isLatestTurn) {
           return {
             role: msg.role,
-            content: `${cleanContent}\n[ملاحظة: تم إرفاق وتحليل فيديو "${videoItem?.name || 'فيديو'}" في هذا الدور السابق]`,
+            content: `${cleanContent}\n[ملاحظة سياقية: تم إرفاق وتحليل فيديو "${videoItem?.name || 'فيديو'}" في هذا الدور السابق كمرجع وسائط، يُمنع تكرار هذه الملاحظة للمستخدم]`,
             reasoning: msg.reasoning
           };
         }
@@ -153,9 +153,10 @@ export async function streamChatCompletion({
       if (allImages.length > 0) {
         // If it is an older turn, avoid sending massive duplicate base64 payloads to preserve Vercel limit
         if (!isLatestTurn) {
+          const imageText = allImages.length === 1 ? 'صورة واحدة' : `${allImages.length} صور`;
           return {
             role: msg.role,
-            content: `${cleanContent}\n[ملاحظة: تم إرفاق وتحليل (${allImages.length}) صور في هذا الدور السابق]`,
+            content: `${cleanContent}\n[ملاحظة سياقية: تم إرفاق وتحليل (${imageText}) في هذا الدور السابق كمرجع بصري معتمد، يُمنع تكرار هذه الملاحظة للمستخدم]`,
             reasoning: msg.reasoning
           };
         }

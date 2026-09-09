@@ -434,6 +434,47 @@ func main() {
       const dlFeature = features.find(f => f.id === 'download_detect');
       expect(dlFeature).toBeDefined();
     });
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // 8. Studio Thinking Suppression, Typography & Note Architecture
+    // ═════════════════════════════════════════════════════════════════════════
+    await harness.it('Neural Image Studio: disables thinking mode to prevent reasoning latency and show only image creation', () => {
+      const tuned = DynamicParameterTuner.tune({
+        userPrompt: 'صمم لي صورة واقعية لسيارة مرسيدس ذهبية في شارع ممطر بدقة 4K',
+        requestedModel: 'fathom-quant-3'
+      });
+      expect(tuned.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
+      expect(tuned.telemetry.thinkingMode).toBe('disabled');
+      expect(tuned.telemetry.reasoningEffort).toBe('low');
+    });
+
+    await harness.it('In-Image Typography & License Plate: injects OCR readability and zero gibberish conditioning', () => {
+      const rawBlock = `\`\`\`neural-image
+{
+  "operation": "add_element",
+  "title": "إضافة: لوحة معدنية مصرية للسيارة",
+  "description": "تمت إضافة لوحة معدنية مصرية أمامية للسيارة",
+  "prompt": "close up shot of front bumper with Egyptian vehicle license plate",
+  "seed": 482910,
+  "aspectRatio": "1:1"
+}
+\`\`\``;
+      const normalized = DynamicParameterTuner.normalizeNeuralImageBlock(rawBlock, 'addition');
+      expect(normalized).toContain('optical character recognition (OCR)');
+      expect(normalized).toContain('zero gibberish');
+      expect(normalized).toContain('crisp legible typography');
+    });
+
+    await harness.it('Contextual Note Badge: cleans up awkward phrasing and normalizes (1) صور to صورة واحدة', () => {
+      const rawNote = '[ملاحظة: تم إرفاق وتحليل (1) صور في هذا الدور السابق]';
+      const cleaned = rawNote
+        .replace(/\(1\)\s*صور/g, 'صورة واحدة')
+        .replace(/\(1\)\s*صورة/g, 'صورة واحدة')
+        .replace(/[\[\]]/g, '')
+        .trim();
+      expect(cleaned).toBe('ملاحظة: تم إرفاق وتحليل صورة واحدة في هذا الدور السابق');
+      expect(cleaned).not.toContain('(1) صور');
+    });
   });
 }
 

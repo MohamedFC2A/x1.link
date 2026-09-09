@@ -996,6 +996,27 @@ export const TimeDetectAutoDelete: React.FC<{
   );
 };
 
+export const ContextualNoteBadge: React.FC<{ text: string }> = ({ text }) => {
+  const cleanedText = text
+    .replace(/يُمنع\s*تكرار\s*هذه\s*الملاحظة[^\n\]]*/gi, '')
+    .replace(/\(1\)\s*صور/g, 'صورة واحدة')
+    .replace(/\(1\)\s*صورة/g, 'صورة واحدة')
+    .replace(/[\[\]]/g, '')
+    .trim();
+
+  return (
+    <div className="my-2.5 inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-cyan-950/30 border border-cyan-500/25 text-cyan-200 text-xs font-sans select-none backdrop-blur-md shadow-[0_2px_12px_rgba(6,182,212,0.08)] transition-all hover:border-cyan-500/40 w-fit max-w-full animate-in fade-in duration-200" dir="rtl">
+      <div className="flex items-center justify-center size-5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 shrink-0">
+        <Sparkles className="size-3 text-cyan-400" />
+      </div>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="font-bold text-cyan-300 tracking-wide shrink-0">ملاحظة سياقية:</span>
+        <span className="text-zinc-200 font-medium">{cleanedText.replace(/^ملاحظة(?:\s*سياقية)?\s*:\s*/i, '')}</span>
+      </div>
+    </div>
+  );
+};
+
 function getChildText(node: React.ReactNode): string {
   if (!node) return '';
   if (typeof node === 'string') return node;
@@ -1018,7 +1039,7 @@ function parseCustomBadges(
     setConfirmEmail?: (email: string) => void;
   }
 ): React.ReactNode | null {
-  if (!rawContent || typeof rawContent !== 'string' || !/(?:DETECT|TIMER|REMINDER|AUTODELETE|DOWNLOAD)/i.test(rawContent)) return null;
+  if (!rawContent || typeof rawContent !== 'string' || !/(?:DETECT|TIMER|REMINDER|AUTODELETE|DOWNLOAD|ملاحظة|NOTE)/i.test(rawContent)) return null;
 
   const widgets: React.ReactNode[] = [];
   let workingContent = rawContent;
@@ -1102,15 +1123,38 @@ function parseCustomBadges(
   }
   workingContent = workingContent.replace(downloadCardRegex, '');
 
+  // 8. Contextual Note Badge: [ملاحظة: ...] or [ملاحظة سياقية: ...] or [NOTE: ...]
+  const noteRegex = /(?:\[\s*(?:ملاحظة(?:\s*سياقية)?|NOTE)\s*:\s*([^\]]+)\])/gi;
+  let noteMatch: RegExpExecArray | null;
+  while ((noteMatch = noteRegex.exec(workingContent)) !== null) {
+    const rawNote = noteMatch[1]?.trim() || '';
+    if (rawNote) {
+      widgets.push(<ContextualNoteBadge key={`note-badge-${noteMatch.index}`} text={rawNote} />);
+    }
+  }
+  workingContent = workingContent.replace(noteRegex, '');
+
+  const plainNoteRegex = /(?:^|\n)\s*ملاحظة(?:\s*سياقية)?\s*:\s*(تم إرفاق وتحليل[^\n]+)/gi;
+  let plainNoteMatch: RegExpExecArray | null;
+  while ((plainNoteMatch = plainNoteRegex.exec(workingContent)) !== null) {
+    const rawNote = plainNoteMatch[1]?.trim() || '';
+    if (rawNote) {
+      widgets.push(<ContextualNoteBadge key={`plain-note-badge-${plainNoteMatch.index}`} text={rawNote} />);
+    }
+  }
+  workingContent = workingContent.replace(plainNoteRegex, '');
+
   if (widgets.length === 0) return null;
 
   const remainingText = workingContent.trim();
 
   return (
     <div className="my-3 space-y-3">
-      {remainingText && handlers?.setConfirmUrl && (
+      {remainingText && (
         <p className="leading-relaxed text-zinc-200">
-          {renderSmartContentWithLinksAndPhones(remainingText, handlers.setConfirmUrl, handlers.setConfirmPhone || (() => {}), handlers.setConfirmEmail)}
+          {handlers?.setConfirmUrl
+            ? renderSmartContentWithLinksAndPhones(remainingText, handlers.setConfirmUrl, handlers.setConfirmPhone || (() => {}), handlers.setConfirmEmail)
+            : remainingText}
         </p>
       )}
       {widgets.map((w, idx) => (
@@ -1956,8 +2000,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       </div>
 
       <div className="w-full rounded-2xl p-3.5 sm:p-6 text-right transition-all duration-300 bg-[#0a0b0e]/70 backdrop-blur-md border border-white/[0.07] hover:border-white/[0.12] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] text-zinc-200 overflow-hidden break-words">
-        {/* 1. Sovereign Thinking & Reasoning Stream: ALWAYS displayed before/during deliverable generation */}
-        {(hasReasoning || isThinking) && (
+        {/* 1. Sovereign Thinking & Reasoning Stream: Suppressed for Studio operations so only studio creation indicator appears */}
+        {(hasReasoning || isThinking) && !isNeuralImageStudioActive && !isSvgStudioActive && !extractedNeuralImageData && !extractedSvgData && (
           <ChatReasoning
             reasoningText={effectiveReasoning}
             isThinking={isThinking}
