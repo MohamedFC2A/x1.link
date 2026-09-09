@@ -960,8 +960,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               onClick={(e) => e.stopPropagation()}
             >
               <div className="px-2.5 py-1.5 border-b border-white/[0.07] mb-1.5 flex items-center justify-between">
-                <span className="text-xs font-sans font-bold text-white tracking-wide">اختيار النموذج</span>
-                <span className="text-[10px] font-mono text-zinc-500 font-medium">النماذج الذكية</span>
+                <span className="text-xs font-sans font-semibold text-zinc-200 tracking-wide">اختيار النموذج</span>
               </div>
 
               <div className="space-y-1">
@@ -994,10 +993,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         </div>
                         <div className="min-w-0 flex-1 text-right">
                           <div className="flex items-center justify-between gap-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-xs text-white">Fathom Quant 3</span>
-                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.08] text-zinc-300 border border-white/10 font-normal">الأقوى</span>
-                            </div>
+                            <span className="font-semibold text-xs text-white">Fathom Quant 3</span>
                             {isSelected && <Check className="w-3.5 h-3.5 text-zinc-100 shrink-0" />}
                           </div>
                           <div className="text-[11px] text-zinc-400 font-normal leading-normal mt-0.5 group-hover:text-zinc-300 transition-colors truncate">
@@ -1038,10 +1034,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         </div>
                         <div className="min-w-0 flex-1 text-right">
                           <div className="flex items-center justify-between gap-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-xs text-white">Fathom Cyber Ultra 2.6</span>
-                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/20 font-normal">Ultra</span>
-                            </div>
+                            <span className="font-semibold text-xs text-white">Fathom Cyber Ultra 2.6</span>
                             {isSelected && <Check className="w-3.5 h-3.5 text-indigo-300 shrink-0" />}
                           </div>
                           <div className="text-[11px] text-zinc-400 font-normal leading-normal mt-0.5 group-hover:text-zinc-200 transition-colors truncate">
@@ -1082,10 +1075,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         </div>
                         <div className="min-w-0 flex-1 text-right">
                           <div className="flex items-center justify-between gap-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-xs text-white">Fathom Cyber Flash 2.6</span>
-                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/20 font-normal">Flash</span>
-                            </div>
+                            <span className="font-semibold text-xs text-white">Fathom Cyber Flash 2.6</span>
                             {isSelected && <Check className="w-3.5 h-3.5 text-amber-300 shrink-0" />}
                           </div>
                           <div className="text-[11px] text-zinc-400 font-normal leading-normal mt-0.5 group-hover:text-zinc-200 transition-colors truncate">
@@ -1126,10 +1116,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         </div>
                         <div className="min-w-0 flex-1 text-right">
                           <div className="flex items-center justify-between gap-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-xs text-white">Fathom 1.1</span>
-                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.04] text-zinc-400 border border-white/[0.08] font-normal">خفيف</span>
-                            </div>
+                            <span className="font-semibold text-xs text-white">Fathom 1.1</span>
                             {isSelected && <Check className="w-3.5 h-3.5 text-zinc-100 shrink-0" />}
                           </div>
                           <div className="text-[11px] text-zinc-400 font-normal leading-normal mt-0.5 group-hover:text-zinc-300 transition-colors truncate">

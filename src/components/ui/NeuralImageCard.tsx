@@ -464,36 +464,17 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       )}
       dir="rtl"
     >
-      {/* ── 1. Header Toolbar (Official Minimal Glassmorphism) ────────────── */}
-      <div className="flex items-center justify-between gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 bg-white/[0.02] border-b border-white/[0.08]">
+      {/* ── 1. Header Toolbar (Ultra-Minimal Claude/Apple Aesthetic) ────────────── */}
+      <div className="flex items-center justify-between gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 bg-white/[0.02] border-b border-white/[0.07]">
         {/* Title & Image Specs */}
-        <div className="flex items-center gap-2.5 min-w-0" dir="ltr">
-          <div className="size-7 sm:size-8 rounded-xl bg-white/[0.05] border border-white/[0.1] flex items-center justify-center shrink-0 text-zinc-300">
-            <Quant3PerfectionIcon size={16} />
-          </div>
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold tracking-wider text-zinc-100">
-                FATHOM QUANT 3
-              </span>
-              <span className="text-[9.5px] font-sans font-medium text-zinc-300 px-2 py-0.5 rounded-lg bg-white/[0.05] border border-white/[0.1] shadow-sm">
-                {operationInfo.label}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 text-[10.5px] font-mono text-zinc-400">
-              <span>{currentDimensions.width}×{currentDimensions.height}</span>
-              <span>•</span>
-              <span>4K UHD</span>
-              <span>•</span>
-              <span className="text-amber-400/90 font-semibold" title={`نموذج التوليد: ${modelName}`}>{modelName === 'meta/muse-image' ? 'META MUSE IMAGE' : modelName === 'flux-pro' ? 'FLUX.1 PRO' : modelName === 'flux-realism' ? 'FLUX.1' : modelName === 'flux-anime' ? 'FLUX.1 ANIME' : modelName === 'flux-3d' ? 'FLUX.1 3D' : 'FLUX.1'}</span>
-              {seed !== null && (
-                <>
-                  <span>•</span>
-                  <span className="text-zinc-400" title={`Seed: ${seed}`}>#{seed}</span>
-                </>
-              )}
-            </div>
-          </div>
+        <div className="flex items-center gap-2 min-w-0" dir="ltr">
+          <span className="font-mono text-xs font-semibold tracking-wider text-zinc-100">
+            FATHOM QUANT 3
+          </span>
+          <span className="text-zinc-600 text-xs">/</span>
+          <span className="text-[11px] font-mono text-zinc-400">
+            {currentDimensions.width}×{currentDimensions.height}
+          </span>
         </div>
 
         {/* Action Controls & Fullscreen */}
