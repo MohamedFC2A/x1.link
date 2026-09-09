@@ -189,6 +189,8 @@ const SVG_DESIGN_PATTERNS = [
   /(?:فيكتور|متجهات|شعاعي|vector\s*graphics?|vector\s*art|vector\s*illustration)/i,
   /\b(?:draw|create|generate|design)\s+(?:an?\s+)?(?:svg|vector)/i,
   /(?:كود\s*svg|ملف\s*svg|رسم\s*شعاعي|شكل\s*هندسي|تصميم\s*svg)/i,
+  /(?:اجعلها|خليها|خليه|اجعله|بصيغة|كـ|على\s*شكل|كود|ملف)\s*(?:svg|فيكتور|متجهات|شعاعي|vector)/i,
+  /\b(?:make\s+it|convert\s+to|output\s+as)\s+(?:svg|vector)/i,
   /(?:تصميم|صمم|ارسم|رسم|اعمل|سوي|ولد|توليد|انشئ|أنشئ|ابني|صنع|draw|design|create|generate)\s+(?:لي\s+)?(?:لوجو|شعار|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)(?!\s*(?:واقعي|فوتوغرافي|صورة|photo))/i,
   // Concise two-word queries: "لوجو كافيه"، "شعار شركة"، "ايقونة سحابية"
   /^(?:لوجو|شعار|ايقونة|أيقونة|شارة|رمز\s*بصري|logo|icon|icons|emblem|badge|symbol)\s+[\p{L}\p{N}]+/iu,
@@ -712,13 +714,41 @@ export class DynamicParameterTuner {
       };
     }
 
-    // 6.b. Cyber Ultra & Fathom Quant Neural Image Studio & Photorealistic Generation Check
+    // 6.b. SVG Vector Studio & Design Check with Sovereign Precedence (evaluated BEFORE neural generation when explicit SVG is requested)
+    const isExplicitSvgRequested = /(?:\bsvg\b|فيكتور|متجهات|شعاعي|vector|كود\s*svg|ملف\s*svg|\.svg\b|اجعلها\s*svg)/i.test(text);
+
+    // Strict Guard: If it's a general image query without svg/vector keywords, it must NOT trigger SVG!
+    const isImageQueryWithoutSvg = !isExplicitSvgRequested && (
+      Boolean(priorNeuralImage) ||
+      /(?:صورة|صوره|photo|image|picture|خلفية\s+شاشة|خلفيه\s+شاشة|wallpaper|بورتريه|portrait)/i.test(text) ||
+      /(?:لون\s+(?:السيارة|العربية|القميص|الفستان|الشعر|العين|البنطلون|الخلفية|الباب|الجدار)|تعديل\s+الصورة|غير\s+الصورة|تغيير\s+الصورة|edit\s+photo|edit\s+image|recolor)/i.test(text) ||
+      /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع)\s+(?:لي\s+)?(?:صورة|صوره|خلفية\s+شاشة|لوحة|بورتريه)/i.test(text)
+    );
+
+    const matchesSvg = !isImageQueryWithoutSvg && (
+      isExplicitSvgRequested ||
+      SVG_DESIGN_PATTERNS.some(p => p.test(text)) ||
+      (isFollowUpPrompt && SVG_DESIGN_PATTERNS.some(p => p.test(historyText)))
+    );
+    if (matchesSvg) {
+      const combined = `${historyText} ${text}`;
+      const isExhaustive = combined.length > 150 || /(شامل|مفصل|معقد|تفصيلي|مشهد|بانوراما|landscape|detailed|infographic)/i.test(combined);
+      return {
+        intent: 'SVG_VECTOR_STUDIO_AND_DESIGN',
+        confidence: 0.99,
+        complexity: isExhaustive ? 'EXHAUSTIVE_ARCHITECTURAL' : 'DEEP_ANALYTICAL',
+        hallucinationRisk: 'HIGH',
+        rationale: 'SVG vector illustration, vector logo, icon set, or visual vector graphic generation requested.'
+      };
+    }
+
+    // 6.c. Cyber Ultra & Fathom Quant Neural Image Studio & Photorealistic Generation Check
     const isSvgHistoryFollowup = /(?:```svg|<svg)/i.test(historyText);
     const isCodeOrHowToQuery = /(?:كود|برمجة|دالة|مكتبة|بايثون|جافاسكريبت|رياكت|api|endpoint|code|script|component|function)\b/i.test(text) ||
       /^(?:كيف|طريقة|شرح|اشرح|لماذا|ليه|ما\s*هو|ما\s*هي|ماذا\s*يعني|ما\s*الفرق|how\s+to|explain|why|what\s+is)\b/i.test(text);
     const hasExplicitCreateCmd = /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية|خلفيه|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i.test(text);
 
-    const matchesNeuralGen = (!isCodeOrHowToQuery || hasExplicitCreateCmd) && (
+    const matchesNeuralGen = !isExplicitSvgRequested && (!isCodeOrHowToQuery || hasExplicitCreateCmd) && (
       NEURAL_IMAGE_GENERATION_PATTERNS.some(p => p.test(text)) ||
       (isFollowUpPrompt && !isSvgHistoryFollowup && NEURAL_IMAGE_GENERATION_PATTERNS.some(p => p.test(historyText)))
     );
@@ -730,31 +760,6 @@ export class DynamicParameterTuner {
         complexity: 'EXHAUSTIVE_ARCHITECTURAL',
         hallucinationRisk: 'LOW',
         rationale: 'Cyber Ultra / Fathom Quant Sovereign Neural Image Studio: photorealistic raster photo generation requested.'
-      };
-    }
-
-    // 7. SVG Vector Studio & Design Check (prioritized before generic code engineering)
-    // Strict Guard: If it's a general image query without svg/vector keywords, it must NOT trigger SVG!
-    const isImageQueryWithoutSvg = !/(?:svg|فيكتور|متجهات|شعاعي|vector)/i.test(text) && (
-      Boolean(priorNeuralImage) ||
-      /(?:صورة|صوره|photo|image|picture|خلفية\s+شاشة|خلفيه\s+شاشة|wallpaper|بورتريه|portrait)/i.test(text) ||
-      /(?:لون\s+(?:السيارة|العربية|القميص|الفستان|الشعر|العين|البنطلون|الخلفية|الباب|الجدار)|تعديل\s+الصورة|غير\s+الصورة|تغيير\s+الصورة|edit\s+photo|edit\s+image|recolor)/i.test(text) ||
-      /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع)\s+(?:لي\s+)?(?:صورة|صوره|خلفية\s+شاشة|لوحة|بورتريه)/i.test(text)
-    );
-
-    const matchesSvg = !isImageQueryWithoutSvg && (
-      SVG_DESIGN_PATTERNS.some(p => p.test(text)) ||
-      (isFollowUpPrompt && SVG_DESIGN_PATTERNS.some(p => p.test(historyText)))
-    );
-    if (matchesSvg) {
-      const combined = `${historyText} ${text}`;
-      const isExhaustive = combined.length > 150 || /(شامل|مفصل|معقد|تفصيلي|مشهد|بانوراما|landscape|detailed|infographic)/i.test(combined);
-      return {
-        intent: 'SVG_VECTOR_STUDIO_AND_DESIGN',
-        confidence: 0.98,
-        complexity: isExhaustive ? 'EXHAUSTIVE_ARCHITECTURAL' : 'DEEP_ANALYTICAL',
-        hallucinationRisk: 'HIGH',
-        rationale: 'SVG vector illustration, vector logo, icon set, or visual vector graphic generation requested.'
       };
     }
 
@@ -1132,7 +1137,7 @@ export class DynamicParameterTuner {
         mode: 'SOVEREIGN_SVG_VECTOR_STUDIO',
         directive: 'أنت مهندس ومصمم فيكتور ومصور بصري فائق الاحترافية والدقة (Principal Vector Architect): ' +
           '1) بروتوكول الإنتاج المباشر الصارم (Strict Zero-Thinking & Direct Code Output - Zero Preamble): يُحظر تماماً كتابة أي تفكير أو مسودات كود أو نصوص حوارية تمهيدية أو رموز داخل <think>...</think>. ابدأ فوراً ومباشرةً بإنتاج كود الـ SVG النقي داخل وسم الماركداون: ```svg\\n<svg ...>\\n...\\n</svg>\\n```. ' +
-          '2) نطاق العمل المخصص (Vector Studio Scope): هذا الاستوديو مخصص حصراً لرسومات المتجهات، الشعارات (Logos)، الأيقونات (Icons)، والـ SVG. يُحظر تماماً توليد كود SVG لطلبات الصور الفوتوغرافية أو الواقعية أو طلبات توليد الصور العامة (مثل "صمم صورة"، "انشئ صورة"، "صورة لـ...")؛ طلبات الصور الواقعية مخصصة حصراً للاستوديو العصبي ومحرك FLUX.1 [schnell]. ' +
+          '2) نطاق العمل المخصص وأسبقية الـ SVG المطلقة (Vector Studio Scope & Sovereign Precedence): هذا الاستوديو مخصص لرسومات المتجهات، الشعارات، الأيقونات، والـ SVG. [قاعدة سيادية قطعية]: إذا طلب المستخدم جعل التصميم SVG أو فيكتور (مثل: "صمم صورة ... اجعلها SVG" أو "رسمة SVG لـ..."): فإن طلب الـ SVG يمتلك أسبقية مطلقة 100% ويُلغي فوراً أي توليد عصبي فوتوغرافي، ويجب حتماً إخراج كود SVG متكامل داخل ```svg. يُحظر توليد كود SVG فقط إذا كان الطلب صورة فوتوغرافية أو واقعية بحتة دون أي ذكر لكلمة SVG أو فيكتور. ' +
           '3) المواصفات القياسية الإلزامية: يجب أن يتضمن الـ SVG دائماً: xmlns="http://www.w3.org/2000/svg"، أبعاد مرنة متجاوبة عبر viewBox="0 0 W H" مع width="100%" و height="100%". ' +
           '4) استخدم عناصر الفيكتور الحديثة باحترافية: التدرجات اللونية داخل <defs> عبر <linearGradient> و <radialGradient>، فلاتر التوهج والظلال الناعمة <filter id="...">، الأشكال الهندسية والمسارات المنحنية المتقنة <path>، والمجموعات الدلالية المنظمة <g id="...">. ' +
           '5) يُحظر تماماً استخدام روابط لصور خارجية أو خطوط غير مدمجة لضمان إمكانية التحويل والتنزيل الفوري إلى صورة PNG أو JPG عالية الدقة بدون أي مشاكل أو تلف في الـ Canvas. ' +
@@ -1177,7 +1182,7 @@ export class DynamicParameterTuner {
               `9) [الحظر الصارم للـ SVG]: يُحظر تماماً وبشكل قاطع تحويل الصور الفوتوغرافية أو طلبات تعديل/تلوين الصور إلى SVG أو تشغيل SVG Studio إطلاقاً، ولا يُخرج أي كود متجهات.`
             )
             : 'أنت المعماري والمهندس السيادي لتوليد ومعالجة وتعديل الصور عصبياً وفوتوغرافياً باستخدام محرك FLUX.1 [schnell] فائق السرعة والواقعية (Sovereign Neural Image Studio Architect): ' +
-              '1) [الحظر الصارم والقطعي لتحويل الصور الفوتوغرافية إلى SVG وإخراج كود المتجهات]: يُحظر تماماً وبشكل قاطع تحويل الصور الفوتوغرافية إلى SVG أو إخراج أي كود SVG أو متجهات عند طلبات الصور الفوتوغرافية أو طلبات توليد الصور (مثل "صمم صورة"، "انشئ صورة"، "صورة لـ"، "صورة واقعية"، "بورتريه"). توليد ومعالجة الصور يتم حصراً وبنسبة 100% عبر المعالجة العصبية واستخراج كتلة ```neural-image```. ' +
+              '1) [الحظر الصارم والقطعي لتحويل الصور الفوتوغرافية إلى SVG إلا بطلب صريح]: يُحظر توليد كود SVG لطلبات الصور الفوتوغرافية أو الواقعية البحتة التي لا تذكر صراحة كلمة SVG أو فيكتور. أما إذا ذكر المستخدم صراحة كلمة SVG أو فيكتور أو "اجعلها SVG" (مثل "صمم صورة ... اجعلها SVG")، فإن هذا الطلب يُحال فوراً وحصراً لاستوديو المتجهات SVG ويجب إخراج كود SVG داخل ```svg ويُحظر إخراج كتلة ```neural-image``` نهائياً. أما في غياب أي ذكر لـ SVG، فإن توليد ومعالجة الصور يتم حصراً وبنسبة 100% عبر المعالجة العصبية واستخراج كتلة ```neural-image```. ' +
               '2) [هندسة برومبتات FLUX.1 [schnell] الإنجليزية الفائقة - Master Prompting for FLUX.1 [schnell]]: صغ وصفاً بصرياً إنجليزياً دقيقاً، طبيعياً ومفصلاً: تحديد نوع الكاميرا والمستشعر (Hasselblad H6D-100c أو Sony Alpha 7R V)، العدسة البؤرية (85mm f/1.2 للبورتريه، 35mm للقطات السينمائية)، الإضاءة الحجمية السينمائية (Rembrandt lighting، rim light)، دقة تشريحية كاملة لليدين والأصابع (5 fingers per hand, perfect anatomy)، ملمس ومسام البشرة الواقعية (micro-pores, subsurface scattering)، وجودة 8k uhd, photorealistic masterpiece, raw photo. ' +
               '3) [المعيار السيادي لتشريح البشر والبورتريهات الواقعية - Flawless Human Anatomy & Photorealistic Faces & 100% Identity, Texture, and Face Preservation]: خمسة أصابع طبيعية وسليمة لكل يد دون أي تشويه أو تداخل، عيون متناظرة مع لمعان طبيعي للقرنية، نسيج جلد حقيقي مع مسام مجهرية واضحة (photorealistic skin micro-pores)، وتشتت ضوئي طبيعي يمنع أي مظهر شمعي أو بلاستيكي. ' +
               '4) [التعديل الانتقائي الجراحي الدقيق والحفاظ الصارم بنسبة 100% على الهوية]: عند طلب أي تعديل على صورة مرفقة (تغيير ملابس، تغيير لون، عزل أو تغيير خلفية، دمج شخصين معاً مع دمج الشخصين بنفس الإضاءة والملامح، تحسين الجودة والدقة إلى 2K/4K، تعديل منتج، أو استبدال نص)، حافظ بنسبة 100% على ملامح الوجه وتفاصيل الشخص الأصلية وطبّق التعديل المطلوب جراحياً على العنصر المستهدف فقط (استبدال النص مع مطابقة نوع الخط). ' +

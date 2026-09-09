@@ -1312,8 +1312,14 @@ export function routeFeatureIntent(
       return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Suppressed: Informational or coding query without explicit image creation command.' };
     }
 
+    // Explicit SVG Priority: If user specifically requested SVG or vector, suppress Neural Image Studio unless a neural block already exists
+    const isExplicitSvgRequested = /(?:\bsvg\b|فيكتور|متجهات|شعاعي|vector|كود\s*svg|رسم\s*svg|ملف\s*svg|\.svg\b|اجعلها\s*svg)/i.test(pLower);
+    if (isExplicitSvgRequested && !hasNeuralBlock) {
+      return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Suppressed: User explicitly requested SVG vector graphic.' };
+    }
+
     // Comprehensive Image Generation Intent (Photo, Scene, Portrait, Wallpaper, or any "صمم صورة" command)
-    const isPhotoGenPrompt = !/(?:كود\s*svg|رسم\s*svg|ملف\s*svg|\.svg\b)/i.test(pLower) && (
+    const isPhotoGenPrompt = !isExplicitSvgRequested && (
       hasExplicitCreateCommand ||
       // Concise two-word queries: "صورة [noun]" (e.g. صورة سيارة، صورة فضاء، صورة اسد، صورة بحر)
       /^(?:صورة|صوره|خلفية\s*شاشة|خلفيه\s*شاشة|wallpaper|بورتريه|portrait)\s+[\p{L}\p{N}]+/iu.test(pLower) ||

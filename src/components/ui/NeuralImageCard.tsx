@@ -592,24 +592,24 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       dir="rtl"
     >
       {/* ── 1. Header Toolbar (Ultra-Minimal Claude/Apple Aesthetic) ────────────── */}
-      <div className="flex items-center justify-between gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 bg-white/[0.02] border-b border-white/[0.07]">
+      <div className="flex items-center justify-between gap-1.5 sm:gap-2 px-2.5 sm:px-5 py-2 sm:py-3 bg-white/[0.02] border-b border-white/[0.07] overflow-hidden">
         {/* Title & Image Specs */}
-        <div className="flex items-center gap-2 min-w-0" dir="ltr">
-          <span className="font-mono text-xs font-semibold tracking-wider text-zinc-100">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink overflow-hidden" dir="ltr">
+          <span className="hidden sm:inline font-mono text-xs font-semibold tracking-wider text-zinc-100 whitespace-nowrap">
             FATHOM QUANT 3
           </span>
-          <span className="text-zinc-600 text-xs">/</span>
-          <span className="text-[11px] font-mono text-cyan-400 font-bold">
+          <span className="hidden sm:inline text-zinc-600 text-xs">/</span>
+          <span className="text-[10px] sm:text-[11px] font-mono text-cyan-400 font-bold whitespace-nowrap">
             FATHOM QP3
           </span>
           <span className="text-zinc-600 text-xs">/</span>
-          <span className="text-[11px] font-mono text-zinc-400">
+          <span className="text-[10px] sm:text-[11px] font-mono text-zinc-400 whitespace-nowrap">
             {currentDimensions.width}×{currentDimensions.height}
           </span>
         </div>
 
         {/* Action Controls & Fullscreen */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Dual Image View Mode Switcher (if both original & processed exist) */}
           {hasDualImages && (
             <div className="flex items-center bg-white/[0.04] p-0.5 rounded-xl border border-white/[0.08]">
@@ -617,7 +617,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                 type="button"
                 onClick={() => setViewMode('split')}
                 className={cn(
-                  "flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  "flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer min-h-[30px]",
                   viewMode === 'split' ? "bg-white/[0.1] text-white shadow-sm" : "text-zinc-400 hover:text-white"
                 )}
                 title="مقارنة تفاعلية منزلقة"
@@ -629,7 +629,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                 type="button"
                 onClick={() => setViewMode('processed')}
                 className={cn(
-                  "flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  "flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer min-h-[30px]",
                   viewMode === 'processed' ? "bg-white/[0.1] text-white shadow-sm" : "text-zinc-400 hover:text-white"
                 )}
                 title="الصورة بعد التعديل"
@@ -641,7 +641,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                 type="button"
                 onClick={() => setViewMode('original')}
                 className={cn(
-                  "flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  "flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer min-h-[30px]",
                   viewMode === 'original' ? "bg-white/[0.1] text-white shadow-sm" : "text-zinc-400 hover:text-white"
                 )}
                 title="الصورة الأصلية قبل التعديل"
@@ -655,7 +655,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
           <button
             type="button"
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white border border-white/[0.08] transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white border border-white/[0.08] transition-colors cursor-pointer min-h-[30px] min-w-[30px] flex items-center justify-center"
             title={isFullscreen ? "تصغير النافذة" : "تكبير ملء الشاشة"}
           >
             {isFullscreen ? <Minimize2 className="size-3.5 sm:size-4" /> : <Maximize2 className="size-3.5 sm:size-4" />}

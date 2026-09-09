@@ -1544,7 +1544,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     const pLower = (previousUserPrompt || '').toLowerCase();
 
     // Explicit exclusions: if user specifically asks for code/vector/svg
-    if (/(?:كود\s*svg|رسم\s*svg|ملف\s*svg|\.svg\b)/i.test(pLower)) return false;
+    const hasExplicitSvgKeyword = /(?:\bsvg\b|فيكتور|متجهات|شعاعي|vector|كود\s*svg|رسم\s*svg|ملف\s*svg|\.svg\b|اجعلها\s*svg)/i.test(pLower);
+    if (hasExplicitSvgKeyword && !extractedNeuralImageData) return false;
 
     const isCodeOrHowTo = /(?:كود|برمجة|دالة|مكتبة|بايثون|جافاسكريبت|رياكت|api|endpoint|code|script|component|function)\b/i.test(pLower) ||
       /^(?:كيف|طريقة|شرح|اشرح|لماذا|ليه|ما\s*هو|ما\s*هي|ماذا\s*يعني|ما\s*الفرق|how\s+to|explain|why|what\s+is)\b/i.test(pLower);
@@ -1598,12 +1599,15 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const isSvgStudioActive = useMemo(() => {
     // Only Fathom Quant 3 is empowered to activate SVG Studio
     if (!isQuant3Model) return false;
+    const pLower = (previousUserPrompt || '').toLowerCase();
+    const hasExplicitSvgKeyword = /(?:\bsvg\b|فيكتور|متجهات|شعاعي|vector|كود\s*svg|رسم\s*svg|ملف\s*svg|\.svg\b|اجعلها\s*svg)/i.test(pLower);
+
+    // Sovereign SVG Priority: If explicit SVG requested and no neural image block extracted, SVG Studio has priority
+    if (hasExplicitSvgKeyword && !extractedNeuralImageData) return true;
+
     // Strict Precedence: If Neural Image Studio is active, SVG Studio must NOT be active
     if (isNeuralImageStudioActive) return false;
     if (extractedSvgData !== null) return true;
-
-    const pLower = (previousUserPrompt || '').toLowerCase();
-    const hasExplicitSvgKeyword = /(?:svg|فيكتور|متجهات|شعاعي|vector|كود\s*svg|ملف\s*svg)/i.test(pLower);
 
     // If there is prior image or photo edit/addition prompt, SVG MUST NOT activate unless explicitly asked for SVG
     if ((hasImagesInChat || Boolean(priorImage) || /(?:صورة|صوره|photo|image|portrait)/i.test(pLower)) && !hasExplicitSvgKeyword) {
@@ -1619,7 +1623,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     if (message.content && (message.content.includes('<svg') || message.content.includes('```svg'))) return true;
     if (message.reasoning && (message.reasoning.includes('<svg') || message.reasoning.includes('```svg'))) return true;
     return false;
-  }, [isQuant3Model, isNeuralImageStudioActive, extractedSvgData, activeFeatures, previousUserPrompt, hasImagesInChat, priorImage, message.content, message.reasoning]);
+  }, [isQuant3Model, isNeuralImageStudioActive, extractedSvgData, extractedNeuralImageData, activeFeatures, previousUserPrompt, hasImagesInChat, priorImage, message.content, message.reasoning]);
 
   const isVpsActive = useMemo(() => {
     if (Boolean(message.vpsTelemetry || message.vpsExecution)) return true;
@@ -1915,54 +1919,50 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       </div>
 
       <div className="w-full rounded-2xl p-3.5 sm:p-6 text-right transition-all duration-300 bg-[#0a0b0e]/70 backdrop-blur-md border border-white/[0.07] hover:border-white/[0.12] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] text-zinc-200 overflow-hidden break-words">
-        {isNeuralImageStudioActive ? (
-          // Neural Image Studio Mode: Clean single-line indicator during processing, suppress thinking button
-          (isThinking || isStreaming) && !extractedNeuralImageData ? (
-            <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
-              <span className="inline-block w-2 h-2 rounded-full bg-white/80 animate-pulse shrink-0" />
-              <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
-                {imageOpType === 'addition'
-                  ? 'جاري إضافة التعديل المطلوب بدقة متناهية ......'
-                  : imageOpType === 'edit'
-                    ? 'جاري تعديل الصورة بدقة متناهية ......'
-                    : 'جاري انشاء صورة واقعية ......'}
-              </span>
-            </div>
-          ) : null
-        ) : isSvgStudioActive ? (
-          // SVG Studio Mode: Clean single-line indicator during creation, completely remove thinking button during and after
-          (isThinking || isStreaming) && !extractedSvgData ? (
-            <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
-              <span className="inline-block w-2 h-2 rounded-full bg-white/80 animate-pulse shrink-0" />
-              <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
-                جارٍ رسم وتوليد متجهات الرسم الشعاعي (SVG)...
-              </span>
-            </div>
-          ) : null
-        ) : (
-          <>
-            {isVpsActive && (isThinking || isStreaming) && !displayContent && (
-              <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-200 select-none w-fit shadow-inner animate-in fade-in" dir="rtl">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
-                </span>
-                <span className="text-xs sm:text-sm font-sans font-bold text-cyan-200">
-                  ⚡ يتم الان الوصول للكمبيوتر والاوامر السحابية...
-                </span>
-              </div>
-            )}
-            {(hasReasoning || isThinking) && (
-              <ChatReasoning
-                reasoningText={effectiveReasoning}
-                isThinking={isThinking}
-                isStreaming={isStreaming}
-                isX1={message.isX1}
-                isTimeIntent={isTimeIntent}
-                activeFeatures={activeFeatures}
-              />
-            )}
-          </>
+        {/* 1. Sovereign Thinking & Reasoning Stream: ALWAYS displayed before/during deliverable generation */}
+        {(hasReasoning || isThinking) && (
+          <ChatReasoning
+            reasoningText={effectiveReasoning}
+            isThinking={isThinking}
+            isStreaming={isStreaming}
+            isX1={message.isX1}
+            isTimeIntent={isTimeIntent}
+            activeFeatures={activeFeatures}
+          />
+        )}
+
+        {/* 2. Studio Active Generation Indicators: Clean status badge during creation */}
+        {isNeuralImageStudioActive && (isThinking || isStreaming) && !extractedNeuralImageData ? (
+          <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
+            <span className="inline-block w-2 h-2 rounded-full bg-white/80 animate-pulse shrink-0" />
+            <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
+              {imageOpType === 'addition'
+                ? 'جاري إضافة التعديل المطلوب بدقة متناهية ......'
+                : imageOpType === 'edit'
+                  ? 'جاري تعديل الصورة بدقة متناهية ......'
+                  : 'جاري انشاء صورة واقعية ......'}
+            </span>
+          </div>
+        ) : isSvgStudioActive && (isThinking || isStreaming) && !extractedSvgData ? (
+          <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
+            <span className="inline-block w-2 h-2 rounded-full bg-white/80 animate-pulse shrink-0" />
+            <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
+              جارٍ رسم وتوليد متجهات الرسم الشعاعي (SVG)...
+            </span>
+          </div>
+        ) : null}
+
+        {/* 3. VPS Cloud Computer Agent Live Notice */}
+        {isVpsActive && (isThinking || isStreaming) && !displayContent && (
+          <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-200 select-none w-fit shadow-inner animate-in fade-in" dir="rtl">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+            </span>
+            <span className="text-xs sm:text-sm font-sans font-bold text-cyan-200">
+              ⚡ يتم الان الوصول للكمبيوتر والاوامر السحابية...
+            </span>
+          </div>
         )}
 
         {isStreaming && !message.content && !hasReasoning && !isThinking && !isSvgStudioActive && !isNeuralImageStudioActive ? (

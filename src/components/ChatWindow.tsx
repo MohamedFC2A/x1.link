@@ -107,19 +107,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const currentScrollTop = container.scrollTop;
     const distFromBottom = container.scrollHeight - currentScrollTop - container.clientHeight;
     
-    // If user scrolled up by even 1px or is away from the bottom by more than 30px
-    if (currentScrollTop < lastScrollTopRef.current - 1 || distFromBottom > 30) {
+    // Only show scroll button when user is noticeably away from bottom (> 160px) or scrolls up with margin (> 60px)
+    const isAwayFromBottom = distFromBottom > 160;
+    const isNoticeableScrollUp = currentScrollTop < lastScrollTopRef.current - 12;
+
+    if (isAwayFromBottom || (isNoticeableScrollUp && distFromBottom > 60)) {
       if (isAutoScrollLockedRef.current) {
-        setAutoScrollLocked(false);
+        isAutoScrollLockedRef.current = false;
       }
-    } else if (distFromBottom <= 15) {
-      // User naturally scrolled back down to bottom
+      setShowScrollBottom(true);
+    } else if (distFromBottom <= 40) {
+      // User naturally scrolled back down near bottom
       if (!isAutoScrollLockedRef.current) {
-        setAutoScrollLocked(true);
+        isAutoScrollLockedRef.current = true;
       }
+      setShowScrollBottom(false);
     }
     lastScrollTopRef.current = currentScrollTop;
-  }, [setAutoScrollLocked]);
+  }, []);
 
   // Decouple user touch / wheel gestures to prevent violent jitter during streaming
   useEffect(() => {
@@ -127,12 +132,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     if (!container) return;
 
     const onWheel = (e: WheelEvent) => {
+      const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
       if (e.deltaY < 0) {
-        // Scrolling UP: immediately release auto-scroll lock
-        setAutoScrollLocked(false);
+        // Scrolling UP: release auto-scroll lock if scrolled up significantly
+        if (dist > 80) {
+          setAutoScrollLocked(false);
+        }
       } else if (e.deltaY > 0) {
-        const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
-        if (dist <= 15) {
+        if (dist <= 40) {
           setAutoScrollLocked(true);
         }
       }
@@ -149,8 +156,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         const currentY = e.touches[0].clientY;
-        // Dragging finger downwards means user intends to scroll upwards
-        if (currentY > touchStartY + 4) {
+        const dist = container.scrollHeight - container.scrollTop - container.clientHeight;
+        // Dragging finger downwards significantly means user intends to scroll upwards
+        if (currentY > touchStartY + 24 && dist > 100) {
           setAutoScrollLocked(false);
         }
       }
@@ -302,7 +310,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 />
               );
             })}
-            <div ref={bottomAnchorRef} className="h-1" />
+            <div ref={bottomAnchorRef} className="h-6 sm:h-8" />
           </div>
         )}
       </div>
@@ -315,7 +323,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 450, damping: 28 }}
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-auto shadow-2xl"
+            className="absolute bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto shadow-2xl"
           >
             <button
               type="button"
@@ -323,7 +331,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 setShowScrollBottom(false);
                 scrollToBottom(true);
               }}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-950/90 hover:bg-zinc-900 text-zinc-200 hover:text-white border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.25)] backdrop-blur-2xl text-xs font-sans font-medium transition-all active:scale-95 cursor-pointer group select-none"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-950/95 hover:bg-zinc-900 text-zinc-200 hover:text-white border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.25)] backdrop-blur-2xl text-xs font-sans font-medium transition-all active:scale-95 cursor-pointer group select-none min-h-[36px]"
             >
               {isStreaming ? (
                 <span className="relative flex h-2 w-2">
