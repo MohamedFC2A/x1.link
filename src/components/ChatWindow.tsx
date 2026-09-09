@@ -10,6 +10,7 @@ import { getModelDisplayName, getModelSubtitle } from '../lib/modelUtils';
 interface ChatWindowProps {
   messages: ChatMessageItem[];
   isStreaming: boolean;
+  isRestoringChat?: boolean;
   isX1Active: boolean;
   activeModel?: ModelType;
   onSendPreset: (presetText: string) => void;
@@ -56,6 +57,7 @@ function extractPriorImageFromHistory(precedingMessages: ChatMessageItem[]): str
 export const ChatWindow: React.FC<ChatWindowProps> = ({
   messages,
   isStreaming,
+  isRestoringChat = false,
   isX1Active,
   activeModel = 'deepseek-v4-flash',
   onSendPreset,
@@ -256,7 +258,27 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           overscrollBehaviorY: 'contain'
         }}
       >
-        {messages.length === 0 ? (
+        {isRestoringChat && messages.length === 0 ? (
+          <div className="min-h-[50vh] flex flex-col items-center justify-center max-w-sm mx-auto py-12 px-4 text-center select-none animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-full flex flex-col items-center justify-center gap-4 p-6 rounded-2xl bg-zinc-950/95 border border-zinc-800/90 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.9)] text-center">
+              {/* Sleek metallic loader spinner */}
+              <div className="relative flex items-center justify-center size-10">
+                <div className="absolute inset-0 rounded-full border-2 border-zinc-800" />
+                <div className="absolute inset-0 rounded-full border-2 border-t-zinc-200 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+                <div className="size-1.5 rounded-full bg-zinc-300 shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
+              </div>
+              
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-semibold text-zinc-100 font-sans tracking-wide">
+                  جارٍ استعادة المحادثة...
+                </h3>
+                <p className="text-xs text-zinc-400 font-sans leading-relaxed">
+                  يرجى الانتظار لحظات ريثما يتم تحميل سجل الرسائل
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="min-h-[45vh] flex flex-col items-center justify-center max-w-lg mx-auto py-8 sm:py-12 text-center animate-in fade-in duration-300 px-4 relative select-none">
             {/* Active Model Icon Visualizer */}
             <div className="mb-4 inline-flex items-center justify-center size-12 sm:size-14 rounded-2xl bg-white/[0.04] border border-white/[0.1] text-white shadow-lg backdrop-blur-md">

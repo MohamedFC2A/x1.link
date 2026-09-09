@@ -184,6 +184,18 @@ const MainAppContent: React.FC = () => {
   };
 
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
+  const [isRestoringChat, setIsRestoringChat] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramChatId = urlParams.get('c') || urlParams.get('chat');
+      const stored = sessionStorage.getItem('matany_active_chat_id');
+      const active = (paramChatId && paramChatId !== 'new') ? paramChatId : (stored && stored !== 'new') ? stored : null;
+      return Boolean(active);
+    } catch {
+      return false;
+    }
+  });
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [totalTokens, setTotalTokens] = useState<number>(() => getLocalUsage().totalTokens);
   const abortControllerRef = useRef<(() => void) | null>(null);
@@ -335,69 +347,79 @@ const MainAppContent: React.FC = () => {
       : getTargetChatIdFromUrlOrStorage();
 
     if (activeTarget && activeTarget !== 'new') {
-      const chatExists = chats.some(c => c.id === activeTarget);
-      if (chatExists) {
-        setCurrentChatId(activeTarget);
-        updateActiveChatUrlAndStorage(activeTarget);
-        const msgs = await fetchChatMessages(activeTarget);
-        // Instant 0ms cache priming for all restored messages with images
-        if (typeof window !== 'undefined') {
-          try {
-            const gCache = ((window as any).__FATHOM_IMAGE_CACHE__ = (window as any).__FATHOM_IMAGE_CACHE__ || new Map<string, string>());
-            msgs.forEach(m => {
-              const img = m.image || (m.images && m.images[0]);
-              if (img) {
-                if (m.id) {
-                  gCache.set(m.id, img);
-                  localStorage.setItem(`fathom_img_${m.id}`, img);
-                }
-                const promptMatch = /"prompt"\s*:\s*"([^"]+)"/i.exec(m.content || '');
-                if (promptMatch && promptMatch[1]) {
-                  const cleanPrompt = promptMatch[1].trim().toLowerCase().replace(/\s+/g, ' ');
-                  let hash = 0;
-                  for (let i = 0; i < cleanPrompt.length; i++) {
-                    hash = ((hash << 5) - hash) + cleanPrompt.charCodeAt(i);
-                    hash |= 0;
+      setIsRestoringChat(true);
+      try {
+        const chatExists = chats.some(c => c.id === activeTarget);
+        if (chatExists) {
+          setCurrentChatId(activeTarget);
+          updateActiveChatUrlAndStorage(activeTarget);
+          const msgs = await fetchChatMessages(activeTarget);
+          // Instant 0ms cache priming for all restored messages with images
+          if (typeof window !== 'undefined') {
+            try {
+              const gCache = ((window as any).__FATHOM_IMAGE_CACHE__ = (window as any).__FATHOM_IMAGE_CACHE__ || new Map<string, string>());
+              msgs.forEach(m => {
+                const img = m.image || (m.images && m.images[0]);
+                if (img) {
+                  if (m.id) {
+                    gCache.set(m.id, img);
+                    localStorage.setItem(`fathom_img_${m.id}`, img);
                   }
-                  const hashKey = Math.abs(hash).toString(36);
-                  gCache.set(hashKey, img);
-                  localStorage.setItem(`fathom_img_${hashKey}`, img);
+                  const promptMatch = /"prompt"\s*:\s*"([^"]+)"/i.exec(m.content || '');
+                  if (promptMatch && promptMatch[1]) {
+                    const cleanPrompt = promptMatch[1].trim().toLowerCase().replace(/\s+/g, ' ');
+                    let hash = 0;
+                    for (let i = 0; i < cleanPrompt.length; i++) {
+                      hash = ((hash << 5) - hash) + cleanPrompt.charCodeAt(i);
+                      hash |= 0;
+                    }
+                    const hashKey = Math.abs(hash).toString(36);
+                    gCache.set(hashKey, img);
+                    localStorage.setItem(`fathom_img_${hashKey}`, img);
+                  }
                 }
-              }
-            });
-          } catch {}
-        }
-        setMessages(msgs);
-        if (msgs.length > 0) {
-          const targetChat = chats.find(c => c.id === activeTarget);
-          memoryEngine.updateChatMemoryNode(activeTarget, targetChat?.title || 'محادثة سابقة', msgs, targetChat?.updated_at);
-
-          // If the last message was from user, the server may still be generating the response in background
-          if (msgs[msgs.length - 1].role === 'user') {
-            let pollAttempts = 0;
-            const pollInterval = setInterval(async () => {
-              pollAttempts++;
-              const latestMsgs = await fetchChatMessages(activeTarget);
-              if (latestMsgs.length > msgs.length && latestMsgs[latestMsgs.length - 1].role === 'assistant') {
-                setMessages(latestMsgs);
-                clearInterval(pollInterval);
-              } else if (pollAttempts >= 18) {
-                clearInterval(pollInterval);
-              }
-            }, 2000);
+              });
+            } catch {}
           }
+          setMessages(msgs);
+          if (msgs.length > 0) {
+            const targetChat = chats.find(c => c.id === activeTarget);
+            memoryEngine.updateChatMemoryNode(activeTarget, targetChat?.title || 'محادثة سابقة', msgs, targetChat?.updated_at);
+
+            // If the last message was from user, the server may still be generating the response in background
+            if (msgs[msgs.length - 1].role === 'user') {
+              let pollAttempts = 0;
+              const pollInterval = setInterval(async () => {
+                pollAttempts++;
+                const latestMsgs = await fetchChatMessages(activeTarget);
+                if (latestMsgs.length > msgs.length && latestMsgs[latestMsgs.length - 1].role === 'assistant') {
+                  setMessages(latestMsgs);
+                  clearInterval(pollInterval);
+                } else if (pollAttempts >= 18) {
+                  clearInterval(pollInterval);
+                }
+              }, 2000);
+            }
+          }
+        } else {
+          // Chat was deleted or does not exist
+          setCurrentChatId(null);
+          setMessages([]);
+          updateActiveChatUrlAndStorage(null);
         }
-      } else {
-        // Chat was deleted or does not exist
-        setCurrentChatId(null);
-        setMessages([]);
-        updateActiveChatUrlAndStorage(null);
+      } catch (err) {
+        console.warn('[Restore Chat Error]:', err);
+      } finally {
+        setIsRestoringChat(false);
       }
     } else if (targetExplicitChatId === null || (targetExplicitChatId === undefined && activeTarget === null && !currentChatId)) {
       // Retain clean fresh new chat state
+      setIsRestoringChat(false);
       setCurrentChatId(null);
       setMessages([]);
       updateActiveChatUrlAndStorage(null);
+    } else {
+      setIsRestoringChat(false);
     }
   };
 
@@ -1108,38 +1130,44 @@ const MainAppContent: React.FC = () => {
     setIsStreaming(false);
     setCurrentChatId(chatId);
     updateActiveChatUrlAndStorage(chatId);
-    const history = await fetchChatMessages(chatId);
-    // Instant 0ms cache priming for all messages with images
-    if (typeof window !== 'undefined') {
-      try {
-        const gCache = ((window as any).__FATHOM_IMAGE_CACHE__ = (window as any).__FATHOM_IMAGE_CACHE__ || new Map<string, string>());
-        history.forEach(m => {
-          const img = m.image || (m.images && m.images[0]);
-          if (img) {
-            if (m.id) {
-              gCache.set(m.id, img);
-              localStorage.setItem(`fathom_img_${m.id}`, img);
-            }
-            const promptMatch = /"prompt"\s*:\s*"([^"]+)"/i.exec(m.content || '');
-            if (promptMatch && promptMatch[1]) {
-              const cleanPrompt = promptMatch[1].trim().toLowerCase().replace(/\s+/g, ' ');
-              let hash = 0;
-              for (let i = 0; i < cleanPrompt.length; i++) {
-                hash = ((hash << 5) - hash) + cleanPrompt.charCodeAt(i);
-                hash |= 0;
+    setMessages([]);
+    setIsRestoringChat(true);
+    try {
+      const history = await fetchChatMessages(chatId);
+      // Instant 0ms cache priming for all messages with images
+      if (typeof window !== 'undefined') {
+        try {
+          const gCache = ((window as any).__FATHOM_IMAGE_CACHE__ = (window as any).__FATHOM_IMAGE_CACHE__ || new Map<string, string>());
+          history.forEach(m => {
+            const img = m.image || (m.images && m.images[0]);
+            if (img) {
+              if (m.id) {
+                gCache.set(m.id, img);
+                localStorage.setItem(`fathom_img_${m.id}`, img);
               }
-              const hashKey = Math.abs(hash).toString(36);
-              gCache.set(hashKey, img);
-              localStorage.setItem(`fathom_img_${hashKey}`, img);
+              const promptMatch = /"prompt"\s*:\s*"([^"]+)"/i.exec(m.content || '');
+              if (promptMatch && promptMatch[1]) {
+                const cleanPrompt = promptMatch[1].trim().toLowerCase().replace(/\s+/g, ' ');
+                let hash = 0;
+                for (let i = 0; i < cleanPrompt.length; i++) {
+                  hash = ((hash << 5) - hash) + cleanPrompt.charCodeAt(i);
+                  hash |= 0;
+                }
+                const hashKey = Math.abs(hash).toString(36);
+                gCache.set(hashKey, img);
+                localStorage.setItem(`fathom_img_${hashKey}`, img);
+              }
             }
-          }
-        });
-      } catch {}
-    }
-    setMessages(history);
-    const targetChat = cloudChats.find(c => c.id === chatId);
-    if (history.length > 0) {
-      memoryEngine.updateChatMemoryNode(chatId, targetChat?.title || 'محادثة سابقة', history);
+          });
+        } catch {}
+      }
+      setMessages(history);
+      const targetChat = cloudChats.find(c => c.id === chatId);
+      if (history.length > 0) {
+        memoryEngine.updateChatMemoryNode(chatId, targetChat?.title || 'محادثة سابقة', history);
+      }
+    } finally {
+      setIsRestoringChat(false);
     }
     navigateTo('chat');
   };
@@ -1343,6 +1371,7 @@ const MainAppContent: React.FC = () => {
                   <ChatWindow
                     messages={messages}
                     isStreaming={isStreaming}
+                    isRestoringChat={isRestoringChat}
                     isX1Active={isX1Active}
                     activeModel={activeModel}
                     onSendPreset={(preset) => handleSendMessage(preset)}

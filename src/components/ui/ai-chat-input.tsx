@@ -39,7 +39,6 @@ import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 import { SmartTooltip } from "@/components/ui/SmartTooltip";
 import { PlatformLogo } from "@/components/ui/PlatformLogo";
 import { ImageForensicsModal } from "@/components/ui/ImageForensicsModal";
-import { Quant3PerfectionIcon } from "./Quant3PerfectionIcon";
 import { getModelDisplayName, getModelPlaceholder } from "@/lib/modelUtils";
 
 // ----------------------------------------------------------------------
@@ -956,11 +955,11 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             />
             <div
               dir="rtl"
-              className="absolute bottom-full right-1 sm:right-2 mb-3 w-[310px] sm:w-[340px] bg-[#0c0d12]/95 backdrop-blur-2xl rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none border border-white/[0.12] shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_1px_1px_rgba(255,255,255,0.08)]"
+              className="absolute bottom-full right-1 sm:right-2 mb-3 w-[300px] sm:w-[330px] bg-[#09090b]/98 backdrop-blur-2xl rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none border border-zinc-800 shadow-[0_20px_50px_rgba(0,0,0,0.95)]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-2.5 py-1.5 border-b border-white/[0.07] mb-1.5 flex items-center justify-between">
-                <span className="text-xs font-sans font-semibold text-zinc-200 tracking-wide">اختيار النموذج</span>
+              <div className="px-3 py-2 border-b border-white/[0.06] mb-1.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-zinc-400">اختيار النموذج</span>
               </div>
 
               <div className="space-y-1">
@@ -976,30 +975,25 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         setIsModelMenuOpen(false);
                       }}
                       className={cn(
-                        "w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group relative",
+                        "w-full flex flex-col gap-1 px-3 py-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer border text-right group relative",
                         isSelected
-                          ? "bg-white/[0.08] border-white/20 text-white font-semibold shadow-sm"
-                          : "bg-white/[0.015] hover:bg-white/[0.05] text-zinc-300 border-transparent hover:border-white/[0.08]"
+                          ? "bg-zinc-900/90 border-zinc-700/80 shadow-sm"
+                          : "bg-transparent hover:bg-zinc-900/50 text-zinc-300 border-transparent hover:border-zinc-800/60"
                       )}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className={cn(
-                          "size-8 rounded-lg flex items-center justify-center shrink-0 transition-all",
-                          isSelected
-                            ? "bg-white/[0.12] border border-white/25 text-white"
-                            : "bg-white/[0.04] border border-white/[0.08] text-zinc-400 group-hover:text-zinc-200 group-hover:bg-white/[0.07]"
-                        )}>
-                          <Quant3PerfectionIcon size={16} className="text-zinc-200" />
+                      <div className="w-full flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2" dir="ltr">
+                          <span className="font-semibold text-xs tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-300 bg-clip-text text-transparent">
+                            Fathom Quant 3
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 font-medium border border-zinc-700/50 font-mono">
+                            Flagship
+                          </span>
                         </div>
-                        <div className="min-w-0 flex-1 text-right">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <span className="font-semibold text-xs text-white">Fathom Quant 3</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-zinc-100 shrink-0" />}
-                          </div>
-                          <div className="text-[11px] text-zinc-400 font-normal leading-normal mt-0.5 group-hover:text-zinc-300 transition-colors truncate">
-                            توليد وتعديل الصور، SVG، واستدلال عميق
-                          </div>
-                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
+                      </div>
+                      <div dir="rtl" className="text-[11px] text-zinc-400 font-normal leading-normal text-right group-hover:text-zinc-300 transition-colors">
+                        توليد وتعديل الصور، SVG، واستدلال عميق
                       </div>
                     </button>
                   );
@@ -1017,30 +1011,25 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         setIsModelMenuOpen(false);
                       }}
                       className={cn(
-                        "w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group relative",
+                        "w-full flex flex-col gap-1 px-3 py-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer border text-right group relative",
                         isSelected
-                          ? "bg-indigo-950/40 border-indigo-500/35 text-indigo-100 font-semibold shadow-sm"
-                          : "bg-white/[0.015] hover:bg-white/[0.05] text-zinc-300 border-transparent hover:border-white/[0.08]"
+                          ? "bg-zinc-900/90 border-zinc-700/80 shadow-sm"
+                          : "bg-transparent hover:bg-zinc-900/50 text-zinc-300 border-transparent hover:border-zinc-800/60"
                       )}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className={cn(
-                          "size-8 rounded-lg flex items-center justify-center shrink-0 transition-all",
-                          isSelected
-                            ? "bg-indigo-500/20 border border-indigo-400/40 text-indigo-300"
-                            : "bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 group-hover:bg-indigo-500/15"
-                        )}>
-                          <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                      <div className="w-full flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2" dir="ltr">
+                          <span className="font-semibold text-xs tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-300 bg-clip-text text-transparent">
+                            Fathom Cyber Ultra 2.6
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 font-medium border border-zinc-700/50 font-mono">
+                            Ultra
+                          </span>
                         </div>
-                        <div className="min-w-0 flex-1 text-right">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <span className="font-semibold text-xs text-white">Fathom Cyber Ultra 2.6</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-indigo-300 shrink-0" />}
-                          </div>
-                          <div className="text-[11px] text-zinc-400 font-normal leading-normal mt-0.5 group-hover:text-zinc-200 transition-colors truncate">
-                            تفكير استدلالي وهندسة سيبرانية متقدمة
-                          </div>
-                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
+                      </div>
+                      <div dir="rtl" className="text-[11px] text-zinc-400 font-normal leading-normal text-right group-hover:text-zinc-300 transition-colors">
+                        تفكير استدلالي وهندسة سيبرانية متقدمة
                       </div>
                     </button>
                   );
@@ -1058,30 +1047,25 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         setIsModelMenuOpen(false);
                       }}
                       className={cn(
-                        "w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group relative",
+                        "w-full flex flex-col gap-1 px-3 py-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer border text-right group relative",
                         isSelected
-                          ? "bg-amber-950/30 border-amber-500/35 text-amber-100 font-semibold shadow-sm"
-                          : "bg-white/[0.015] hover:bg-white/[0.05] text-zinc-300 border-transparent hover:border-white/[0.08]"
+                          ? "bg-zinc-900/90 border-zinc-700/80 shadow-sm"
+                          : "bg-transparent hover:bg-zinc-900/50 text-zinc-300 border-transparent hover:border-zinc-800/60"
                       )}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className={cn(
-                          "size-8 rounded-lg flex items-center justify-center shrink-0 transition-all",
-                          isSelected
-                            ? "bg-amber-500/20 border border-amber-400/40 text-amber-300"
-                            : "bg-amber-500/10 border border-amber-500/20 text-amber-400 group-hover:bg-amber-500/15"
-                        )}>
-                          <Zap className="w-4 h-4 text-amber-400" />
+                      <div className="w-full flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2" dir="ltr">
+                          <span className="font-semibold text-xs tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-300 bg-clip-text text-transparent">
+                            Fathom Cyber Flash 2.6
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 font-medium border border-zinc-700/50 font-mono">
+                            Flash
+                          </span>
                         </div>
-                        <div className="min-w-0 flex-1 text-right">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <span className="font-semibold text-xs text-white">Fathom Cyber Flash 2.6</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-amber-300 shrink-0" />}
-                          </div>
-                          <div className="text-[11px] text-zinc-400 font-normal leading-normal mt-0.5 group-hover:text-zinc-200 transition-colors truncate">
-                            فحص أمني واستجابة سيبرانية خاطفة
-                          </div>
-                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
+                      </div>
+                      <div dir="rtl" className="text-[11px] text-zinc-400 font-normal leading-normal text-right group-hover:text-zinc-300 transition-colors">
+                        فحص أمني واستجابة سيبرانية خاطفة
                       </div>
                     </button>
                   );
@@ -1099,30 +1083,25 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                         setIsModelMenuOpen(false);
                       }}
                       className={cn(
-                        "w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border group relative",
+                        "w-full flex flex-col gap-1 px-3 py-2.5 rounded-xl text-xs font-sans transition-all cursor-pointer border text-right group relative",
                         isSelected
-                          ? "bg-white/[0.07] border-white/20 text-white font-semibold shadow-sm"
-                          : "bg-white/[0.015] hover:bg-white/[0.05] text-zinc-300 border-transparent hover:border-white/[0.08]"
+                          ? "bg-zinc-900/90 border-zinc-700/80 shadow-sm"
+                          : "bg-transparent hover:bg-zinc-900/50 text-zinc-300 border-transparent hover:border-zinc-800/60"
                       )}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className={cn(
-                          "size-8 rounded-lg flex items-center justify-center shrink-0 transition-all",
-                          isSelected
-                            ? "bg-white/[0.1] border border-white/20 text-zinc-100"
-                            : "bg-white/[0.04] border border-white/[0.08] text-zinc-400 group-hover:text-zinc-200 group-hover:bg-white/[0.07]"
-                        )}>
-                          <Zap className="w-4 h-4 text-zinc-200 fill-zinc-200/20" />
+                      <div className="w-full flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2" dir="ltr">
+                          <span className="font-semibold text-xs tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-300 bg-clip-text text-transparent">
+                            Fathom 1.1
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 font-medium border border-zinc-700/50 font-mono">
+                            Base
+                          </span>
                         </div>
-                        <div className="min-w-0 flex-1 text-right">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <span className="font-semibold text-xs text-white">Fathom 1.1</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-zinc-100 shrink-0" />}
-                          </div>
-                          <div className="text-[11px] text-zinc-400 font-normal leading-normal mt-0.5 group-hover:text-zinc-300 transition-colors truncate">
-                            محادثة ذكية وتوليد نصوص سريع
-                          </div>
-                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-zinc-200 shrink-0" />}
+                      </div>
+                      <div dir="rtl" className="text-[11px] text-zinc-400 font-normal leading-normal text-right group-hover:text-zinc-300 transition-colors">
+                        محادثة ذكية وتوليد نصوص سريع
                       </div>
                     </button>
                   );
@@ -1792,25 +1771,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   e.stopPropagation();
                   setIsModelMenuOpen(!isModelMenuOpen);
                 }}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium select-none shrink-0 cursor-pointer transition-all bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.16] text-zinc-300 hover:text-white active:scale-95 shadow-none"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium select-none shrink-0 cursor-pointer transition-all bg-zinc-900/90 hover:bg-zinc-800/90 border border-zinc-800/80 hover:border-zinc-700 text-zinc-300 hover:text-white active:scale-95 shadow-none"
                 title="اختيار النموذج الذكي"
               >
-                {isMediaMode ? (
-                  <Sparkles className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                ) : isQuant3Mode ? (
-                  <Quant3PerfectionIcon size={14} className="text-zinc-200 shrink-0" />
-                ) : isCyber26Pro ? (
-                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                ) : isCyber26Flash ? (
-                  <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20 shrink-0" />
-                ) : isCyberMode ? (
-                  <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                ) : isVisionMode ? (
-                  <Camera className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                ) : (
-                  <Zap className="w-3.5 h-3.5 text-zinc-200 fill-zinc-200/20 shrink-0" />
-                )}
-                <span className="font-sans text-[11px] sm:text-xs font-semibold tracking-tight">
+                <span className="font-sans text-[11px] sm:text-xs font-medium tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-300 bg-clip-text text-transparent">
                   {activeModelDisplayName}
                 </span>
                 <ChevronDown className={cn("w-3 h-3 text-zinc-400 transition-transform duration-200", isModelMenuOpen && "rotate-180")} />
