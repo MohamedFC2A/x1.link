@@ -68,15 +68,59 @@ export default async function handler(req: any, res?: any) {
     }
 
     let finalPrompt = prompt.trim();
-    // Defensive Typography Enhancement: If prompt requests text, letters, numbers, or vehicle license plates, ensure OCR & human readability
-    const hasTextOrPlateRequest = /(?:plate|license|sign|text|letters?|numbers?|logo|billboard|label|typography|words?|لوحة|نمرة|كتابة|نص|حروف|أرقام)/i.test(finalPrompt);
-    if (hasTextOrPlateRequest && !finalPrompt.includes('readable by OCR')) {
-      finalPrompt = `${finalPrompt}, crisp legible typography, authentic official vehicle plate format, perfectly formed characters, razor-sharp edges, high contrast, zero gibberish, zero scrambled letters, fully legible by optical character recognition (OCR) and humans`;
-    }
 
     const openRouterKey = process.env.OPENROUTER_API_KEY || '';
     if (!openRouterKey) {
       return sendResponse(500, { error: 'OPENROUTER_API_KEY is not configured' });
+    }
+
+    // Autonomous Translation & Photorealistic Expansion for non-English prompts (e.g. Arabic)
+    const hasArabicCharacters = /[\u0600-\u06FF]/.test(finalPrompt);
+    if (hasArabicCharacters) {
+      try {
+        const transRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openRouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI'
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an elite visual prompt engineer for photorealistic image generation (Meta Muse / FLUX). Translate and expand the following user image description or modification instruction into a single, detailed, photorealistic visual prompt in English. Output ONLY the raw English prompt, nothing else.'
+              },
+              {
+                role: 'user',
+                content: finalPrompt
+              }
+            ],
+            max_tokens: 300,
+            temperature: 0.2
+          }),
+          signal: AbortSignal.timeout(6000)
+        });
+
+        if (transRes.ok) {
+          const transData = await transRes.json();
+          const translatedText = transData?.choices?.[0]?.message?.content?.trim();
+          if (translatedText && !/[\u0600-\u06FF]/.test(translatedText)) {
+            console.log(`[generate-image] Translated Arabic prompt: "${finalPrompt}" -> "${translatedText.slice(0, 100)}..."`);
+            finalPrompt = translatedText;
+          }
+        }
+      } catch (transErr) {
+        console.warn('[generate-image] Arabic translation fallback bypassed:', transErr);
+      }
+    }
+
+    // Defensive Typography Enhancement: If prompt requests text, letters, numbers, or vehicle license plates, ensure OCR & human readability
+    const hasTextOrPlateRequest = /(?:plate|license|sign|text|letters?|numbers?|logo|billboard|label|typography|words?|لوحة|نمرة|كتابة|نص|حروف|أرقام)/i.test(finalPrompt);
+    if (hasTextOrPlateRequest && !finalPrompt.includes('readable by OCR')) {
+      finalPrompt = `${finalPrompt}, crisp legible typography, authentic official vehicle plate format, perfectly formed characters, razor-sharp edges, high contrast, zero gibberish, zero scrambled letters, fully legible by optical character recognition (OCR) and humans`;
     }
 
     // Parse and normalize visual reference images for Meta: Muse Image agentic conditioning (uploading base64 to Supabase CDN if needed)
@@ -91,6 +135,11 @@ export default async function handler(req: any, res?: any) {
           model: 'meta/muse-image',
           prompt: finalPrompt
         };
+
+        const targetRatio = body?.aspectRatio || body?.aspect_ratio;
+        if (targetRatio && ['1:1', '16:9', '9:16', '4:3'].includes(targetRatio)) {
+          payload.aspect_ratio = targetRatio;
+        }
 
         if (includeRefs && formattedReferences.length > 0) {
           payload.input_references = formattedReferences.slice(0, 5);

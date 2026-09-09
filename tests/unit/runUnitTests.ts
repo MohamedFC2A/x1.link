@@ -66,5 +66,12 @@ export async function runAllUnitTests(): Promise<boolean> {
 }
 
 runAllUnitTests().then(passed => {
-  if (!passed) process.exit(1);
+  if (!passed) {
+    process.exit(1);
+  } else {
+    process.exit(0);
+  }
+}).catch(err => {
+  console.error('Fatal test runner error:', err);
+  process.exit(1);
 });

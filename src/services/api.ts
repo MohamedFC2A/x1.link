@@ -151,19 +151,24 @@ export async function streamChatCompletion({
         : (msg.image ? [msg.image] : []);
 
       if (allImages.length > 0) {
-        // If it is an older turn, avoid sending massive duplicate base64 payloads to preserve Vercel limit
-        if (!isLatestTurn) {
+        // Identify if this message contains the most recent image attachment in conversation history
+        const hasLaterImageTurn = messages.slice(idx + 1).some(m => (m.images && m.images.length > 0) || m.image);
+
+        // Only condense very old turns if they are NOT the latest image reference and are raw base64 data URIs
+        if (!isLatestTurn && hasLaterImageTurn && allImages.every(img => img.startsWith('data:'))) {
           const imageText = allImages.length === 1 ? 'صورة واحدة' : `${allImages.length} صور`;
           return {
             role: msg.role,
             content: `${cleanContent}\n[ملاحظة سياقية: تم إرفاق وتحليل (${imageText}) في هذا الدور السابق كمرجع بصري معتمد، يُمنع تكرار هذه الملاحظة للمستخدم]`,
+            image: allImages[0],
+            images: allImages,
             reasoning: msg.reasoning
           };
         }
 
-        const imageCountNotice = allImages.length === 1
-          ? 'المرفق في هذا الطلب الحالي: صورة واحدة فقط'
-          : `عدد الصور المرفقة في هذا الطلب: (${allImages.length}) صور`;
+        const imageCountNotice = isLatestTurn
+          ? (allImages.length === 1 ? 'المرفق في هذا الطلب الحالي: صورة واحدة فقط' : `عدد الصور المرفقة في هذا الطلب: (${allImages.length}) صور`)
+          : (allImages.length === 1 ? 'الصورة المرجعية المعتمدة من الدور السابق: صورة واحدة' : `الصور المرجعية المعتمدة من الدور السابق: (${allImages.length}) صور`);
 
         const contentParts: any[] = [
           { type: 'text', text: `${cleanContent}\n\n[${imageCountNotice}]` }
@@ -185,6 +190,8 @@ export async function streamChatCompletion({
         return {
           role: msg.role,
           content: contentParts,
+          image: allImages[0],
+          images: allImages,
           reasoning: msg.reasoning
         };
       }

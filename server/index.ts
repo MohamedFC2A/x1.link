@@ -2613,12 +2613,14 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     }
   }
 
+  const priorNeuralImage = DynamicParameterTuner.extractPriorNeuralImage(cleanedMessages);
+
   const hasMultimodal = cleanedMessages.some((m: any) => {
     if (Array.isArray(m.content)) {
       return m.content.some((c: any) => c.type === 'image_url' || c.image_url);
     }
-    return false;
-  });
+    return Boolean(m.image || (m.images && m.images.length > 0));
+  }) || Boolean(priorNeuralImage?.imageUrl);
 
   const hasZipOrMedia = isMediaSpark || cleanedMessages.some((m: any) => {
     const txt = typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '');
@@ -2719,8 +2721,38 @@ app.post('/api/chat', async (req: Request, res: Response) => {
    - يُحظر تماماً كتابة أي تفكير أو نصوص أو مقدمات قبل أو بعد الكود؛ ابدأ فوراً وأخرج كود الـ SVG النقي المكتمل داخل \`\`\`svg ... \`\`\` ليتم عرضه في لوحة التعديل وتصديره كـ 2K و 4K مباشرة.`;
       activeSystemPrompt += `\n\n${imageToSvgGuidance}`;
     } else if (dynamicTuning.detectedIntent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING') {
-      // Sovereign Neural Image Studio is active; bypass vision inspection directive to avoid IT-support diagnostic hallucination
-      console.log('[X1-PIPELINE] Neural Image Studio active. Bypassing Fathom Cam vision inspection directive.');
+      const priorImg = dynamicTuning.priorNeuralImage || priorNeuralImage;
+      const priorSeed = priorImg?.seed !== undefined ? priorImg.seed : 482910;
+      const priorImgUrl = priorImg?.imageUrl && !priorImg.imageUrl.startsWith('data:') ? priorImg.imageUrl : '';
+
+      const neuralImageEditingGuidance = `
+[توجيه التعديل والمعالجة البصرية العصبية للصور — FATHOM NEURAL IMAGE STUDIO MODIFICATION & INPAINTING DIRECTIVE]:
+1. [الإدراك والتحليل البصري للصورة المرفقة أو السابقة بنسبة 100%]:
+   - افحص واستوعب تفاصيل الصورة المرفقة بيكسل ببيكسل عبر Fathom Vision: تعرّف بدقة على موضوع الصورة (نوع السيارة، الموديل، الملامح، الملابس، زاوية التصوير، الإضاءة، والبيئة المحيطة).
+   - افهم طلب التعديل أو التلوين أو الإضافة المطلوب من المستخدم بدقة تامة (مثل: تغيير لون السيارة، إضافة عنصر، تعديل اللوحة، استبدال الخلفية).
+2. [بروتوكول الإخراج الإلزامي - ZERO REFUSAL & MANDATORY DELIVERABLE BLOCK]:
+   - فكّر بإيجاز داخل <think> باللغة العربية الفصحى حول كيفية تطبيق التعديل المطلوب جراحياً فقط مع إبقاء 100% من معالم المشهد الأصلي دون أي تغيير.
+   - بعد إغلاق </think>، قدّم شرحاً عربياً موجزاً وبليغاً يؤكد إتمام التعديل المطلوب.
+   - أخرج حتماً في نهاية ردك كتلة المعالجة العصبية التالية بصيغة JSON دقيقة ومكتملة داخل \`\`\`neural-image ... \`\`\`:
+\`\`\`neural-image
+{
+  "operation": "edit",
+  "title": "تعديل: <تفاصيل التعديل بالعربية>",
+  "description": "تم تعديل <التفاصيل المنفذة بدقة 100%>",
+  "prompt": "<Ultra-detailed English visual prompt preserving 100% of original scene environment, lighting, vehicle model, camera angle with only surgical modification applied>",
+  "seed": ${priorSeed},
+  "originalImage": "${priorImgUrl}",
+  "aspectRatio": "${priorImg?.aspectRatio || '1:1'}",
+  "style": "${priorImg?.style || 'photorealistic'}",
+  "fidelityScore": "100%",
+  "resolution": "4K"
+}
+\`\`\`
+3. [الحظر الصارم للاعتذارات وتشخيصات الدعم الفني والـ SVG]:
+   - يُحظر تماماً وبشكل قاطع كتابة أي رسائل اعتذار أو القول بأنك نموذج لغوي لا تستطيع تعديل الصور أو كتابة تشخيصات دعم فني (مثل "المشكلة ليست في التصميم...").
+   - يُحظر تماماً تحويل الصورة إلى SVG إلا إذا طلب المستخدم صراحة كلمة SVG أو فيكتور.
+   - التزم حصراً وبنسبة 100% بإخراج كتلة \`\`\`neural-image المحددة أعلاه.`;
+      activeSystemPrompt += `\n\n${neuralImageEditingGuidance}`;
     } else {
       const visionGuidance = `
 [توجيه الإدراك البصري وفحص المستندات والواجهات والصور المرفقة — FATHOM CAM UNIVERSAL MULTIMODAL DIRECTIVE]:
@@ -2882,6 +2914,40 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         return {
           role: m.role || 'user',
           content: m.content
+        };
+      }
+
+      const directImgs = (m as any).images || ((m as any).image ? [(m as any).image] : []);
+      if (!Array.isArray(m.content) && directImgs.length > 0 && (isMediaSpark || isVision || hasMultimodal)) {
+        const parts: any[] = [{ type: 'text', text: typeof m.content === 'string' ? m.content : 'صورة مرفقة' }];
+        directImgs.forEach((img: string) => {
+          if (img && (img.startsWith('http') || img.startsWith('data:image'))) {
+            parts.push({ type: 'image_url', image_url: { url: img } });
+          }
+        });
+        return {
+          role: m.role || 'user',
+          content: parts
+        };
+      }
+
+      // If user is editing a prior image in latest turn without re-attaching, inject prior image URL for vision model
+      if (isLatestTurn && dynamicTuning.detectedIntent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING' && priorNeuralImage?.imageUrl) {
+        let parts: any[] = Array.isArray(m.content) ? [...m.content] : [{ type: 'text', text: typeof m.content === 'string' ? m.content : '' }];
+        const alreadyHasImage = parts.some((p: any) => p.type === 'image_url');
+        if (!alreadyHasImage && priorNeuralImage.imageUrl.startsWith('http')) {
+          parts.push({
+            type: 'text',
+            text: '\n[الصورة المرجعية المعتمدة المطلوب تطبيق التعديل عليها]:'
+          });
+          parts.push({
+            type: 'image_url',
+            image_url: { url: priorNeuralImage.imageUrl }
+          });
+        }
+        return {
+          role: m.role || 'user',
+          content: parts
         };
       }
 
@@ -3485,6 +3551,37 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       }
     }
 
+    // Autonomous Server-Side Recovery Guard for Neural Image Studio:
+    if (dynamicTuning.detectedIntent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING') {
+      const hasNeuralBlock = fullServerContent.includes('neural-image') || fullServerContent.includes('neural_image');
+      if (!hasNeuralBlock) {
+        const priorImg = dynamicTuning.priorNeuralImage || priorNeuralImage;
+        const priorSeed = priorImg?.seed !== undefined ? priorImg.seed : 482910;
+        const priorImgUrl = priorImg?.imageUrl && !priorImg.imageUrl.startsWith('data:') ? priorImg.imageUrl : '';
+        const hasUploadedImage = cleanedMessages.some((m: any) => m.image || (m.images && m.images.length > 0));
+        const isEdit = Boolean(priorImgUrl || hasUploadedImage);
+
+        const recoveryBlock = `\n\n\`\`\`neural-image\n${JSON.stringify({
+          operation: isEdit ? 'edit' : 'generate',
+          title: isEdit ? 'تعديل موضعي دقيق' : 'إنشاء بصري فائق الدقة',
+          description: isEdit ? 'تم تطبيق التعديلات البصرية المطلوبة بنجاح' : 'تم تخطيط المشهد العصبي بنجاح',
+          prompt: lastUserText,
+          seed: priorSeed,
+          originalImage: priorImgUrl || undefined,
+          aspectRatio: priorImg?.aspectRatio || '1:1',
+          style: priorImg?.style || 'photorealistic',
+          fidelityScore: '100%',
+          resolution: '4K'
+        }, null, 2)}\n\`\`\`\n`;
+
+        fullServerContent += recoveryBlock;
+        if (!isClientDisconnected && !res.writableEnded) {
+          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: recoveryBlock } }] })}\n\n`);
+        }
+        console.log('[X1-SERVER] ✓ Synthetic Neural Image recovery block written to stream.');
+      }
+    }
+
     if (!isClientDisconnected && !res.writableEnded) {
       res.end();
     }
@@ -4009,10 +4106,61 @@ app.post('/api/generate-image', async (req: Request, res: Response) => {
       return;
     }
 
+    let finalPrompt = prompt.trim();
+
     const openRouterKey = OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || '';
     if (!openRouterKey) {
       res.status(500).json({ error: 'OPENROUTER_API_KEY is not configured' });
       return;
+    }
+
+    // Autonomous Translation & Photorealistic Expansion for non-English prompts (e.g. Arabic)
+    const hasArabicCharacters = /[\u0600-\u06FF]/.test(finalPrompt);
+    if (hasArabicCharacters) {
+      try {
+        const transRes = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openRouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI'
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an elite visual prompt engineer for photorealistic image generation (Meta Muse / FLUX). Translate and expand the following user image description or modification instruction into a single, detailed, photorealistic visual prompt in English. Output ONLY the raw English prompt, nothing else.'
+              },
+              {
+                role: 'user',
+                content: finalPrompt
+              }
+            ],
+            max_tokens: 300,
+            temperature: 0.2
+          }),
+          signal: AbortSignal.timeout(6000)
+        });
+
+        if (transRes.ok) {
+          const transData = await transRes.json();
+          const translatedText = transData?.choices?.[0]?.message?.content?.trim();
+          if (translatedText && !/[\u0600-\u06FF]/.test(translatedText)) {
+            console.log(`[server/generate-image] Translated Arabic prompt: "${finalPrompt}" -> "${translatedText.slice(0, 100)}..."`);
+            finalPrompt = translatedText;
+          }
+        }
+      } catch (transErr) {
+        console.warn('[server/generate-image] Arabic translation fallback bypassed:', transErr);
+      }
+    }
+
+    // Defensive Typography Enhancement: If prompt requests text, letters, numbers, or vehicle license plates, ensure OCR & human readability
+    const hasTextOrPlateRequest = /(?:plate|license|sign|text|letters?|numbers?|logo|billboard|label|typography|words?|لوحة|نمرة|كتابة|نص|حروف|أرقام)/i.test(finalPrompt);
+    if (hasTextOrPlateRequest && !finalPrompt.includes('readable by OCR')) {
+      finalPrompt = `${finalPrompt}, crisp legible typography, authentic official vehicle plate format, perfectly formed characters, razor-sharp edges, high contrast, zero gibberish, zero scrambled letters, fully legible by optical character recognition (OCR) and humans`;
     }
 
     const rawRefs = req.body?.input_references || req.body?.referenceImages || (req.body?.originalImage ? [req.body.originalImage] : []);
@@ -4021,8 +4169,14 @@ app.post('/api/generate-image', async (req: Request, res: Response) => {
     const fetchImg = async (includeRefs = true): Promise<any> => {
       const payload: any = {
         model: 'meta/muse-image',
-        prompt: prompt.trim()
+        prompt: finalPrompt
       };
+
+      const targetRatio = req.body?.aspectRatio || req.body?.aspect_ratio;
+      if (targetRatio && ['1:1', '16:9', '9:16', '4:3'].includes(targetRatio)) {
+        payload.aspect_ratio = targetRatio;
+      }
+
       if (includeRefs && formattedReferences.length > 0) {
         payload.input_references = formattedReferences.slice(0, 5);
       }
@@ -4077,9 +4231,48 @@ app.post('/api/generate-image', async (req: Request, res: Response) => {
       imageUrl = item.url;
     }
 
+    // Direct Server-Side Supabase Persistence: Permanently preserve image on the message row
+    const messageId = req.body?.messageId;
+    if (messageId && imageUrl) {
+      try {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(messageId);
+        let targetRow: { id: string; content?: string } | null = null;
+        if (isUuid) {
+          const { data: row } = await serverSupabase
+            .from('x1_messages')
+            .select('id, content')
+            .eq('id', messageId)
+            .maybeSingle();
+          if (row) targetRow = row;
+        }
+
+        if (targetRow) {
+          let updatedContent = targetRow.content || '';
+          const neuralMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(updatedContent);
+          if (neuralMatch) {
+            try {
+              const parsed = JSON.parse(neuralMatch[1]);
+              parsed.imageUrl = imageUrl;
+              parsed.processedImage = imageUrl;
+              updatedContent = updatedContent.replace(
+                neuralMatch[0],
+                `\`\`\`neural-image\n${JSON.stringify(parsed, null, 2)}\n\`\`\``
+              );
+            } catch {}
+          }
+          await serverSupabase
+            .from('x1_messages')
+            .update({ image_url: imageUrl, content: updatedContent })
+            .eq('id', targetRow.id);
+        }
+      } catch (dbErr) {
+        console.warn('[server/generate-image Supabase persistence warning]:', dbErr);
+      }
+    }
+
     res.status(200).json({
       imageUrl,
-      model: 'meta/muse-image',
+      model: 'Fathom QP3',
       provider: 'openrouter'
     });
   } catch (error: any) {

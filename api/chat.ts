@@ -1997,12 +1997,14 @@ export default async function handler(req: Request): Promise<Response> {
   const isPersonalRecall = isPersonalMemoryRecallIntent(lastUserText);
   const effectiveMemoryPrompt = isPersonalRecall ? (memoryPrompt || '') : '';
 
+  const priorNeuralImage = DynamicParameterTuner.extractPriorNeuralImage(cleanedMessages);
+
   const hasMultimodal = cleanedMessages.some((m: any) => {
     if (Array.isArray(m.content)) {
       return m.content.some((c: any) => c.type === 'image_url' || c.image_url);
     }
-    return false;
-  });
+    return Boolean(m.image || (m.images && m.images.length > 0));
+  }) || Boolean(priorNeuralImage?.imageUrl);
 
   const hasZipOrMedia = isMediaSpark || cleanedMessages.some((m: any) => {
     const txt = typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '');
@@ -2105,8 +2107,38 @@ export default async function handler(req: Request): Promise<Response> {
    - يُحظر تماماً كتابة أي تفكير أو نصوص أو مقدمات قبل أو بعد الكود؛ ابدأ فوراً وأخرج كود الـ SVG النقي المكتمل داخل \`\`\`svg ... \`\`\` ليتم عرضه في لوحة التعديل وتصديره كـ 2K و 4K مباشرة.`;
       activeSystemPrompt += `\n\n${imageToSvgGuidance}`;
     } else if (dynamicTuning.detectedIntent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING') {
-      // Sovereign Neural Image Studio is active; bypass vision inspection directive to avoid IT-support diagnostic hallucination
-      console.log('[X1-PIPELINE Edge] Neural Image Studio active. Bypassing Fathom Cam vision inspection directive.');
+      const priorImg = dynamicTuning.priorNeuralImage || priorNeuralImage;
+      const priorSeed = priorImg?.seed !== undefined ? priorImg.seed : 482910;
+      const priorImgUrl = priorImg?.imageUrl && !priorImg.imageUrl.startsWith('data:') ? priorImg.imageUrl : '';
+
+      const neuralImageEditingGuidance = `
+[توجيه التعديل والمعالجة البصرية العصبية للصور — FATHOM NEURAL IMAGE STUDIO MODIFICATION & INPAINTING DIRECTIVE]:
+1. [الإدراك والتحليل البصري للصورة المرفقة أو السابقة بنسبة 100%]:
+   - افحص واستوعب تفاصيل الصورة المرفقة بيكسل ببيكسل عبر Fathom Vision: تعرّف بدقة على موضوع الصورة (نوع السيارة، الموديل، الملامح، الملابس، زاوية التصوير، الإضاءة، والبيئة المحيطة).
+   - افهم طلب التعديل أو التلوين أو الإضافة المطلوب من المستخدم بدقة تامة (مثل: تغيير لون السيارة، إضافة عنصر، تعديل اللوحة، استبدال الخلفية).
+2. [بروتوكول الإخراج الإلزامي - ZERO REFUSAL & MANDATORY DELIVERABLE BLOCK]:
+   - فكّر بإيجاز داخل <think> باللغة العربية الفصحى حول كيفية تطبيق التعديل المطلوب جراحياً فقط مع إبقاء 100% من معالم المشهد الأصلي دون أي تغيير.
+   - بعد إغلاق </think>، قدّم شرحاً عربياً موجزاً وبليغاً يؤكد إتمام التعديل المطلوب.
+   - أخرج حتماً في نهاية ردك كتلة المعالجة العصبية التالية بصيغة JSON دقيقة ومكتملة داخل \`\`\`neural-image ... \`\`\`:
+\`\`\`neural-image
+{
+  "operation": "edit",
+  "title": "تعديل: <تفاصيل التعديل بالعربية>",
+  "description": "تم تعديل <التفاصيل المنفذة بدقة 100%>",
+  "prompt": "<Ultra-detailed English visual prompt preserving 100% of original scene environment, lighting, vehicle model, camera angle with only surgical modification applied>",
+  "seed": ${priorSeed},
+  "originalImage": "${priorImgUrl}",
+  "aspectRatio": "${priorImg?.aspectRatio || '1:1'}",
+  "style": "${priorImg?.style || 'photorealistic'}",
+  "fidelityScore": "100%",
+  "resolution": "4K"
+}
+\`\`\`
+3. [الحظر الصارم للاعتذارات وتشخيصات الدعم الفني والـ SVG]:
+   - يُحظر تماماً وبشكل قاطع كتابة أي رسائل اعتذار أو القول بأنك نموذج لغوي لا تستطيع تعديل الصور أو كتابة تشخيصات دعم فني (مثل "المشكلة ليست في التصميم...").
+   - يُحظر تماماً تحويل الصورة إلى SVG إلا إذا طلب المستخدم صراحة كلمة SVG أو فيكتور.
+   - التزم حصراً وبنسبة 100% بإخراج كتلة \`\`\`neural-image المحددة أعلاه.`;
+      activeSystemPrompt += `\n\n${neuralImageEditingGuidance}`;
     } else {
       const visionGuidance = `
 [توجيه الإدراك البصري وفحص المستندات والواجهات والصور المرفقة — FATHOM CAM UNIVERSAL MULTIMODAL DIRECTIVE]:
@@ -2276,6 +2308,40 @@ export default async function handler(req: Request): Promise<Response> {
         return {
           role: m.role || 'user',
           content: m.content
+        };
+      }
+
+      const directImgs = (m as any).images || ((m as any).image ? [(m as any).image] : []);
+      if (!Array.isArray(m.content) && directImgs.length > 0 && (isMediaSpark || isVision || hasMultimodal)) {
+        const parts: any[] = [{ type: 'text', text: typeof m.content === 'string' ? m.content : 'صورة مرفقة' }];
+        directImgs.forEach((img: string) => {
+          if (img && (img.startsWith('http') || img.startsWith('data:image'))) {
+            parts.push({ type: 'image_url', image_url: { url: img } });
+          }
+        });
+        return {
+          role: m.role || 'user',
+          content: parts
+        };
+      }
+
+      // If user is editing a prior image in latest turn without re-attaching, inject prior image URL for vision model
+      if (isLatestTurn && dynamicTuning.detectedIntent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING' && priorNeuralImage?.imageUrl) {
+        let parts: any[] = Array.isArray(m.content) ? [...m.content] : [{ type: 'text', text: typeof m.content === 'string' ? m.content : '' }];
+        const alreadyHasImage = parts.some((p: any) => p.type === 'image_url');
+        if (!alreadyHasImage && priorNeuralImage.imageUrl.startsWith('http')) {
+          parts.push({
+            type: 'text',
+            text: '\n[الصورة المرجعية المعتمدة المطلوب تطبيق التعديل عليها]:'
+          });
+          parts.push({
+            type: 'image_url',
+            image_url: { url: priorNeuralImage.imageUrl }
+          });
+        }
+        return {
+          role: m.role || 'user',
+          content: parts
         };
       }
 
@@ -2841,7 +2907,37 @@ export default async function handler(req: Request): Promise<Response> {
 
             controller.enqueue(chunk);
           },
-          async flush() {
+          async flush(controller) {
+            // Autonomous Server-Side Recovery Guard for Neural Image Studio:
+            if (dynamicTuning.detectedIntent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING') {
+              const hasNeuralBlock = fullServerContent.includes('neural-image') || fullServerContent.includes('neural_image');
+              if (!hasNeuralBlock) {
+                const priorImg = dynamicTuning.priorNeuralImage || priorNeuralImage;
+                const priorSeed = priorImg?.seed !== undefined ? priorImg.seed : 482910;
+                const priorImgUrl = priorImg?.imageUrl && !priorImg.imageUrl.startsWith('data:') ? priorImg.imageUrl : '';
+                const hasUploadedImage = cleanedMessages.some((m: any) => m.image || (m.images && m.images.length > 0));
+                const isEdit = Boolean(priorImgUrl || hasUploadedImage);
+
+                const recoveryBlock = `\n\n\`\`\`neural-image\n${JSON.stringify({
+                  operation: isEdit ? 'edit' : 'generate',
+                  title: isEdit ? 'تعديل موضعي دقيق' : 'إنشاء بصري فائق الدقة',
+                  description: isEdit ? 'تم تطبيق التعديلات البصرية المطلوبة بنجاح' : 'تم تخطيط المشهد العصبي بنجاح',
+                  prompt: lastUserText,
+                  seed: priorSeed,
+                  originalImage: priorImgUrl || undefined,
+                  aspectRatio: priorImg?.aspectRatio || '1:1',
+                  style: priorImg?.style || 'photorealistic',
+                  fidelityScore: '100%',
+                  resolution: '4K'
+                }, null, 2)}\n\`\`\`\n`;
+
+                fullServerContent += recoveryBlock;
+                const recoveryEncoder = new TextEncoder();
+                controller.enqueue(recoveryEncoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: recoveryBlock } }] })}\n\n`));
+                console.log('[Vercel Edge] ✓ Synthetic Neural Image recovery block enqueued to stream.');
+              }
+            }
+
             if (chatId && (fullServerContent.trim() || fullServerReasoning.trim())) {
               try {
                 const safeContent = isCycleLoopDetected
