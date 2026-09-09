@@ -71,7 +71,7 @@ export function useSearch(defaultOptions?: SearchEngineOptions) {
     setQuery(q);
     setIsLoading(true);
     setError(null);
-    setStatusMessage('جاري تحليل الاستعلام وتحديد نية البحث...');
+    setStatusMessage('جارٍ تحليل الاستعلام وتحديد نية البحث...');
 
     const opts: SearchEngineOptions = {
       ...defaultOptions,
@@ -96,7 +96,7 @@ export function useSearch(defaultOptions?: SearchEngineOptions) {
     }
 
     try {
-      setStatusMessage('جاري البحث المتزامن عبر مصادر الويب الحية...');
+      setStatusMessage('جارٍ البحث المتزامن عبر مصادر الويب الحية...');
 
       const res = await fetch('/api/search', {
         method: 'POST',

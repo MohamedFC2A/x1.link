@@ -29,7 +29,7 @@ export const ChatWithSearchIntegration: React.FC<ChatWithSearchIntegrationProps>
       return (
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-xs text-cyan-300 animate-pulse my-2">
           <Globe className="w-3.5 h-3.5 animate-spin" />
-          <span>جاري استدعاء وفحص نتائج البحث الحي من الإنترنت...</span>
+          <span>جارٍ استدعاء وفحص نتائج البحث الحي من الإنترنت...</span>
         </div>
       );
     }

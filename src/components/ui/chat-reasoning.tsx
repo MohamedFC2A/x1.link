@@ -724,12 +724,12 @@ export default function ChatReasoning({
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <span className="font-mono text-[11px] sm:text-xs text-zinc-200 font-semibold tracking-tight">
                 {isNeuralImageStudioActive ? (
-                  "جاري انشاء صورة واقعية ......"
+                  "جارٍ توليد صورة واقعية بدقة فائقة..."
                 ) : isSvgStudioActive ? (
-                  "جاري انشاء صورة ذو رسومات شعاعية ......"
+                  "جارٍ رسم وتوليد متجهات الرسم الشعاعي (SVG)..."
                 ) : isThinking ? (
                   <span className="inline-flex items-center gap-1.5">
-                    <span>جاري التفكير والتحليل</span>
+                    <span>جارٍ التفكير والاستدلال</span>
                     {durationSeconds > 0 && (
                       <span className="text-zinc-400 font-normal">({durationSeconds} ث)</span>
                     )}
@@ -910,7 +910,7 @@ export default function ChatReasoning({
                                 ) : isInProgress ? (
                                   <div className="text-[10.5px] sm:text-[11px] text-zinc-400 italic flex items-center gap-1.5 font-mono">
                                     <span className="size-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                                    <span>جاري معالجة وصياغة هذه الخطوة</span>
+                                    <span>جارٍ معالجة وصياغة هذه الخطوة</span>
                                     <AnimatedDots className="bg-indigo-400" />
                                   </div>
                                 ) : m.status === 'pending' ? (

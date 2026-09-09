@@ -1437,7 +1437,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                               {att.uploadProgress || 0}%
                             </span>
                           </div>
-                          <span className={cn("text-[7px] font-sans mt-0.5 animate-pulse font-medium", currentThemeColor.textPercent)}>جاري الرفع...</span>
+                          <span className={cn("text-[7px] font-sans mt-0.5 animate-pulse font-medium", currentThemeColor.textPercent)}>جارٍ الرفع...</span>
                         </div>
                       ) : (
                         <div className="absolute inset-0 bg-black/25 flex items-center justify-center pointer-events-none">
@@ -1780,7 +1780,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       : "bg-white hover:bg-zinc-100 text-zinc-950 font-bold hover:scale-105 shadow-white/20"
                     : "bg-white/[0.04] text-zinc-600 cursor-not-allowed border border-white/[0.04]"
                 )}
-                title={isStreaming ? "إيقاف التوليد" : isAnyAttachmentProcessing ? "جاري تجهيز ورفع الفيديو بالكامل..." : "إرسال"}
+                title={isStreaming ? "إيقاف التوليد" : isAnyAttachmentProcessing ? "جارٍ تجهيز ورفع المرفق..." : "إرسال"}
               >
                 {isStreaming ? (
                   <Square className="w-4 h-4 fill-current text-zinc-950" />

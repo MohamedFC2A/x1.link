@@ -336,7 +336,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   <ArrowDown className="w-2.5 h-2.5 text-zinc-200 group-hover:translate-y-0.5 transition-transform shrink-0" />
                 </div>
               )}
-              <span className="leading-none">{isStreaming ? 'جاري الكتابة • انزل للأسفل' : 'الانتقال لأحدث رسالة'}</span>
+              <span className="leading-none">{isStreaming ? 'جارٍ التوليد • الانتقال للأسفل' : 'الانتقال لآخر رسالة'}</span>
             </button>
           </motion.div>
         )}

@@ -509,13 +509,13 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             </div>
             <div className="text-xs sm:text-sm font-sans font-bold text-zinc-100">
               {operationInfo.type === 'addition'
-                ? 'جاري إضافة العنصر للصورة بدقة 4K...'
+                ? 'جارٍ إضافة العنصر للصورة بدقة فائقة...'
                 : operationInfo.type === 'edit'
-                  ? 'جاري تعديل الصورة الفوتوغرافية بدقة 4K...'
-                  : 'جاري توليد الصورة الفوتوغرافية بدقة 4K...'}
+                  ? 'جارٍ تعديل الصورة بدقة فائقة...'
+                  : 'جارٍ توليد الصورة بدقة فائقة...'}
             </div>
             <div className="text-[11px] sm:text-xs text-zinc-400 font-sans max-w-xs">
-              توليد عصبي دقيق عبر Fathom Quant 3 والنسب الذهبية
+              استدلال بصري وتوليد متقدم عبر Fathom Silicon
             </div>
           </div>
         )}
@@ -674,7 +674,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             {isProcessingCanvas ? (
               <>
                 <Sparkles className="size-4 animate-spin text-zinc-300" />
-                <span>جاري معالجة الصورة...</span>
+                <span>جارٍ معالجة الصورة...</span>
               </>
             ) : (
               <>

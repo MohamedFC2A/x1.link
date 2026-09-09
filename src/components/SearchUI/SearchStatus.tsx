@@ -48,7 +48,7 @@ export const SearchStatus: React.FC<SearchStatusProps> = ({
         )}
 
         <span className="font-medium truncate">
-          {statusMessage || (isLoading ? 'جاري البحث الحي عبر مصادر الويب...' : 'اكتمل البحث')}
+          {statusMessage || (isLoading ? 'جارٍ البحث الحي عبر مصادر الويب...' : 'اكتمل البحث')}
         </span>
 
         {/* Intent Pill */}

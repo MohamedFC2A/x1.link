@@ -568,7 +568,7 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
                 <Sparkles className="size-5 sm:size-6 text-zinc-200 animate-spin" />
               </div>
               <div className="text-xs sm:text-sm font-sans font-bold text-zinc-100">
-                جاري رسم وتوليد متجهات الفيكتور بدقة...
+                جارٍ رسم وبناء متجهات الرسم الشعاعي (SVG)...
               </div>
               <div className="text-[11px] sm:text-xs text-zinc-400 font-sans max-w-xs">
                 يتم بناء شفرة التصميم والأشكال المتجهة والتدرجات؛ ستظهر المعاينة فور اكتمال التوليد.
@@ -692,7 +692,7 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
             {isExporting ? (
               <>
                 <Sparkles className="size-4 animate-spin text-zinc-300" />
-                <span>جاري معالجة الصورة...</span>
+                <span>جارٍ تصدير الرسم...</span>
               </>
             ) : (
               <>

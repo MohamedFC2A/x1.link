@@ -1893,7 +1893,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
               <span className="inline-block w-2 h-2 rounded-full bg-white/80 animate-pulse shrink-0" />
               <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
-                جاري انشاء صورة ذو رسومات شعاعية ......
+                جارٍ رسم وتوليد متجهات الرسم الشعاعي (SVG)...
               </span>
             </div>
           ) : null
@@ -2012,23 +2012,23 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                     </>
                   )
                 ) : isMedia ? (
-                  "جاري استيعاب الوسائط المتعددة واستخراج المعطيات..."
+                  "جارٍ معالجة الوسائط واستخراج المعطيات..."
                 ) : isVision ? (
-                  "جاري فك وتوليد الإدراك البصري واستيعاب المعطيات..."
+                  "جارٍ التحليل البصري واستيعاب المشهد..."
                 ) : isCyber ? (
-                  "جاري الاستطلاع الأمني وتدقيق الهدف والبحث الحي..."
+                  "جارٍ الفحص الأمني والتحقق الميداني..."
                 ) : message.isX1 ? (
-                  "جاري تحرير المحرك العصبي واستدعاء الرد..."
+                  "جارٍ معالجة الاستدلال واستدعاء الرد..."
                 ) : isNeuralImageStudioActive ? (
                   imageOpType === 'addition'
-                    ? "جاري إضافة التعديل المطلوب بدقة متناهية ......"
+                    ? "جارٍ تطبيق التعديلات المطلوبة بدقة فائقة..."
                     : imageOpType === 'edit'
-                      ? "جاري تعديل الصورة بدقة متناهية ......"
-                      : "جاري انشاء صورة واقعية ......"
+                      ? "جارٍ معالجة وتعديل الصورة بدقة عالية..."
+                      : "جارٍ توليد الصورة بدقة فائقة..."
                 ) : isSvgStudioActive ? (
-                  "جاري انشاء صورة ذو رسومات شعاعية ......"
+                  "جارٍ رسم وتوليد متجهات الرسم الشعاعي (SVG)..."
                 ) : (
-                  "جاري توليد الاستجابة اللغوية الفصحى..."
+                  "جارٍ صياغة الرد والاستدلال..."
                 )}
               </span>
             </div>
@@ -2038,7 +2038,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         ) : !displayContent.trim() && message.isStopped ? (
           <div className="py-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-sans select-none animate-in fade-in duration-200">
             <span className="size-1.5 rounded-full bg-amber-400" />
-            <span>تم إيقاف النموذج بواسطتك</span>
+            <span>تم إيقاف التوليد بواسطة المستخدم</span>
           </div>
         ) : !displayContent.trim() && hasReasoning && !isStreaming ? (
           <div className="py-2.5 px-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-sans select-none">

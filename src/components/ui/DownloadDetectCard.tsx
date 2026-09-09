@@ -139,7 +139,7 @@ export const DownloadDetectCard: React.FC<DownloadDetectCardProps> = ({
             DOWNLOAD DETECT
           </span>
           <span className="text-xs text-zinc-400 font-sans">
-            جاري تجهيز روابط التنزيل الفوري...
+            جارٍ استخراج روابط الوسائط المتاحة...
           </span>
         </div>
         <Loader2 className="size-4 animate-spin text-emerald-400" />

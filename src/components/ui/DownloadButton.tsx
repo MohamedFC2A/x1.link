@@ -114,7 +114,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
         {isDownloading ? (
           <>
             <Loader2 className="size-3.5 animate-spin text-black" />
-            <span className="font-mono text-xs">جاري التنزيل ({downloadProgress}%)...</span>
+            <span className="font-mono text-xs">جارٍ التنزيل ({downloadProgress}%)...</span>
           </>
         ) : isDownloaded ? (
           <>

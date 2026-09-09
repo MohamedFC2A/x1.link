@@ -67,7 +67,7 @@ export const TimelineTracker: React.FC<TimelineTrackerProps> = ({ steps, classNa
                     <span>{step.timestamp}</span>
                     {isInProgress && (
                       <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-white/[0.08] text-white border border-white/[0.15]">
-                        جاري التنفيذ
+                        جارٍ التنفيذ
                       </span>
                     )}
                   </div>

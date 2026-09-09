@@ -248,7 +248,7 @@ export const VpsControlRoomCard: React.FC<VpsControlRoomCardProps> = ({
               handleRunCommand();
             }
           }}
-          placeholder="اكتب أمراً أو سكريبت لتنفيذه في بيئة السيرفر المعزولة (مثال: ss -tulpn أو curl أو nmap)..."
+          placeholder="اكتب أمراً برمجياً لتنفيذه في بيئة الخادم المعزولة (مثل: curl أو ss -tulpn)..."
           className="flex-1 bg-transparent text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none font-mono dir-ltr text-left"
           disabled={isExecuting}
         />
@@ -258,7 +258,7 @@ export const VpsControlRoomCard: React.FC<VpsControlRoomCardProps> = ({
           disabled={isExecuting || !customCommand.trim()}
           className="px-3 py-1.5 rounded-md bg-white/[0.12] hover:bg-white/[0.2] text-white font-medium text-xs transition-all cursor-pointer disabled:opacity-40 active:scale-95 shrink-0 border border-white/10"
         >
-          {isExecuting ? 'جاري التنفيذ...' : 'تنفيذ في السيرفر'}
+          {isExecuting ? 'جارٍ التنفيذ...' : 'تنفيذ في الخادم'}
         </button>
       </div>
 
