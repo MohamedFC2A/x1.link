@@ -2732,8 +2732,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
    - افهم طلب التعديل أو التلوين أو الإضافة المطلوب من المستخدم بدقة تامة (مثل: تغيير لون السيارة، إضافة عنصر، تعديل اللوحة، استبدال الخلفية).
 2. [بروتوكول الإخراج الإلزامي - ZERO REFUSAL & MANDATORY DELIVERABLE BLOCK]:
    - فكّر بإيجاز داخل <think> باللغة العربية الفصحى حول كيفية تطبيق التعديل المطلوب جراحياً فقط مع إبقاء 100% من معالم المشهد الأصلي دون أي تغيير.
-   - بعد إغلاق </think>، قدّم شرحاً عربياً موجزاً وبليغاً يؤكد إتمام التعديل المطلوب.
-   - أخرج حتماً في نهاية ردك كتلة المعالجة العصبية التالية بصيغة JSON دقيقة ومكتملة داخل \`\`\`neural-image ... \`\`\`:
+   - يُحظر تماماً وبشكل قاطع كتابة تقرير فحص مطول أو سرد تفاصيل الصورة خارج <think>؛ اكتب فقط بعد </think> سطراً أو سطرين بالعربية يؤكدان إتمام التعديل المطلوب.
+   - أخرج فوراً ومباشرة بعد السطرين كتلة المعالجة العصبية التالية بصيغة JSON دقيقة ومكتملة داخل \`\`\`neural-image ... \`\`\`:
 \`\`\`neural-image
 {
   "operation": "edit",
@@ -3530,9 +3530,15 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           }
         } catch {}
 
-        if (!isClientDisconnected && !res.writableEnded) {
+        const chunkText = decoder.decode(value, { stream: true });
+        const hasDoneMarker = chunkText.includes('data: [DONE]') || chunkText.includes('[DONE]');
+        const clientPayload = hasDoneMarker
+          ? chunkText.replace(/data:\s*\[DONE\]\n*/g, '').replace(/\[DONE\]\n*/g, '')
+          : chunkText;
+
+        if (clientPayload && !isClientDisconnected && !res.writableEnded) {
           try {
-            res.write(value);
+            res.write(clientPayload);
             if (typeof (res as any).flush === 'function') {
               (res as any).flush();
             }
@@ -3583,6 +3589,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     }
 
     if (!isClientDisconnected && !res.writableEnded) {
+      res.write(`data: [DONE]\n\n`);
       res.end();
     }
 

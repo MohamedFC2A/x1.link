@@ -2118,8 +2118,8 @@ export default async function handler(req: Request): Promise<Response> {
    - افهم طلب التعديل أو التلوين أو الإضافة المطلوب من المستخدم بدقة تامة (مثل: تغيير لون السيارة، إضافة عنصر، تعديل اللوحة، استبدال الخلفية).
 2. [بروتوكول الإخراج الإلزامي - ZERO REFUSAL & MANDATORY DELIVERABLE BLOCK]:
    - فكّر بإيجاز داخل <think> باللغة العربية الفصحى حول كيفية تطبيق التعديل المطلوب جراحياً فقط مع إبقاء 100% من معالم المشهد الأصلي دون أي تغيير.
-   - بعد إغلاق </think>، قدّم شرحاً عربياً موجزاً وبليغاً يؤكد إتمام التعديل المطلوب.
-   - أخرج حتماً في نهاية ردك كتلة المعالجة العصبية التالية بصيغة JSON دقيقة ومكتملة داخل \`\`\`neural-image ... \`\`\`:
+   - يُحظر تماماً وبشكل قاطع كتابة تقرير فحص مطول أو سرد تفاصيل الصورة خارج <think>؛ اكتب فقط بعد </think> سطراً أو سطرين بالعربية يؤكدان إتمام التعديل المطلوب.
+   - أخرج فوراً ومباشرة بعد السطرين كتلة المعالجة العصبية التالية بصيغة JSON دقيقة ومكتملة داخل \`\`\`neural-image ... \`\`\`:
 \`\`\`neural-image
 {
   "operation": "edit",
@@ -2905,6 +2905,15 @@ export default async function handler(req: Request): Promise<Response> {
               }
             } catch {}
 
+            const chunkStr = new TextDecoder().decode(chunk);
+            if (chunkStr.includes('data: [DONE]') || chunkStr.includes('[DONE]')) {
+              const cleanedChunk = chunkStr.replace(/data:\s*\[DONE\]\n*/g, '').replace(/\[DONE\]\n*/g, '');
+              if (cleanedChunk.trim()) {
+                controller.enqueue(new TextEncoder().encode(cleanedChunk));
+              }
+              return;
+            }
+
             controller.enqueue(chunk);
           },
           async flush(controller) {
@@ -2937,6 +2946,8 @@ export default async function handler(req: Request): Promise<Response> {
                 console.log('[Vercel Edge] ✓ Synthetic Neural Image recovery block enqueued to stream.');
               }
             }
+
+            controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
 
             if (chatId && (fullServerContent.trim() || fullServerReasoning.trim())) {
               try {
