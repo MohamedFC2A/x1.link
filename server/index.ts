@@ -2948,7 +2948,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     if (hasMultimodal || isVision) {
       if (OPENROUTER_API_KEY) {
         gateCandidates.push({
-          name: 'OpenRouter Meta Muse Spark 1.2 Contributor Vision (High-Fidelity Multimodal)',
+          name: 'OpenRouter DeepSeek Vision (deepseek/deepseek-v4-flash-vision-exp @ openrouter.ai)',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -2956,28 +2956,18 @@ app.post('/api/chat', async (req: Request, res: Response) => {
             'HTTP-Referer': 'https://matany.one',
             'X-Title': 'Matany AI',
           },
-          payload: DynamicParameterTuner.tuneGatewayPayload('meta/muse-spark-1.2-contributor', basePayload, dynamicTuning)
-        });
-      }
-
-      if (DEEPSEEK_API_KEY) {
-        gateCandidates.push({
-          name: 'DeepSeek Direct Vision (deepseek-v4-flash-vision-exp @ api.deepseek.com)',
-          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-          },
-          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash-vision-exp', basePayload, dynamicTuning)
+          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek/deepseek-v4-flash-vision-exp', basePayload, dynamicTuning)
         });
         gateCandidates.push({
-          name: 'DeepSeek Direct Flash (deepseek-v4-flash @ api.deepseek.com)',
-          url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+          name: 'OpenRouter Gemini Vision (google/gemini-2.5-flash @ openrouter.ai)',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
           },
-          payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash', basePayload, dynamicTuning)
+          payload: DynamicParameterTuner.tuneGatewayPayload('google/gemini-2.5-flash', basePayload, dynamicTuning)
         });
       }
     } else if (isMediaSpark && OPENROUTER_API_KEY) {

@@ -2183,7 +2183,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               </div>
             )}
             {/* Stable first-class Neural Image Studio Card */}
-            {(extractedNeuralImageData || (isNeuralImageStudioActive && (message.image || (message.images && message.images.length > 0)))) && (
+            {(extractedNeuralImageData || (isNeuralImageStudioActive && (message.image || (message.images && message.images.length > 0) || priorImage))) && (
               <div className="w-full my-3">
                 <NeuralImageCard
                   key={`neural-card-${message.id || 'current'}`}

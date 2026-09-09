@@ -21,31 +21,42 @@ interface ChatWindowProps {
 function extractPriorImageFromHistory(precedingMessages: ChatMessageItem[]): string | undefined {
   for (let i = precedingMessages.length - 1; i >= 0; i--) {
     const msg = precedingMessages[i];
-    // 1. Attached image in message or media attachments
+    // 1. Attached image in message, images array, or media attachments
     if (msg.image && !msg.image.includes('pollinations.ai')) return msg.image;
     if (msg.images && msg.images.length > 0 && !msg.images[0].includes('pollinations.ai')) return msg.images[0];
+    if ((msg as any).imagePreview && !(msg as any).imagePreview.includes('pollinations.ai')) return (msg as any).imagePreview;
     if (msg.mediaAttachments && msg.mediaAttachments.length > 0) {
-      const imgAttachment = msg.mediaAttachments.find(a => a.type === 'image' || a.dataUrl?.startsWith('data:image'));
-      if (imgAttachment?.dataUrl && !imgAttachment.dataUrl.includes('pollinations.ai')) return imgAttachment.dataUrl;
+      const imgAttachment = msg.mediaAttachments.find(a => a.type === 'image' || a.dataUrl?.startsWith('data:image') || a.url?.startsWith('http'));
+      const attachedUrl = imgAttachment?.dataUrl || imgAttachment?.url;
+      if (attachedUrl && !attachedUrl.includes('pollinations.ai')) return attachedUrl;
     }
-    // 2. Check local storage cache by message id
+    // 2. Multimodal content array inspection
+    if (Array.isArray(msg.content)) {
+      const imgBlock = msg.content.find((c: any) => c && (c.type === 'image_url' || c.image_url));
+      if (imgBlock) {
+        const url = typeof imgBlock.image_url === 'string' ? imgBlock.image_url : imgBlock.image_url?.url;
+        if (url && typeof url === 'string' && !url.includes('pollinations.ai')) return url;
+      }
+    }
+    // 3. Check local storage cache by message id
     if (typeof window !== 'undefined' && window.localStorage && msg.id) {
       const cached = localStorage.getItem(`fathom_img_${msg.id}`);
       if (cached && !cached.includes('pollinations.ai') && (cached.startsWith('data:image') || cached.startsWith('http'))) {
         return cached;
       }
     }
-    // 3. Neural image code fence in content
-    if (msg.content) {
+    // 4. Neural image code fence in content (string content)
+    if (typeof msg.content === 'string') {
       const neuralBlockMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(msg.content);
       if (neuralBlockMatch) {
         try {
           const parsed = JSON.parse(neuralBlockMatch[1]);
           if (parsed.imageUrl && !parsed.imageUrl.includes('pollinations.ai')) return parsed.imageUrl;
           if (parsed.processedImage && !parsed.processedImage.includes('pollinations.ai')) return parsed.processedImage;
+          if (parsed.originalImage && !parsed.originalImage.includes('pollinations.ai')) return parsed.originalImage;
         } catch {}
       }
-      // 4. Direct image link in content
+      // 5. Direct image link in content
       const urlMatch = msg.content.match(/https?:\/\/[^\s)]+?\.(?:png|jpg|jpeg|webp)(?:\?[^\s)]*)?/i);
       if (urlMatch && !urlMatch[0].includes('pollinations.ai')) return urlMatch[0];
     }

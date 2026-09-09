@@ -17,6 +17,7 @@ export interface MediaAttachmentItem {
   type: MediaType;
   mimeType: string;
   dataUrl?: string; // base64 or blob URL
+  url?: string; // remote or CDN URL
   size: number;
   duration?: number; // for video/audio in seconds
   width?: number;

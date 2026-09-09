@@ -1,3 +1,4 @@
+// FATHOM QP3 Sovereign Neural Studio Engine
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   Sparkles,
@@ -703,28 +704,37 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   return (
     <div
       className={cn(
-        "my-3 sm:my-4 rounded-2xl border border-white/[0.08] bg-[#090b11]/95 backdrop-blur-xl overflow-hidden shadow-2xl select-none",
+        "my-2.5 sm:my-3.5 rounded-2xl border border-white/[0.08] bg-zinc-950/80 backdrop-blur-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.85)] select-none",
         cardMaxWidthClass,
-        isFullscreen && "fixed inset-0 z-[150] m-0 rounded-none bg-black/95 backdrop-blur-2xl flex flex-col max-w-none",
+        isFullscreen && "fixed inset-0 z-[150] m-0 rounded-none bg-black/98 backdrop-blur-2xl flex flex-col max-w-none",
         className
       )}
       dir="rtl"
     >
-      {/* ── 1. Header Toolbar (Ultra-Minimal Claude/Apple Aesthetic) ────────────── */}
-      <div className="flex items-center justify-between gap-1.5 sm:gap-2 px-2.5 sm:px-5 py-2 sm:py-3 bg-white/[0.02] border-b border-white/[0.07] overflow-hidden">
+      {/* ── 1. Header Toolbar (Ultra-Minimal Sleek Glassmorphism) ────────────── */}
+      <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/[0.02] border-b border-white/[0.06] overflow-hidden">
         {/* Title & Image Specs */}
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink overflow-hidden" dir="ltr">
-          <span className="hidden sm:inline font-mono text-xs font-semibold tracking-wider text-zinc-100 whitespace-nowrap">
-            FATHOM QUANT 3
-          </span>
-          <span className="hidden sm:inline text-zinc-600 text-xs">/</span>
-          <span className="text-[10px] sm:text-[11px] font-mono text-cyan-400 font-bold whitespace-nowrap">
-            FATHOM QP3
-          </span>
-          <span className="text-zinc-600 text-xs">/</span>
-          <span className="text-[10px] sm:text-[11px] font-mono text-zinc-400 whitespace-nowrap">
-            {currentDimensions.width}×{currentDimensions.height}
-          </span>
+        <div className="flex items-center gap-2 min-w-0 shrink overflow-hidden" dir="rtl">
+          <div className="size-6 sm:size-7 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0 text-zinc-300">
+            <Quant3PerfectionIcon size={14} />
+          </div>
+          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+            <span className="text-xs font-sans font-semibold text-zinc-100 whitespace-nowrap">
+              {operationInfo.type === 'addition' ? 'إضافة بصرية' : operationInfo.type === 'edit' ? 'تعديل بصري دقيق' : 'استوديو التوليد العصبي'}
+            </span>
+            <span className="text-zinc-600 text-[10px]">•</span>
+            <span className="text-[10.5px] font-mono text-zinc-400 whitespace-nowrap" dir="ltr">
+              {currentDimensions.width}×{currentDimensions.height}
+            </span>
+            {selectedRatio && (
+              <>
+                <span className="text-zinc-600 text-[10px] hidden xs:inline">•</span>
+                <span className="text-[10px] font-mono text-zinc-500 hidden xs:inline" dir="ltr">
+                  {selectedRatio}
+                </span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Action Controls & Fullscreen */}
@@ -783,10 +793,10 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         </div>
       </div>
 
-      {/* Dynamic Title and Description Bar */}
+      {/* Dynamic Title Bar */}
       {data.title && (
-        <div className="px-3.5 sm:px-5 py-2 bg-white/[0.015] border-b border-white/[0.06] flex items-center justify-between gap-2 select-text" dir="rtl">
-          <span className="text-xs sm:text-[13px] font-sans font-semibold text-zinc-200 truncate">
+        <div className="px-3 sm:px-4 py-1.5 bg-white/[0.015] border-b border-white/[0.05] flex items-center justify-between gap-2 select-text" dir="rtl">
+          <span className="text-xs font-sans font-medium text-zinc-200 truncate">
             {data.title}
           </span>
           {data.description && (
@@ -797,11 +807,11 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         </div>
       )}
 
-      {/* ── 2. Main Visual Display Viewport (Clean, Uncompressed & Proportional) ───────── */}
+      {/* ── 2. Main Visual Display Viewport (Clean Deep Black Background) ───────── */}
       <div
         ref={containerRef}
         className={cn(
-          "relative overflow-hidden flex items-center justify-center bg-[#05070b] select-none transition-all duration-300 w-full",
+          "relative overflow-hidden flex items-center justify-center bg-[#040406] select-none transition-all duration-300 w-full",
           isFullscreen ? "flex-1 min-h-0 w-full" : "w-full min-h-[320px]"
         )}
         style={isFullscreen ? undefined : {
@@ -809,14 +819,16 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
           maxHeight: '78vh'
         }}
       >
-        {/* Loading / Streaming Overlay with clean, authentic, real-feeling Progress Bar */}
+        {/* Loading / Streaming Overlay with clean, authentic Progress Bar */}
         {isImageLoading && !activeProcessedSrc && !loadError && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#07090e]/95 backdrop-blur-md gap-4 p-8 text-center select-none" dir="rtl">
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#040406]/95 backdrop-blur-xl gap-4 p-8 text-center select-none" dir="rtl">
             <div className="w-full max-w-sm flex flex-col items-center gap-3">
-              {/* Header row with model name and percentage */}
-              <div className="flex items-center justify-between w-full text-xs text-zinc-400 font-sans px-0.5" dir="ltr">
-                <span className="font-mono text-zinc-300 font-medium tracking-wide">Fathom QP3</span>
-                <span className="font-mono font-bold text-zinc-100 text-xs">{Math.min(99, Math.round(generationProgress))}%</span>
+              {/* Header row with status and percentage */}
+              <div className="flex items-center justify-between w-full text-xs text-zinc-400 font-sans px-0.5" dir="rtl">
+                <span className="text-[11.5px] font-sans text-zinc-300 font-medium">
+                  {operationInfo.type === 'addition' ? 'جارٍ إضافة العناصر...' : operationInfo.type === 'edit' ? 'جارٍ التعديل البصري...' : 'جارٍ المعالجة البصرية...'}
+                </span>
+                <span className="font-mono font-bold text-zinc-100 text-xs" dir="ltr">{Math.min(99, Math.round(generationProgress))}%</span>
               </div>
 
               {/* Standard Minimal Progress Bar (Zero glowing/neon, pure clean aesthetic) */}
@@ -847,7 +859,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             {loadError ? (
               <div className="flex flex-col items-center justify-center p-6 text-center gap-3 text-zinc-400">
                 <AlertCircle className="size-7 text-amber-400" />
-                <span className="text-xs sm:text-sm font-sans text-zinc-300">تعذر توليد أو تحميل الصورة عبر Fathom QP3</span>
+                <span className="text-xs sm:text-sm font-sans text-zinc-300">تعذر إتمام المعالجة البصرية حالياً</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -859,7 +871,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                   className="px-3.5 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/[0.15] text-xs flex items-center gap-1.5 transition font-sans cursor-pointer active:scale-95"
                 >
                   <RefreshCw className="size-3.5 text-zinc-200" />
-                  <span>إعادة المحاولة عبر Fathom QP3</span>
+                  <span>إعادة المحاولة</span>
                 </button>
               </div>
             ) : activeProcessedSrc ? (
@@ -874,7 +886,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             ) : (
               <div className="flex flex-col items-center justify-center p-6 text-center gap-3 text-zinc-400">
                 <Sparkles className="size-6 animate-spin text-zinc-400" />
-                <span className="text-xs sm:text-sm font-sans text-zinc-400">جارٍ تجهيز واستعراض الصورة...</span>
+                <span className="text-xs sm:text-sm font-sans text-zinc-400">جارٍ استعراض الصورة...</span>
               </div>
             )}
           </div>
@@ -964,12 +976,12 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         )}
       </div>
 
-      {/* ── 3. Unified Action Footer Dock (Clean, Official, Glassmorphism) ── */}
-      <div className="px-3.5 sm:px-5 py-3 bg-[#0a0d14]/95 border-t border-white/[0.08] flex flex-col gap-2.5">
+      {/* ── 3. Unified Action Footer Dock (Clean Deep Black Glassmorphism) ── */}
+      <div className="px-3 sm:px-4 py-2.5 bg-black/40 border-t border-white/[0.06] flex flex-col gap-2">
         {/* Row 1: Resolution Config Dock */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           {/* Resolution Selector: 4K | 2K | HD */}
-          <div className="flex items-center gap-1 bg-white/[0.03] p-0.5 sm:p-1 rounded-xl border border-white/[0.07]">
+          <div className="flex items-center gap-1 bg-white/[0.03] p-0.5 rounded-xl border border-white/[0.06]">
             <span className="text-[10px] sm:text-[11px] font-sans font-medium text-zinc-400 px-1.5">الدقة:</span>
             {(['4k', '2k', 'original'] as const).map((q) => (
               <button
@@ -997,7 +1009,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             type="button"
             onClick={() => handleDownload(selectedQuality)}
             disabled={isProcessingCanvas}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs sm:text-sm font-sans font-bold shadow-lg shadow-black/40 border border-white/[0.14] backdrop-blur-md active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs sm:text-sm font-sans font-semibold shadow-lg shadow-black/40 border border-white/[0.12] backdrop-blur-md active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isProcessingCanvas ? (
               <>

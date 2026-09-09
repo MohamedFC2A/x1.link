@@ -389,7 +389,7 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
       const a = document.createElement('a');
       a.href = url;
       const timestamp = new Date().toISOString().slice(0, 10);
-      a.download = `FathomQuant3-design-${timestamp}-${exportQuality}.${targetFmt}`;
+      a.download = `vector-design-${timestamp}-${exportQuality}.${targetFmt}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -443,7 +443,7 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
       const a = document.createElement('a');
       a.href = url;
       const timestamp = new Date().toISOString().slice(0, 10);
-      a.download = `FathomQuant3-vector-${timestamp}.svg`;
+      a.download = `vector-design-${timestamp}.svg`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -497,36 +497,38 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
   return (
     <div
       className={cn(
-        "my-3 sm:my-4 rounded-2xl border border-white/[0.08] bg-[#090b11]/95 backdrop-blur-xl overflow-hidden shadow-2xl select-none",
+        "my-2.5 sm:my-3.5 rounded-2xl border border-white/[0.08] bg-zinc-950/80 backdrop-blur-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.85)] select-none",
         isFullscreen && "fixed inset-0 z-[150] m-0 rounded-none bg-black/95 backdrop-blur-2xl flex flex-col",
         className
       )}
       dir="rtl"
     >
-      {/* ── 1. Header Toolbar (Official Minimal Glassmorphism) ────────────── */}
-      <div className="flex items-center justify-between gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 bg-white/[0.02] border-b border-white/[0.08]">
+      {/* ── 1. Header Toolbar (Ultra-Minimal Sleek Glassmorphism) ────────────── */}
+      <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/[0.02] border-b border-white/[0.06] overflow-hidden">
         {/* Title & Vector Specs */}
-        <div className="flex items-center gap-2.5 min-w-0" dir="ltr">
-          <div className="size-7 sm:size-8 rounded-xl bg-white/[0.05] border border-white/[0.1] flex items-center justify-center shrink-0 text-zinc-300">
-            <Quant3PerfectionIcon size={16} />
+        <div className="flex items-center gap-2 min-w-0 shrink overflow-hidden" dir="rtl">
+          <div className="size-6 sm:size-7 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0 text-zinc-300">
+            <Quant3PerfectionIcon size={14} />
           </div>
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold tracking-wider text-zinc-100">
-                FATHOM QUANT 3
-              </span>
-              <span className="text-[9.5px] font-mono font-medium text-zinc-400 px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.08]">
-                SVG STUDIO
-              </span>
-            </div>
+          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+            <span className="text-xs font-sans font-semibold text-zinc-100 whitespace-nowrap">
+              {title || 'استوديو التصميم الشعاعي (SVG)'}
+            </span>
             {metrics.isValid && (
-              <div className="flex items-center gap-1.5 text-[10.5px] font-mono text-zinc-400">
-                <span>{metrics.width}×{metrics.height}</span>
-                <span>•</span>
-                <span>{metrics.aspectRatio}</span>
-                <span className="hidden xs:inline">•</span>
-                <span>{metrics.elementCount} عنصر</span>
-              </div>
+              <>
+                <span className="text-zinc-600 text-[10px]">•</span>
+                <span className="text-[10.5px] font-mono text-zinc-400 whitespace-nowrap" dir="ltr">
+                  {metrics.width}×{metrics.height}
+                </span>
+                <span className="text-zinc-600 text-[10px]">•</span>
+                <span className="text-[10.5px] font-mono text-zinc-400 whitespace-nowrap">
+                  {metrics.aspectRatio}
+                </span>
+                <span className="text-zinc-600 text-[10px] hidden xs:inline">•</span>
+                <span className="text-[10.5px] font-mono text-zinc-400 whitespace-nowrap hidden xs:inline">
+                  {metrics.elementCount} عنصر
+                </span>
+              </>
             )}
           </div>
         </div>
@@ -615,7 +617,7 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
           isFullscreen 
             ? "flex-1 min-h-0 w-full" 
             : "w-full min-h-[320px] sm:min-h-[420px] md:min-h-[500px] max-h-[75vh]",
-          activeTab === 'preview' ? "svg-checkerboard-bg" : "bg-[#05070b]"
+          activeTab === 'preview' ? "svg-checkerboard-bg" : "bg-[#040406]"
         )}
       >
         {activeTab === 'preview' ? (
@@ -685,7 +687,7 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
       </div>
 
       {/* ── 3. Unified Action Footer Dock (Clean, Organized, Mobile-First) ── */}
-      <div className="px-3.5 sm:px-5 py-3 bg-[#0a0d14]/95 border-t border-white/[0.08] flex flex-col gap-2.5">
+      <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-black/40 backdrop-blur-xl border-t border-white/[0.06] flex flex-col gap-2.5">
         {/* Row 1: Unified Config Dock (Format & Quality) */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           {/* Format Selector: PNG | JPG | SVG */}
