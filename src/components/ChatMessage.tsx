@@ -2051,11 +2051,15 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               <div className="w-full my-3">
                 <NeuralImageCard
                   key={`neural-card-${message.id || 'current'}`}
-                  data={extractedNeuralImageData || {
+                  data={extractedNeuralImageData ? {
+                    ...extractedNeuralImageData,
+                    prompt: extractedNeuralImageData.prompt || previousUserPrompt
+                  } : {
                     operation: imageOpType === 'addition' ? 'add_element' : imageOpType === 'edit' ? 'edit' : 'generate',
                     title: imageOpType === 'addition' ? 'إضافة ذكية على الصورة' : imageOpType === 'edit' ? 'تعديل موضعي دقيق' : 'صورة فوتوغرافية فائقة',
                     fidelityScore: '100%',
                     resolution: '4K',
+                    prompt: previousUserPrompt,
                     processedImage: message.image || (message.images && message.images[0]) || '',
                     originalImage: (imageOpType === 'addition' || imageOpType === 'edit') ? (priorImage || undefined) : undefined
                   }}

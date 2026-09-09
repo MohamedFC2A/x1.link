@@ -1,5 +1,10 @@
 {
   "framework": "vite",
+  "functions": {
+    "api/generate-image.ts": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -11,3 +16,4 @@
     }
   ]
 }
+

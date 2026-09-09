@@ -81,6 +81,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     if (data.parameters?.seed && typeof data.parameters.seed === 'number') return data.parameters.seed;
     return null;
   });
+  const [retryCount, setRetryCount] = useState<number>(0);
   const [isImageLoading, setIsImageLoading] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [museImageUrl, setMuseImageUrl] = useState<string | null>(() => {
@@ -140,85 +141,87 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     return null;
   }, [data.originalImage, fallbackOriginalImage]);
 
-  // Autonomous Sovereign Fathom QP3 Image Fetcher (Zero Pollinations)
+  // Autonomous Sovereign Fathom QP3 Image Fetcher
   useEffect(() => {
-    if (museImageUrl) return;
+    if (museImageUrl && retryCount === 0) return;
 
-    if (data.prompt && data.prompt.trim()) {
-      let isCancelled = false;
-      setIsImageLoading(true);
-      setLoadError(false);
+    const promptText = (data.prompt || '').trim();
+    if (!promptText) return;
 
-      const requestPayload = {
-        action: 'generate_image',
-        prompt: data.prompt.trim(),
-        aspectRatio: selectedRatio
-      };
+    let isCancelled = false;
+    setIsImageLoading(true);
+    setLoadError(false);
 
-      const executeGeneration = async () => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 65000);
+    const requestPayload = {
+      action: 'generate_image',
+      prompt: promptText,
+      aspectRatio: selectedRatio
+    };
 
-        try {
-          const res = await fetch('/api/generate-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestPayload),
-            signal: controller.signal
-          });
-          if (res.ok) {
-            const json = await res.json();
-            if (json?.imageUrl) {
-              clearTimeout(timeoutId);
-              return json;
-            }
-          }
-        } catch {
-          // Fall through to /api/chat fallback
-        }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds
 
-        try {
-          const fallbackRes = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestPayload),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-          if (fallbackRes.ok) {
-            const json = await fallbackRes.json();
-            if (json?.imageUrl) return json;
-          }
-          throw new Error(`HTTP ${fallbackRes.status}`);
-        } catch (err) {
-          clearTimeout(timeoutId);
-          throw err;
-        }
-      };
-
-      executeGeneration()
-        .then((payload) => {
-          if (!isCancelled && payload?.imageUrl) {
-            setMuseImageUrl(payload.imageUrl);
-            setIsImageLoading(false);
-            setLoadError(false);
-          } else if (!isCancelled) {
-            throw new Error('No image returned from Fathom QP3');
-          }
-        })
-        .catch((err) => {
-          console.error('[Fathom QP3 Image Generation Error]:', err);
-          if (!isCancelled) {
-            setIsImageLoading(false);
-            setLoadError(true);
-          }
+    const executeGeneration = async () => {
+      try {
+        const res = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestPayload),
+          signal: controller.signal
         });
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.imageUrl) {
+            return json;
+          }
+        }
+      } catch (e: any) {
+        if (e.name === 'AbortError') throw e;
+      }
 
-      return () => {
-        isCancelled = true;
-      };
-    }
-  }, [data.prompt, selectedRatio, museImageUrl, seed]);
+      try {
+        const fallbackRes = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestPayload),
+          signal: controller.signal
+        });
+        if (fallbackRes.ok) {
+          const json = await fallbackRes.json();
+          if (json?.imageUrl) return json;
+        }
+        throw new Error(`HTTP ${fallbackRes.status}`);
+      } catch (err) {
+        throw err;
+      }
+    };
+
+    executeGeneration()
+      .then((payload) => {
+        clearTimeout(timeoutId);
+        if (!isCancelled && payload?.imageUrl) {
+          setMuseImageUrl(payload.imageUrl);
+          setIsImageLoading(false);
+          setLoadError(false);
+        } else if (!isCancelled) {
+          throw new Error('No image returned from Fathom QP3');
+        }
+      })
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        if (!isCancelled) {
+          console.error('[Fathom QP3 Image Generation Error]:', err);
+          setIsImageLoading(false);
+          setLoadError(true);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+      controller.abort();
+      clearTimeout(timeoutId);
+    };
+  }, [data.prompt, selectedRatio, retryCount, seed]);
 
   const processedSrc = useMemo(() => {
     if (museImageUrl) return museImageUrl;
@@ -257,6 +260,29 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   const [selectedQuality, setSelectedQuality] = useState<'4k' | '2k' | 'original'>('4k');
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Realistic progress simulation matching Fathom QP3 generation lifecycle (~18-20s)
+  const [generationProgress, setGenerationProgress] = useState<number>(0);
+
+  useEffect(() => {
+    if (!isImageLoading && activeProcessedSrc) {
+      setGenerationProgress(100);
+      return;
+    }
+    if (isImageLoading || !activeProcessedSrc) {
+      setGenerationProgress(8);
+      const interval = setInterval(() => {
+        setGenerationProgress((prev) => {
+          if (prev >= 95) return Math.min(97, prev + 0.2);
+          if (prev >= 80) return prev + 0.8;
+          if (prev >= 50) return prev + 1.8;
+          if (prev >= 20) return prev + 2.5;
+          return prev + 3.5;
+        });
+      }, 400);
+      return () => clearInterval(interval);
+    }
+  }, [isImageLoading, activeProcessedSrc]);
 
   // Handle slider mouse/touch drag
   const handleDrag = useCallback((clientX: number) => {
@@ -521,24 +547,34 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
           maxHeight: '74vh'
         }}
       >
-        {/* Loading / Streaming Shimmer Overlay for Fathom QP3 */}
+        {/* Loading / Streaming Overlay with clean, authentic, real-feeling Progress Bar */}
         {(isStreaming || isImageLoading || !activeProcessedSrc) && !loadError && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#05070b]/90 backdrop-blur-md gap-3.5 p-6 text-center select-none">
-            {/* Ultra-sleek Glassy Aperture / Crystal Icon */}
-            <div className="relative size-14 rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] text-white group overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 via-transparent to-purple-500/20" />
-              <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500/30 to-blue-500/30 blur-sm opacity-70 animate-pulse" />
-              <Quant3PerfectionIcon size={28} className="relative z-10 text-cyan-300 animate-spin" style={{ animationDuration: '4s' }} />
-            </div>
-            <div className="text-xs sm:text-sm font-sans font-bold text-zinc-100 tracking-wide">
-              {operationInfo.type === 'addition'
-                ? 'جارٍ إضافة العنصر عبر Fathom QP3...'
-                : operationInfo.type === 'edit'
-                  ? 'جارٍ تعديل الصورة بدقة عصبية عبر Fathom QP3...'
-                  : 'جارٍ توليد الصورة بدقة فائقة عبر Fathom QP3...'}
-            </div>
-            <div className="text-[11px] sm:text-xs text-cyan-400/90 font-mono tracking-tight">
-              معالجة فوتوغرافية واستدلال كمومي فائق الدقة (Fathom QP3 Quantum Studio)
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#07090e]/95 backdrop-blur-md gap-4 p-8 text-center select-none" dir="rtl">
+            <div className="w-full max-w-sm flex flex-col items-center gap-3">
+              {/* Header row with model name and percentage */}
+              <div className="flex items-center justify-between w-full text-xs text-zinc-400 font-sans px-0.5" dir="ltr">
+                <span className="font-mono text-zinc-300 font-medium tracking-wide">Fathom QP3</span>
+                <span className="font-mono font-bold text-zinc-100 text-xs">{Math.min(99, Math.round(generationProgress))}%</span>
+              </div>
+
+              {/* Standard Minimal Progress Bar (Zero glowing/neon, pure clean aesthetic) */}
+              <div className="w-full h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-zinc-200 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${generationProgress}%` }}
+                />
+              </div>
+
+              {/* Dynamic contextual stage text */}
+              <div className="text-xs font-sans text-zinc-300 font-medium mt-1">
+                {generationProgress < 20
+                  ? 'تحليل وتفكيك عناصر المشهد...'
+                  : generationProgress < 50
+                    ? 'معالجة التوليد العصبي عالي الدقة...'
+                    : generationProgress < 85
+                      ? 'تطبيق التفاصيل والإضاءة الواقعية...'
+                      : 'إنهاء ترميز الصورة فائقة الدقة...'}
+              </div>
             </div>
           </div>
         )}
@@ -556,10 +592,11 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                     setMuseImageUrl(null);
                     setLoadError(false);
                     setIsImageLoading(true);
+                    setRetryCount((c) => c + 1);
                   }}
-                  className="px-3.5 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-white border border-white/[0.1] text-xs flex items-center gap-1.5 transition font-sans cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-white border border-white/[0.1] text-xs flex items-center gap-1.5 transition font-sans cursor-pointer active:scale-95"
                 >
-                  <RefreshCw className="size-3.5 text-cyan-400" />
+                  <RefreshCw className="size-3.5 text-zinc-300" />
                   <span>إعادة المحاولة عبر Fathom QP3</span>
                 </button>
               </div>
