@@ -116,13 +116,13 @@ async function runAllToolTests() {
   );
 
   assert(
-    'ChatReasoning renders Serper AI & Fathom Search as an integrated reasoning step',
-    (htmlWithSearch.includes('Serper') || htmlWithSearch.includes('Fathom')) &&
+    'ChatReasoning renders Fathom Search as an integrated reasoning step',
+    htmlWithSearch.includes('Fathom') &&
     htmlWithSearch.includes('الاستعلام الشبكي وتدقيق المصادر الحية')
   );
 
-  // 2. SEARCH TOOL (SERPER AI & FATHOM SEARCH)
-  console.log('\n▶ [Test Pillar 2]: Real-Time Grounded Search Tool (Serper AI)...');
+  // 2. SEARCH TOOL (FATHOM SEARCH)
+  console.log('\n▶ [Test Pillar 2]: Real-Time Grounded Search Tool (Fathom Search)...');
   
   const searchIntent = classifyQueryIntent('كم سعر الدولار مقابل الجنيه المصري في البنك الآن؟');
   assert(
@@ -133,7 +133,7 @@ async function runAllToolTests() {
 
   const searchResults = await executeAutonomousSearch('سعر الذهب اليوم عيار 21 في مصر 2026');
   assert(
-    'Autonomous Serper AI search retrieves verified live sources with credibility scoring',
+    'Autonomous Fathom Search retrieves verified live sources with credibility scoring',
     searchResults.results.length > 0 && Boolean(searchResults.groundingContextBlock),
     `Retrieved: ${searchResults.results.length} sources, Top: "${searchResults.results[0]?.title.slice(0, 45)}..."`
   );

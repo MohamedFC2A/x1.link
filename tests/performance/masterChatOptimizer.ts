@@ -3,7 +3,7 @@
  * Validates:
  * 1. Factual Rigor & Grounding (Real-Time 2026 Appearance & Facts)
  * 2. Multi-Branch Tree-of-Thought Reasoning Depth & Milestone Decomposition
- * 3. Search Density & Multi-Source Serper AI Utilization (>=10 Sources)
+ * 3. Search Density & Multi-Source Fathom Search Utilization (>=10 Sources)
  * 4. Tone, Literary Eloquence & Strict Zero-Emoji Rule
  * 5. Persona Retention & Security Isolation
  * Target Benchmark Score: > 98 / 100
@@ -71,9 +71,9 @@ async function runMasterOptimizerBenchmark(): Promise<void> {
   });
 
   // ---------------------------------------------------------------------------
-  // TEST SUITE 2: Live Multi-Source Search & Serper AI Utilization
+  // TEST SUITE 2: Live Multi-Source Search & Fathom Search Utilization
   // ---------------------------------------------------------------------------
-  console.log('\n▶ [Suite 2] Live Multi-Source Search & Serper AI Grounding...');
+  console.log('\n▶ [Suite 2] Live Multi-Source Search & Fathom Search Grounding...');
   const searchStartTime = Date.now();
   const searchResponse = await executeAutonomousSearch(testQuery, { explicitDeepSearch: true, maxResults: 15 });
   const searchDuration = Date.now() - searchStartTime;
@@ -92,7 +92,7 @@ async function runMasterOptimizerBenchmark(): Promise<void> {
   const sourcesUsed = searchResponse.sourcesUsed || [];
   const suite2_multiSourcePassed = sourcesUsed.length >= 2;
   results.push({
-    name: 'Multi-Tier Engine Aggregation (DDG + Google News/Serper)',
+    name: 'Multi-Tier Engine Aggregation (DDG + Google News/Fathom)',
     category: 'Search Engine',
     maxScore: 10,
     score: suite2_multiSourcePassed ? 10 : 5,
@@ -117,7 +117,7 @@ async function runMasterOptimizerBenchmark(): Promise<void> {
   // ---------------------------------------------------------------------------
   console.log('\n▶ [Suite 3] Tree-of-Thought (ToT) Milestone Parser & Branching...');
 
-  const searchMilestoneHeader = `- الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Serper AI و Fathom Search (تم استرجاع وفحص ${hitCount} مصادر معتمدة): [البحث عن: "كريستيانو رونالدو لون شعر"]
+  const searchMilestoneHeader = `- الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search (تم استرجاع وفحص ${hitCount} مصادر معتمدة): [البحث عن: "كريستيانو رونالدو لون شعر"]
 • المصدر [1]: Layalina Privee: كريستيانو رونالدو يفاجئ جمهوره بتغيير لون شعره
 • المصدر [2]: CNN Arabic: تغيير مفاجئ في إطلالة كريستيانو رونالدو بعد زواجه من جورجينا
 • المصدر [3]: Al Arabiya: رونالدو يعود للنصر بصبغة شعر جديدة

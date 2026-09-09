@@ -85,35 +85,13 @@ export function parseReasoningMilestones(
     if (hasFathomSearch) {
       defaultSteps.push({
         id: 'step-fathom-search',
-        title: 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Serper AI و Fathom Search',
-        details: 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.',
+        title: 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search',
+        details: isThinking ? undefined : 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.',
         status: isThinking ? 'in-progress' : 'completed',
         specialType: 'search',
         searchQuery: '',
         sourcesCount: 0,
       });
-
-      defaultSteps.push({
-        id: 'step-reasoning-0',
-        title: 'تفكيك وتحليل معطيات المسألة والبيانات المسترجعة',
-        details: 'تحديد المعالم الأساسية، قيود السياق، واستبعاد الفرضيات المتناقضة.',
-        status: isThinking ? 'pending' : 'completed',
-      });
-
-      defaultSteps.push({
-        id: 'step-reasoning-1',
-        title: 'الاستدلال المنطقي ومطابقة البيانات والتحقق المعرفي',
-        details: 'مطابقة الفرضيات واستخلاص النتائج الهندسية والقطعية.',
-        status: isThinking ? 'pending' : 'completed',
-      });
-
-      defaultSteps.push({
-        id: 'step-reasoning-2',
-        title: 'استخلاص وصياغة النتيجة النهائية',
-        details: 'صياغة المخرجات بدقة وإحكام باللغة العربية الفصحى المعاصرة.',
-        status: isThinking ? 'pending' : 'completed',
-      });
-
       return defaultSteps;
     }
 
@@ -121,32 +99,10 @@ export function parseReasoningMilestones(
       defaultSteps.push({
         id: 'step-cam',
         title: 'المسح البصري الميكروي وقراءة نصوص الصور والمستندات عبر Fathom Cam',
-        details: 'فحص مصفوفة البكسلات وتحليل الجداول والنصوص البصرية بدقة ميكروية.',
+        details: isThinking ? undefined : 'فحص مصفوفة البكسلات وتحليل الجداول والنصوص البصرية بدقة ميكروية.',
         status: isThinking ? 'in-progress' : 'completed',
         specialType: 'cam',
       });
-
-      defaultSteps.push({
-        id: 'step-reasoning-0',
-        title: 'تفكيك وتحليل العناصر البصرية والنصوص',
-        details: 'تحديد المعالم الأساسية وقراءة الخانات بدقة ميكروية.',
-        status: isThinking ? 'pending' : 'completed',
-      });
-
-      defaultSteps.push({
-        id: 'step-reasoning-1',
-        title: 'الاستدلال المنطقي ومطابقة البيانات',
-        details: 'مطابقة المعطيات البصرية واستخلاص النتائج.',
-        status: isThinking ? 'pending' : 'completed',
-      });
-
-      defaultSteps.push({
-        id: 'step-reasoning-2',
-        title: 'استخلاص وصياغة النتيجة النهائية',
-        details: 'صياغة المخرجات بدقة وإحكام باللغة العربية الفصحى المعاصرة.',
-        status: isThinking ? 'pending' : 'completed',
-      });
-
       return defaultSteps;
     }
 
@@ -154,61 +110,18 @@ export function parseReasoningMilestones(
       defaultSteps.push({
         id: 'step-spark',
         title: 'استيعاب وتفكيك وسائط الفيديو والأكواد عبر Fathom Spark',
-        details: 'معالجة وتفكيك الأرشيفات المضغوطة وتتبع الإطارات الزمنية بدقة تامة.',
+        details: isThinking ? undefined : 'معالجة وتفكيك الأرشيفات المضغوطة وتتبع الإطارات الزمنية بدقة تامة.',
         status: isThinking ? 'in-progress' : 'completed',
         specialType: 'spark',
       });
-
-      defaultSteps.push({
-        id: 'step-reasoning-0',
-        title: 'تفكيك البنية البرمجية والمنطق',
-        details: 'تحليل الشيفرة المصدرية وتتبع تدفق البيانات.',
-        status: isThinking ? 'pending' : 'completed',
-      });
-
-      defaultSteps.push({
-        id: 'step-reasoning-1',
-        title: 'الاستدلال والتحقق الرياضي والبرمجي',
-        details: 'فحص الدوال ومعالجة الحالات الحدية.',
-        status: isThinking ? 'pending' : 'completed',
-      });
-
-      defaultSteps.push({
-        id: 'step-reasoning-2',
-        title: 'استخلاص وصياغة النتيجة النهائية',
-        details: 'صياغة المخرجات بدقة وإحكام باللغة العربية الفصحى المعاصرة.',
-        status: isThinking ? 'pending' : 'completed',
-      });
-
       return defaultSteps;
     }
 
     defaultSteps.push({
       id: 'step-reasoning-0',
       title: 'تفكيك وتحليل معطيات المسألة',
-      details: 'تحديد المعالم الأساسية، قيود السياق، واستبعاد الفرضيات المتناقضة.',
+      details: isThinking ? undefined : 'تحديد المعالم الأساسية، قيود السياق، واستبعاد الفرضيات المتناقضة.',
       status: isThinking ? 'in-progress' : 'completed',
-    });
-
-    defaultSteps.push({
-      id: 'step-reasoning-1',
-      title: 'الاستدلال المنطقي ومعالجة الخطوات',
-      details: 'مطابقة الفرضيات واستخلاص النتائج الهندسية والقطعية.',
-      status: isThinking ? 'pending' : 'completed',
-    });
-
-    defaultSteps.push({
-      id: 'step-reasoning-2',
-      title: 'التحقق والتدقيق من صحة الاستنتاج',
-      details: 'التدقيق الحسابي والمعرفي واستبعاد أي تناقضات.',
-      status: isThinking ? 'pending' : 'completed',
-    });
-
-    defaultSteps.push({
-      id: 'step-reasoning-3',
-      title: 'استخلاص وصياغة النتيجة النهائية',
-      details: 'صياغة المخرجات بدقة وإحكام باللغة العربية الفصحى المعاصرة.',
-      status: isThinking ? 'pending' : 'completed',
     });
 
     return defaultSteps;
@@ -348,7 +261,7 @@ export function parseReasoningMilestones(
 
   if (hasSearchDetected) {
     // 4-Stage Search Pipeline with Search as Step 1:
-    // 1. Web search & live grounding (Serper AI & Fathom Search)
+    // 1. Web search & live grounding (Fathom Search)
     // 2. Problem & Data Deconstruction
     // 3. Logical deduction & fact verification
     // 4. Final synthesis & verification
@@ -360,7 +273,7 @@ export function parseReasoningMilestones(
     // Step 1: Integrated Web Search Milestone
     milestones.push({
       id: 'step-fathom-search',
-      title: 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Serper AI و Fathom Search',
+      title: 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search',
       details: searchSourcesDetails || 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.',
       status: 'completed',
       specialType: 'search',
@@ -518,24 +431,13 @@ function renderMilestoneTitle(text: string) {
         const match = matches[i];
         if (!match) return <React.Fragment key={i}>{part}</React.Fragment>;
 
-        const isSerper = /serper|سيربر/i.test(match);
-        const isSearch = !isSerper && /search|سيرش/i.test(match);
-        const isSpark = !isSerper && !isSearch && /spark|سبارك/i.test(match);
-        const isCam = !isSerper && !isSearch && !isSpark && /cam|vision|كام/i.test(match);
+        const isSearch = /search|سيرش|serper|سيربر/i.test(match);
+        const isSpark = !isSearch && /spark|سبارك/i.test(match);
+        const isCam = !isSearch && !isSpark && /cam|vision|كام/i.test(match);
 
         return (
           <React.Fragment key={i}>
             {part}
-            {isSerper && (
-              <span dir="ltr" className="inline-flex items-center gap-1 mx-1.5 select-none font-sans font-black tracking-wide align-baseline">
-                <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-                  Serper
-                </span>
-                <span className="bg-gradient-to-b from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-                  AI
-                </span>
-              </span>
-            )}
             {isSearch && (
               <span dir="ltr" className="inline-flex items-center gap-1 mx-1.5 select-none font-sans font-black tracking-wide align-baseline">
                 <span className="bg-gradient-to-r from-cyan-300 via-sky-200 to-indigo-300 bg-clip-text text-transparent font-black tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
@@ -662,8 +564,18 @@ export default function ChatReasoning({
     return parseReasoningMilestones(fullText, isThinking, isFathomCamActive, isFathomSparkActive, isFathomSearchActive);
   }, [fullText, isThinking, isFathomCamActive, isFathomSparkActive, isFathomSearchActive]);
 
-  // Stable milestones for roadmap stepper
-  const visibleMilestones = milestones;
+  // Stable progressive milestones: During thinking, show only reached milestones (completed + current in-progress)
+  // to avoid showing a block of static pending steps all at once
+  const visibleMilestones = useMemo(() => {
+    if (!isThinking) return milestones;
+    const activeIndex = milestones.findIndex(m => m.status === 'in-progress');
+    if (activeIndex === -1) {
+      return milestones.filter(m => m.status === 'completed').length > 0
+        ? milestones.filter(m => m.status === 'completed')
+        : milestones.slice(0, 1);
+    }
+    return milestones.slice(0, activeIndex + 1);
+  }, [milestones, isThinking]);
 
   const searchMilestone = useMemo(() => milestones.find(m => m.specialType === 'search'), [milestones]);
   const camMilestone = useMemo(() => milestones.find(m => m.specialType === 'cam'), [milestones]);
@@ -703,7 +615,7 @@ export default function ChatReasoning({
         )}
       >
         <AccordionTrigger
-          hideChevron={isSvgStudioActive || isNeuralImageStudioActive}
+          hideChevron={false}
           className="text-[11.5px] sm:text-xs font-medium text-zinc-300 hover:text-white hover:no-underline py-2 sm:py-2.5 w-full flex items-center justify-between cursor-pointer group"
         >
           <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
@@ -723,11 +635,7 @@ export default function ChatReasoning({
 
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <span className="font-mono text-[11px] sm:text-xs text-zinc-200 font-semibold tracking-tight">
-                {isNeuralImageStudioActive ? (
-                  "جارٍ توليد صورة واقعية بدقة فائقة..."
-                ) : isSvgStudioActive ? (
-                  "جارٍ رسم وتوليد متجهات الرسم الشعاعي (SVG)..."
-                ) : isThinking ? (
+                {isThinking ? (
                   <span className="inline-flex items-center gap-1.5">
                     <span>جارٍ التفكير والاستدلال</span>
                     {durationSeconds > 0 && (
@@ -735,6 +643,10 @@ export default function ChatReasoning({
                     )}
                     <AnimatedDots className="bg-zinc-300" />
                   </span>
+                ) : isNeuralImageStudioActive ? (
+                  "تم إنشاء وتجهيز الصورة فائقة الدقة"
+                ) : isSvgStudioActive ? (
+                  "تم رسم وتوليد متجهات الرسم الشعاعي (SVG)"
                 ) : (
                   <span>
                     {durationSeconds > 0 ? `فكّر لمدة ${durationSeconds} ثوانٍ` : "مسار الاستدلال والتفكير"}
@@ -786,6 +698,7 @@ export default function ChatReasoning({
 
             {/* Steps View: Vertical Stepper Timeline with Integrated Search, Cam, Spark & Reasoning */}
             <div className="relative pr-4 sm:pr-6 space-y-2 sm:space-y-2.5">
+              <AnimatePresence initial={false}>
                 {visibleMilestones.map((m, idx) => {
                   const isSearch = m.specialType === 'search';
                   const isCam = m.specialType === 'cam';
@@ -796,7 +709,14 @@ export default function ChatReasoning({
                   const isExpanded = Boolean(openStepIds[stepKey]);
 
                   return (
-                    <div key={stepKey} className="relative group">
+                    <motion.div
+                      key={stepKey}
+                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                      className="relative group"
+                    >
                       {/* Vertical connecting line between this node and next node only */}
                       {idx < visibleMilestones.length - 1 && (
                         <div className="absolute -right-[9px] sm:-right-[15px] top-[26px] sm:top-[32px] bottom-[-16px] sm:bottom-[-22px] w-[1.5px] sm:w-[2px] bg-white/[0.08] pointer-events-none" />
@@ -927,10 +847,11 @@ export default function ChatReasoning({
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
-              </div>
+              </AnimatePresence>
+            </div>
           </div>
         </AccordionContent>
       </AccordionItem>

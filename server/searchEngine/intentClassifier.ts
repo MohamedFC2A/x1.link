@@ -37,7 +37,7 @@ const INTENT_RULES: IntentRule[] = [
     priority: 'urgent',
     complexity: 'DEEP_CYBER',
     patterns: [
-      /(سعر|اسعار|كم\s*سعر|كم\s*يبلغ\s*سعر|ثمن|تكلفه|دولار|يورو|ريال|جنيه|ذهب|فضه|عملات|بورصه|اسهم|تداول|بيتكوين|كريبتو|الطقس|درجه\s*الحراره|مباراه\s*اليوم|نتائج\s*المباريات)/i,
+      /(سعر|اسعار|كم\s*سعر|كم\s*يبلغ\s*سعر|ثمن|تكلفه|دولار|يورو|ريال|جنيه|(?:سعر|اسعار|عيار|اونصة|أونصة|سبائك|سبيكة|جرام)\s+(?:ال)?ذهب|فضه|عملات|بورصه|اسهم|تداول|بيتكوين|كريبتو|الطقس|درجه\s*الحراره|مباراه\s*اليوم|نتائج\s*المباريات)/i,
       /\b(price|prices|how\s+much\s+is|cost\s+of|weather|temperature|stock|stocks|nasdaq|crypto|bitcoin|btc|eth|exchange\s+rate|gold\s+price|live\s+score|match\s+result)\b/i
     ]
   },
@@ -239,6 +239,30 @@ export function classifyQueryIntent(
       knowledgeDomain: 'ASTRONOMY_PHYSICS',
       entities,
       reason: 'Pure deductive reasoning, logic puzzle, or theoretical thought experiment. No web search needed.',
+      temporalBias: false,
+      extractedQuery: cleanCore || query
+    };
+  }
+
+  // 2.c. Image Generation, Inpainting, Recoloring & Vector Design Check (Bypass search)
+  const isImageOrDesignQuery = /(?:عايزها|عايزه|عاوزها|عاوزه|اريدها|أريدها|ابغاها|بدي\s*اياها|خلها|خليه|خليها|اجعله|اجعلها)\s+(?:ذهبي|ذهبيه|أحمر|احمر|حمرا|حمراء|أزرق|ازرق|زرقا|زرقاء|أخضر|اخضر|خضرا|خضراء|أصفر|اصفر|صفرا|صفراء|أسود|اسود|سودا|سوداء|أبيض|ابيض|بيضا|بيضاء|فضي|فضيه|فضية|كحلي|رمادي|مات|مطفي|لامع|كروم|وردي|بنفسجي|بالليل|بالنهار|في\s*الليل|في\s*النهار|بدون|مع)/i.test(normalized) ||
+    /(?:صورة|صوره|خلفية\s*شاشة|بورتريه|لوحة)\s+(?:واقعية|فوتوغرافية|احترافية|عالية\s*الدقة|hd|4k)/i.test(normalized) ||
+    /(?:صمم|انشئ|أنشئ|ولد|توليد|ارسم|تخيل)\s+(?:لي\s+)?(?:صورة|صوره|خلفية|بورتريه|لوجو|شعار|ايقونة|svg)/i.test(normalized) ||
+    /(?:تعديل\s*الصورة|تغيير\s*لون|غير\s*لون|بدل\s*لون|عزل\s*الخلفية|حذف\s*الخلفية|تفريغ\s*الخلفية)/i.test(normalized);
+
+  const hasExplicitSearchDirective = /(?:ابحث|بحث|سيرش|مصادر|روابط|موقع|أخبار|اخبار|سعر\s*الذهب|اسعار\s*الذهب|كم\s*سعر|search|google|news)/i.test(normalized);
+
+  if (isImageOrDesignQuery && !hasExplicitSearchDirective) {
+    return {
+      intent: 'GENERAL_CONVERSATION',
+      confidence: 0.1,
+      should_search: false,
+      search_type: 'GENERAL_CONVERSATION',
+      priority: 'background',
+      complexityLevel: 'NONE',
+      knowledgeDomain: 'GENERAL_FACT',
+      entities,
+      reason: 'Image generation, recoloring, inpainting, or vector design request. No web search needed.',
       temporalBias: false,
       extractedQuery: cleanCore || query
     };

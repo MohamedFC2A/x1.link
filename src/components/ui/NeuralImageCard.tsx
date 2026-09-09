@@ -12,7 +12,8 @@ import {
   AlertCircle,
   Split,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Quant3PerfectionIcon } from '@/components/ui/Quant3PerfectionIcon';
@@ -47,6 +48,13 @@ export function isValidImageUri(uri: unknown): uri is string {
     trimmed === 'undefined'
   ) {
     return false;
+  }
+  // Detect truncated or invalid base64 data URIs
+  if (trimmed.startsWith('data:image/')) {
+    const commaIdx = trimmed.indexOf(',');
+    if (commaIdx === -1 || commaIdx === trimmed.length - 1) return false;
+    const base64Part = trimmed.slice(commaIdx + 1);
+    if (base64Part.length < 500) return false;
   }
   return (
     trimmed.startsWith('http://') ||
@@ -203,6 +211,11 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
 
   // Resolve images with robust validation against placeholder strings
   const originalSrc = useMemo(() => {
+    if (fallbackOriginalImage && isValidImageUri(fallbackOriginalImage)) {
+      if (!isValidImageUri(data.originalImage) || (typeof data.originalImage === 'string' && data.originalImage.startsWith('data:image/') && data.originalImage.length < 5000)) {
+        return fallbackOriginalImage.trim();
+      }
+    }
     if (isValidImageUri(data.originalImage)) return data.originalImage.trim();
     if (isValidImageUri(fallbackOriginalImage)) return fallbackOriginalImage.trim();
     return null;
@@ -646,6 +659,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                 )}
                 title="الصورة الأصلية قبل التعديل"
               >
+                <History className="size-3" />
                 <span className="hidden sm:inline">الأصلية</span>
               </button>
             </div>

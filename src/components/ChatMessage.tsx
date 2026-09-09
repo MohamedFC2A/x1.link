@@ -1427,8 +1427,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             parsed.operation === 'product_edit' ||
             (typeof parsed.title === 'string' && (parsed.title.includes('تعديل') || parsed.title.includes('إضافة') || parsed.title.includes('اضافة')));
 
-          // Sanitize originalImage against invalid placeholders (e.g. "<رابط...>") and fallback to priorImage
-          if (!isValidImageUri(parsed.originalImage) && priorImage && isValidImageUri(priorImage)) {
+          // For edit/addition/recolor operations, priorImage from conversation history is the authoritative source for originalImage
+          if (isEditOrAdd && priorImage && isValidImageUri(priorImage)) {
+            parsed.originalImage = priorImage;
+          } else if (!isValidImageUri(parsed.originalImage) && priorImage && isValidImageUri(priorImage)) {
             parsed.originalImage = priorImage;
           }
 
@@ -2105,7 +2107,16 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   messageId={message.id}
                   data={extractedNeuralImageData ? {
                     ...extractedNeuralImageData,
-                    prompt: extractedNeuralImageData.prompt || previousUserPrompt
+                    prompt: extractedNeuralImageData.prompt || previousUserPrompt,
+                    originalImage: (
+                      (extractedNeuralImageData.operation === 'edit' ||
+                       extractedNeuralImageData.operation === 'addition' ||
+                       extractedNeuralImageData.operation === 'add_element' ||
+                       extractedNeuralImageData.operation === 'recolor' ||
+                       (extractedNeuralImageData.title && /تعديل|إضافة|اضافة/.test(extractedNeuralImageData.title)))
+                      ? (priorImage || extractedNeuralImageData.originalImage)
+                      : extractedNeuralImageData.originalImage
+                    )
                   } : {
                     operation: imageOpType === 'addition' ? 'add_element' : imageOpType === 'edit' ? 'edit' : 'generate',
                     title: imageOpType === 'addition' ? 'إضافة ذكية على الصورة' : imageOpType === 'edit' ? 'تعديل موضعي دقيق' : 'صورة فوتوغرافية فائقة',
@@ -2115,7 +2126,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                     processedImage: message.image || (message.images && message.images[0]) || '',
                     originalImage: (imageOpType === 'addition' || imageOpType === 'edit') ? (priorImage || undefined) : undefined
                   }}
-                  fallbackOriginalImage={priorImage || message.image || (message.images && message.images[0]) || undefined}
+                  fallbackOriginalImage={priorImage || undefined}
                   isStreaming={isStreaming}
                   onImageGenerated={(imageUrl) => onImageGenerated?.(message.id, imageUrl)}
                 />

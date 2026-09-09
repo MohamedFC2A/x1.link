@@ -160,9 +160,11 @@ const NEURAL_IMAGE_PATTERNS = [
 ];
 
 export const CONTEXTUAL_IMAGE_EDIT_PATTERNS = [
-  /(?:غير|غيرلي|عدل|عدلي|تعديل|تغيير|بدل|بدلي|تبديل|استبدل|احذف|امسح|شيل|ازالة|إزالة|عزل|اعزل|خليه|خلها|اجعله|اجعلها|سوه|سوها|حول|تحويل|صبغ|لون|صلح|اصلاح|ظبط|edit|modify|change|replace|remove|recolor|restyle|inpaint)/i,
+  /(?:غير|غيرلي|عدل|عدلي|تعديل|تغيير|بدل|بدلي|تبديل|استبدل|احذف|امسح|شيل|ازالة|إزالة|عزل|اعزل|خليه|خلها|خليها|اجعله|اجعلها|سوه|سوها|حول|تحويل|صبغ|لون|صلح|اصلاح|ظبط|عايزها|عايزه|عاوزها|عاوزه|اريدها|أريدها|اريده|أريده|ابغاها|ابغاه|بدي\s*اياها|بدي|نبيها|edit|modify|change|replace|remove|recolor|restyle|inpaint)/i,
   /(?:عدل\s+عليها|غير\s+فيها|بدل\s+فيها|عدل\s+فيها|غير\s+لون|بدل\s+لون|عدل\s+لون|غير\s+شكل|بدل\s+شكل|غير\s+الخلفية|بدل\s+الخلفية|امسح\s+الـ|احذف\s+الـ|شيل\s+الـ|خليها\s+بالليل|خليه\s+بالليل|خليه\s+في\s+النهار|خليها\s+في\s+النهار|خليها\s+في\s+الليل)/i,
-  /\b(?:edit\s+(?:it|this|the\s+image|the\s+photo)|modify\s+(?:it|this)|change\s+(?:it|the\s+color|the\s+background)|replace\s+the|remove\s+the|make\s+it\s+(?:night|day|red|blue|dark|bright))\b/i
+  /(?:ذهبي|ذهبيه|ذهبية|أحمر|احمر|حمرا|حمراء|أزرق|ازرق|زرقا|زرقاء|أخضر|اخضر|خضرا|خضراء|أصفر|اصفر|صفرا|صفراء|أسود|اسود|سودا|سوداء|أبيض|ابيض|بيضا|بيضاء|فضي|فضيه|فضية|كحلي|رمادي|مات|مطفي|لامع|كروم|كربون\s*فايبر|وردي|بنفسجي|برتقالي|بني)/i,
+  /(?:بدون\s*(?:دخان|خلفية|سيارات|ناس|اضاءة|إضاءة|مطر)|مع\s*(?:دخان|مطر|ثلج)|بالليل|بالنهار|في\s*الليل|في\s*النهار|وقت\s*الغروب|وقت\s*الشروق|تحت\s*المطر|على\s*البحر)/i,
+  /\b(?:edit\s+(?:it|this|the\s+image|the\s+photo)|modify\s+(?:it|this)|change\s+(?:it|the\s+color|the\s+background)|replace\s+the|remove\s+the|make\s+it\s+(?:night|day|red|blue|dark|bright|gold|golden|silver|matte|glossy))\b/i
 ];
 
 export const CONTEXTUAL_IMAGE_ADDITION_PATTERNS = [
@@ -427,7 +429,7 @@ export class DynamicParameterTuner {
    */
   public static detectImageOperationType(
     userPrompt: string,
-    hasPriorImage: boolean
+    hasPriorImage: boolean = true
   ): ImageOperationType {
     const text = (userPrompt || '').trim().toLowerCase();
 
@@ -462,8 +464,8 @@ export class DynamicParameterTuner {
       return 'addition';
     }
 
-    // Fallback: short follow-up under an active image context (e.g. "لون أحمر", "بالليل", "بدون مطر")
-    if (/(?:أحمر|احمر|أزرق|ازرق|أخضر|اخضر|أصفر|اصفر|أسود|اسود|أبيض|ابيض|ليل|نهار|غروب|شروق|ممطر|بدون|مع)/i.test(text)) {
+    // Fallback: short follow-up under an active image context (e.g. "لون أحمر", "ذهبي", "بالليل", "بدون مطر")
+    if (/(?:أحمر|احمر|حمرا|حمراء|أزرق|ازرق|زرقا|زرقاء|أخضر|اخضر|خضرا|خضراء|أصفر|اصفر|صفرا|صفراء|أسود|اسود|سودا|سوداء|أبيض|ابيض|بيضا|بيضاء|ذهبي|ذهبيه|ذهبية|فضي|فضيه|فضية|كحلي|رمادي|مات|مطفي|لامع|كروم|وردي|بنفسجي|برتقالي|بني|ليل|نهار|غروب|شروق|ممطر|بدون|مع|gold|golden|silver|chrome|black|white|red|blue|yellow|green)/i.test(text)) {
       return 'edit';
     }
 
@@ -507,7 +509,7 @@ export class DynamicParameterTuner {
               parsed.operation = expectedOp;
             }
 
-            // Inject original image link if missing or if filled with invalid placeholder string
+            // Inject original image link if missing or if filled with invalid placeholder string (only if valid http URL to prevent embedding huge base64 into prompt text)
             const isInvalidOrig = !parsed.originalImage ||
               typeof parsed.originalImage !== 'string' ||
               parsed.originalImage.includes('<') ||
@@ -516,8 +518,11 @@ export class DynamicParameterTuner {
               parsed.originalImage.startsWith('الصورة') ||
               (!parsed.originalImage.startsWith('http') && !parsed.originalImage.startsWith('data:image/'));
 
-            if (isInvalidOrig && priorImageContext?.imageUrl) {
+            if (isInvalidOrig && priorImageContext?.imageUrl && priorImageContext.imageUrl.startsWith('http')) {
               parsed.originalImage = priorImageContext.imageUrl;
+            } else if (isInvalidOrig && (!parsed.originalImage || parsed.originalImage.startsWith('data:'))) {
+              // Leave empty for client/ChatMessage to auto-bind priorImage without base64 truncation
+              parsed.originalImage = '';
             }
 
             // Guarantee preservation of prior seed to lock environment and lighting 100%
@@ -610,6 +615,8 @@ export class DynamicParameterTuner {
 
       // 2. Cyber Ultra Sovereign Neural Image Studio & Processing (Inpainting, Recoloring, Background Removal, 4K Upscale, Compositing, Product/Text Edit)
       const isNeuralImageEditRequest = NEURAL_IMAGE_PATTERNS.some(p => p.test(text)) ||
+        CONTEXTUAL_IMAGE_EDIT_PATTERNS.some(p => p.test(text)) ||
+        CONTEXTUAL_IMAGE_ADDITION_PATTERNS.some(p => p.test(text)) ||
         /(?:عدل|تعديل|غير|تغيير|بدل|تبديل|ادخل|أدخل|اضف|أضف|احذف|شيل)\s+(?:لي\s+)?(?:في\s+الصورة|على\s+الصورة|بالصورة|فيها|الصورة\s+المرفقة|الصورة\s+دي)/i.test(text);
 
       if (isNeuralImageEditRequest) {
@@ -1177,8 +1184,8 @@ export class DynamicParameterTuner {
                   `يجب عليك حتماً نقل واستخدام نفس رقم الـ seed السابق (${priorImage.seed !== undefined ? priorImage.seed : 482910}) لحفظ بنية الضوضاء العصبية واستقرار المشهد بنسبة 100%، وأخذ البرومبت الأصلي السابق بالكامل مع إبقاء كافة أوصاف البيئة والمكان والشارع والإضاءة وزاوية الكاميرا متطابقة 100% دون حذف أو تبديل، وتطبيق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط على الكلمة أو العبارة المستهدفة (مثال: ${isContextualAddition ? 'إضافة الكائن المطلوب في موقعه الصحيح داخل المشهد السابق مع إبقاء بقية النص الإنجليزي متطابقاً 100%' : 'استبدال لون الطلاء فقط من الأسود إلى الأحمر مع إبقاء كافة أوصاف السيارة والشارع والمطر متطابقة 100%'}). `
                 : `حافظ بنسبة 100% قطعية على كافة عناصر وزوايا وتكوين وأبعاد وبيئة وخلفية وإضاءة الصورة الأصلية دون تغيير حتى بنسبة 1%، واستخدم نفس الـ seed (${priorImage?.seed !== undefined ? priorImage.seed : 482910})، وطبّق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط دون تغيير أي شيء آخر في المشهد. `) +
               `7) [الحفاظ على النسبة الأصلية]: حافظ على نفس نسبة العرض الأصلية aspectRatio: "${priorImage?.aspectRatio || '1:1'}". ` +
-              `8) [بروتوكول تسليم وتوليد المعالجة العصبية الإلزامي - Neural Deliverable Block]: بعد التفكير التحليلي والشرح باللغة العربية، أخرج حتماً كتلة المعالجة العصبية التالية: ` +
-              `\`\`\`neural-image\n{\n  "operation": "${isContextualAddition ? 'add_element' : 'edit'}",\n  "title": "${isContextualAddition ? 'إضافة' : 'تعديل'}: <تفاصيل ال${isContextualAddition ? 'إضافة' : 'تعديل'}>",\n  "description": "${isContextualAddition ? 'تمت إضافة' : 'تم تعديل'} <التفاصيل المنفذة بدقة 100%>",\n  "prompt": "<English prompt preserving 100% of original scene environment, lighting, and camera angle with only surgical ${isContextualAddition ? 'addition' : 'modification'} delta>",\n  "seed": ${priorImage?.seed !== undefined ? priorImage.seed : 482910},\n  "originalImage": "${priorImage?.imageUrl || ''}",\n  "aspectRatio": "${priorImage?.aspectRatio || '1:1'}",\n  "style": "${priorImage?.style || 'photorealistic'}",\n  "fidelityScore": "100%",\n  "resolution": "4K"\n}\n\`\`\` ` +
+              `8) [بروتوكول تسليم وتوليد المعالجة العصبية الإلزامي - Neural Deliverable Block]: بعد التفكير التحليلي والشرح باللغة العربية، أخرج حتماً كتلة المعالجة العصبية التالية (اترك حقل "originalImage" فارغاً "" وسيقوم النظام بربط صورة المشهد الأصلية تلقائياً لتشغيل المقارنة المنزلقة): ` +
+              `\`\`\`neural-image\n{\n  "operation": "${isContextualAddition ? 'add_element' : 'edit'}",\n  "title": "${isContextualAddition ? 'إضافة' : 'تعديل'}: <تفاصيل ال${isContextualAddition ? 'إضافة' : 'تعديل'}>",\n  "description": "${isContextualAddition ? 'تمت إضافة' : 'تم تعديل'} <التفاصيل المنفذة بدقة 100%>",\n  "prompt": "<English prompt preserving 100% of original scene environment, lighting, and camera angle with only surgical ${isContextualAddition ? 'addition' : 'modification'} delta>",\n  "seed": ${priorImage?.seed !== undefined ? priorImage.seed : 482910},\n  "originalImage": "${priorImage?.imageUrl && !priorImage.imageUrl.startsWith('data:') ? priorImage.imageUrl : ''}",\n  "aspectRatio": "${priorImage?.aspectRatio || '1:1'}",\n  "style": "${priorImage?.style || 'photorealistic'}",\n  "fidelityScore": "100%",\n  "resolution": "4K"\n}\n\`\`\` ` +
               `9) [الحظر الصارم للـ SVG]: يُحظر تماماً وبشكل قاطع تحويل الصور الفوتوغرافية أو طلبات تعديل/تلوين الصور إلى SVG أو تشغيل SVG Studio إطلاقاً، ولا يُخرج أي كود متجهات.`
             )
             : 'أنت المعماري والمهندس السيادي لتوليد ومعالجة وتعديل الصور عصبياً وفوتوغرافياً باستخدام محرك FLUX.1 [schnell] فائق السرعة والواقعية (Sovereign Neural Image Studio Architect): ' +
@@ -1511,3 +1518,37 @@ export class DynamicParameterTuner {
     });
   }
 }
+
+export function detectImageOperationType(userPrompt: string, hasPriorImage: boolean = true): ImageOperationType {
+  return DynamicParameterTuner.detectImageOperationType(userPrompt, hasPriorImage);
+}
+
+export function detectDynamicTuning(
+  userPrompt: string,
+  requestedModel: string = 'deepseek-v4-pro',
+  conversationHistory: Array<{ role: string; content: any }> = [],
+  options?: { hasMedia?: boolean; hasImages?: boolean; hasImagesInHistory?: boolean; isX1Mode?: boolean }
+) {
+  const history = [...conversationHistory];
+  if (options?.hasImagesInHistory && history.length === 0) {
+    history.push({
+      role: 'assistant',
+      content: '```neural-image\n{\n  "operation": "generate",\n  "imageUrl": "https://example.com/car.png",\n  "title": "مرسيدس"\n}\n```'
+    });
+  }
+
+  const tuned = DynamicParameterTuner.tune({
+    userPrompt,
+    requestedModel,
+    conversationHistory: history,
+    hasMultimodalImages: options?.hasImages,
+    hasVideoOrAudio: options?.hasMedia,
+    isX1Mode: options?.isX1Mode,
+  });
+
+  return {
+    ...tuned,
+    requiresSearch: tuned.detectedIntent === 'FACTUAL_SEARCH_AND_REALTIME_GROUNDING'
+  };
+}
+

@@ -164,11 +164,8 @@ export async function createCloudChat(userId: string | null, title: string, mode
 export async function saveCloudMessage(chatId: string, userId: string | null, msg: ChatMessageItem): Promise<void> {
   const deviceId = getOrCreateDeviceId();
   try {
-    // Encode reasoning into content if assistant message to guarantee persistence
-    let finalContent = msg.content || '';
-    if (msg.role === 'assistant' && msg.reasoning && !finalContent.includes('<think>')) {
-      finalContent = `<think>\n${msg.reasoning}\n</think>\n\n${finalContent}`;
-    }
+    // Keep content 100% clean of ephemeral <think> blocks to prevent massive token bloating and database row inflation
+    const cleanContent = (msg.content || '').replace(/<think>[\s\S]*?<\/think>\n*/gi, '').trim();
 
     // Deduplication safeguard: if assistant message was already auto-persisted by server, skip duplicate insert
     if (msg.role === 'assistant') {
@@ -182,7 +179,7 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
 
       if (existing && existing.length > 0) {
         const existingText = (existing[0].content || '').trim();
-        const newText = finalContent.trim();
+        const newText = cleanContent;
         if (
           existingText === newText ||
           (existingText.length > 20 && newText.includes(existingText.slice(0, 50))) ||
@@ -211,6 +208,18 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
       });
     }
 
+    // Resolve image_url: check message.image or neural-image JSON block
+    let resolvedImageUrl = msg.image || (msg.images && msg.images[0]) || null;
+    if (!resolvedImageUrl && cleanContent.includes('neural-image')) {
+      const neuralBlockMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(cleanContent);
+      if (neuralBlockMatch) {
+        try {
+          const parsed = JSON.parse(neuralBlockMatch[1]);
+          resolvedImageUrl = parsed.imageUrl || parsed.processedImage || null;
+        } catch {}
+      }
+    }
+
     // Assign or validate RFC 4122 UUID to guarantee 100% 1:1 client-to-database parity
     const messageUuid = isUuid(msg.id) ? msg.id : generateUuid();
     msg.id = messageUuid;
@@ -219,8 +228,9 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
       id: messageUuid,
       chat_id: chatId,
       role: msg.role,
-      content: finalContent,
-      image_url: msg.image || (msg.images && msg.images[0]) || null,
+      content: cleanContent,
+      reasoning: msg.reasoning ? msg.reasoning.slice(0, 2000) : null,
+      image_url: resolvedImageUrl,
       media_attachments: mediaAttachments,
       is_x1: !!msg.isX1,
       tokens_count: msg.tokensCount || 0,
@@ -285,16 +295,18 @@ export async function fetchChatMessages(chatId: string): Promise<ChatMessageItem
       return [];
     }
 
-    const rawList = (data || []).map(row => {
+    const rawList = (data || []).map((row, idx) => {
       let content = row.content || '';
       let reasoning: string | undefined = row.reasoning || undefined;
 
-      // Extract reasoning embedded in <think>...</think>
-      if (!reasoning && content.includes('<think>') && content.includes('</think>')) {
+      // Extract reasoning embedded in legacy <think>...</think>
+      if (content.includes('<think>') && content.includes('</think>')) {
         const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/i);
         if (thinkMatch) {
-          reasoning = thinkMatch[1].trim();
-          content = content.replace(/<think>[\s\S]*?<\/think>/i, '').trim();
+          if (!reasoning) {
+            reasoning = thinkMatch[1].trim().slice(0, 2000);
+          }
+          content = content.replace(/<think>[\s\S]*?<\/think>\n*/gi, '').trim();
         }
       }
 
@@ -311,26 +323,70 @@ export async function fetchChatMessages(chatId: string): Promise<ChatMessageItem
         ? row.media_attachments.filter((m: any) => m.type !== 'image')
         : undefined;
 
-      // If row.image_url exists and content has a neural-image block missing imageUrl, inject it
+      // Primary image for this row
       const primaryImg = images?.[0] || row.image_url || undefined;
-      if (primaryImg) {
-        if (content.includes('neural-image')) {
-          content = content.replace(
-            /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/gi,
-            (fullBlock: string, jsonStr: string) => {
-              try {
-                const parsed = JSON.parse(jsonStr);
-                if (!parsed.imageUrl && !parsed.processedImage) {
-                  parsed.imageUrl = primaryImg;
-                  parsed.processedImage = primaryImg;
-                  return `\`\`\`neural-image\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
-                }
-              } catch {}
-              return fullBlock;
-            }
-          );
-        }
 
+      // Self-heal neural-image block: inject primaryImg and recover originalImage for edit operations
+      if (content.includes('neural-image')) {
+        content = content.replace(
+          /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/gi,
+          (fullBlock: string, jsonStr: string) => {
+            try {
+              const parsed = JSON.parse(jsonStr);
+              let changed = false;
+              if (primaryImg && !parsed.imageUrl && !parsed.processedImage) {
+                parsed.imageUrl = primaryImg;
+                parsed.processedImage = primaryImg;
+                changed = true;
+              }
+
+              const isEdit = parsed.operation === 'edit' ||
+                parsed.operation === 'addition' ||
+                parsed.operation === 'add_element' ||
+                parsed.operation === 'recolor' ||
+                parsed.operation === 'remove_background' ||
+                (typeof parsed.title === 'string' && (parsed.title.includes('تعديل') || parsed.title.includes('إضافة') || parsed.title.includes('اضافة')));
+
+              if (isEdit) {
+                // Find most recent prior image from earlier rows in chronological history
+                let priorImg: string | undefined;
+                for (let k = idx - 1; k >= 0; k--) {
+                  const prevRow = data[k];
+                  if (prevRow.image_url && (prevRow.image_url.startsWith('http') || (prevRow.image_url.startsWith('data:image/') && prevRow.image_url.length > 5000))) {
+                    priorImg = prevRow.image_url;
+                    break;
+                  }
+                  if (prevRow.content && prevRow.content.includes('neural-image')) {
+                    const prevMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(prevRow.content);
+                    if (prevMatch) {
+                      try {
+                        const prevParsed = JSON.parse(prevMatch[1]);
+                        const candidate = prevParsed.imageUrl || prevParsed.processedImage;
+                        if (candidate && !candidate.includes('pollinations.ai') && (candidate.startsWith('http') || (candidate.startsWith('data:image/') && candidate.length > 5000))) {
+                          priorImg = candidate;
+                          break;
+                        }
+                      } catch {}
+                    }
+                  }
+                }
+
+                if (priorImg && (!parsed.originalImage || (parsed.originalImage.startsWith('data:image/') && parsed.originalImage.length < 5000))) {
+                  parsed.originalImage = priorImg;
+                  changed = true;
+                }
+              }
+
+              if (changed) {
+                return `\`\`\`neural-image\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+              }
+            } catch {}
+            return fullBlock;
+          }
+        );
+      }
+
+      if (primaryImg) {
         // Prime local storage and in-memory cache instantly on message fetch
         if (typeof window !== 'undefined') {
           try {

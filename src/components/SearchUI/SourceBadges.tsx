@@ -28,7 +28,7 @@ export const SourceBadge: React.FC<SourceBadgeProps> = ({
       case 'serper':
         return {
           icon: <Search className="w-3.5 h-3.5 text-blue-400" />,
-          label: sourceName || 'Google Search',
+          label: sourceName || 'Fathom Search',
           badgeClass: 'bg-blue-950/40 border-blue-500/30 text-blue-300',
         };
       case 'news':

@@ -2151,9 +2151,16 @@ export default async function handler(req: Request): Promise<Response> {
       console.log(`[MULTI-LINK MATRIX Edge] ✓ Injected structured intelligence for (${validProcessedLinks.length}) links (${masterMultiLinkMatrix.length} chars)`);
       activeSystemPrompt += `\n\n${masterMultiLinkMatrix}`;
     }
-  } else {
-    const contextualQuery = resolveMultiTurnQuery(rawUserContent, processedMessages);
-    willSearch = shouldPerformLiveSearch(contextualQuery, deepSearch) || shouldPerformLiveSearch(rawUserContent, deepSearch);
+    const isImageOrSvgIntent = dynamicTuning.detectedIntent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING' ||
+      (dynamicTuning.detectedIntent === 'SVG_VECTOR_STUDIO_AND_DESIGN' && !deepSearch && !/(?:ابحث|بحث|سيرش|مصادر|search|google|news)/i.test(rawUserContent));
+
+    let contextualQuery = rawUserContent;
+    if (isImageOrSvgIntent) {
+      willSearch = false;
+    } else {
+      contextualQuery = resolveMultiTurnQuery(rawUserContent, processedMessages);
+      willSearch = shouldPerformLiveSearch(contextualQuery, deepSearch) || shouldPerformLiveSearch(rawUserContent, deepSearch);
+    }
 
     if (willSearch) {
       const activeSearchQuery = (contextualQuery.length > rawUserContent.length && contextualQuery.includes(rawUserContent)) ? contextualQuery : rawUserContent;
@@ -2174,7 +2181,7 @@ export default async function handler(req: Request): Promise<Response> {
 - حظر إخراج أي تفكير أو نصوص بحثية أو روابط أو اقتباسات نصية خارج كود الـ SVG.
 - قم فوراً بترجمة وتجسيد كافة المعلومات المستخلصة من البحث إلى كود SVG نقي متقن ومكتمل داخل \`\`\`svg ... \`\`\` يعبر عن التصميم أو الصورة المطلوبة بأعلى دقة فنية وجمالية وبدقة 2K / 4K.
 - يُمنع تماماً طباعة أي رموز عشوائية أو تهويمات؛ أخرج الكود مباشرة ونظيفاً 100%.` : `
-[توجيه استخبارات البحث الحي وحسم الحقائق — SERPER AI & FATHOM SEARCH FACTUAL SYNTHESIS DIRECTIVE]:
+[توجيه استخبارات البحث الحي وحسم الحقائق — FATHOM SEARCH FACTUAL SYNTHESIS DIRECTIVE]:
 - في خطوات تفكيرك الداخلي <think>، استند 100% إلى الحقائق والمصادر الحية المستخرجة أعلاه لحسم أي وقائع أو أحداث أو تفاصيل بدقة قطعية.
 - حظر التخمين والهلوسة (Strict Anti-Hallucination): يُحظر تماماً التخمين الافتراضي أو إنكار الوقائع المذكورة في المصادر الحية المسترجعة.
 - بروتوكول التفكير الشجري: طبق الفروع الخمسة داخل <think> (تفكيك المعطيات، تدقيق المصادر، فحص الفرضيات، الاستنتاج المنطقي، وهندسة الإجابة).
@@ -2786,16 +2793,27 @@ export default async function handler(req: Request): Promise<Response> {
                 const safeContent = isCycleLoopDetected
                   ? DeterministicCycleDetector.safeTerminate(fullServerContent)
                   : fullServerContent;
-                const finalServerContent = fullServerReasoning
-                  ? `<think>\n${fullServerReasoning}\n</think>\n\n${safeContent}`
-                  : safeContent;
+                const cleanServerContent = safeContent.replace(/<think>[\s\S]*?<\/think>\n*/gi, '').trim();
+
+                let extractedImageUrl: string | null = null;
+                if (cleanServerContent.includes('neural-image')) {
+                  const m = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(cleanServerContent);
+                  if (m) {
+                    try {
+                      const p = JSON.parse(m[1]);
+                      extractedImageUrl = p.imageUrl || p.processedImage || null;
+                    } catch {}
+                  }
+                }
 
                 await serverSupabase.from('x1_messages').insert({
                   chat_id: chatId,
                   user_id: userId || null,
                   device_id: deviceId || null,
                   role: 'assistant',
-                  content: finalServerContent.trim(),
+                  content: cleanServerContent,
+                  reasoning: fullServerReasoning ? fullServerReasoning.slice(0, 2000) : null,
+                  image_url: extractedImageUrl,
                   is_x1: !!isX1Mode,
                   tokens_count: 0
                 });

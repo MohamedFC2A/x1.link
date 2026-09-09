@@ -32,7 +32,7 @@ export async function runChatReasoningMilestonesTests(harness: TestHarness) {
       expect(milestones[0].title).toBe('تفكيك وتحليل معطيات المسألة');
     });
 
-    await harness.it('should consolidate and attribute real search queries to Serper AI and Fathom Search', () => {
+    await harness.it('should consolidate and attribute real search queries to Fathom Search', () => {
       const searchReasoning = `[الاستعلام الشبكي]: [البحث عن: "سعر الذهب اليوم في مصر 2026"]
 • المصدر [1]: عيار 21 يسجل 3850 جنيهاً مصرياً.
 • المصدر [2]: تقرير البورصة المصرية للذهب اليوم.
@@ -43,7 +43,7 @@ export async function runChatReasoningMilestonesTests(harness: TestHarness) {
 
       const searchMilestone = milestones.find(m => m.specialType === 'search');
       expect(searchMilestone).toBeDefined();
-      expect(searchMilestone?.title).toContain('Serper AI');
+      expect(searchMilestone?.title).not.toContain('Serper AI');
       expect(searchMilestone?.title).toContain('Fathom Search');
       expect(searchMilestone?.searchQuery).toBe('سعر الذهب اليوم في مصر 2026');
     });
