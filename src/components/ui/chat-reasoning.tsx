@@ -85,7 +85,7 @@ export function parseReasoningMilestones(
     if (hasFathomSearch) {
       defaultSteps.push({
         id: 'step-fathom-search',
-        title: 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search',
+        title: 'البحث والتحقق الحي • Fathom Search',
         details: isThinking ? undefined : 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.',
         status: isThinking ? 'in-progress' : 'completed',
         specialType: 'search',
@@ -98,7 +98,7 @@ export function parseReasoningMilestones(
     if (hasFathomCam) {
       defaultSteps.push({
         id: 'step-cam',
-        title: 'المسح البصري الميكروي وقراءة نصوص الصور والمستندات عبر Fathom Cam',
+        title: 'المسح البصري وقراءة النصوص • Fathom Cam',
         details: isThinking ? undefined : 'فحص مصفوفة البكسلات وتحليل الجداول والنصوص البصرية بدقة ميكروية.',
         status: isThinking ? 'in-progress' : 'completed',
         specialType: 'cam',
@@ -109,7 +109,7 @@ export function parseReasoningMilestones(
     if (hasFathomSpark) {
       defaultSteps.push({
         id: 'step-spark',
-        title: 'استيعاب وتفكيك وسائط الفيديو والأكواد عبر Fathom Spark',
+        title: 'معالجة الوسائط والأكواد • Fathom Spark',
         details: isThinking ? undefined : 'معالجة وتفكيك الأرشيفات المضغوطة وتتبع الإطارات الزمنية بدقة تامة.',
         status: isThinking ? 'in-progress' : 'completed',
         specialType: 'spark',
@@ -119,7 +119,7 @@ export function parseReasoningMilestones(
 
     defaultSteps.push({
       id: 'step-reasoning-0',
-      title: 'تفكيك وتحليل معطيات المسألة',
+      title: 'تحليل معطيات المسألة',
       details: isThinking ? undefined : 'تحديد المعالم الأساسية، قيود السياق، واستبعاد الفرضيات المتناقضة.',
       status: isThinking ? 'in-progress' : 'completed',
     });
@@ -292,7 +292,7 @@ export function parseReasoningMilestones(
     // Step 3: Deduction & Evidence Processing
     milestones.push({
       id: 'step-reasoning-1',
-      title: 'الاستدلال المنطقي ومطابقة البيانات والتحقق المعرفي',
+      title: 'الاستدلال ومطابقة البيانات',
       details: part1,
       status: isThinking ? (!part2 ? (part1 ? 'in-progress' : 'pending') : 'completed') : 'completed',
     });
@@ -300,7 +300,7 @@ export function parseReasoningMilestones(
     // Step 4: Final Synthesis
     milestones.push({
       id: 'step-reasoning-2',
-      title: 'استخلاص وصياغة النتيجة النهائية',
+      title: 'صياغة النتيجة النهائية',
       details: part2,
       status: isThinking ? (part2 ? 'in-progress' : 'pending') : 'completed',
     });
@@ -317,26 +317,26 @@ export function parseReasoningMilestones(
 
     milestones.push({
       id: 'step-cam',
-      title: 'المسح البصري الميكروي وقراءة نصوص الصور عبر Fathom Cam',
+      title: 'المسح البصري وقراءة النصوص • Fathom Cam',
       details: 'فحص مصفوفة البكسلات وتحليل الجداول والنصوص البصرية بدقة ميكروية.',
       status: 'completed',
       specialType: 'cam',
     });
     milestones.push({
       id: 'step-reasoning-0',
-      title: 'تفكيك وتحليل العناصر البصرية والنصوص',
+      title: 'تحليل العناصر البصرية',
       details: part0,
       status: isThinking && !part1 ? 'in-progress' : 'completed',
     });
     milestones.push({
       id: 'step-reasoning-1',
-      title: 'الاستدلال المنطقي ومطابقة البيانات',
+      title: 'الاستدلال ومطابقة البيانات',
       details: part1,
       status: isThinking ? (!part2 ? (part1 ? 'in-progress' : 'pending') : 'completed') : 'completed',
     });
     milestones.push({
       id: 'step-reasoning-2',
-      title: 'استخلاص وصياغة النتيجة النهائية',
+      title: 'صياغة النتيجة النهائية',
       details: part2,
       status: isThinking ? (part2 ? 'in-progress' : 'pending') : 'completed',
     });
@@ -352,14 +352,14 @@ export function parseReasoningMilestones(
 
     milestones.push({
       id: 'step-spark',
-      title: 'استيعاب وتفكيك وسائط الفيديو والصوتيات والأكواد عبر Fathom Spark',
+      title: 'معالجة الوسائط والأكواد • Fathom Spark',
       details: 'معالجة وتفكيك الأرشيفات المضغوطة وتتبع الإطارات الزمنية بدقة تامة.',
       status: 'completed',
       specialType: 'spark',
     });
     milestones.push({
       id: 'step-reasoning-0',
-      title: 'تفكيك البنية البرمجية والمنطق',
+      title: 'تفكيك البنية والمنطق',
       details: part0,
       status: isThinking && !part1 ? 'in-progress' : 'completed',
     });
@@ -371,7 +371,7 @@ export function parseReasoningMilestones(
     });
     milestones.push({
       id: 'step-reasoning-2',
-      title: 'استخلاص وصياغة النتيجة النهائية',
+      title: 'صياغة النتيجة النهائية',
       details: part2,
       status: isThinking ? (part2 ? 'in-progress' : 'pending') : 'completed',
     });
@@ -388,25 +388,25 @@ export function parseReasoningMilestones(
 
   milestones.push({
     id: 'step-reasoning-0',
-    title: 'تفكيك وتحليل معطيات المسألة',
+    title: 'تحليل معطيات المسألة',
     details: part0 || (!isThinking ? 'تم تفكيك معطيات المسألة وتحديد القيود والمعالم الأساسية.' : undefined),
     status: isThinking && !part1 ? 'in-progress' : 'completed',
   });
   milestones.push({
     id: 'step-reasoning-1',
-    title: 'الاستدلال المنطقي ومعالجة الخطوات',
+    title: 'الاستدلال ومعالجة الخطوات',
     details: part1 || (!isThinking ? 'تم الاستدلال المنطقي ومطابقة الفرضيات بدقة.' : undefined),
     status: isThinking ? (!part2 ? (part1 ? 'in-progress' : 'pending') : 'completed') : 'completed',
   });
   milestones.push({
     id: 'step-reasoning-2',
-    title: 'التحقق والتدقيق من صحة الاستنتاج',
+    title: 'التدقيق والتحقق المنطقي',
     details: part2 || (!isThinking ? 'تم التدقيق المعرفي والحسابي واستبعاد أي تناقضات.' : undefined),
     status: isThinking ? (!part3 ? (part2 ? 'in-progress' : 'pending') : 'completed') : 'completed',
   });
   milestones.push({
     id: 'step-reasoning-3',
-    title: 'استخلاص وصياغة النتيجة النهائية',
+    title: 'صياغة النتيجة النهائية',
     details: part3 || (!isThinking ? 'تم استخلاص وصياغة النتيجة النهائية بإحكام باللغة العربية الفصحى المعاصرة.' : undefined),
     status: isThinking ? (part3 ? 'in-progress' : 'pending') : 'completed',
   });
@@ -691,7 +691,7 @@ export default function ChatReasoning({
             {/* Steps Header Bar */}
             <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-white/[0.06] text-[10.5px] sm:text-xs font-mono select-none">
               <div className="flex items-center gap-1.5 text-zinc-300 text-[10.5px] sm:text-[11px]">
-                <ListOrdered className="size-3 sm:size-3.5 text-indigo-400" />
+                <ListOrdered className="size-3 sm:size-3.5 text-zinc-400" />
                 <span className="font-semibold tracking-tight">خطوات الاستدلال والتفكير المنطقي</span>
               </div>
             </div>
@@ -725,9 +725,9 @@ export default function ChatReasoning({
                       {/* Timeline Node */}
                       <div
                         className={cn(
-                          "absolute -right-4 sm:-right-6 top-2.5 sm:top-3 size-4 sm:size-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-bold border transition-all z-10",
+                          "absolute -right-4 sm:-right-6 top-2.5 sm:top-3 size-4 sm:size-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-bold border transition-all z-10 shadow-none",
                           isInProgress
-                            ? "bg-indigo-950/90 border-indigo-400 text-indigo-200 shadow-[0_0_10px_rgba(99,102,241,0.4)]"
+                            ? "bg-[#141824] border-zinc-500 text-zinc-200 ring-1 ring-white/10"
                             : isCompleted
                             ? "bg-[#12151c] border-white/20 text-zinc-300"
                             : "bg-black/60 border-white/[0.08] text-zinc-600"
@@ -742,19 +742,19 @@ export default function ChatReasoning({
                         ) : isCompleted ? (
                           <Check className="size-2 sm:size-2.5 text-emerald-400 stroke-[2.5]" />
                         ) : isInProgress ? (
-                          <RadarDot color="bg-indigo-400" ringColor="bg-indigo-400" />
+                          <RadarDot color="bg-zinc-300" ringColor="bg-zinc-400" />
                         ) : (
                           <span className="size-1 rounded-full bg-zinc-600" />
                         )}
                       </div>
 
-                      {/* Collapsible Step Card with Neutral Dark Glass Styling */}
+                      {/* Collapsible Step Card with Sleek Dark Glass Styling */}
                       <div
                         className={cn(
-                          "rounded-xl border transition-all duration-200 overflow-hidden",
+                          "rounded-xl border transition-all duration-200 overflow-hidden shadow-none",
                           isInProgress
-                            ? "bg-indigo-950/20 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.08)]"
-                            : "bg-[#090b0e]/80 border-white/[0.08] hover:border-white/[0.14] shadow-sm"
+                            ? "bg-[#0b0e14]/90 border-zinc-700/80 ring-1 ring-white/[0.06]"
+                            : "bg-[#090b0e]/80 border-white/[0.08] hover:border-white/[0.14]"
                         )}
                       >
                         {/* Card Header (Collapse Trigger Button) */}
@@ -764,26 +764,20 @@ export default function ChatReasoning({
                           className="w-full p-2 sm:p-2.5 text-right flex items-center justify-between gap-2 cursor-pointer select-none group/btn transition-colors hover:bg-white/[0.02]"
                           aria-expanded={isExpanded}
                         >
-                          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-                            <div className="size-4.5 sm:size-5 min-w-[18px] sm:min-w-[20px] rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-zinc-400 shrink-0">
-                              {isSearch ? (
-                                <Globe className="size-2.5 sm:size-3 text-zinc-300 stroke-[2]" />
-                              ) : isCam ? (
-                                <Camera className="size-2.5 sm:size-3 text-emerald-400 stroke-[2]" />
-                              ) : isSpark ? (
-                                <Sparkles className="size-2.5 sm:size-3 text-purple-400 stroke-[2]" />
-                              ) : (
-                                <span className="text-[9px] sm:text-[10px] font-bold text-zinc-400">{idx + 1}</span>
-                              )}
-                            </div>
-                            <span className="text-[11px] sm:text-xs font-medium sm:font-semibold text-zinc-200 leading-snug break-words">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {!isSearch && !isCam && !isSpark && (
+                              <span className="text-[10px] font-mono font-bold text-zinc-500 shrink-0 select-none">
+                                0{idx + 1}
+                              </span>
+                            )}
+                            <span className="text-[11px] sm:text-xs font-semibold text-zinc-200 leading-snug break-words">
                               {renderMilestoneTitle(m.title)}
                             </span>
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
                             {isInProgress && (
-                              <span className="size-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                              <span className="size-1.5 rounded-full bg-zinc-300 animate-pulse" />
                             )}
                             <div className="size-4 sm:size-5 rounded-md flex items-center justify-center text-zinc-400 group-hover/btn:text-zinc-200 transition-colors">
                               <ChevronDown className={cn("size-3 sm:size-3.5 transition-transform duration-200", isExpanded && "rotate-180")} />
@@ -824,14 +818,14 @@ export default function ChatReasoning({
                                   >
                                     {m.details}
                                     {isInProgress && isThinking && (
-                                      <span className="inline-block w-1.5 h-3 bg-indigo-400 align-middle mr-1 animate-pulse rounded-xs" />
+                                      <span className="inline-block w-1.5 h-3 bg-zinc-300 align-middle mr-1 animate-pulse rounded-xs" />
                                     )}
                                   </div>
                                 ) : isInProgress ? (
                                   <div className="text-[10.5px] sm:text-[11px] text-zinc-400 italic flex items-center gap-1.5 font-mono">
-                                    <span className="size-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                                    <span className="size-1.5 rounded-full bg-zinc-300 animate-pulse" />
                                     <span>جارٍ معالجة وصياغة هذه الخطوة</span>
-                                    <AnimatedDots className="bg-indigo-400" />
+                                    <AnimatedDots className="bg-zinc-300" />
                                   </div>
                                 ) : m.status === 'pending' ? (
                                   <div dir="auto" className="text-[10.5px] sm:text-[11px] text-zinc-500/80 italic select-none font-mono">

@@ -29,7 +29,7 @@ export async function runChatReasoningMilestonesTests(harness: TestHarness) {
       }
 
       // First milestone should be analysis/deconstruction
-      expect(milestones[0].title).toBe('تفكيك وتحليل معطيات المسألة');
+      expect(milestones[0].title).toBe('تحليل معطيات المسألة');
     });
 
     await harness.it('should consolidate and attribute real search queries to Fathom Search', () => {

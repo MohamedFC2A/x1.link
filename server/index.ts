@@ -2596,7 +2596,17 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
   // Autonomous Memory Detect: Check if memoryPrompt is provided or pre-detect in backend (Strict Personal Recall Only)
   const lastUserMsg = cleanedMessages.filter((m: any) => m.role === 'user').pop();
-  const lastUserText = typeof lastUserMsg?.content === 'string' ? lastUserMsg.content : '';
+  const lastUserText = typeof lastUserMsg?.content === 'string'
+    ? lastUserMsg.content
+    : Array.isArray(lastUserMsg?.content)
+      ? lastUserMsg.content
+          .filter((c: any) => c && (c.type === 'text' || typeof c === 'string'))
+          .map((c: any) => (typeof c === 'string' ? c : c.text || c.content || ''))
+          .join(' ')
+          .replace(/\[(?:المرفق في هذا الطلب الحالي|عدد الصور المرفقة|ملاحظة سياقية|إطارات ولقطات بصرية).*?\]/g, '')
+          .replace(/---\s*\[.*?\]\s*---/g, '')
+          .trim()
+      : ((lastUserMsg as any)?.text || '');
   const isPersonalRecall = isPersonalMemoryRecallIntent(lastUserText);
 
   let effectiveMemoryPrompt = isPersonalRecall ? (memoryPrompt || '') : '';

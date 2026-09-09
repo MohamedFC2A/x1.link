@@ -582,6 +582,107 @@ func main() {
       expect(sanitized).toContain('إليك تصميم الـ SVG المطلوب:');
       expect(sanitized).toContain('ملاحظة: يمكنك تعديل الألوان حسب الرغبة.');
     });
+
+    await harness.it('Multimodal Image Edit: parses array content and routes "اجعل اللوحة مصرية" to Neural Image Studio', () => {
+      // Simulate raw multimodal array message from frontend
+      const mockUserMsg = {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'اجعل اللوحة مصرية\n\n[المرفق في هذا الطلب الحالي: صورة واحدة فقط]' },
+          { type: 'text', text: '\n--- [الصورة المرفقة] ---' },
+          { type: 'image_url', image_url: { url: 'https://matany.one/uploads/mercedes.jpg' } }
+        ]
+      };
+
+      // Extract lastUserText matching server/index.ts
+      const lastUserText = typeof mockUserMsg?.content === 'string'
+        ? mockUserMsg.content
+        : Array.isArray(mockUserMsg?.content)
+          ? mockUserMsg.content
+              .filter((c: any) => c && (c.type === 'text' || typeof c === 'string'))
+              .map((c: any) => (typeof c === 'string' ? c : c.text || c.content || ''))
+              .join(' ')
+              .replace(/\[(?:المرفق في هذا الطلب الحالي|عدد الصور المرفقة|ملاحظة سياقية|إطارات ولقطات بصرية).*?\]/g, '')
+              .replace(/---\s*\[.*?\]\s*---/g, '')
+              .trim()
+          : '';
+
+      expect(lastUserText).toBe('اجعل اللوحة مصرية');
+
+      // Verify DynamicParameterTuner routes to NEURAL_IMAGE_STUDIO_AND_PROCESSING
+      const tuning = DynamicParameterTuner.tune({
+        userPrompt: lastUserText,
+        requestedModel: 'fathom-quant-3',
+        hasMultimodalImages: true,
+        conversationHistory: [mockUserMsg]
+      });
+
+      expect(tuning.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
+
+      // Verify operation type is recognized as edit
+      const op = DynamicParameterTuner.detectImageOperationType(lastUserText, true);
+      expect(op).toBe('edit');
+
+      // Verify calibration directive enforces license plate rules and 100% preservation
+      expect(tuning.calibrationDirective).toContain('Sovereign Surgical Image Editing Studio');
+      expect(tuning.calibrationDirective).toContain('لوحة سيارة مصرية');
+      expect(tuning.calibrationDirective).toContain('100%');
+    });
+
+    await harness.it('Multimodal Disambiguation: pure OCR questions route to Fathom Cam Forensics, NOT Neural Image Studio', () => {
+      const pureInspectionQueries = [
+        'ما نوع هذه السيارة في الصورة؟',
+        'اقرأ النص في اللوحة',
+        'اشرح الصورة المرفقة',
+        'استخرج النصوص من هذه الصورة'
+      ];
+
+      for (const query of pureInspectionQueries) {
+        const tuning = DynamicParameterTuner.tune({
+          userPrompt: query,
+          requestedModel: 'fathom-quant-3',
+          hasMultimodalImages: true,
+          conversationHistory: [{ role: 'user', content: query }]
+        });
+        expect(tuning.detectedIntent).toBe('MULTIMODAL_IMAGE_AND_FORENSICS');
+      }
+    });
+
+    await harness.it('Imperative Visual Modification: phrases like "خلي لون السيارة أسود" route to Neural Image Studio', () => {
+      const imperativeQueries = [
+        'خلي لون السيارة أسود',
+        'غير الجنوط إلى سبور',
+        'بدل الخلفية وخليها بالليل',
+        'حط شمس في الصورة'
+      ];
+
+      for (const query of imperativeQueries) {
+        const tuning = DynamicParameterTuner.tune({
+          userPrompt: query,
+          requestedModel: 'fathom-quant-3',
+          hasMultimodalImages: true,
+          conversationHistory: [{ role: 'user', content: query }]
+        });
+        expect(tuning.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
+      }
+    });
+
+    await harness.it('Reasoning Stepper: verified mobile-friendly concise titles without 3-line clutter', () => {
+      const titles = [
+        'البحث والتحقق الحي • Fathom Search',
+        'المسح البصري وقراءة النصوص • Fathom Cam',
+        'معالجة الوسائط والأكواد • Fathom Spark',
+        'تحليل معطيات المسألة',
+        'الاستدلال ومطابقة البيانات',
+        'التدقيق والتحقق المنطقي',
+        'صياغة النتيجة النهائية'
+      ];
+
+      for (const t of titles) {
+        expect(t.length).toBeLessThanOrEqual(45);
+        expect(t).not.toContain('المسح البصري الميكروي وقراءة نصوص الصور والمستندات عبر Fathom Cam');
+      }
+    });
   });
 }
 

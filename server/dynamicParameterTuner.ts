@@ -161,11 +161,12 @@ const NEURAL_IMAGE_PATTERNS = [
 ];
 
 export const CONTEXTUAL_IMAGE_EDIT_PATTERNS = [
-  /(?:غير|غيرلي|عدل|عدلي|تعديل|تغيير|بدل|بدلي|تبديل|استبدل|احذف|امسح|شيل|ازالة|إزالة|عزل|اعزل|خليه|خلها|خليها|اجعله|اجعلها|سوه|سوها|حول|تحويل|صبغ|لون|صلح|اصلاح|ظبط|عايزها|عايزه|عاوزها|عاوزه|اريدها|أريدها|اريده|أريده|ابغاها|ابغاه|بدي\s*اياها|بدي|نبيها|edit|modify|change|replace|remove|recolor|restyle|inpaint)/i,
+  /(?:غير|غيرلي|عدل|عدلي|تعديل|تغيير|بدل|بدلي|تبديل|استبدل|احذف|امسح|شيل|ازالة|إزالة|عزل|اعزل|خلي|خليه|خلها|خليها|خليهم|اجعل|اجعله|اجعلها|اجعلهم|سوي|سوه|سوها|حول|تحويل|صبغ|لون|صلح|اصلاح|ظبط|عايز|عايزها|عايزه|عاوز|عاوزها|عاوزه|اريد|أريد|اريدها|أريدها|اريده|أريده|ابغى|ابغا|ابغي|ابغاها|ابغاه|بدي\s*اياها|بدي|نبي|نبيها|edit|modify|change|replace|remove|recolor|restyle|inpaint)/i,
   /(?:عدل\s+عليها|غير\s+فيها|بدل\s+فيها|عدل\s+فيها|غير\s+لون|بدل\s+لون|عدل\s+لون|غير\s+شكل|بدل\s+شكل|غير\s+الخلفية|بدل\s+الخلفية|امسح\s+الـ|احذف\s+الـ|شيل\s+الـ|خليها\s+بالليل|خليه\s+بالليل|خليه\s+في\s+النهار|خليها\s+في\s+النهار|خليها\s+في\s+الليل)/i,
   /(?:ذهبي|ذهبيه|ذهبية|أحمر|احمر|حمرا|حمراء|أزرق|ازرق|زرقا|زرقاء|أخضر|اخضر|خضرا|خضراء|أصفر|اصفر|صفرا|صفراء|أسود|اسود|سودا|سوداء|أبيض|ابيض|بيضا|بيضاء|فضي|فضيه|فضية|كحلي|رمادي|مات|مطفي|لامع|كروم|كربون\s*فايبر|وردي|بنفسجي|برتقالي|بني)/i,
   /(?:بدون\s*(?:دخان|خلفية|سيارات|ناس|اضاءة|إضاءة|مطر)|مع\s*(?:دخان|مطر|ثلج)|بالليل|بالنهار|في\s*الليل|في\s*النهار|وقت\s*الغروب|وقت\s*الشروق|تحت\s*المطر|على\s*البحر)/i,
-  /\b(?:edit\s+(?:it|this|the\s+image|the\s+photo)|modify\s+(?:it|this)|change\s+(?:it|the\s+color|the\s+background)|replace\s+the|remove\s+the|make\s+it\s+(?:night|day|red|blue|dark|bright|gold|golden|silver|matte|glossy))\b/i
+  /(?:لوحة|لوحه|نمرة|نمره|لوحة\s*مصرية|لوحه\s*مصريه|مصرية|مصريه|لوحة\s*سيارة|نمرة\s*عربية|license\s*plate|car\s*plate|plate)/i,
+  /\b(?:edit\s+(?:it|this|the\s+image|the\s+photo)|modify\s+(?:it|this)|change\s+(?:it|the\s+color|the\s+background)|replace\s+the|remove\s+the|make\s+it\s+(?:night|day|red|blue|dark|bright|gold|golden|silver|matte|glossy|egyptian))\b/i
 ];
 
 export const CONTEXTUAL_IMAGE_ADDITION_PATTERNS = [
@@ -631,11 +632,18 @@ export class DynamicParameterTuner {
         };
       }
 
-      // 2. Cyber Ultra Sovereign Neural Image Studio & Processing (Inpainting, Recoloring, Background Removal, 4K Upscale, Compositing, Product/Text Edit)
-      const isNeuralImageEditRequest = NEURAL_IMAGE_PATTERNS.some(p => p.test(text)) ||
+      // 2. Pure inspection / OCR / Q&A check on the uploaded image (strictly questions asking to inspect, transcribe or describe)
+      const isPureInspectionOrOcrQuery = /(?:ما\s+(?:هذا|هذه|نوع|موديل|تفاصيل|المكتوب|النص|الموجود|في\s+الصورة)|اشرح\s+(?:الصورة|المحتوى|الشكل)|حلل\s+الصورة|فحص\s+الصورة|استخرج\s+النصوص?|اقرأ\s+(?:النص|الكتابة|المكتوب|الورقة|المستند)|ترجم\s+ما\s+في|حل\s+(?:المسألة|السؤال|المعادلة|الكود)|هل\s+هذا|من\s+(?:هذا|في\s+الصورة)|what\s+is|explain\s+this|read\s+text|ocr|extract\s+text|analyze\s+image|transcribe)/i.test(text);
+
+      // 3. Cyber Ultra Sovereign Neural Image Studio & Processing (Inpainting, Recoloring, Background Removal, 4K Upscale, Compositing, Product/Text Edit, License Plate Edit)
+      const isNeuralImageEditRequest = !isPureInspectionOrOcrQuery && (
+        NEURAL_IMAGE_PATTERNS.some(p => p.test(text)) ||
         CONTEXTUAL_IMAGE_EDIT_PATTERNS.some(p => p.test(text)) ||
         CONTEXTUAL_IMAGE_ADDITION_PATTERNS.some(p => p.test(text)) ||
-        /(?:عدل|تعديل|غير|تغيير|بدل|تبديل|ادخل|أدخل|اضف|أضف|احذف|شيل)\s+(?:لي\s+)?(?:في\s+الصورة|على\s+الصورة|بالصورة|فيها|الصورة\s+المرفقة|الصورة\s+دي)/i.test(text);
+        /(?:اجعل|خلي|سوي|غير|عدل|بدل|استبدل|امسح|احذف|شيل|ضيف|حط|ركب|لون|صبغ|حول|صلح|ظبط)/i.test(text) ||
+        /(?:لوحة|لوحه|نمرة|نمره|رقم|ارقام|أرقام|شعار|لوجو|license\s*plate|plate|مصرية|مصريه|سعودية|سعوديه)/i.test(text) ||
+        /(?:عدل|تعديل|غير|تغيير|بدل|تبديل|ادخل|أدخل|اضف|أضف|احذف|شيل)\s+(?:لي\s+)?(?:في\s+الصورة|على\s+الصورة|بالصورة|فيها|الصورة\s+المرفقة|الصورة\s+دي)/i.test(text)
+      );
 
       if (isNeuralImageEditRequest) {
         return {
@@ -1220,7 +1228,7 @@ export class DynamicParameterTuner {
           ? (isContextualEdit || isContextualAddition)
             ? (
               `أنت المعماري والمهندس السيادي للـ ${isContextualAddition ? 'إضافة' : 'تعديل'} البصرية الجراحية للصور (Sovereign Contextual Image ${isContextualAddition ? 'Addition' : 'Editing'} Architect): ` +
-              `1) [الفهم السياقي الصارم والتفريق الحاسم بين ${isContextualAddition ? 'الإضافة' : 'التعديل'} والإنشاء]: المستخدم يطلب صراحة ${isContextualAddition ? 'إضافة عنصر إلى' : 'تعديل خاصية في'} صورة تم تصميمها مسبقاً في المحادثة وليس إنشاء صورة جديدة من الصفر. ` +
+              `1) [الفهم السياقي الصارم والتفريق الحاسم بين ${isContextualAddition ? 'الإضافة' : 'التعديل'} والإنشاء]: المستخدم يطلب صراحة ${isContextualAddition ? 'إضافة عنصر إلى' : 'تعديل خاصية في'} صورة مرفقة أو تم تصميمها مسبقاً في المحادثة وليس إنشاء صورة جديدة من الصفر. ` +
               `2) [الحظر الصارم والقطعي لمصطلح "إنشاء" أو "تصميم جديد"]: يُحظر تماماً وبشكل قاطع كتابة "إنشاء" أو "تصميم جديد" أو "توليد صورة جديدة" في أي موضع من ردك؛ بل يجب حتماً وصراحة استخدام كلمة "${isContextualAddition ? 'إضافة' : 'تعديل'}" في كافة العناوين والشروح وصلب الرد. ` +
               `3) [قاعدة العنوان الإلزامية في كتلة المعالجة العصبية]: يجب أن يبدأ حقل "title" داخل كتلة \`\`\`neural-image\`\`\` حتماً وبشكل صريح بـ: "${isContextualAddition ? 'إضافة: ' : 'تعديل: '}[تفاصيل ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة باللغة العربية]" (مثال: "${isContextualAddition ? 'إضافة: شخص يقف بجانب السيارة' : 'تعديل: تغيير لون السيارة إلى الأحمر'}"). ` +
               `4) [قاعدة حقل العملية operation في JSON]: عيّن حقل "operation" حتماً كـ "${isContextualAddition ? 'add_element' : 'edit'}"${!isContextualAddition ? ' (أو "recolor" إذا كان التعديل تغييراً للون فقط)' : ' (أو "composite" إذا كان دمجاً لعناصر)'}. ` +
@@ -1230,7 +1238,7 @@ export class DynamicParameterTuner {
                 ? `البرومبت البصري الدقيق للصورة السابقة في الشات هو:\n"""${priorImage.prompt.trim()}"""\n` +
                   `[أمر سيادي حاسم لمنع أي تغيير في معالم البيئة أو المكان أو الخلفية]: يُحظر تماماً وبشكل قطعي لا يقبل أي استثناء إعادة ابتكار المشهد من الصفر، أو تغيير نوع الكائن أو موديل السيارة أو ملامح الشخص أو الخلفية أو المكان أو تفاصيل الشارع أو زاوية الكاميرا أو نوع العدسة أو الإضاءة حتى بنسبة 1% إذا لم يطلب المستخدم ذلك! ` +
                   `يجب عليك حتماً نقل واستخدام نفس رقم الـ seed السابق (${priorImage.seed !== undefined ? priorImage.seed : 482910}) لحفظ بنية الضوضاء العصبية واستقرار المشهد بنسبة 100%، وأخذ البرومبت الأصلي السابق بالكامل مع إبقاء كافة أوصاف البيئة والمكان والشارع والإضاءة وزاوية الكاميرا متطابقة 100% دون حذف أو تبديل، وتطبيق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط على الكلمة أو العبارة المستهدفة (مثال: ${isContextualAddition ? 'إضافة الكائن المطلوب في موقعه الصحيح داخل المشهد السابق مع إبقاء بقية النص الإنجليزي متطابقاً 100%' : 'استبدال لون الطلاء فقط من الأسود إلى الأحمر مع إبقاء كافة أوصاف السيارة والشارع والمطر متطابقة 100%'}). `
-                : `حافظ بنسبة 100% قطعية على كافة عناصر وزوايا وتكوين وأبعاد وبيئة وخلفية وإضاءة الصورة الأصلية دون تغيير حتى بنسبة 1%، واستخدم نفس الـ seed (${priorImage?.seed !== undefined ? priorImage.seed : 482910})، وطبّق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط دون تغيير أي شيء آخر في المشهد. `) +
+                : `حافظ بنسبة 100% قطعية على كافة عناصر وزوايا وتكوين وأبعاد وموضوع وبيئة وخلفية وإضاءة الصورة الأصلية دون تغيير أي تفصيل عدا التعديل المطلوب جراحياً، واستخدم نفس الـ seed (${priorImage?.seed !== undefined ? priorImage.seed : 482910})، وطبّق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط دون تغيير أي شيء آخر في المشهد. `) +
               `7) [الحفاظ على النسبة الأصلية]: حافظ على نفس نسبة العرض الأصلية aspectRatio: "${priorImage?.aspectRatio || '1:1'}". ` +
               `8) [بروتوكول تسليم وتوليد المعالجة العصبية الإلزامي - Neural Deliverable Block]: بعد التفكير التحليلي والشرح باللغة العربية، أخرج حتماً كتلة المعالجة العصبية التالية (اترك حقل "originalImage" فارغاً "" وسيقوم النظام بربط صورة المشهد الأصلية تلقائياً لتشغيل المقارنة المنزلقة): ` +
               `\`\`\`neural-image\n{\n  "operation": "${isContextualAddition ? 'add_element' : 'edit'}",\n  "title": "${isContextualAddition ? 'إضافة' : 'تعديل'}: <تفاصيل ال${isContextualAddition ? 'إضافة' : 'تعديل'}>",\n  "description": "${isContextualAddition ? 'تمت إضافة' : 'تم تعديل'} <التفاصيل المنفذة بدقة 100%>",\n  "prompt": "<English prompt preserving 100% of original scene environment, lighting, and camera angle with only surgical ${isContextualAddition ? 'addition' : 'modification'} delta>",\n  "seed": ${priorImage?.seed !== undefined ? priorImage.seed : 482910},\n  "originalImage": "${priorImage?.imageUrl && !priorImage.imageUrl.startsWith('data:') ? priorImage.imageUrl : ''}",\n  "aspectRatio": "${priorImage?.aspectRatio || '1:1'}",\n  "style": "${priorImage?.style || 'photorealistic'}",\n  "fidelityScore": "100%",\n  "resolution": "4K"\n}\n\`\`\` ` +

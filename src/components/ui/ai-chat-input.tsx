@@ -1123,87 +1123,85 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             />
             <div
               dir="rtl"
-              className="absolute bottom-full left-0 mb-3 w-[280px] sm:w-[300px] glass-popover rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none"
+              className="absolute bottom-full left-0 mb-3 w-[290px] sm:w-[310px] bg-[#09090b]/98 backdrop-blur-2xl rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-right select-none border border-zinc-800 shadow-[0_20px_50px_rgba(0,0,0,0.95)]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-2 py-1 border-b border-white/[0.08] mb-1.5">
-                <span className="text-xs font-sans font-bold text-white tracking-wide">أدوات إضافية</span>
+              <div className="px-3 py-2 border-b border-white/[0.06] mb-1.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-zinc-400">أدوات إضافية</span>
               </div>
 
               <div className="space-y-1">
-                {/* Action 1: Upload Video */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerFileInput('video');
-                    setIsActionsMenuOpen(false);
-                  }}
-                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.06] text-xs font-sans text-zinc-200 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-white/[0.08]"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="size-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-violet-400 group-hover:text-violet-300 shrink-0">
-                      <Video className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="font-semibold text-xs text-white">رفع فيديو</span>
-                  </div>
-                  <span className="text-[10px] font-sans px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 text-violet-300 font-medium">Spark</span>
-                </button>
-
-                {/* Action 2: Upload Audio */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerFileInput('audio');
-                    setIsActionsMenuOpen(false);
-                  }}
-                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.06] text-xs font-sans text-zinc-200 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-white/[0.08]"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="size-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-violet-400 group-hover:text-violet-300 shrink-0">
-                      <Music className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="font-semibold text-xs text-white">رفع صوت أو تسجيل</span>
-                  </div>
-                  <span className="text-[10px] font-sans px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 text-violet-300 font-medium">Spark</span>
-                </button>
-
-                {/* Action 3: Upload Image */}
+                {/* 1. Upload Image & Vision */}
                 <button
                   type="button"
                   onClick={() => {
                     triggerFileInput('image');
                     setIsActionsMenuOpen(false);
                   }}
-                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.06] text-xs font-sans text-zinc-200 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-white/[0.08]"
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-zinc-900/70 text-xs font-sans text-zinc-300 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-zinc-800/60"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="size-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-emerald-400 group-hover:text-emerald-300 shrink-0">
+                    <div className="size-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-400 group-hover:text-emerald-300 shrink-0">
                       <Camera className="w-3.5 h-3.5" />
                     </div>
                     <span className="font-semibold text-xs text-white">رفع صورة وفحص بصري</span>
                   </div>
-                  <span className="text-[10px] font-sans px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-medium">Cam</span>
                 </button>
 
-                {/* Action 4: Upload Document / Code */}
+                {/* 2. Upload Video */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerFileInput('video');
+                    setIsActionsMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-zinc-900/70 text-xs font-sans text-zinc-300 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-zinc-800/60"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-violet-400 group-hover:text-violet-300 shrink-0">
+                      <Video className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-semibold text-xs text-white">رفع فيديو</span>
+                  </div>
+                </button>
+
+                {/* 3. Upload Audio */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerFileInput('audio');
+                    setIsActionsMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-zinc-900/70 text-xs font-sans text-zinc-300 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-zinc-800/60"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-violet-400 group-hover:text-violet-300 shrink-0">
+                      <Music className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-semibold text-xs text-white">رفع صوت أو تسجيل</span>
+                  </div>
+                </button>
+
+                {/* 4. Upload Document / Code */}
                 <button
                   type="button"
                   onClick={() => {
                     triggerFileInput('doc');
                     setIsActionsMenuOpen(false);
                   }}
-                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.06] text-xs font-sans text-zinc-200 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-white/[0.08]"
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-zinc-900/70 text-xs font-sans text-zinc-300 hover:text-white transition-all cursor-pointer text-right group border border-transparent hover:border-zinc-800/60"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="size-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300 group-hover:text-white shrink-0">
+                    <div className="size-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-zinc-200 shrink-0">
                       <FileText className="w-3.5 h-3.5" />
                     </div>
                     <span className="font-semibold text-xs text-white">رفع مستند أو كود</span>
                   </div>
                 </button>
 
+                <div className="my-1 border-t border-white/[0.06]" />
 
-                {/* Action 5: Target URL Scanner */}
+                {/* 5. Target URL Scanner */}
                 <button
                   type="button"
                   onClick={() => {
@@ -1217,8 +1215,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   className={cn(
                     "w-full flex items-center justify-between p-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
                     isCyberMode || attachedUrls.length > 0
-                      ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-200"
-                      : "hover:bg-white/[0.06] text-zinc-200 hover:text-white border-transparent hover:border-white/[0.08]"
+                      ? "bg-cyan-950/40 border-cyan-500/30 text-cyan-200"
+                      : "hover:bg-zinc-900/70 text-zinc-300 hover:text-white border-transparent hover:border-zinc-800/60"
                   )}
                 >
                   <div className="flex items-center gap-2.5">
@@ -1226,22 +1224,20 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       "size-7 rounded-lg flex items-center justify-center shrink-0 border transition-all",
                       isCyberMode || attachedUrls.length > 0
                         ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300"
-                        : "bg-white/[0.04] border-white/[0.08] text-cyan-400"
+                        : "bg-zinc-900 border-zinc-800 text-cyan-400"
                     )}>
                       <Globe className="w-3.5 h-3.5" />
                     </div>
                     <span className="font-semibold text-xs text-white">فحص واستطلاع رابط (URL)</span>
                   </div>
-                  {attachedUrls.length > 0 ? (
+                  {attachedUrls.length > 0 && (
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0 bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-bold">
                       {attachedUrls.length} روابط
                     </span>
-                  ) : (
-                    <span className="text-[10px] font-sans px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-medium">Cyber</span>
                   )}
                 </button>
 
-                {/* Action 6: Deep Search Toggle */}
+                {/* 6. Deep Search Toggle */}
                 <button
                   type="button"
                   onClick={() => {
@@ -1251,8 +1247,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   className={cn(
                     "w-full flex items-center justify-between p-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
                     isDeepSearchEffective
-                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
-                      : "hover:bg-white/[0.06] text-zinc-200 hover:text-white border-transparent hover:border-white/[0.08]"
+                      ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-200"
+                      : "hover:bg-zinc-900/70 text-zinc-300 hover:text-white border-transparent hover:border-zinc-800/60"
                   )}
                 >
                   <div className="flex items-center gap-2.5">
@@ -1260,23 +1256,20 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       "size-7 rounded-lg flex items-center justify-center shrink-0 border transition-all",
                       isDeepSearchEffective
                         ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
-                        : "bg-white/[0.04] border-white/[0.08] text-emerald-400"
+                        : "bg-zinc-900 border-zinc-800 text-emerald-400"
                     )}>
                       <Search className="w-3.5 h-3.5" />
                     </div>
                     <span className="font-semibold text-xs text-white">البحث في الويب</span>
                   </div>
-                  <span className={cn(
-                    "text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0",
-                    isDeepSearchEffective
-                      ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-bold"
-                      : "bg-white/[0.04] border-white/[0.08] text-zinc-400"
-                  )}>
-                    {isDeepSearchEffective ? 'مفعّل' : 'معطّل'}
-                  </span>
+                  {isDeepSearchEffective && (
+                    <span className="size-2 rounded-full bg-emerald-400 shrink-0 ring-2 ring-emerald-400/20" />
+                  )}
                 </button>
 
-                {/* Action 7: NSFW Off Toggle */}
+                <div className="my-1 border-t border-white/[0.06]" />
+
+                {/* 7. NSFW Off Toggle */}
                 <button
                   type="button"
                   onClick={() => {
@@ -1286,8 +1279,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   className={cn(
                     "w-full flex items-center justify-between p-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
                     isX1Active
-                      ? "bg-rose-500/10 border-rose-500/30 text-rose-200"
-                      : "hover:bg-white/[0.06] text-zinc-200 hover:text-white border-transparent hover:border-white/[0.08]"
+                      ? "bg-rose-950/40 border-rose-500/30 text-rose-200"
+                      : "hover:bg-zinc-900/70 text-zinc-300 hover:text-white border-transparent hover:border-zinc-800/60"
                   )}
                 >
                   <div className="flex items-center gap-2.5">
@@ -1295,20 +1288,15 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       "size-7 rounded-lg flex items-center justify-center shrink-0 border transition-all",
                       isX1Active
                         ? "bg-rose-500/20 border-rose-500/40 text-rose-300"
-                        : "bg-white/[0.04] border-white/[0.08] text-rose-400"
+                        : "bg-zinc-900 border-zinc-800 text-rose-400"
                     )}>
                       <ShieldOff className="w-3.5 h-3.5" />
                     </div>
                     <span className="font-semibold text-xs text-white">وضع NSFW Off</span>
                   </div>
-                  <span className={cn(
-                    "text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0",
-                    isX1Active
-                      ? "bg-rose-500/20 border-rose-500/40 text-rose-300 font-bold"
-                      : "bg-white/[0.04] border-white/[0.08] text-zinc-400"
-                  )}>
-                    {isX1Active ? 'مفعّل' : 'معطّل'}
-                  </span>
+                  {isX1Active && (
+                    <span className="size-2 rounded-full bg-rose-400 shrink-0 ring-2 ring-rose-400/20" />
+                  )}
                 </button>
               </div>
             </div>
