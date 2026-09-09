@@ -7,6 +7,8 @@ export function getModelDisplayName(model?: string, isX1?: boolean): string {
   switch (model) {
     case 'fathom-quant-3':
       return 'Fathom Quant 3';
+    case 'fathom-search':
+      return 'Fathom Search';
     case 'deepseek-v4-flash':
       return 'Fathom 1.1';
     case 'deepseek-v4-flash-cyber-2.6':
@@ -23,6 +25,7 @@ export function getModelDisplayName(model?: string, isX1?: boolean): string {
     case 'meta/muse-spark-1.2-contributor':
       return 'Fathom Spark';
     default:
+      if (model.includes('search') || model.includes('fathom-search')) return 'Fathom Search';
       if (model.includes('quant-3') || model.includes('quant3')) return 'Fathom Quant 3';
       if (model.includes('pro-cyber') || model.includes('cyber-ultra') || model.includes('pro-cyper')) return 'Fathom Cyber Ultra 2.6';
       if (model.includes('flash-cyber') || model.includes('flash-cyper')) return 'Fathom Cyber Flash 2.6';
@@ -40,6 +43,8 @@ export function getModelSubtitle(model?: string, isX1?: boolean): string {
   switch (model) {
     case 'fathom-quant-3':
       return 'استدلال تحليلي فائق، توليد ومعالجة الصور بدقة عالية، والتحكم السحابي المتقدم';
+    case 'fathom-search':
+      return 'محرك البحث والاستقصاء المتشعب، واسترجاع الذاكرة العصبية وفحص وسائط الذكاء الاصطناعي';
     case 'deepseek-v4-pro-cyber-2.6':
     case 'deepseek-v4-pro-cyber-2.1':
       return 'نموذج الاستدلال العميق والتحليل الهندسي والأمني عالي الدقة';
@@ -71,8 +76,8 @@ export function getModelPlaceholder(
   if (options?.activeFusion?.placeholder) {
     return options.activeFusion.placeholder;
   }
-  if (options?.isDeepSearch) {
-    return 'ابحث في الويب واستفسر عما تريد...';
+  if (model === 'fathom-search' || options?.isDeepSearch) {
+    return 'ابحث واستقصِ بذكاء عبر Fathom Search (استعلام حي، سياق، ذاكرة، وفحص وسائط)...';
   }
   if (options?.hasNonImageMedia) {
     return 'أرفق وسائط لتحليلها أو اكتب استفسارك هنا...';

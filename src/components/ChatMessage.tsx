@@ -1484,7 +1484,8 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           // Fallback to message.image, message.images, in-memory cache, or instant localStorage cache if imageUrl was not embedded in JSON
           if (!parsed.imageUrl && !parsed.processedImage) {
             const fallbackImg = message.image || (message.images && message.images[0]);
-            if (fallbackImg && isValidImageUri(fallbackImg)) {
+            // For edit/addition operations, fallbackImg is the original input image, not the edited output
+            if (fallbackImg && isValidImageUri(fallbackImg) && (!isEditOrAdd || (fallbackImg !== priorImage && fallbackImg !== parsed.originalImage))) {
               parsed.imageUrl = fallbackImg;
               parsed.processedImage = fallbackImg;
             } else if (typeof window !== 'undefined') {
@@ -2206,7 +2207,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                     fidelityScore: '100%',
                     resolution: '4K',
                     prompt: previousUserPrompt,
-                    processedImage: message.image || (message.images && message.images[0]) || '',
+                    processedImage: (imageOpType === 'addition' || imageOpType === 'edit')
+                      ? ((message.image && message.image !== priorImage) ? message.image : '')
+                      : (message.image || (message.images && message.images[0]) || ''),
                     originalImage: (imageOpType === 'addition' || imageOpType === 'edit') ? (priorImage || undefined) : undefined
                   }}
                   fallbackOriginalImage={priorImage || undefined}

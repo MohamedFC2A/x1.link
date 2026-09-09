@@ -7,7 +7,6 @@ import { SearchResult, SearchEngineOptions, QueryIntent } from './searchTypes';
 import { searchGoogleCSE } from './googleSearch';
 import { searchDuckDuckGo } from './duckduckgoSearch';
 import { searchGoogleNews } from './newsSearch';
-import { searchSerper } from './serperSearch';
 import { searchWikipedia } from './wikiSearch';
 import { aggregateAndRankResults } from './resultsAggregator';
 
@@ -52,14 +51,6 @@ export async function executeMultiSourceSearch(
     });
   }
 
-  // 2. Serper API (if configured)
-  const hasSerper = Boolean(process.env.SERPER_API_KEY || process.env.SERPER_KEY || process.env.SERPER_AI_KEY);
-  if (hasSerper && (!options?.sources || options.sources.includes('serper'))) {
-    searchTasks.push({
-      name: 'Serper API (Google Organic & News)',
-      promise: searchSerper(query, options)
-    });
-  }
 
   // 3. DuckDuckGo (Always active, Zero-key live web index)
   if (!options?.sources || options.sources.includes('duckduckgo')) {

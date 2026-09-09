@@ -948,15 +948,6 @@ ${bypassedContent}
   }
 }
 
-const SERPER_API_KEY = process.env.SERPER_API_KEY || '';
-
-interface SerperOrganicItem {
-  title: string;
-  link: string;
-  snippet?: string;
-  date?: string;
-}
-
 
 function shouldPerformLiveSearch(query: string, explicitDeepSearch = false): boolean {
   if (explicitDeepSearch) return true;
@@ -1952,6 +1943,10 @@ export default async function handler(req: Request): Promise<Response> {
     model.includes('quant3') ||
     model.includes('fathom-quant');
 
+  const isFathomSearchModel = model === 'fathom-search' ||
+    model.includes('fathom-search') ||
+    model.includes('qwen');
+
   const isCyber26 = isFathomQuant3 ||
     model === 'deepseek-v4-pro-cyber-2.6' ||
     model === 'deepseek-v4-flash-cyber-2.6' ||
@@ -1993,7 +1988,17 @@ export default async function handler(req: Request): Promise<Response> {
     : (isX1Mode ? SYSTEM_PROMPT_NSFW_NANO : SYSTEM_PROMPT_18);
 
   const lastUserMsg = cleanedMessages.filter((m: any) => m.role === 'user').pop();
-  const lastUserText = typeof lastUserMsg?.content === 'string' ? lastUserMsg.content : '';
+  const lastUserText = typeof lastUserMsg?.content === 'string'
+    ? lastUserMsg.content
+    : Array.isArray(lastUserMsg?.content)
+      ? lastUserMsg.content
+          .filter((c: any) => c && (c.type === 'text' || typeof c === 'string'))
+          .map((c: any) => (typeof c === 'string' ? c : c.text || c.content || ''))
+          .join(' ')
+          .replace(/\[(?:المرفق في هذا الطلب الحالي|عدد الصور المرفقة|ملاحظة سياقية|إطارات ولقطات بصرية).*?\]/g, '')
+          .replace(/---\s*\[.*?\]\s*---/g, '')
+          .trim()
+      : '';
   const isPersonalRecall = isPersonalMemoryRecallIntent(lastUserText);
   const effectiveMemoryPrompt = isPersonalRecall ? (memoryPrompt || '') : '';
 
@@ -2022,6 +2027,10 @@ export default async function handler(req: Request): Promise<Response> {
     hasZipOrCodeFiles: hasZipOrMedia,
     explicitTemperature: typeof body?.temperature === 'number' ? body.temperature : undefined,
   });
+
+  const isFathomSearch = isFathomSearchModel ||
+    Boolean(deepSearch) ||
+    dynamicTuning.detectedIntent === 'FACTUAL_SEARCH_AND_REALTIME_GROUNDING';
 
   console.log(`[DYNAMIC-TUNER Edge] ✓ User Intent Detected: ${dynamicTuning.detectedIntent} (${dynamicTuning.complexityLevel}) | Target Family: ${dynamicTuning.targetModelFamily} | Tuned Hyperparameters: temp=${dynamicTuning.hyperparameters.temperature}, top_p=${dynamicTuning.hyperparameters.top_p}, freq_pen=${dynamicTuning.hyperparameters.frequency_penalty}, pres_pen=${dynamicTuning.hyperparameters.presence_penalty}, max_tokens=${dynamicTuning.hyperparameters.max_tokens}`);
 
@@ -2429,6 +2438,32 @@ export default async function handler(req: Request): Promise<Response> {
         payload: DynamicParameterTuner.tuneGatewayPayload('google/gemini-2.5-flash', basePayload, dynamicTuning)
       });
     }
+  } else if (isFathomSearch && OPENROUTER_API_KEY) {
+    candidateGateways.push({
+      name: 'OpenRouter Fathom Search Engine (qwen/qwen3.7-flash + web_search)',
+      url: `${OPENROUTER_BASE_URL}/chat/completions`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://matany.one',
+        'X-Title': 'Matany AI',
+      },
+      payload: {
+        ...DynamicParameterTuner.tuneGatewayPayload('qwen/qwen3.7-flash', basePayload, dynamicTuning),
+        tools: [{ type: 'openrouter:web_search' }]
+      }
+    });
+    candidateGateways.push({
+      name: 'OpenRouter Fathom Search Online (qwen/qwen3.7-flash:online)',
+      url: `${OPENROUTER_BASE_URL}/chat/completions`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://matany.one',
+        'X-Title': 'Matany AI',
+      },
+      payload: DynamicParameterTuner.tuneGatewayPayload('qwen/qwen3.7-flash:online', basePayload, dynamicTuning)
+    });
   } else if (isMediaSpark && OPENROUTER_API_KEY) {
     candidateGateways.push({
       name: 'OpenRouter Meta Muse Spark 1.2 Contributor Multimodal',
@@ -2905,16 +2940,22 @@ export default async function handler(req: Request): Promise<Response> {
               }
             } catch {}
 
-            const chunkStr = new TextDecoder().decode(chunk);
+            let chunkStr = new TextDecoder().decode(chunk);
             if (chunkStr.includes('data: [DONE]') || chunkStr.includes('[DONE]')) {
-              const cleanedChunk = chunkStr.replace(/data:\s*\[DONE\]\n*/g, '').replace(/\[DONE\]\n*/g, '');
+              let cleanedChunk = chunkStr.replace(/data:\s*\[DONE\]\n*/g, '').replace(/\[DONE\]\n*/g, '');
+              cleanedChunk = cleanedChunk
+                .replace(/qwen\/qwen3\.7-flash(?::online)?/gi, 'fathom-search')
+                .replace(/qwen3\.7-flash/gi, 'fathom-search');
               if (cleanedChunk.trim()) {
                 controller.enqueue(new TextEncoder().encode(cleanedChunk));
               }
               return;
             }
 
-            controller.enqueue(chunk);
+            chunkStr = chunkStr
+              .replace(/qwen\/qwen3\.7-flash(?::online)?/gi, 'fathom-search')
+              .replace(/qwen3\.7-flash/gi, 'fathom-search');
+            controller.enqueue(new TextEncoder().encode(chunkStr));
           },
           async flush(controller) {
             // Autonomous Server-Side Recovery Guard for Neural Image Studio:
@@ -2923,9 +2964,11 @@ export default async function handler(req: Request): Promise<Response> {
               if (!hasNeuralBlock) {
                 const priorImg = dynamicTuning.priorNeuralImage || priorNeuralImage;
                 const priorSeed = priorImg?.seed !== undefined ? priorImg.seed : 482910;
-                const priorImgUrl = priorImg?.imageUrl && !priorImg.imageUrl.startsWith('data:') ? priorImg.imageUrl : '';
-                const hasUploadedImage = cleanedMessages.some((m: any) => m.image || (m.images && m.images.length > 0));
-                const isEdit = Boolean(priorImgUrl || hasUploadedImage);
+                const priorImgUrl = priorImg?.imageUrl || '';
+                const userUploadedMsg = cleanedMessages.slice().reverse().find((m: any) => m.image || (m.images && m.images.length > 0));
+                const uploadedUrl = userUploadedMsg?.image || (userUploadedMsg?.images && userUploadedMsg.images[0]) || '';
+                const originalImageToUse = priorImgUrl || uploadedUrl || undefined;
+                const isEdit = Boolean(originalImageToUse);
 
                 const recoveryBlock = `\n\n\`\`\`neural-image\n${JSON.stringify({
                   operation: isEdit ? 'edit' : 'generate',
@@ -2933,7 +2976,7 @@ export default async function handler(req: Request): Promise<Response> {
                   description: isEdit ? 'تم تطبيق التعديلات البصرية المطلوبة بنجاح' : 'تم تخطيط المشهد العصبي بنجاح',
                   prompt: lastUserText,
                   seed: priorSeed,
-                  originalImage: priorImgUrl || undefined,
+                  originalImage: originalImageToUse,
                   aspectRatio: priorImg?.aspectRatio || '1:1',
                   style: priorImg?.style || 'photorealistic',
                   fidelityScore: '100%',

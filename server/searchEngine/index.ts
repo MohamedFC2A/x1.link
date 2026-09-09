@@ -12,7 +12,6 @@ export * from './promptAugmentation';
 export * from './googleSearch';
 export * from './duckduckgoSearch';
 export * from './newsSearch';
-export * from './serperSearch';
 export * from './wikiSearch';
 export * from './multiSourceSearcher';
 export * from './deepContentExtractor';
@@ -32,7 +31,7 @@ import { buildSearchGroundingContextBlock } from './promptAugmentation';
  * End-to-End Autonomous Search Pipeline:
  * 1. Analyzes user query & classifies intent with confidence scoring
  * 2. Checks adaptive in-memory cache
- * 3. Dispatches concurrent parallel multi-source search (Google, DDG, News, Serper, Wiki)
+ * 3. Dispatches concurrent parallel multi-source search (Google, DDG, News, Wiki)
  * 4. Deduplicates and executes 5-pillar ranking algorithm
  * 5. Deeply extracts article body text from top source pages
  * 6. Updates cache with adaptive TTL

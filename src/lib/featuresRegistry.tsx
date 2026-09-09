@@ -1260,8 +1260,9 @@ export function routeFeatureIntent(
     }
 
     const isExplicitVectorPrompt = hasSvgCode || isSvgFollowupEdit ||
-      /(?:كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|رسم\s*(?:الـ\s*)?svg|تصميم\s*(?:الـ\s*)?svg|\.svg\b|بصيغة\s*svg|صيغة\s*svg|اجعلها\s*svg|رسم\s*(?:شعاعي|فيكتور)|متجهات\s*شعاعية|رسومات\s*فيكتور|رسمة\s*فيكتور|تصميم\s*فيكتور|فيكتور|vector\s*graphics?|vector\s*art|vector\s*illustration)/i.test(pLower) ||
+      /(?:كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|رسم\s*(?:الـ\s*)?svg|تصميم\s*(?:الـ\s*)?svg|\.svg\b|بصيغة\s*svg|صيغة\s*svg|كـ\s*svg|على\s*شكل\s*svg|اجعلها\s*svg|رسم\s*(?:شعاعي|فيكتور)|متجهات\s*شعاعية|رسومات\s*فيكتور|رسمة\s*فيكتور|تصميم\s*فيكتور|فيكتور|vector\s*graphics?|vector\s*art|vector\s*illustration)/i.test(pLower) ||
       /\b(?:draw|create|generate|design|output|export|code)\s+(?:an?\s+)?(?:svg|vector)\b/i.test(pLower) ||
+      /\b(?:make\s+it|convert\s+to|output\s+as)\s+(?:svg|vector)\b/i.test(pLower) ||
       ((/(?:شعار|لوجو|ايقونة|أيقونة|شارة|رمز\s*بصري)/i.test(pLower)) && /(?:svg|فيكتور|متجهات|vector)/i.test(pLower)) ||
       (/(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول)\s+(?:لي\s+)?(?:في\s+)?(?:كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|تصميم\s*svg|الفيكتور)/i.test(pLower)) ||
       (/\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:svg\s+code|svg\s+file|vector\s+graphic)\b/i.test(pLower));
@@ -1323,7 +1324,8 @@ export function routeFeatureIntent(
     }
 
     // Explicit SVG Priority: If user specifically requested SVG or vector, suppress Neural Image Studio unless a neural block already exists
-    const isExplicitSvgRequested = /(?:\bsvg\b|فيكتور|متجهات|شعاعي|vector|كود\s*svg|رسم\s*svg|ملف\s*svg|\.svg\b|اجعلها\s*svg)/i.test(pLower);
+    const isExplicitSvgRequested = /(?:\bsvg\b|فيكتور|متجهات|شعاعي|vector|كود\s*svg|رسم\s*svg|ملف\s*svg|\.svg\b|اجعلها\s*svg|كـ\s*svg)/i.test(pLower) ||
+      /\b(?:make\s+it|convert\s+to|output\s+as)\s+(?:svg|vector)\b/i.test(pLower);
     if (isExplicitSvgRequested && !hasNeuralBlock) {
       return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Suppressed: User explicitly requested SVG vector graphic.' };
     }

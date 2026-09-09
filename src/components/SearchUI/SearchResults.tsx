@@ -43,7 +43,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
     { id: 'news', label: 'أخبار حية', count: results.filter(r => r.sourceType === 'news').length },
     { id: 'duckduckgo', label: 'ويب مباشر', count: results.filter(r => r.sourceType === 'duckduckgo').length },
     { id: 'wiki', label: 'موسوعات', count: results.filter(r => r.sourceType === 'wiki').length },
-    { id: 'google', label: 'Google', count: results.filter(r => r.sourceType === 'google' || r.sourceType === 'serper').length },
+    { id: 'google', label: 'Google', count: results.filter(r => r.sourceType === 'google').length },
   ];
   const filterOptions = rawFilterOptions.filter(f => f.id === 'all' || f.count > 0);
 

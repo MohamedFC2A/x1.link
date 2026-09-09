@@ -68,6 +68,93 @@ export function RadarDot({ color = "bg-indigo-400", ringColor = "bg-indigo-400" 
   );
 }
 
+export type FathomSearchDomain =
+  | 'web'
+  | 'ai_detect'
+  | 'memory'
+  | 'temporal'
+  | 'code'
+  | 'conversation';
+
+export interface FathomSearchContextualInfo {
+  domain: FathomSearchDomain;
+  title: string;
+  contextSentence: string;
+}
+
+export function getFathomSearchContextualInfo(
+  text: string = '',
+  activeFeatures: DetectedFeatureData[] = []
+): FathomSearchContextualInfo {
+  const content = text || '';
+
+  // 1. AI Video / Image Forensic Check
+  const hasAiDetect = activeFeatures.some(f => f.id === 'ai_detect' || f.id === 'metadata_detect') ||
+    /(?:ai[- ]?detect|فحص\s*الذكاء\s*الاصطناعي|تزييف\s*عميق|deepfake|مولدة\s*بالذكاء|مولد\s*بالذكاء|fake\s*image|ai[- ]?generated|real\s*or\s*fake|حقيقية\s*أم\s*ذكاء|حقيقي\s*ولا\s*ذكاء|صورة\s*حقيقية|معدلة\s*بالذكاء)/i.test(content);
+
+  if (hasAiDetect) {
+    return {
+      domain: 'ai_detect',
+      title: 'Fathom Search of AI Vid or Img',
+      contextSentence: 'فحص الطبقات البصرية والكشف الجنائي المتقدم عن ملامح التوليد الاصطناعي والتزييف العميق.'
+    };
+  }
+
+  // 2. Neural Memory Retrieval
+  const hasMemory = activeFeatures.some(f => f.id === 'memory_detect') ||
+    /(?:memory[- ]?detect|استدعاء\s*الذاكرة|تذكر|سياق\s*المحادثات\s*السابقة|الذاكرة\s*العصبية|pgvector|سجل\s*الحقائق|ماذا\s*قلت\s*لك|فاكر|ذاكرتي)/i.test(content);
+
+  if (hasMemory) {
+    return {
+      domain: 'memory',
+      title: 'Fathom Search of Neural Memory',
+      contextSentence: 'استرجاع فائق عبر الذاكرة العصبية وتجميع السياق العابر للجلسات من قاعدة المعرفة المستدامة.'
+    };
+  }
+
+  // 3. Temporal Context / Time & Date Analysis
+  const hasTime = activeFeatures.some(f => f.id === 'time_detect') ||
+    /(?:time[- ]?detect|كم\s*الساعة|تاريخ\s*اليوم|الوقت\s*الحالي|اليوم\s*ايه|سنة\s*2026|temporal\s*context)/i.test(content);
+
+  if (hasTime) {
+    return {
+      domain: 'temporal',
+      title: 'Fathom Search of Temporal Context',
+      contextSentence: 'معايرة الإحداثيات الزمنية الحالية ومطابقة التواريخ والتقويم الفعلي بدقة آنية.'
+    };
+  }
+
+  // 4. Code & Architecture Research
+  const hasCode = activeFeatures.some(f => f.id === 'fathom_spark') ||
+    /(?:معمارية|كود\s*برمجي|خوارزمية|refactor|architecture|codebase|repository|github|docker|ast|typescript|python|react|دوال|أكواد|بنية\s*المشروع)/i.test(content);
+
+  if (hasCode && !/(?:بحث\s*عن|استعلام\s*شبكي|web\s*search|سعر|طقس|أخبار|نتائج)/i.test(content)) {
+    return {
+      domain: 'code',
+      title: 'Fathom Search of Code & Architecture',
+      contextSentence: 'استكشاف وتشريح معماريات البرمجيات ومراجعة المعايير الهندسية وأنماط التصميم.'
+    };
+  }
+
+  // 5. Dialogue & Chat Context
+  const hasConversationContext = /(?:سياق\s*المحادثة|الحوار\s*السابق|الملفات\s*المرفقة|متابعة\s*النقاش|ملخص\s*الشات|حديثنا|محادثتنا)/i.test(content);
+
+  if (hasConversationContext && !/(?:بحث\s*عن|استعلام\s*شبكي|web\s*search|سعر|طقس|أخبار)/i.test(content)) {
+    return {
+      domain: 'conversation',
+      title: 'Fathom Search of Conversation & Context',
+      contextSentence: 'استيعاب متعدد الطبقات لسياق المحادثة وبناء الروابط المنطقية بين الرسائل والملفات.'
+    };
+  }
+
+  // 6. Default: Live Web Query
+  return {
+    domain: 'web',
+    title: 'Fathom Search of Web',
+    contextSentence: 'استطلاع فائق وموسع للويب الحي وتدقيق المصادر واستخلاص الحقائق عبر فروع معرفية متزامنة.'
+  };
+}
+
 /**
  * Parses raw reasoning into clean, high-level task titles with hidden deep thinking details.
  */
@@ -76,8 +163,11 @@ export function parseReasoningMilestones(
   isThinking: boolean,
   hasFathomCam: boolean = false,
   hasFathomSpark: boolean = false,
-  hasFathomSearch: boolean = false
+  hasFathomSearch: boolean = false,
+  activeFeatures: DetectedFeatureData[] = []
 ): Milestone[] {
+  const searchContext = getFathomSearchContextualInfo(rawText, activeFeatures);
+
   // Base default milestones when stream is just starting or empty
   if (!rawText || !rawText.trim()) {
     const defaultSteps: Milestone[] = [];
@@ -85,8 +175,8 @@ export function parseReasoningMilestones(
     if (hasFathomSearch) {
       defaultSteps.push({
         id: 'step-fathom-search',
-        title: 'البحث والتحقق الحي • Fathom Search',
-        details: isThinking ? undefined : 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.',
+        title: searchContext.title,
+        details: isThinking ? searchContext.contextSentence : 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.',
         status: isThinking ? 'in-progress' : 'completed',
         specialType: 'search',
         searchQuery: '',
@@ -273,8 +363,8 @@ export function parseReasoningMilestones(
     // Step 1: Integrated Web Search Milestone
     milestones.push({
       id: 'step-fathom-search',
-      title: 'الاستعلام الشبكي وتدقيق المصادر الحية لعام 2026 عبر Fathom Search',
-      details: searchSourcesDetails || 'تم استرجاع المصادر المعتمدة وتدقيق البيانات الحية بنجاح.',
+      title: searchContext.title,
+      details: searchSourcesDetails || searchContext.contextSentence,
       status: 'completed',
       specialType: 'search',
       searchQuery: detectedSearchQuery,
@@ -429,7 +519,22 @@ function renderMilestoneTitle(text: string) {
     <span>
       {parts.map((part, i) => {
         const match = matches[i];
-        if (!match) return <React.Fragment key={i}>{part}</React.Fragment>;
+        if (!match) {
+          const domainMatch = part.match(/^\s*(of\s+(?:Web|AI\s+Vid\s+or\s+Img|Neural\s+Memory|Temporal\s+Context|Code\s+&\s+Architecture|Conversation\s+&\s+Context))(.*)$/is);
+          if (domainMatch) {
+            const domainLabel = domainMatch[1];
+            const rest = domainMatch[2];
+            return (
+              <React.Fragment key={i}>
+                <span className="inline-flex items-center text-cyan-300 font-mono font-bold text-[11px] sm:text-xs tracking-tight mx-1">
+                  {domainLabel}
+                </span>
+                {rest}
+              </React.Fragment>
+            );
+          }
+          return <React.Fragment key={i}>{part}</React.Fragment>;
+        }
 
         const isSearch = /search|سيرش|serper|سيربر/i.test(match);
         const isSpark = !isSearch && /spark|سبارك/i.test(match);
@@ -559,10 +664,14 @@ export default function ChatReasoning({
     );
   }, [activeFeatures, fullText, isFathomSparkActive, isFathomSearchActive]);
 
+  const searchContextInfo = useMemo(() => {
+    return getFathomSearchContextualInfo(fullText, activeFeatures);
+  }, [fullText, activeFeatures]);
+
   // Keep milestones evaluation for search/cam/spark tool extraction & backward compatibility
   const milestones = useMemo(() => {
-    return parseReasoningMilestones(fullText, isThinking, isFathomCamActive, isFathomSparkActive, isFathomSearchActive);
-  }, [fullText, isThinking, isFathomCamActive, isFathomSparkActive, isFathomSearchActive]);
+    return parseReasoningMilestones(fullText, isThinking, isFathomCamActive, isFathomSparkActive, isFathomSearchActive, activeFeatures);
+  }, [fullText, isThinking, isFathomCamActive, isFathomSparkActive, isFathomSearchActive, activeFeatures]);
 
   // Stable progressive milestones: During thinking, show only reached milestones (completed + current in-progress)
   // to avoid showing a block of static pending steps all at once
@@ -637,7 +746,11 @@ export default function ChatReasoning({
               <span className="font-mono text-[11px] sm:text-xs text-zinc-200 font-semibold tracking-tight">
                 {isThinking ? (
                   <span className="inline-flex items-center gap-1.5">
-                    <span>جارٍ التفكير والاستدلال</span>
+                    <span>
+                      {isFathomSearchActive
+                        ? searchContextInfo.title
+                        : "جارٍ التفكير والاستدلال"}
+                    </span>
                     {durationSeconds > 0 && (
                       <span className="text-zinc-400 font-normal">({durationSeconds} ث)</span>
                     )}
@@ -649,7 +762,9 @@ export default function ChatReasoning({
                   "تم رسم وتوليد متجهات الرسم الشعاعي (SVG)"
                 ) : (
                   <span>
-                    {durationSeconds > 0 ? `فكّر لمدة ${durationSeconds} ثوانٍ` : "مسار الاستدلال والتفكير"}
+                    {isFathomSearchActive
+                      ? `${searchContextInfo.title} • فكّر لمدة ${durationSeconds} ثوانٍ`
+                      : (durationSeconds > 0 ? `فكّر لمدة ${durationSeconds} ثوانٍ` : "مسار الاستدلال والتفكير")}
                   </span>
                 )}
               </span>

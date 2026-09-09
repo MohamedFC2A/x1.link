@@ -106,7 +106,7 @@ export async function runImageEditPersistenceAndSearchSuppressionTests(harness: 
       expect(milestones.length).toBe(1);
       expect(milestones[0].id).toBe('step-fathom-search');
       expect(milestones[0].status).toBe('in-progress');
-      expect(milestones[0].details).toBeUndefined();
+      expect(milestones[0].details).toBeDefined();
     });
 
     await harness.it('should reveal full completed milestones once thinking completes', () => {

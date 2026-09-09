@@ -1,5 +1,6 @@
 export type ModelType = 
   | 'fathom-quant-3'
+  | 'fathom-search'
   | 'deepseek-v4-flash' 
   | 'deepseek-v4-flash-vision-exp' 
   | 'deepseek-v4-flash-cyber' 

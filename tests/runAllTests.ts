@@ -25,6 +25,7 @@ import { runDeepSeekAlgorithmsTests } from './unit/deepseekAlgorithms.test';
 import { runMobileResponsiveAndIntentTests } from './unit/mobileResponsiveAndIntent.test';
 import { runModelPresentationAndRestoreAlertTests } from './unit/modelPresentationAndRestoreAlert.test';
 import { runImageEditPersistenceAndSearchSuppressionTests } from './unit/imageEditPersistenceAndSearchSuppression.test';
+import { runFathomSearchEngineTests } from './unit/fathomSearchEngine.test';
 import { runMultiSourceSearchIntegrationTests } from './integration/multiSourceSearch.test';
 import { runSearchApiRouteIntegrationTests } from './integration/searchApiRoute.test';
 import { runChatSearchPipelineIntegrationTests } from './integration/chatSearchPipeline.test';
@@ -63,6 +64,7 @@ async function runMasterTestSuite() {
   await runMobileResponsiveAndIntentTests(harness);
   await runModelPresentationAndRestoreAlertTests(harness);
   await runImageEditPersistenceAndSearchSuppressionTests(harness);
+  await runFathomSearchEngineTests(harness);
 
   // 2. Integration Tests
   console.log('\n\x1b[1m\x1b[36m[STAGE 2/5]: Executing Live Integration Tests Battery...\x1b[0m');

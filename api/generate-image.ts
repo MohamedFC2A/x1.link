@@ -62,8 +62,18 @@ export default async function handler(req: any, res?: any) {
       } catch {}
     }
 
-    const prompt = body?.prompt;
-    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+    let rawPrompt = body?.prompt;
+    if (Array.isArray(rawPrompt)) {
+      rawPrompt = rawPrompt
+        .filter((p: any) => p && (typeof p === 'string' || p.type === 'text'))
+        .map((p: any) => (typeof p === 'string' ? p : p.text || ''))
+        .join(' ')
+        .trim();
+    } else if (typeof rawPrompt === 'object' && rawPrompt !== null) {
+      rawPrompt = rawPrompt.text || rawPrompt.prompt || '';
+    }
+    const prompt = typeof rawPrompt === 'string' ? rawPrompt.trim() : '';
+    if (!prompt) {
       return sendResponse(400, { error: 'Prompt is required' });
     }
 

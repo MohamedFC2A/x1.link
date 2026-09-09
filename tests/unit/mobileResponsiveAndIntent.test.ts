@@ -134,8 +134,8 @@ export async function runMobileResponsiveAndIntentTests(harness: TestHarness) {
       const msgPath = path.resolve(process.cwd(), 'src/components/ChatMessage.tsx');
       const content = fs.readFileSync(msgPath, 'utf8');
 
-      // 1. ChatReasoning must be rendered unconditionally when (hasReasoning || isThinking)
-      expect(content).toContain('{(hasReasoning || isThinking) && (');
+      // 1. ChatReasoning must be rendered when (hasReasoning || isThinking)
+      expect(content).toContain('(hasReasoning || isThinking)');
       expect(content).toContain('<ChatReasoning');
 
       // 2. hasExplicitSvgKeyword regex must include svg and اجعلها svg

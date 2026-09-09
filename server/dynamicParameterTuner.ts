@@ -36,6 +36,7 @@ export type ModelFamily =
   | 'muse-spark'
   | 'deepseek-vision'
   | 'magnum'
+  | 'fathom-search'
   | 'generic';
 
 export type TaskComplexity =
@@ -293,6 +294,10 @@ export class DynamicParameterTuner {
 
     if (m.includes('magnum') || m === 'x1' || m.includes('x1-persona')) {
       return 'magnum';
+    }
+
+    if (m === 'fathom-search' || m.includes('fathom-search') || m.includes('qwen')) {
+      return 'fathom-search';
     }
 
     return 'generic';
@@ -773,7 +778,7 @@ export class DynamicParameterTuner {
       /^(?:ما\s*هو|ما\s*هي|ماذا\s*يعني|كيف\s*(?:أفتح|افتح|استخدم|أستخدم|أتعامل|اتعامل)|اشرح|شرح|ما\s*الفرق\s*بين|قارن\s*بين|how\s+to|what\s+is|explain|difference\s+between)\b/i.test(text) ||
       /(?:بدون\s*svg|لا\s*تستخدم\s*svg|مش\s*svg|ليس\s*svg|not\s+svg|without\s+svg|instead\s+of\s+svg)/i.test(text);
 
-    const isDirectSvgCreation = /(?:كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|رسم\s*(?:الـ\s*)?svg|تصميم\s*(?:الـ\s*)?svg|\.svg\b|بصيغة\s*svg|صيغة\s*svg|اجعلها\s*svg|مقطوع|مش\s*كامل|أكمل\s*(?:كود\s*)?svg|رسم\s*(?:شعاعي|فيكتور)|رسومات\s*فيكتور|رسمة\s*فيكتور|تصميم\s*فيكتور|متجهات\s*شعاعية|فيكتور|vector\s*graphics?|vector\s*art|vector\s*illustration|\b(?:draw|create|generate|design|output|export|code)\s+(?:an?\s+)?(?:svg|vector)\b)/i.test(text);
+    const isDirectSvgCreation = /(?:كود\s*(?:الـ\s*)?svg|ملف\s*(?:الـ\s*)?svg|رسم\s*(?:الـ\s*)?svg|تصميم\s*(?:الـ\s*)?svg|\.svg\b|بصيغة\s*svg|صيغة\s*svg|كـ\s*svg|على\s*شكل\s*svg|اجعلها\s*svg|مقطوع|مش\s*كامل|أكمل\s*(?:كود\s*)?svg|رسم\s*(?:شعاعي|فيكتور)|رسومات\s*فيكتور|رسمة\s*فيكتور|تصميم\s*فيكتور|متجهات\s*شعاعية|فيكتور|vector\s*graphics?|vector\s*art|vector\s*illustration|\b(?:draw|create|generate|design|output|export|code)\s+(?:an?\s+)?(?:svg|vector)\b|\b(?:make\s+it|convert\s+to|output\s+as)\s+(?:svg|vector)\b)/i.test(text);
 
     const isExplicitSvgRequested = !isSvgInformationalOrNegative && isDirectSvgCreation;
 
@@ -1115,6 +1120,15 @@ export class DynamicParameterTuner {
         // Magnum 72B creative model
         temperature = Math.max(temperature, 0.80);
         top_p = 0.96;
+        break;
+
+      case 'fathom-search':
+        // Fathom Search (Qwen 3.7 Flash with Live Web Grounding & Multi-turn Intelligence)
+        temperature = 0.30;
+        top_p = 0.95;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
+        max_tokens = 16384;
         break;
 
       default:
@@ -1504,7 +1518,7 @@ export class DynamicParameterTuner {
         }
       }
     } else {
-      // Non-DeepSeek Models (e.g., Muse Spark, Magnum)
+      // Non-DeepSeek Models (e.g., Fathom Search, Muse Spark, Magnum)
       payload.temperature = candidateParams.temperature;
       payload.top_p = candidateParams.top_p;
       if (candidateParams.frequency_penalty > 0) {
@@ -1512,6 +1526,11 @@ export class DynamicParameterTuner {
       }
       if (candidateParams.presence_penalty > 0) {
         payload.presence_penalty = candidateParams.presence_penalty;
+      }
+
+      // Fathom Search (Qwen 3.7 Flash) Web Search integration
+      if (candidateFamily === 'fathom-search' || candidateModel.includes('qwen')) {
+        payload.tools = [{ type: 'openrouter:web_search' }];
       }
     }
 

@@ -368,7 +368,7 @@ ${DEVELOPER_IDENTITY_DIRECTIVE}
    - عند طلب إدارة السيرفر أو تنفيذ عمليات سيبرانية واختبار أوامر، يمكنك استعراض المخرجات في كتل طرفية نظيفة أو تفعيل بطاقة غرفة التحكم السحابية: [VPS_CONTROL_ROOM: live].
 
 2. المحرك الحصري لتوليد وتعديل الصور واستوديو SVG (Exclusive Visual & SVG Sovereign Studio & Image Synthesis):
-   - أنت النموذج الوحيد والحصري المخول بصرياً في النظام بأكمله؛ كافة النماذج الأخرى محظورة من توليد الصور أو الـ SVG وتُحيل الطلبات إليك مباشرة.
+    - [أسبقية سيادية مطلقة لطلبات SVG]: إذا ذكر المستخدم في أي موضع من طلبه كلمة (SVG، اجعلها SVG، كود SVG، فيكتور، متجهات، شعاعي، vector)، فإن هذا الطلب يُعتبر فوراً وبأسبقية مطلقة 100% طلباً لاستوديو SVG (رسم متجهات وكود SVG نقي متكامل داخل \`\`\`svg) حتى وإن بدأ بعبارة "صمم صورة" أو "انشئ صورة" (مثل: "صمم صورة مرسيدس ... اجعلها SVG")! يُحظر تماماً وبشكل قاطع إخراج كتلة \`\`\`neural-image\`\`\` في هذه الحالة، بل يجب إنتاج كود الـ SVG النقي المتكامل فوراً.
     - [قاعدة ذهبية سيادية صارمة ومطلقة للتفريق الدقيق بين الصور الواقعية واستوديو SVG]:
        * [متى يعمل استوديو SVG؟]: يعمل استوديو SVG حصراً وفقط عند الطلب الصريح والمباشر من المستخدم لإنشاء أو رسم أو تصدير كود/ملف SVG أو متجهات فيكتور (مثل: "كود SVG"، "ملف SVG"، "رسم شعاعي"، "متجهات فيكتور"، "vector svg"، "صمم كود SVG"، "ارسم متجهات SVG"، "بصيغة SVG").
        * [حظر تفعيل SVG بالخطأ أو لمجرد ورود الكلمة]:
@@ -985,15 +985,6 @@ ${bypassedContent}
   } catch (err: any) {
     return `[تقرير استطلاع الهدف ${rawUrl}]: تعذر جلب الاستجابة المباشرة (${err?.message || 'مهلة الاتصال'}). قم بتحليل النطاق والبروتوكول افتراضياً ونقاط الضعف الشائعة لهذا النوع من الخدمات.`;
   }
-}
-
-const SERPER_API_KEY = process.env.SERPER_API_KEY || '';
-
-interface SerperOrganicItem {
-  title: string;
-  link: string;
-  snippet?: string;
-  date?: string;
 }
 
 function shouldPerformLiveSearch(query: string, explicitDeepSearch = false): boolean {
@@ -2538,6 +2529,10 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     model.includes('quant3') ||
     model.includes('fathom-quant');
 
+  const isFathomSearchModel = model === 'fathom-search' ||
+    model.includes('fathom-search') ||
+    model.includes('qwen');
+
   const isCyber26 = isFathomQuant3 ||
     model === 'deepseek-v4-pro-cyber-2.6' ||
     model === 'deepseek-v4-flash-cyber-2.6' ||
@@ -2638,6 +2633,10 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     hasZipOrCodeFiles: hasZipOrMedia,
     explicitTemperature: typeof req.body.temperature === 'number' ? req.body.temperature : undefined,
   });
+
+  const isFathomSearch = isFathomSearchModel ||
+    Boolean(deepSearch) ||
+    dynamicTuning.detectedIntent === 'FACTUAL_SEARCH_AND_REALTIME_GROUNDING';
 
   let activeSystemPrompt = DynamicParameterTuner.buildKVCacheOptimizedSystemPrompt(
     baseSystemPrompt,
@@ -3036,6 +3035,32 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: DynamicParameterTuner.tuneGatewayPayload('google/gemini-2.5-flash', basePayload, dynamicTuning)
         });
       }
+    } else if (isFathomSearch && OPENROUTER_API_KEY) {
+      gateCandidates.push({
+        name: 'OpenRouter Fathom Search Engine (qwen/qwen3.7-flash + web_search)',
+        url: `${OPENROUTER_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
+        },
+        payload: {
+          ...DynamicParameterTuner.tuneGatewayPayload('qwen/qwen3.7-flash', basePayload, dynamicTuning),
+          tools: [{ type: 'openrouter:web_search' }]
+        }
+      });
+      gateCandidates.push({
+        name: 'OpenRouter Fathom Search Engine (qwen/qwen3.7-flash:online)',
+        url: `${OPENROUTER_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
+        },
+        payload: DynamicParameterTuner.tuneGatewayPayload('qwen/qwen3.7-flash:online', basePayload, dynamicTuning)
+      });
     } else if (isMediaSpark && OPENROUTER_API_KEY) {
       gateCandidates.push({
         name: 'OpenRouter Meta Muse Spark 1.2 Contributor (Fathom Spark Multimodal)',
@@ -3532,9 +3557,16 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
         const chunkText = decoder.decode(value, { stream: true });
         const hasDoneMarker = chunkText.includes('data: [DONE]') || chunkText.includes('[DONE]');
-        const clientPayload = hasDoneMarker
+        let clientPayload = hasDoneMarker
           ? chunkText.replace(/data:\s*\[DONE\]\n*/g, '').replace(/\[DONE\]\n*/g, '')
           : chunkText;
+
+        // Zero-leak protection: purge original model name and replace with fathom-search
+        if (clientPayload) {
+          clientPayload = clientPayload
+            .replace(/qwen\/qwen3\.7-flash(?::online)?/gi, 'fathom-search')
+            .replace(/qwen3\.7-flash/gi, 'fathom-search');
+        }
 
         if (clientPayload && !isClientDisconnected && !res.writableEnded) {
           try {
@@ -3563,9 +3595,11 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       if (!hasNeuralBlock) {
         const priorImg = dynamicTuning.priorNeuralImage || priorNeuralImage;
         const priorSeed = priorImg?.seed !== undefined ? priorImg.seed : 482910;
-        const priorImgUrl = priorImg?.imageUrl && !priorImg.imageUrl.startsWith('data:') ? priorImg.imageUrl : '';
-        const hasUploadedImage = cleanedMessages.some((m: any) => m.image || (m.images && m.images.length > 0));
-        const isEdit = Boolean(priorImgUrl || hasUploadedImage);
+        const priorImgUrl = priorImg?.imageUrl || '';
+        const userUploadedMsg = cleanedMessages.slice().reverse().find((m: any) => m.image || (m.images && m.images.length > 0));
+        const uploadedUrl = userUploadedMsg?.image || (userUploadedMsg?.images && userUploadedMsg.images[0]) || '';
+        const originalImageToUse = priorImgUrl || uploadedUrl || undefined;
+        const isEdit = Boolean(originalImageToUse);
 
         const recoveryBlock = `\n\n\`\`\`neural-image\n${JSON.stringify({
           operation: isEdit ? 'edit' : 'generate',
@@ -3573,7 +3607,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           description: isEdit ? 'تم تطبيق التعديلات البصرية المطلوبة بنجاح' : 'تم تخطيط المشهد العصبي بنجاح',
           prompt: lastUserText,
           seed: priorSeed,
-          originalImage: priorImgUrl || undefined,
+          originalImage: originalImageToUse,
           aspectRatio: priorImg?.aspectRatio || '1:1',
           style: priorImg?.style || 'photorealistic',
           fidelityScore: '100%',
@@ -4107,13 +4141,23 @@ ${visitBadge}
 // Meta Muse Image Generator Endpoint (via OpenRouter Image API)
 app.post('/api/generate-image', async (req: Request, res: Response) => {
   try {
-    const { prompt } = req.body;
-    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+    let rawPrompt = req.body?.prompt;
+    if (Array.isArray(rawPrompt)) {
+      rawPrompt = rawPrompt
+        .filter((p: any) => p && (typeof p === 'string' || p.type === 'text'))
+        .map((p: any) => (typeof p === 'string' ? p : p.text || ''))
+        .join(' ')
+        .trim();
+    } else if (typeof rawPrompt === 'object' && rawPrompt !== null) {
+      rawPrompt = rawPrompt.text || rawPrompt.prompt || '';
+    }
+    const prompt = typeof rawPrompt === 'string' ? rawPrompt.trim() : '';
+    if (!prompt) {
       res.status(400).json({ error: 'Prompt is required' });
       return;
     }
 
-    let finalPrompt = prompt.trim();
+    let finalPrompt = prompt;
 
     const openRouterKey = OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || '';
     if (!openRouterKey) {

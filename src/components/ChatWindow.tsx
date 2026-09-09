@@ -301,9 +301,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           <div ref={messagesListRef} className="space-y-4 pb-24 sm:pb-32">
             {messages.map((message, index) => {
               const precedingMessages = messages.slice(0, index);
-              const previousUserPrompt = message.role === 'assistant' 
-                ? [...precedingMessages].reverse().find(m => m.role === 'user')?.content || ''
-                : '';
+              const previousUserMsg = message.role === 'assistant' 
+                ? [...precedingMessages].reverse().find(m => m.role === 'user')
+                : null;
+              let previousUserPrompt = '';
+              if (previousUserMsg) {
+                if (typeof previousUserMsg.content === 'string') {
+                  previousUserPrompt = previousUserMsg.content;
+                } else if (Array.isArray(previousUserMsg.content)) {
+                  previousUserPrompt = (previousUserMsg.content as any[])
+                    .filter(part => part && (part.type === 'text' || typeof part === 'string'))
+                    .map(part => typeof part === 'string' ? part : part?.text || '')
+                    .join(' ')
+                    .trim();
+                }
+              }
               const priorImage = message.role === 'assistant'
                 ? extractPriorImageFromHistory(precedingMessages)
                 : undefined;

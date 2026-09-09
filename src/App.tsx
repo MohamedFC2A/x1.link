@@ -176,7 +176,7 @@ const MainAppContent: React.FC = () => {
 
   const handleSelectModel = (model: ModelType) => {
     setActiveModel(model);
-    if (model === 'fathom-quant-3' || model === 'deepseek-v4-flash' || model === 'deepseek-v4-flash-cyber' || model === 'deepseek-v4-pro-cyber-2.6' || model === 'deepseek-v4-flash-cyber-2.6' || model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') {
+    if (model === 'fathom-quant-3' || model === 'fathom-search' || model === 'deepseek-v4-flash' || model === 'deepseek-v4-flash-cyber' || model === 'deepseek-v4-pro-cyber-2.6' || model === 'deepseek-v4-flash-cyber-2.6' || model === 'deepseek-v4-pro-cyber-2.1' || model === 'deepseek-v4-flash-cyber-2.1') {
       setPreferredBaseModel(model);
       try {
         localStorage.setItem('matany_preferred_base_model', model);
@@ -1398,6 +1398,8 @@ const MainAppContent: React.FC = () => {
                       placeholder={
                         activeModel === 'fathom-quant-3'
                           ? "اسأل Fathom Quant 3، صمم أو عدل صوراً، أو تحكم بالسيرفر السحابي VPS..."
+                          : activeModel === 'fathom-search'
+                          ? "ابحث واستقصِ بذكاء عبر Fathom Search (ويب، سياق، ذاكرة، وفحص وسائط)..."
                           : activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-flash-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1' || activeModel === 'deepseek-v4-flash-cyber-2.1'
                           ? "اطرح لغزاً، مسألة معقدة، أو افحص أمنياً..."
                           : activeModel === 'deepseek-v4-flash-cyber'

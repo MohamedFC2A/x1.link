@@ -35,7 +35,6 @@ export type SearchSourceType =
   | 'google'
   | 'duckduckgo'
   | 'news'
-  | 'serper'
   | 'wiki'
   | 'academic'
   | 'other';

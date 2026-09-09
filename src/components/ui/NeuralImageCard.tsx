@@ -77,6 +77,21 @@ function simplePromptHash(str: string): string {
   return Math.abs(hash).toString(36);
 }
 
+function extractPromptString(raw: any): string {
+  if (typeof raw === 'string') return raw.trim();
+  if (Array.isArray(raw)) {
+    return raw
+      .filter((p: any) => p && (typeof p === 'string' || p.type === 'text'))
+      .map((p: any) => (typeof p === 'string' ? p : p.text || ''))
+      .join(' ')
+      .trim();
+  }
+  if (typeof raw === 'object' && raw !== null) {
+    return (raw.text || raw.prompt || '').trim();
+  }
+  return '';
+}
+
 function getGlobalImageCache(): Map<string, string> {
   if (typeof window === 'undefined') return new Map();
   return ((window as any).__FATHOM_IMAGE_CACHE__ = (window as any).__FATHOM_IMAGE_CACHE__ || new Map<string, string>());
@@ -99,6 +114,35 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   className,
   onImageGenerated
 }) => {
+  // Contextual operation classification
+  const operationInfo = useMemo(() => {
+    const op = (data.operation || '').toLowerCase();
+    const title = (data.title || '').toLowerCase();
+    if (op === 'add_element' || op === 'addition' || op.includes('add') || op === 'composite' || title.includes('إضافة') || title.includes('اضافة')) {
+      return { label: 'إضافة ذكية', type: 'addition' as const };
+    }
+    if (op === 'edit' || op.includes('edit') || op === 'recolor' || op === 'remove_background' || op === 'human_edit' || title.includes('تعديل')) {
+      return { label: 'تعديل دقيق', type: 'edit' as const };
+    }
+    return { label: 'إنشاء بصري', type: 'generation' as const };
+  }, [data.operation, data.title]);
+
+  const isEditOrAddition = operationInfo.type === 'addition' || operationInfo.type === 'edit';
+
+  // Resolve images with robust validation against placeholder strings
+  const originalSrc = useMemo(() => {
+    if (fallbackOriginalImage && isValidImageUri(fallbackOriginalImage)) {
+      if (!isValidImageUri(data.originalImage) || (typeof data.originalImage === 'string' && data.originalImage.startsWith('data:image/') && data.originalImage.length < 5000)) {
+        return fallbackOriginalImage.trim();
+      }
+    }
+    if (isValidImageUri(data.originalImage)) return data.originalImage.trim();
+    if (isValidImageUri(fallbackOriginalImage)) return fallbackOriginalImage.trim();
+    return null;
+  }, [data.originalImage, fallbackOriginalImage]);
+
+  const promptText = useMemo(() => extractPromptString(data.prompt), [data.prompt]);
+
   // Dynamic Aspect Ratio and Seed variation controls for Fathom Quant 3
   const [selectedRatio, setSelectedRatio] = useState<string>(() => {
     if (data.aspectRatio && ['1:1', '16:9', '9:16', '4:3'].includes(data.aspectRatio)) {
@@ -117,39 +161,38 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   const lastGenerationTimeRef = useRef<number>(Date.now());
   const generationStartTimeRef = useRef<number>(0);
   const [museImageUrl, setMuseImageUrl] = useState<string | null>(() => {
-    if (data.imageUrl && !data.imageUrl.includes('pollinations.ai') && (data.imageUrl.startsWith('data:image') || data.imageUrl.startsWith('http'))) {
-      return data.imageUrl;
-    }
-    if (data.processedImage && !data.processedImage.includes('pollinations.ai') && (data.processedImage.startsWith('data:image') || data.processedImage.startsWith('http'))) {
-      return data.processedImage;
+    const rawProp = data.imageUrl || data.processedImage;
+    const isInputImg = (isEditOrAddition || Boolean(originalSrc)) && (rawProp === originalSrc || rawProp === fallbackOriginalImage);
+    if (rawProp && !rawProp.includes('pollinations.ai') && (rawProp.startsWith('data:image') || rawProp.startsWith('http')) && !isInputImg) {
+      return rawProp;
     }
     // Check in-memory global cache
     const gCache = getGlobalImageCache();
     if (messageId && gCache.has(messageId)) {
       const cached = gCache.get(messageId)!;
-      if (isValidImageUri(cached) && !cached.includes('pollinations.ai')) return cached;
+      if (isValidImageUri(cached) && !cached.includes('pollinations.ai') && (!isEditOrAddition || cached !== originalSrc)) return cached;
     }
-    const promptText = (data.prompt || '').trim();
-    if (promptText) {
-      const hashKey = simplePromptHash(promptText);
+    const cleanPrompt = extractPromptString(data.prompt);
+    if (cleanPrompt) {
+      const hashKey = simplePromptHash(cleanPrompt);
       if (gCache.has(hashKey)) {
         const cached = gCache.get(hashKey)!;
-        if (isValidImageUri(cached) && !cached.includes('pollinations.ai')) return cached;
+        if (isValidImageUri(cached) && !cached.includes('pollinations.ai') && (!isEditOrAddition || cached !== originalSrc)) return cached;
       }
     }
     // Instant 0ms cache retrieval on page refresh or component remount
     if (typeof window !== 'undefined' && window.localStorage) {
       if (messageId) {
         const cached = localStorage.getItem(`fathom_img_${messageId}`);
-        if (cached && !cached.includes('pollinations.ai') && (cached.startsWith('data:image') || cached.startsWith('http'))) {
+        if (cached && !cached.includes('pollinations.ai') && (cached.startsWith('data:image') || cached.startsWith('http')) && (!isEditOrAddition || cached !== originalSrc)) {
           gCache.set(messageId, cached);
           return cached;
         }
       }
-      if (promptText) {
-        const hashKey = simplePromptHash(promptText);
+      if (cleanPrompt) {
+        const hashKey = simplePromptHash(cleanPrompt);
         const cachedByHash = localStorage.getItem(`fathom_img_${hashKey}`);
-        if (cachedByHash && !cachedByHash.includes('pollinations.ai') && (cachedByHash.startsWith('data:image') || cachedByHash.startsWith('http'))) {
+        if (cachedByHash && !cachedByHash.includes('pollinations.ai') && (cachedByHash.startsWith('data:image') || cachedByHash.startsWith('http')) && (!isEditOrAddition || cachedByHash !== originalSrc)) {
           gCache.set(hashKey, cachedByHash);
           return cachedByHash;
         }
@@ -162,17 +205,17 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   // Synchronize museImageUrl from incoming data props instantly
   useEffect(() => {
     const nextUrl = data.imageUrl || data.processedImage;
-    if (nextUrl && isValidImageUri(nextUrl) && !nextUrl.includes('pollinations.ai')) {
+    const isInputImg = (isEditOrAddition || Boolean(originalSrc)) && (nextUrl === originalSrc || nextUrl === fallbackOriginalImage);
+    if (nextUrl && isValidImageUri(nextUrl) && !nextUrl.includes('pollinations.ai') && !isInputImg) {
       setMuseImageUrl(nextUrl);
       setIsImageLoading(false);
       setGenerationProgress(100);
       setLoadError(false);
       const gCache = getGlobalImageCache();
       if (messageId) gCache.set(messageId, nextUrl);
-      const promptText = (data.prompt || '').trim();
       if (promptText) gCache.set(simplePromptHash(promptText), nextUrl);
     }
-  }, [data.imageUrl, data.processedImage, messageId, data.prompt]);
+  }, [data.imageUrl, data.processedImage, messageId, promptText, isEditOrAddition, originalSrc, fallbackOriginalImage]);
 
   // Keep seed synchronized if data.seed is updated from incoming stream/props
   useEffect(() => {
@@ -216,47 +259,20 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     return 'max-w-4xl mx-auto';
   }, [numericRatio, isFullscreen]);
 
-  // Contextual operation classification
-  const operationInfo = useMemo(() => {
-    const op = (data.operation || '').toLowerCase();
-    const title = (data.title || '').toLowerCase();
-    if (op === 'add_element' || op === 'addition' || op.includes('add') || op === 'composite' || title.includes('إضافة') || title.includes('اضافة')) {
-      return { label: 'إضافة ذكية', type: 'addition' as const };
-    }
-    if (op === 'edit' || op.includes('edit') || op === 'recolor' || op === 'remove_background' || op === 'human_edit' || title.includes('تعديل')) {
-      return { label: 'تعديل دقيق', type: 'edit' as const };
-    }
-    return { label: 'إنشاء بصري', type: 'generation' as const };
-  }, [data.operation, data.title]);
-
-  const isEditOrAddition = operationInfo.type === 'addition' || operationInfo.type === 'edit';
-
-  // Resolve images with robust validation against placeholder strings
-  const originalSrc = useMemo(() => {
-    if (fallbackOriginalImage && isValidImageUri(fallbackOriginalImage)) {
-      if (!isValidImageUri(data.originalImage) || (typeof data.originalImage === 'string' && data.originalImage.startsWith('data:image/') && data.originalImage.length < 5000)) {
-        return fallbackOriginalImage.trim();
-      }
-    }
-    if (isValidImageUri(data.originalImage)) return data.originalImage.trim();
-    if (isValidImageUri(fallbackOriginalImage)) return fallbackOriginalImage.trim();
-    return null;
-  }, [data.originalImage, fallbackOriginalImage]);
-
   // Autonomous Sovereign Fathom QP3 Image Fetcher
   useEffect(() => {
     if (museImageUrl && retryCount === 0) return;
 
     // 1. Direct props check
     const existingPropUrl = data.imageUrl || data.processedImage;
-    if (existingPropUrl && isValidImageUri(existingPropUrl) && !existingPropUrl.includes('pollinations.ai')) {
+    const isInputImg = (isEditOrAddition || Boolean(originalSrc)) && (existingPropUrl === originalSrc || existingPropUrl === fallbackOriginalImage);
+    if (existingPropUrl && isValidImageUri(existingPropUrl) && !existingPropUrl.includes('pollinations.ai') && !isInputImg) {
       setMuseImageUrl(existingPropUrl);
       setIsImageLoading(false);
       setGenerationProgress(100);
       return;
     }
 
-    const promptText = (data.prompt || '').trim();
     if (!promptText) return;
 
     // 2. Memory and Storage multi-layer check before initiating generation
@@ -424,15 +440,21 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   }, [data.prompt, selectedRatio, retryCount, seed]);
 
   const processedSrc = useMemo(() => {
-    if (museImageUrl) return museImageUrl;
+    if (museImageUrl && (!isEditOrAddition || (museImageUrl !== originalSrc && museImageUrl !== fallbackOriginalImage))) {
+      return museImageUrl;
+    }
     if (data.processedImage && !data.processedImage.includes('pollinations.ai') && (data.processedImage.startsWith('data:image') || data.processedImage.startsWith('http'))) {
-      return data.processedImage;
+      if (!isEditOrAddition || (data.processedImage !== originalSrc && data.processedImage !== fallbackOriginalImage)) {
+        return data.processedImage;
+      }
     }
     if (data.imageUrl && !data.imageUrl.includes('pollinations.ai') && (data.imageUrl.startsWith('data:image') || data.imageUrl.startsWith('http'))) {
-      return data.imageUrl;
+      if (!isEditOrAddition || (data.imageUrl !== originalSrc && data.imageUrl !== fallbackOriginalImage)) {
+        return data.imageUrl;
+      }
     }
     return '';
-  }, [museImageUrl, data.processedImage, data.imageUrl]);
+  }, [museImageUrl, data.processedImage, data.imageUrl, isEditOrAddition, originalSrc, fallbackOriginalImage]);
 
   // Local interactive states
   const [sliderPosition, setSliderPosition] = useState<number>(50);
@@ -443,13 +465,13 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   const hasDualImages = Boolean(originalSrc && activeProcessedSrc && originalSrc !== activeProcessedSrc && !originalLoadError);
 
   const [viewMode, setViewMode] = useState<'split' | 'processed' | 'original'>(() => {
-    if (originalSrc && isEditOrAddition) return 'split';
+    if (hasDualImages && isEditOrAddition) return 'split';
     return 'processed';
   });
 
   // Automatically switch to split view when both images are ready for an edit or addition
   useEffect(() => {
-    if (hasDualImages && isEditOrAddition && viewMode === 'processed') {
+    if (hasDualImages && isEditOrAddition) {
       setViewMode('split');
     }
   }, [hasDualImages, isEditOrAddition]);
@@ -719,11 +741,14 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             <Quant3PerfectionIcon size={14} />
           </div>
           <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-            <span className="text-xs font-sans font-semibold text-zinc-100 whitespace-nowrap">
-              {operationInfo.type === 'addition' ? 'إضافة بصرية' : operationInfo.type === 'edit' ? 'تعديل بصري دقيق' : 'استوديو التوليد العصبي'}
+            <span className="hidden sm:inline font-mono text-xs font-semibold tracking-wider text-zinc-100 whitespace-nowrap">
+              FATHOM QUANT 3
+            </span>
+            <span className="text-[10px] sm:text-[11px] font-mono text-cyan-400 font-bold whitespace-nowrap">
+              FATHOM QP3
             </span>
             <span className="text-zinc-600 text-[10px]">•</span>
-            <span className="text-[10.5px] font-mono text-zinc-400 whitespace-nowrap" dir="ltr">
+            <span className="text-[10px] sm:text-[11px] font-mono text-zinc-400 whitespace-nowrap" dir="ltr">
               {currentDimensions.width}×{currentDimensions.height}
             </span>
             {selectedRatio && (
@@ -819,6 +844,17 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
           maxHeight: '78vh'
         }}
       >
+        {/* Subtle background preview of original image during edit/addition processing */}
+        {isEditOrAddition && originalSrc && !activeProcessedSrc && (
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden pointer-events-none opacity-30 blur-sm scale-105 transition-all">
+            <img
+              src={originalSrc}
+              alt="معاينة الصورة الأصلية"
+              className="w-full h-full object-contain"
+            />
+          </div>
+        )}
+
         {/* Loading / Streaming Overlay with clean, authentic Progress Bar */}
         {isImageLoading && !activeProcessedSrc && !loadError && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#040406]/95 backdrop-blur-xl gap-4 p-8 text-center select-none" dir="rtl">
@@ -907,7 +943,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         {/* Interactive Split Comparison Slider (Strict Image Aspect Ratio & Millimeter Precision) */}
         {hasDualImages && viewMode === 'split' && originalSrc && (
           <div
-            className="relative w-full h-full overflow-hidden select-none cursor-ew-resize touch-none"
+            className="absolute inset-0 w-full h-full overflow-hidden select-none cursor-ew-resize touch-none"
             dir="ltr"
             onMouseDown={(e) => {
               handleDrag(e.clientX);
