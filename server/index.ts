@@ -368,11 +368,11 @@ ${DEVELOPER_IDENTITY_DIRECTIVE}
 2. المحرك الحصري لتوليد وتعديل الصور واستوديو SVG (Exclusive Visual & SVG Sovereign Studio):
    - أنت النموذج الوحيد والحصري المخول بصرياً في النظام بأكمله؛ كافة النماذج الأخرى محظورة من توليد الصور أو الـ SVG وتُحيل الطلبات إليك مباشرة.
    - [قاعدة ذهبية صارمة ومطلقة للتفريق بين الصور الواقعية واستوديو SVG]:
-     * أي طلب من المستخدم يحتوي على عبارات توليد أو تصميم الصور مثل: (صمم صورة، انشئ صورة، ولد صورة، اعمل صورة، صورة لـ...، صمم لي صورة، صورة واقعية، generate image, create picture, photo) هو طلب لتوليد صورة واقعية عصبية ويجب عليك فوراً إخراج كتلة \`\`\`neural-image\`\`\` لتوليد الصورة بواسطة FLUX.1 [schnell].
+     * أي طلب من المستخدم يحتوي على عبارات توليد أو تصميم الصور مثل: (صمم صورة، انشئ صورة، ولد صورة، اعمل صورة، صورة لـ...، صمم لي صورة، صورة واقعية، generate image, create picture, photo) هو طلب لتوليد صورة واقعية عصبية ويجب عليك فوراً إخراج كتلة \`\`\`neural-image\`\`\` لتوليد الصورة بواسطة محرك Meta: Muse Image (meta/muse-image via OpenRouter).
      * يُحظر حظراً باتاً ومطلقاً إخراج كود SVG أو رسم متجهات إذا طلب المستخدم (صورة / صمم صورة) دون أن يذكر صراحة كلمة SVG أو فيكتور أو شعاعي!
      * استوديو SVG مخصص حصراً وفقط عندما يطلب المستخدم صراحة ووضوحاً: (كود SVG، رسم شعاعي، فيكتور، متجهات، svg icon، رسم كود xml متجهات). بدون ذكر صريح لـ SVG/فيكتور، فإن أي طلب تصميم أو إنشاء بصري هو صورة واقعية عصبية \`\`\`neural-image\`\`\`.
-   - هندسة وصياغة وتوليد الصور الفوتوغرافية الواقعية لنموذج FLUX.1 [schnell] (Photorealistic Image Synthesis & Master Prompting):
-     * نموذج FLUX.1 [schnell] هو الأسرع والأعلى كفاءة والأقل تكلفة (4-step ultra-fast diffusion)، ويتميز بأفضل أداء عند صياغة البرومبت الإنجليزي بلغة وصفية طبيعية، غنية ودقيقة (Natural Descriptive Language) دون حشو كلمات سلبية عشوائية:
+   - هندسة وصياغة وتوليد الصور الفوتوغرافية الواقعية لنموذج Meta: Muse Image (Agentic Image Synthesis & Master Prompting):
+      * نموذج Meta: Muse Image (meta/muse-image عبر OpenRouter) هو نموذج استدلالي ذكي يقوم بالتفكير والتحليل الدقيق قبل الرسم (Reasons before it renders)، ويتميز بأعلى دقة في التفاصيل:
        - نوع الكاميرا والمستشعر: Shot on Hasselblad H6D-100c أو Sony Alpha 7R V مع تحديد البعد البؤري المناسب (85mm f/1.2 للبورتريهات الفردية، 35mm f/1.4 للقطات السينمائية، 24mm للمشاهد البيئية الواسعة).
        - الإضاءة الحجمية السينمائية: إضاءة ريمبرانت الناعمة (Rembrandt softbox lighting)، إضاءة الحواف الدرامية (rim light)، وإضاءة الغسق أو الساعة الذهبية الطبيعية مع تفاعل فيزيائي دقيق للظلال.
        - الدقة التشريحية المطلقة (Flawless Human Anatomy & Photorealistic Faces & Hands & Fingers Precision): خمسة أصابع دقيقة وطبيعية تماماً في كل يد، مع مفاصل وأظافر واضحة دون أي تشوه أو زيادة. عيون متناظرة مع انعكاسات ضوئية حقيقية على القرنية.
@@ -3748,6 +3748,68 @@ ${visitBadge}
   } catch (err: any) {
     console.error('[Server Telemetry Error]:', err);
     res.status(500).json({ error: err?.message || 'Telemetry failure' });
+  }
+});
+
+// Meta Muse Image Generator Endpoint (via OpenRouter Image API)
+app.post('/api/generate-image', async (req: Request, res: Response) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+      res.status(400).json({ error: 'Prompt is required' });
+      return;
+    }
+
+    const openRouterKey = OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || '';
+    if (!openRouterKey) {
+      res.status(500).json({ error: 'OPENROUTER_API_KEY is not configured' });
+      return;
+    }
+
+    const response = await fetch(`${OPENROUTER_BASE_URL}/images`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openRouterKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://matany.one',
+        'X-Title': 'Matany AI'
+      },
+      body: JSON.stringify({
+        model: 'meta/muse-image',
+        prompt: prompt.trim()
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      res.status(response.status).json({ error: 'OpenRouter generation failed', details: errText });
+      return;
+    }
+
+    const data: any = await response.json();
+    const item = data?.data?.[0];
+
+    if (!item) {
+      res.status(502).json({ error: 'No image data returned from OpenRouter' });
+      return;
+    }
+
+    let imageUrl = '';
+    if (item.b64_json) {
+      const mediaType = item.media_type || 'image/png';
+      imageUrl = `data:${mediaType};base64,${item.b64_json}`;
+    } else if (item.url) {
+      imageUrl = item.url;
+    }
+
+    res.status(200).json({
+      imageUrl,
+      model: 'meta/muse-image',
+      provider: 'openrouter'
+    });
+  } catch (error: any) {
+    console.error('[Image Generation Error]:', error);
+    res.status(500).json({ error: error.message || 'Internal error' });
   }
 });
 

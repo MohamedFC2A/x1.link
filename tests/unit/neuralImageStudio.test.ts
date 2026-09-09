@@ -268,19 +268,18 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(svgCard).toContain('aspectRatio: `${metrics.width} / ${metrics.height}`');
     });
 
-    // 18. Photorealistic FLUX Pro engine and dynamic ratio framing
-    await harness.it('should verify flux-pro engine and dynamic card bounding in NeuralImageCard and ChatMessage', async () => {
+    // 18. Photorealistic Meta: Muse Image & FLUX Pro engine and dynamic ratio framing
+    await harness.it('should verify meta/muse-image engine and dynamic card bounding in NeuralImageCard and ChatMessage', async () => {
       const fs = await import('fs');
       const neuralCard = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
       const chatMessage = fs.readFileSync('c:/Best Projects/Matany/src/components/ChatMessage.tsx', 'utf-8');
 
-      // NeuralImageCard defaults to flux-pro (highest quality) with flux-realism as graceful fallback
-      expect(neuralCard).toContain("return 'flux-pro'");
-      expect(neuralCard).toContain("setModelName('flux-realism')");
-      expect(neuralCard).toContain("setModelName('flux')");
-      expect(neuralCard).toContain('cardMaxWidthClass');
+      // NeuralImageCard defaults to meta/muse-image via OpenRouter with flux-pro/flux-realism as graceful fallback
+      expect(neuralCard).toContain("return 'meta/muse-image'");
+      expect(neuralCard).toContain("setModelName('flux-pro')");
+      expect(neuralCard).toContain("cardMaxWidthClass");
 
-      // ChatMessage provisions flux-pro for photorealistic styles
+      // ChatMessage provisions image generation fallback
       expect(chatMessage).toContain('flux-pro');
     });
 

@@ -83,13 +83,20 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   });
   const [isImageLoading, setIsImageLoading] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [museImageUrl, setMuseImageUrl] = useState<string | null>(() => {
+    if (data.imageUrl && (data.imageUrl.startsWith('data:image') || data.imageUrl.startsWith('http') && !data.imageUrl.includes('pollinations.ai'))) {
+      return data.imageUrl;
+    }
+    if (data.processedImage && (data.processedImage.startsWith('data:image') || data.processedImage.startsWith('http') && !data.processedImage.includes('pollinations.ai'))) {
+      return data.processedImage;
+    }
+    return null;
+  });
   const [modelName, setModelName] = useState<string>(() => {
     if (data.style === 'anime') return 'flux-anime';
     if (data.style === '3d_render') return 'flux-3d';
-    if (data.style === 'cinematic') return 'flux-pro';
-    // flux-pro is the highest quality model available on Pollinations
-    // Use it as the default for all photorealistic and ultra_photorealistic generation
-    return 'flux-pro';
+    // meta/muse-image via OpenRouter is the supreme primary image generation engine
+    return 'meta/muse-image';
   });
 
   // Keep seed synchronized if data.seed is updated from incoming stream/props
@@ -138,9 +145,52 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     return null;
   }, [data.originalImage, fallbackOriginalImage]);
 
+  // Autonomous OpenRouter Meta: Muse Image Fetcher
+  useEffect(() => {
+    // If we already have a generated image (data uri or external non-pollinations url), skip
+    if (museImageUrl) return;
+
+    if (modelName === 'meta/muse-image' && data.prompt && data.prompt.trim()) {
+      let isCancelled = false;
+      setIsImageLoading(true);
+
+      fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: data.prompt.trim(),
+          aspectRatio: selectedRatio
+        })
+      })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((payload) => {
+        if (!isCancelled && payload?.imageUrl) {
+          setMuseImageUrl(payload.imageUrl);
+          setIsImageLoading(false);
+          setLoadError(false);
+        }
+      })
+      .catch((err) => {
+        console.warn('[Muse Image Generation Warning - Fallback to Flux Pro]:', err);
+        if (!isCancelled) {
+          // Gracefully fallback to flux-pro if Muse Image endpoint has network issue
+          setModelName('flux-pro');
+        }
+      });
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+  }, [modelName, data.prompt, selectedRatio, museImageUrl]);
+
   const processedSrc = useMemo(() => {
+    if (museImageUrl) return museImageUrl;
     const { width, height } = currentDimensions;
-    const activeModel = modelName;
+    const activeModel = modelName === 'meta/muse-image' ? 'flux-pro' : modelName;
     // For edits and additions, NEVER pass enhance=true to prevent Pollinations from hallucinating random new environments
     const enhanceParam = isEditOrAddition ? '&enhance=false' : '&enhance=true';
 
@@ -193,7 +243,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=${activeModel}&nologo=true${enhanceParam}${seedParam}`;
     }
     return originalSrc || '';
-  }, [data.processedImage, data.imageUrl, data.prompt, data.aspectRatio, selectedRatio, seed, originalSrc, currentDimensions, modelName, isEditOrAddition]);
+  }, [museImageUrl, data.processedImage, data.imageUrl, data.prompt, data.aspectRatio, selectedRatio, seed, originalSrc, currentDimensions, modelName, isEditOrAddition]);
 
   // Local interactive states
   const [sliderPosition, setSliderPosition] = useState<number>(50);
@@ -418,7 +468,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
               <span>•</span>
               <span>4K UHD</span>
               <span>•</span>
-              <span className="text-amber-400/90 font-semibold" title={`نموذج التوليد: ${modelName}`}>{modelName === 'flux-pro' ? 'FLUX.1 PRO' : modelName === 'flux-realism' ? 'FLUX.1' : modelName === 'flux-anime' ? 'FLUX.1 ANIME' : modelName === 'flux-3d' ? 'FLUX.1 3D' : 'FLUX.1'}</span>
+              <span className="text-amber-400/90 font-semibold" title={`نموذج التوليد: ${modelName}`}>{modelName === 'meta/muse-image' ? 'META MUSE IMAGE' : modelName === 'flux-pro' ? 'FLUX.1 PRO' : modelName === 'flux-realism' ? 'FLUX.1' : modelName === 'flux-anime' ? 'FLUX.1 ANIME' : modelName === 'flux-3d' ? 'FLUX.1 3D' : 'FLUX.1'}</span>
               {seed !== null && (
                 <>
                   <span>•</span>
