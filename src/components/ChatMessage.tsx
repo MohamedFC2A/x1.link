@@ -1431,17 +1431,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           }
 
           if (!parsed.imageUrl && !parsed.processedImage && parsed.prompt) {
-            const activeModel = parsed.style === 'anime' ? 'flux-anime' : (parsed.style === '3d_render' ? 'flux-3d' : 'flux-pro');
-            let w = 1024;
-            let h = 1024;
-            if (parsed.aspectRatio === '16:9') { w = 1344; h = 768; }
-            else if (parsed.aspectRatio === '9:16') { w = 768; h = 1344; }
-            else if (parsed.aspectRatio === '4:3') { w = 1152; h = 864; }
-
-            const seedParam = (typeof parsed.seed === 'number' && !isNaN(parsed.seed)) ? `&seed=${parsed.seed}` : '';
-            // For edits and additions, NEVER pass enhance=true to keep the environment, layout and background 100% consistent
-            const enhanceParam = isEditOrAdd ? '&enhance=false' : '&enhance=true';
-            parsed.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=${w}&height=${h}&model=${activeModel}&nologo=true${enhanceParam}${seedParam}`;
+            // Meta: Muse Image via OpenRouter is the sovereign image generation engine
+            // Pollinations is completely abolished
+            parsed.model = 'meta/muse-image';
           }
           return parsed;
         }
@@ -1462,11 +1454,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       return parsed;
     }
 
-    // 3. Fallback check for Pollinations / external raster image url when neural intent active
+    // 3. Fallback check for external raster image url when neural intent active
     if (activeFeatures.some(f => f.id === 'neural_image_studio')) {
-      const imgUrlMatch = displayContent.match(/https?:\/\/[^\s)]+?\.(?:png|jpg|jpeg|webp|gif)(?:\?[^\s)]*)?/i) ||
-        displayContent.match(/https:\/\/image\.pollinations\.ai\/prompt\/[^\s)]+/i);
-      if (imgUrlMatch) {
+      const imgUrlMatch = displayContent.match(/https?:\/\/[^\s)]+?\.(?:png|jpg|jpeg|webp|gif)(?:\?[^\s)]*)?/i);
+      if (imgUrlMatch && !imgUrlMatch[0].includes('pollinations.ai')) {
         return {
           operation: 'enhance_4k',
           title: 'صورة معالجة عصبياً بدقة 4K',

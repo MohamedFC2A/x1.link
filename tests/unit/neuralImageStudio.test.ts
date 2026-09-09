@@ -268,26 +268,26 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(svgCard).toContain('aspectRatio: `${metrics.width} / ${metrics.height}`');
     });
 
-    // 18. Photorealistic Meta: Muse Image & FLUX Pro engine and dynamic ratio framing
-    await harness.it('should verify meta/muse-image engine and dynamic card bounding in NeuralImageCard and ChatMessage', async () => {
+    // 18. Photorealistic Meta: Muse Image sovereign engine and dynamic ratio framing
+    await harness.it('should verify meta/muse-image sovereign engine and dynamic card bounding in NeuralImageCard and ChatMessage', async () => {
       const fs = await import('fs');
       const neuralCard = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
       const chatMessage = fs.readFileSync('c:/Best Projects/Matany/src/components/ChatMessage.tsx', 'utf-8');
 
-      // NeuralImageCard defaults to meta/muse-image via OpenRouter with flux-pro/flux-realism as graceful fallback
-      expect(neuralCard).toContain("return 'meta/muse-image'");
-      expect(neuralCard).toContain("setModelName('flux-pro')");
+      // NeuralImageCard enforces meta/muse-image via OpenRouter with zero pollinations
+      expect(neuralCard).toContain("modelName = 'meta/muse-image'");
       expect(neuralCard).toContain("cardMaxWidthClass");
+      expect(neuralCard).not.toContain("image.pollinations.ai");
 
-      // ChatMessage provisions image generation fallback
-      expect(chatMessage).toContain('flux-pro');
+      // ChatMessage sets meta/muse-image and contains zero pollinations synthesis
+      expect(chatMessage).toContain("parsed.model = 'meta/muse-image'");
+      expect(chatMessage).not.toContain("image.pollinations.ai/prompt/");
     });
 
-    // 19. Distortion-Free Proportional Pollinations generation, HD tier naming, and removal of "جاهز للتنزيل المباشر"
-    await harness.it('should verify HD tier label, removal of direct download text, and proportional dimensions generation to eliminate distortion', async () => {
+    // 19. Distortion-Free Proportional canvas downloading, HD tier naming, and removal of "جاهز للتنزيل المباشر"
+    await harness.it('should verify HD tier label, removal of direct download text, and proportional canvas downloader to eliminate distortion', async () => {
       const fs = await import('fs');
       const neuralCard = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
-      const chatMessage = fs.readFileSync('c:/Best Projects/Matany/src/components/ChatMessage.tsx', 'utf-8');
 
       // "جاهز للتنزيل المباشر" must be completely removed
       expect(neuralCard).not.toContain('جاهز للتنزيل المباشر');
@@ -299,12 +299,6 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       // Proportional cropping in canvas downloader
       expect(neuralCard).toContain('imgAspect > targetAspect');
       expect(neuralCard).toContain('imgAspect < targetAspect');
-
-      // Pollinations requests dynamically set width & height based on aspect ratio (1024 for square, 1344x768 for 16:9, etc.)
-      expect(chatMessage).toContain('let w = 1024;');
-      expect(chatMessage).toContain('let h = 1024;');
-      expect(neuralCard).toContain("urlObj.searchParams.set('width'");
-      expect(neuralCard).toContain("urlObj.searchParams.set('height'");
     });
 
     // 20. Deep Contextual Understanding: Discerning Edit vs Addition vs Generation
@@ -453,18 +447,20 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(normalized).toContain('"seed": 554433');
     });
 
-    // 25. Strict Enforcement of enhance=false on Edits to Prevent Hallucinated Environments
-    await harness.it('should verify enhance=false is strictly enforced on edits and additions to preserve scene environment', async () => {
+    // 25. Complete Eradication of Pollinations and Sovereign Meta: Muse Image Enforcement
+    await harness.it('should verify pollinations is completely abolished and meta/muse-image is the sovereign engine', async () => {
       const fs = await import('fs');
       const chatMessage = fs.readFileSync('c:/Best Projects/Matany/src/components/ChatMessage.tsx', 'utf-8');
       const neuralCard = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
 
-      // ChatMessage sets enhance=false for edits/additions
-      expect(chatMessage).toContain("isEditOrAdd ? '&enhance=false' : '&enhance=true'");
+      // ChatMessage contains zero pollinations synthesis
+      expect(chatMessage).not.toContain("image.pollinations.ai/prompt/");
+      expect(chatMessage).toContain("parsed.model = 'meta/muse-image'");
 
-      // NeuralImageCard preserves or overrides enhance=false on edits/additions
-      expect(neuralCard).toContain("urlObj.searchParams.set('enhance', 'false')");
-      expect(neuralCard).toContain("isEditOrAddition");
+      // NeuralImageCard enforces meta/muse-image and contains zero pollinations URL generation
+      expect(neuralCard).not.toContain("image.pollinations.ai/prompt/");
+      expect(neuralCard).toContain("modelName = 'meta/muse-image'");
+      expect(neuralCard).toContain("Meta: Muse Image");
     });
 
   });

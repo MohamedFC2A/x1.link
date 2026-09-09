@@ -84,20 +84,15 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   const [isImageLoading, setIsImageLoading] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [museImageUrl, setMuseImageUrl] = useState<string | null>(() => {
-    if (data.imageUrl && (data.imageUrl.startsWith('data:image') || data.imageUrl.startsWith('http') && !data.imageUrl.includes('pollinations.ai'))) {
+    if (data.imageUrl && !data.imageUrl.includes('pollinations.ai') && (data.imageUrl.startsWith('data:image') || data.imageUrl.startsWith('http'))) {
       return data.imageUrl;
     }
-    if (data.processedImage && (data.processedImage.startsWith('data:image') || data.processedImage.startsWith('http') && !data.processedImage.includes('pollinations.ai'))) {
+    if (data.processedImage && !data.processedImage.includes('pollinations.ai') && (data.processedImage.startsWith('data:image') || data.processedImage.startsWith('http'))) {
       return data.processedImage;
     }
     return null;
   });
-  const [modelName, setModelName] = useState<string>(() => {
-    if (data.style === 'anime') return 'flux-anime';
-    if (data.style === '3d_render') return 'flux-3d';
-    // meta/muse-image via OpenRouter is the supreme primary image generation engine
-    return 'meta/muse-image';
-  });
+  const modelName = 'meta/muse-image';
 
   // Keep seed synchronized if data.seed is updated from incoming stream/props
   useEffect(() => {
@@ -145,14 +140,14 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     return null;
   }, [data.originalImage, fallbackOriginalImage]);
 
-  // Autonomous OpenRouter Meta: Muse Image Fetcher
+  // Autonomous OpenRouter Meta: Muse Image Fetcher (Zero Pollinations)
   useEffect(() => {
-    // If we already have a generated image (data uri or external non-pollinations url), skip
     if (museImageUrl) return;
 
-    if (modelName === 'meta/muse-image' && data.prompt && data.prompt.trim()) {
+    if (data.prompt && data.prompt.trim()) {
       let isCancelled = false;
       setIsImageLoading(true);
+      setLoadError(false);
 
       const requestPayload = {
         action: 'generate_image',
@@ -160,7 +155,6 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         aspectRatio: selectedRatio
       };
 
-      // Try primary /api/generate-image first, fallback to /api/chat with generate_image action
       const executeGeneration = async () => {
         try {
           const res = await fetch('/api/generate-image', {
@@ -168,7 +162,10 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestPayload)
           });
-          if (res.ok) return await res.json();
+          if (res.ok) {
+            const json = await res.json();
+            if (json?.imageUrl) return json;
+          }
         } catch {
           // Fall through to /api/chat
         }
@@ -183,84 +180,39 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       };
 
       executeGeneration()
-      .then((payload) => {
-        if (!isCancelled && payload?.imageUrl) {
-          setMuseImageUrl(payload.imageUrl);
-          setIsImageLoading(false);
-          setLoadError(false);
-        }
-      })
-      .catch((err) => {
-        console.warn('[Muse Image Generation Warning - Fallback to Flux Pro]:', err);
-        if (!isCancelled) {
-          // Gracefully fallback to flux-pro if Muse Image endpoint has network issue
-          setModelName('flux-pro');
-        }
-      });
+        .then((payload) => {
+          if (!isCancelled && payload?.imageUrl) {
+            setMuseImageUrl(payload.imageUrl);
+            setIsImageLoading(false);
+            setLoadError(false);
+          } else if (!isCancelled) {
+            throw new Error('No image returned from Meta: Muse Image');
+          }
+        })
+        .catch((err) => {
+          console.error('[Meta Muse Image Generation Error]:', err);
+          if (!isCancelled) {
+            setIsImageLoading(false);
+            setLoadError(true);
+          }
+        });
 
       return () => {
         isCancelled = true;
       };
     }
-  }, [modelName, data.prompt, selectedRatio, museImageUrl]);
+  }, [data.prompt, selectedRatio, museImageUrl, seed]);
 
   const processedSrc = useMemo(() => {
     if (museImageUrl) return museImageUrl;
-    const { width, height } = currentDimensions;
-    const activeModel = modelName === 'meta/muse-image' ? 'flux-pro' : modelName;
-    // For edits and additions, NEVER pass enhance=true to prevent Pollinations from hallucinating random new environments
-    const enhanceParam = isEditOrAddition ? '&enhance=false' : '&enhance=true';
-
-    // If user modified seed or ratio and we have a prompt, generate fresh at pristine proportional dimensions
-    if (data.prompt && (seed !== null || (data.aspectRatio && selectedRatio !== data.aspectRatio))) {
-      const cleanPrompt = encodeURIComponent(data.prompt.trim());
-      const seedParam = seed !== null ? `&seed=${seed}` : '';
-      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=${activeModel}&nologo=true${enhanceParam}${seedParam}`;
-    }
-
-    if (data.processedImage) {
-      if (data.processedImage.includes('image.pollinations.ai/prompt/')) {
-        try {
-          const urlObj = new URL(data.processedImage);
-          urlObj.searchParams.set('model', activeModel);
-          urlObj.searchParams.set('width', width.toString());
-          urlObj.searchParams.set('height', height.toString());
-          if (isEditOrAddition) {
-            urlObj.searchParams.set('enhance', 'false');
-          }
-          if (seed !== null) urlObj.searchParams.set('seed', seed.toString());
-          return urlObj.toString();
-        } catch {
-          // ignore
-        }
-      }
+    if (data.processedImage && !data.processedImage.includes('pollinations.ai') && (data.processedImage.startsWith('data:image') || data.processedImage.startsWith('http'))) {
       return data.processedImage;
     }
-    if (data.imageUrl) {
-      if (data.imageUrl.includes('image.pollinations.ai/prompt/')) {
-        try {
-          const urlObj = new URL(data.imageUrl);
-          urlObj.searchParams.set('model', activeModel);
-          urlObj.searchParams.set('width', width.toString());
-          urlObj.searchParams.set('height', height.toString());
-          if (isEditOrAddition) {
-            urlObj.searchParams.set('enhance', 'false');
-          }
-          if (seed !== null) urlObj.searchParams.set('seed', seed.toString());
-          return urlObj.toString();
-        } catch {
-          // ignore
-        }
-      }
+    if (data.imageUrl && !data.imageUrl.includes('pollinations.ai') && (data.imageUrl.startsWith('data:image') || data.imageUrl.startsWith('http'))) {
       return data.imageUrl;
     }
-    if (data.prompt) {
-      const cleanPrompt = encodeURIComponent(data.prompt.trim());
-      const seedParam = seed !== null ? `&seed=${seed}` : '';
-      return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&model=${activeModel}&nologo=true${enhanceParam}${seedParam}`;
-    }
-    return originalSrc || '';
-  }, [museImageUrl, data.processedImage, data.imageUrl, data.prompt, data.aspectRatio, selectedRatio, seed, originalSrc, currentDimensions, modelName, isEditOrAddition]);
+    return '';
+  }, [museImageUrl, data.processedImage, data.imageUrl]);
 
   // Local interactive states
   const [sliderPosition, setSliderPosition] = useState<number>(50);
@@ -327,12 +279,14 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   const handleRegenerateVariation = useCallback(() => {
     const newSeed = Math.floor(Math.random() * 1000000);
     setSeed(newSeed);
+    setMuseImageUrl(null);
     setLoadError(false);
     setIsImageLoading(true);
   }, []);
 
   const handleRatioChange = useCallback((ratio: string) => {
     setSelectedRatio(ratio);
+    setMuseImageUrl(null);
     setLoadError(false);
     setIsImageLoading(true);
   }, []);
@@ -343,18 +297,6 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   };
 
   const handleImageError = () => {
-    if (modelName === 'flux-pro') {
-      // Graceful fallback to flux-realism if flux-pro is temporarily busy
-      setModelName('flux-realism');
-      setIsImageLoading(true);
-      return;
-    }
-    if (modelName === 'flux-realism') {
-      // Final fallback to standard flux
-      setModelName('flux');
-      setIsImageLoading(true);
-      return;
-    }
     setIsImageLoading(false);
     setLoadError(true);
   };
@@ -472,6 +414,10 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             FATHOM QUANT 3
           </span>
           <span className="text-zinc-600 text-xs">/</span>
+          <span className="text-[11px] font-mono text-cyan-400 font-bold">
+            META: MUSE IMAGE
+          </span>
+          <span className="text-zinc-600 text-xs">/</span>
           <span className="text-[11px] font-mono text-zinc-400">
             {currentDimensions.width}×{currentDimensions.height}
           </span>
@@ -558,21 +504,21 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
           maxHeight: '74vh'
         }}
       >
-        {/* Loading / Streaming Shimmer Overlay */}
-        {(isStreaming || isImageLoading) && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm gap-3 p-6 text-center animate-pulse">
-            <div className="size-11 sm:size-12 rounded-2xl bg-white/[0.06] border border-white/[0.12] flex items-center justify-center shadow-lg text-zinc-200">
-              <Sparkles className="size-5 sm:size-6 text-zinc-200 animate-spin" />
+        {/* Loading / Streaming Shimmer Overlay for Meta: Muse Image */}
+        {(isStreaming || isImageLoading || !activeProcessedSrc) && !loadError && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#05070b]/90 backdrop-blur-md gap-3.5 p-6 text-center animate-pulse select-none">
+            <div className="size-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-white/[0.15] flex items-center justify-center shadow-lg text-zinc-200">
+              <Sparkles className="size-6 text-cyan-300 animate-spin" />
             </div>
-            <div className="text-xs sm:text-sm font-sans font-bold text-zinc-100">
+            <div className="text-xs sm:text-sm font-sans font-bold text-zinc-100 tracking-wide">
               {operationInfo.type === 'addition'
-                ? 'جارٍ إضافة العنصر للصورة بدقة فائقة...'
+                ? 'جارٍ إضافة العنصر عبر Meta: Muse Image...'
                 : operationInfo.type === 'edit'
-                  ? 'جارٍ تعديل الصورة بدقة فائقة...'
-                  : 'جارٍ توليد الصورة بدقة فائقة...'}
+                  ? 'جارٍ تعديل الصورة بدقة عصبية عبر Meta: Muse Image...'
+                  : 'جارٍ توليد الصورة بدقة فائقة عبر Meta: Muse Image...'}
             </div>
-            <div className="text-[11px] sm:text-xs text-zinc-400 font-sans max-w-xs">
-              استدلال بصري وتوليد متقدم عبر Fathom Silicon
+            <div className="text-[11px] sm:text-xs text-cyan-400/90 font-mono tracking-tight">
+              استدلال وتحليل بصري فائق الدقة (Reasons Before Rendering)
             </div>
           </div>
         )}
@@ -583,20 +529,21 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             {loadError ? (
               <div className="flex flex-col items-center justify-center p-6 text-center gap-3 text-zinc-400">
                 <AlertCircle className="size-7 text-amber-400" />
-                <span className="text-xs sm:text-sm font-sans text-zinc-300">تعذر تحميل الصورة مؤقتاً</span>
+                <span className="text-xs sm:text-sm font-sans text-zinc-300">تعذر توليد أو تحميل الصورة عبر Meta: Muse Image</span>
                 <button
                   type="button"
                   onClick={() => {
+                    setMuseImageUrl(null);
                     setLoadError(false);
                     setIsImageLoading(true);
                   }}
                   className="px-3.5 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-white border border-white/[0.1] text-xs flex items-center gap-1.5 transition font-sans cursor-pointer"
                 >
                   <RefreshCw className="size-3.5 text-cyan-400" />
-                  <span>إعادة المحاولة</span>
+                  <span>إعادة المحاولة عبر Muse</span>
                 </button>
               </div>
-            ) : (
+            ) : activeProcessedSrc ? (
               <img
                 src={activeProcessedSrc}
                 alt={data.title || (operationInfo.type === 'addition' ? "صورة مضاف إليها عناصر" : operationInfo.type === 'edit' ? "صورة معدلة عصبياً" : "صورة فوتوغرافية فائقة")}
@@ -605,7 +552,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                 className="w-full h-full object-cover shadow-2xl transition-all duration-300"
                 style={{ imageRendering: '-webkit-optimize-contrast' as any }}
               />
-            )}
+            ) : null}
           </div>
         )}
 

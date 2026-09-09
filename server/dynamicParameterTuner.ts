@@ -358,14 +358,8 @@ export class DynamicParameterTuner {
             }
 
             if (!imageUrl && prompt) {
-              const activeModel = parsed.style === 'anime' ? 'flux-anime' : (parsed.style === '3d_render' ? 'flux-3d' : 'flux-realism');
-              let w = 1024;
-              let h = 1024;
-              if (parsed.aspectRatio === '16:9') { w = 1344; h = 768; }
-              else if (parsed.aspectRatio === '9:16') { w = 768; h = 1344; }
-              else if (parsed.aspectRatio === '4:3') { w = 1152; h = 864; }
-              const seedParam = seed !== undefined ? `&seed=${seed}` : '';
-              imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt.trim())}?width=${w}&height=${h}&model=${activeModel}&nologo=true&enhance=true${seedParam}`;
+              // Meta: Muse Image via OpenRouter is the sovereign model; Pollinations is abolished
+              imageUrl = undefined;
             }
             return {
               prompt,
@@ -383,31 +377,16 @@ export class DynamicParameterTuner {
         }
       }
 
-      // 2. Check for Pollinations URL in content
-      const polliMatch = content.match(/https:\/\/image\.pollinations\.ai\/prompt\/([^\s?#)]+)(?:\?([^\s)]*))?/i);
-      if (polliMatch) {
-        let decodedPrompt = '';
-        try {
-          decodedPrompt = decodeURIComponent(polliMatch[1]);
-        } catch {
-          decodedPrompt = polliMatch[1];
-        }
-        let seed: number | undefined = undefined;
-        if (polliMatch[2]) {
-          try {
-            const params = new URLSearchParams(polliMatch[2]);
-            const s = params.get('seed');
-            if (s && !isNaN(Number(s))) seed = Number(s);
-          } catch {}
-        }
+      // 2. Check for image URL in content (excluding legacy pollinations)
+      const genericImgMatch = content.match(/https?:\/\/[^\s)]+?\.(?:png|jpg|jpeg|webp)(?:\?[^\s)]*)?/i);
+      if (genericImgMatch && !genericImgMatch[0].includes('pollinations.ai')) {
         return {
-          prompt: decodedPrompt,
-          imageUrl: polliMatch[0],
+          prompt: '',
+          imageUrl: genericImgMatch[0],
           operation: 'generate',
-          title: 'صورة سابقة',
+          title: '',
           style: 'photorealistic',
           aspectRatio: '1:1',
-          seed,
           sourceRole: msg.role
         };
       }
