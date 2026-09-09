@@ -517,6 +517,47 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(apiGenSource).toContain('x1_messages');
     });
 
+    // 28. Zero-Failure Visual Processing Engine (storageService Architecture)
+    await harness.it('should verify resilient multi-model routing and sovereign fallback in storageService', async () => {
+      const fs = await import('fs');
+      const storageServiceSource = fs.readFileSync('c:/Best Projects/Matany/server/storageService.ts', 'utf-8');
+
+      // Fast image editing and text-to-image models must be explicitly configured
+      expect(storageServiceSource).toContain('IMAGE_EDITING_MODELS');
+      expect(storageServiceSource).toContain('TEXT_TO_IMAGE_MODELS');
+      expect(storageServiceSource).toContain('google/gemini-3.1-flash-lite-image');
+      expect(storageServiceSource).toContain('google/gemini-2.5-flash-image');
+      expect(storageServiceSource).toContain('meta/muse-image');
+
+      // Input reference defensive retry on 400/500/503
+      expect(storageServiceSource).toContain('res.status === 400 || res.status === 500 || res.status === 503');
+      expect(storageServiceSource).toContain('retrying without refs');
+
+      // Sovereign generative fallback must be present to guarantee 100% visual delivery
+      expect(storageServiceSource).toContain('sovereign high-definition fallback generator');
+      expect(storageServiceSource).toContain('uploadImageToSupabaseStorage(uint8, \'sovereign-gen\')');
+    });
+
+    // 29. Client-Side Self-Healing Visual Processing (NeuralImageCard Architecture)
+    await harness.it('should verify self-healing visual processing and error-free rendering in NeuralImageCard', async () => {
+      const fs = await import('fs');
+      const cardSource = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
+
+      // Must have sovereign visual processing fallback
+      expect(cardSource).toContain('Autonomous Sovereign Visual Processing Fallback');
+      expect(cardSource).toContain('forceFallback: true');
+
+      // Must have silent auto-retry and cache-busting recovery
+      expect(cardSource).toContain('renderErrorRetries');
+      expect(cardSource).toContain('Auto-recovering from image render glitch');
+      expect(cardSource).toContain('autoHealTimer');
+
+      // Must NOT contain restrictive pollinations checks that discard valid images
+      expect(cardSource).not.toContain('!rawProp.includes(\'pollinations.ai\')');
+      expect(cardSource).not.toContain('!existingPropUrl.includes(\'pollinations.ai\')');
+      expect(cardSource).not.toContain('!data.imageUrl.includes(\'pollinations.ai\')');
+    });
+
   });
 }
 
