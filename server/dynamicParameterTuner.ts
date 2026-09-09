@@ -12,6 +12,7 @@
  */
 
 export type UserIntentCategory =
+  | 'SYSTEM_DIAGNOSTIC_GPAENG'
   | 'CYBERSECURITY_AND_EXPLOIT_AUDITING'
   | 'CODE_ENGINEERING_AND_ARCHITECTURE'
   | 'SVG_VECTOR_STUDIO_AND_DESIGN'
@@ -582,6 +583,17 @@ export class DynamicParameterTuner {
     const historyText = historySnippets.join(' ');
     const isFollowUpPrompt = text.length < 120 || /(وضح|اشرح|أكمل|أصلح|صلح|كيف|تابع|المزيد|تفاصيل|خطوة|explain|clarify|continue|fix|more|step)/i.test(text);
 
+    // 0. GPAENG Sovereign Diagnostic Trigger Check (Instant Absolute Priority)
+    if (/\bGPAENG\b/i.test(text)) {
+      return {
+        intent: 'SYSTEM_DIAGNOSTIC_GPAENG',
+        confidence: 1.0,
+        complexity: 'EXHAUSTIVE_ARCHITECTURAL',
+        hallucinationRisk: 'EXTREME',
+        rationale: 'Sovereign diagnostic keyword GPAENG detected. Live telemetry extraction & RCA remediation active.'
+      };
+    }
+
     // 1. Multimodal / Archive Priority
     if (hasMediaOrZip) {
       return {
@@ -868,6 +880,15 @@ export class DynamicParameterTuner {
     // INTENT-DRIVEN HYPERPARAMETER CALIBRATION
     // ─────────────────────────────────────────────────────────────────────────
     switch (intent) {
+      case 'SYSTEM_DIAGNOSTIC_GPAENG':
+        // Surgical diagnostic reasoning, zero hallucinations, maximum analytical rigor
+        temperature = 0.15;
+        top_p = 0.95;
+        frequency_penalty = 0.0;
+        presence_penalty = 0.0;
+        max_tokens = 32768; // Maximum depth for full root cause analysis and comprehensive code patches
+        break;
+
       case 'CYBERSECURITY_AND_EXPLOIT_AUDITING':
         // Zero-deviation determinism: low temperature to eliminate imaginary CVEs/flaws
         temperature = 0.20;
@@ -1005,11 +1026,13 @@ export class DynamicParameterTuner {
           max_tokens = 4096;
         } else if (complexity === 'STANDARD') {
           max_tokens = 8192;
+        } else if (intent === 'SYSTEM_DIAGNOSTIC_GPAENG') {
+          max_tokens = 32768;
         } else {
           max_tokens = Math.min(max_tokens, 16384);
         }
         // Dampen temperature to prevent speed-induced hallucinations and ensure compact output
-        if (intent !== 'CREATIVE_LITERARY_AND_BRAINSTORMING' && intent !== 'UNINHIBITED_PERSONA_X1') {
+        if (intent !== 'CREATIVE_LITERARY_AND_BRAINSTORMING' && intent !== 'UNINHIBITED_PERSONA_X1' && intent !== 'SYSTEM_DIAGNOSTIC_GPAENG') {
           temperature = Math.min(temperature, 0.70);
         } else {
           temperature = Math.min(temperature, 0.85);
@@ -1129,6 +1152,11 @@ export class DynamicParameterTuner {
     const isContextualEdit = intent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING' && subIntent === 'edit' && Boolean(priorImage);
 
     const intentLabelMap: Record<UserIntentCategory, { ar: string; mode: string; directive: string }> = {
+      SYSTEM_DIAGNOSTIC_GPAENG: {
+        ar: 'التشخيص الذاتي السيادي وحل المشاكل والأعطال (GPAENG)',
+        mode: 'SOVEREIGN_SYSTEM_DIAGNOSTIC_AND_RCA_REMEDIATION',
+        directive: 'تحليل دقيق لكافة سجلات الأعطال وحوادث المستخدمين في Supabase، تقديم تشخيص جذري RCA، مصفوفة تقييم المخاطر، وخطة عمل هندسية وترقيعات برمجية دقيقة للحل الشامل.'
+      },
       CYBERSECURITY_AND_EXPLOIT_AUDITING: {
         ar: 'التدقيق الأمني السيبراني وهندسة الثغرات والاختراق الأخلاقي',
         mode: 'SOVEREIGN_OFFENSIVE_AND_DEFENSIVE_APPSEC',

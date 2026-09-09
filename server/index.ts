@@ -13,6 +13,7 @@ import { extractMediaForDownload, identifyMediaPlatform, type DownloadDetectResp
 import { executeAutonomousSearch, classifyQueryIntent, resolveMultiTurnQuery, extractCleanSearchQuery, extractMultiConstraintSearchQueries, type SearchEngineOptions, type SearchAggregationResult } from './searchEngine';
 import { FathomCyberReasoningEngine, DeterministicCycleDetector } from '../src/services/fathomCyberEngine';
 import { DynamicParameterTuner, type DynamicTuningResult } from './dynamicParameterTuner';
+import { GpaengDiagnosticEngine } from './gpaengDiagnosticEngine';
 import { getVpsTelemetry, executeVpsCommand, controlAutomation, isVpsOrCloudRequest, VPS_STATUS_NOTICE } from './vpsService';
 
 dotenv.config();
@@ -365,15 +366,21 @@ ${DEVELOPER_IDENTITY_DIRECTIVE}
    - حالة الأتمتة الحالية: تم إيقاف كافة برمجيات الأتمتة السابقة مؤقتاً (pm2 stop all). لا تقم بإعادة تشغيلها إلا إذا طلب المستخدم ذلك صراحة.
    - عند طلب إدارة السيرفر أو تنفيذ عمليات سيبرانية واختبار أوامر، يمكنك استعراض المخرجات في كتل طرفية نظيفة أو تفعيل بطاقة غرفة التحكم السحابية: [VPS_CONTROL_ROOM: live].
 
-2. المحرك الحصري لتوليد وتعديل الصور واستوديو SVG (Exclusive Visual & SVG Sovereign Studio):
+2. المحرك الحصري لتوليد وتعديل الصور واستوديو SVG (Exclusive Visual & SVG Sovereign Studio & Image Synthesis):
    - أنت النموذج الوحيد والحصري المخول بصرياً في النظام بأكمله؛ كافة النماذج الأخرى محظورة من توليد الصور أو الـ SVG وتُحيل الطلبات إليك مباشرة.
    - [قاعدة ذهبية صارمة ومطلقة للتفريق بين الصور الواقعية واستوديو SVG]:
       * [أسبقية سيادية مطلقة لطلبات SVG]: إذا ذكر المستخدم في أي موضع من طلبه كلمة (SVG، اجعلها SVG، كود SVG، فيكتور، متجهات، شعاعي، vector)، فإن هذا الطلب يُعتبر فوراً وبأسبقية مطلقة 100% طلباً لاستوديو SVG (رسم متجهات وكود SVG نقي متكامل داخل \`\`\`svg) حتى وإن بدأ بعبارة "صمم صورة" أو "انشئ صورة" (مثل: "صمم صورة مرسيدس ... اجعلها SVG")! يُحظر تماماً وبشكل قاطع إخراج كتلة \`\`\`neural-image\`\`\` في هذه الحالة، بل يجب إنتاج كود الـ SVG النقي المتكامل فوراً.
       * في حال عدم ذكر SVG أو فيكتور إطلاقاً: أي طلب من المستخدم يحتوي على عبارات توليد أو تصميم الصور مثل: (صمم صورة، انشئ صورة، ولد صورة، اعمل صورة، صورة لـ...، صمم لي صورة، صورة واقعية، generate image, create picture, photo) هو طلب لتوليد صورة واقعية عصبية ويجب عليك فوراً إخراج كتلة \`\`\`neural-image\`\`\` لتوليد الصورة بواسطة محرك Fathom QP3 العصبي للرؤية والتوليد البصري الفائق (يُحظر تماماً وبشكل قاطع ذكر اسم أي موديل تقني داخلي كـ Muse أو Meta للمستخدم، الاسم المعتمد والمعلن دائماً هو Fathom QP3 فقط).
       * يُحظر حظراً باتاً ومطلقاً إخراج كود SVG أو رسم متجهات إذا طلب المستخدم (صورة / صمم صورة) دون أن يذكر صراحة كلمة SVG أو فيكتور أو شعاعي!
       * استوديو SVG مخصص حصراً وفقط عندما يطلب المستخدم صراحة ووضوحاً: (SVG، اجعلها SVG، كود SVG، رسم شعاعي، فيكتور، متجهات، svg icon، رسم كود xml متجهات). بدون ذكر صريح لـ SVG/فيكتور، فإن أي طلب تصميم أو إنشاء بصري هو صورة واقعية عصبية \`\`\`neural-image\`\`\`.
-       * محرك Fathom QP3 البصري هو نموذج استدلالي ذكي يقوم بالتفكير والتحليل الدقيق قبل الرسم (Reasons before it renders)، ويتميز بأعلى دقة في التفاصيل:
-        - نوع الكاميرا والمستشعر: Shot on Hasselblad H6D-100c أو Sony Alpha 7R V مع تحديد البعد البؤري المناسب (85mm f/1.2 للبورتريهات الفردية، 35mm f/1.4 للقطات السينمائية، 24mm للمشاهد البيئية الواسعة).
+        * محرك Fathom QP3 البصري هو نموذج استدلالي ذكي يقوم بالتفكير والتحليل الدقيق قبل الرسم (Reasons before it renders)، ويتميز بأعلى دقة في التفاصيل:
+        * [تكامل إدراك Fathom Cam البصري واستغلال الاستدلال التوليدي والتعديلي الفائق للصور (Agentic Reference Conditioning & Chain-of-Thought Rendering)]:
+          - عندما يرفع المستخدم صورة عبر Fathom Cam أو يطلب تعديلاً عليها أو يقدم صورة كمرجع بصري لإنشاء أو تعديل مشهد:
+          - يمتلك محرك Fathom QP3 قدرة استدلالية ذكية فريدة على تحليل مراجع الصور (Reference Conditioning & Multi-Part Decomposition)؛ فكك الطلب داخل <think> بتفكير عميق:
+            1) تحديد العناصر البصرية في صورة Fathom Cam المرفوعة المطلوب الحفاظ عليها بدقة ميكروية 100% (زاوية الكاميرا، عمق الميدان، مصادر الإضاءة، الهوية).
+            2) صياغة برومبت إنجليزي محكم في حقل "prompt" يتضمن تفكيكاً متعدد الأجزاء يصف التعديل الجراحي المستهدف مع دمج التفاعل الضوئي والظلال والفيزياء الواقعية بسلاسة تامة.
+            3) تضمين رابط الصورة المرفوعة أو السابقة في حقل "originalImage" لتمكين التكييف البصري ومقارنة (قبل/بعد).
+         - نوع الكاميرا والمستشعر: Shot on Hasselblad H6D-100c أو Sony Alpha 7R V مع تحديد البعد البؤري المناسب (85mm f/1.2 للبورتريهات الفردية، 35mm f/1.4 للقطات السينمائية، 24mm للمشاهد البيئية الواسعة).
         - الإضاءة الحجمية السينمائية: إضاءة ريمبرانت الناعمة (Rembrandt softbox lighting)، إضاءة الحواف الدرامية (rim light)، وإضاءة الغسق أو الساعة الذهبية الطبيعية مع تفاعل فيزيائي دقيق للظلال.
         - الدقة التشريحية المطلقة (Flawless Human Anatomy & Photorealistic Faces & Hands & Fingers Precision): خمسة أصابع دقيقة وطبيعية تماماً في كل يد، مع مفاصل وأظافر واضحة دون أي تشوه أو زيادة. عيون متناظرة مع انعكاسات ضوئية حقيقية على القرنية.
         - ملمس ومسام البشرة الحقيقية (Subsurface Scattering & Skin Micro-Pores): إبراز مسام الجلد الدقيقة وتوزيع التشتت الضوئي الطبيعي تحت السطح (SSS) لمنع أي مظهر بلاستيكي أو مصطنع، مع الحفاظ على تفاصيل وتطاير خصلات الشعر الطبيعية.
@@ -2379,6 +2386,108 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     deviceId = ''
   } = req.body;
 
+  // Intercept image generation requests for Meta: Muse Image via OpenRouter
+  if (req.body?.action === 'generate_image' || (req.body?.prompt && !Array.isArray(req.body?.messages))) {
+    const promptText = (req.body?.prompt || '').trim();
+    if (!promptText) {
+      res.status(400).json({ error: 'Prompt is required' });
+      return;
+    }
+
+    try {
+      const openRouterKey = OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || '';
+      if (!openRouterKey) {
+        res.status(500).json({ error: 'OPENROUTER_API_KEY is not configured' });
+        return;
+      }
+
+      let formattedReferences: any[] = [];
+      const rawRefs = req.body?.input_references || req.body?.referenceImages || (req.body?.originalImage ? [req.body.originalImage] : []);
+      if (Array.isArray(rawRefs)) {
+        for (const item of rawRefs) {
+          if (typeof item === 'string' && item.trim()) {
+            formattedReferences.push({
+              type: 'image_url',
+              image_url: { url: item.trim() }
+            });
+          } else if (item && typeof item === 'object') {
+            if (item.type === 'image_url' && item.image_url?.url) {
+              formattedReferences.push(item);
+            } else if (item.url) {
+              formattedReferences.push({
+                type: 'image_url',
+                image_url: { url: item.url }
+              });
+            }
+          }
+        }
+      }
+
+      const fetchImg = async (includeRefs = true): Promise<any> => {
+        const payload: any = {
+          model: 'meta/muse-image',
+          prompt: promptText
+        };
+        if (includeRefs && formattedReferences.length > 0) {
+          payload.input_references = formattedReferences.slice(0, 5);
+        }
+
+        const imgRes = await fetch(`${OPENROUTER_BASE_URL}/images`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openRouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!imgRes.ok) {
+          const errDetail = await imgRes.text();
+          if (imgRes.status === 400 && includeRefs && formattedReferences.length > 0) {
+            console.warn('[server/chat] Retrying without input_references due to 400 error:', errDetail.slice(0, 150));
+            return fetchImg(false);
+          }
+          return { error: 'OpenRouter generation failed', status: imgRes.status, details: errDetail };
+        }
+
+        return { data: await imgRes.json() };
+      };
+
+      const result = await fetchImg(true);
+      if (result.error) {
+        res.status(result.status || 500).json({ error: result.error, details: result.details });
+        return;
+      }
+
+      const item = result.data?.data?.[0];
+      if (!item) {
+        res.status(502).json({ error: 'No image data returned from OpenRouter' });
+        return;
+      }
+
+      let finalUrl = '';
+      if (item.b64_json) {
+        const mediaType = item.media_type || 'image/png';
+        finalUrl = `data:${mediaType};base64,${item.b64_json}`;
+      } else if (item.url) {
+        finalUrl = item.url;
+      }
+
+      res.status(200).json({
+        imageUrl: finalUrl,
+        model: 'Fathom QP3',
+        provider: 'openrouter'
+      });
+      return;
+    } catch (err: any) {
+      console.error('[server/chat image generation error]:', err);
+      res.status(500).json({ error: err.message || 'Internal error' });
+      return;
+    }
+  }
+
   if (!Array.isArray(messages) || messages.length === 0) {
     res.status(400).json({
       error: {
@@ -2522,6 +2631,19 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       memoryPrompt: effectiveMemoryPrompt
     }
   );
+
+  // GPAENG Autonomous Diagnostic Dossier & Incident Prevention Hook
+  if (GpaengDiagnosticEngine.isGpaengTrigger(lastUserText)) {
+    console.log('[GPAENG-SERVER] ⚡ Sovereign Diagnostic Command "GPAENG" detected! Fetching live incident dossier from Supabase...');
+    const gpaengDossier = await GpaengDiagnosticEngine.buildMasterDiagnosticDossier(serverSupabase, lastUserText);
+    activeSystemPrompt += `\n\n${gpaengDossier}`;
+  } else {
+    // For standard requests, fetch preventative rules learned from past incidents
+    const preventativeDirectives = await GpaengDiagnosticEngine.fetchPreventativeDirectives(serverSupabase);
+    if (preventativeDirectives) {
+      activeSystemPrompt += `\n${preventativeDirectives}`;
+    }
+  }
 
   let processedMessages = cleanedMessages;
 
@@ -3450,6 +3572,31 @@ app.post('/api/vps/automation', async (req, res) => {
   }
 });
 
+// Sovereign Diagnostic Incident Telemetry Ingestion Endpoint
+app.post(['/api/telemetry/incident', '/api/telemetry-incident'], async (req: Request, res: Response) => {
+  try {
+    const body = req.body || {};
+    const success = await GpaengDiagnosticEngine.recordIncident(serverSupabase, {
+      session_id: body.sessionId || null,
+      visitor_id: body.visitorId || null,
+      user_id: body.userId || null,
+      category: body.category || 'SYSTEM_ERROR',
+      severity: body.severity || 'MEDIUM',
+      user_prompt: body.userPrompt,
+      model_used: body.modelUsed,
+      error_code: body.errorCode,
+      error_message: body.errorMessage,
+      error_stack: body.errorStack,
+      endpoint: body.endpoint,
+      device_info: body.deviceInfo,
+      metadata: body.metadata,
+    });
+    res.status(200).json({ success, status: 'incident_recorded' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Server error' });
+  }
+});
+
 // Sovereign Visitor Telemetry & Security Radar Endpoint
 app.post('/api/telemetry', async (req, res) => {
   try {
@@ -3843,27 +3990,67 @@ app.post('/api/generate-image', async (req: Request, res: Response) => {
       return;
     }
 
-    const response = await fetch(`${OPENROUTER_BASE_URL}/images`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openRouterKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://matany.one',
-        'X-Title': 'Matany AI'
-      },
-      body: JSON.stringify({
+    let formattedReferences: any[] = [];
+    const rawRefs = req.body?.input_references || req.body?.referenceImages || (req.body?.originalImage ? [req.body.originalImage] : []);
+    if (Array.isArray(rawRefs)) {
+      for (const item of rawRefs) {
+        if (typeof item === 'string' && item.trim()) {
+          formattedReferences.push({
+            type: 'image_url',
+            image_url: { url: item.trim() }
+          });
+        } else if (item && typeof item === 'object') {
+          if (item.type === 'image_url' && item.image_url?.url) {
+            formattedReferences.push(item);
+          } else if (item.url) {
+            formattedReferences.push({
+              type: 'image_url',
+              image_url: { url: item.url }
+            });
+          }
+        }
+      }
+    }
+
+    const fetchImg = async (includeRefs = true): Promise<any> => {
+      const payload: any = {
         model: 'meta/muse-image',
         prompt: prompt.trim()
-      })
-    });
+      };
+      if (includeRefs && formattedReferences.length > 0) {
+        payload.input_references = formattedReferences.slice(0, 5);
+      }
 
-    if (!response.ok) {
-      const errText = await response.text();
-      res.status(response.status).json({ error: 'OpenRouter generation failed', details: errText });
+      const response = await fetch(`${OPENROUTER_BASE_URL}/images`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openRouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        if (response.status === 400 && includeRefs && formattedReferences.length > 0) {
+          console.warn('[server/generate-image] Retrying without input_references due to 400 error:', errText.slice(0, 150));
+          return fetchImg(false);
+        }
+        return { error: 'OpenRouter generation failed', status: response.status, details: errText };
+      }
+
+      return { data: await response.json() };
+    };
+
+    const result = await fetchImg(true);
+    if (result.error) {
+      res.status(result.status || 500).json({ error: result.error, details: result.details });
       return;
     }
 
-    const data: any = await response.json();
+    const data: any = result.data;
     const item = data?.data?.[0];
 
     if (!item) {

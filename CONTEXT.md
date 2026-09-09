@@ -26,11 +26,11 @@ Matany utilizes a **Modular Dual-Mode Hybrid Architecture** integrating a **Clie
 | `src/components/ui/` | Primitive UI elements, status cards, and input controls | `ai-chat-input.tsx`, `chat-reasoning.tsx`, `NeuralImageCard.tsx`, `SvgStudioCard.tsx`, `VpsControlRoomCard.tsx`, `DownloadDetectCard.tsx` |
 | `src/hooks/` | Reusable React hooks for domain features | `useSearch.ts`, `useSearchCache.ts`, `useSearchHistory.ts` |
 | `src/lib/` | Frontend utility functions, parsers & formatters | `utils.ts`, `mediaExtractor.ts`, `imageCompressor.ts`, `smart-content-parser.tsx`, `memoryIntentUtils.ts` |
-| `src/services/` | Frontend service integration layer & cloud connectors | `api.ts`, `supabase.ts`, `memoryManager.ts`, `webauthn.ts`, `usageTracker.ts`, `telemetryTracker.ts`, `fathomCyberEngine.ts` |
+| `src/services/` | Frontend service integration layer & cloud connectors | `api.ts`, `supabase.ts`, `memoryManager.ts`, `webauthn.ts`, `usageTracker.ts`, `telemetryTracker.ts`, `incidentDiagnosticService.ts`, `fathomCyberEngine.ts` |
 | `src/types/` | Domain-specific type definitions | `search.ts` (`QueryIntent`, `SearchResult`, `SearchAggregationResult`) |
-| `server/` | Express.js standalone server and backend subsystems | `index.ts`, `vpsService.ts`, `youtubeTranscript.ts`, `tiktokService.ts`, `imageForensicsService.ts`, `dynamicParameterTuner.ts` |
+| `server/` | Express.js standalone server and backend subsystems | `index.ts`, `vpsService.ts`, `youtubeTranscript.ts`, `tiktokService.ts`, `imageForensicsService.ts`, `dynamicParameterTuner.ts`, `gpaengDiagnosticEngine.ts` |
 | `server/searchEngine/`| Multi-source autonomous search engine | `index.ts`, `queryProcessor.ts`, `intentClassifier.ts`, `multiSourceSearcher.ts`, `resultsAggregator.ts`, `cacheManager.ts` |
-| `api/` | Vercel Serverless Functions mirroring Express routes | `chat.ts`, `search.ts`, `download-detect.ts`, `download-stream.ts`, `resolve-link.ts`, `telemetry.ts`, `vps.ts`, `early-access.ts` |
+| `api/` | Vercel Serverless Functions mirroring Express routes | `chat.ts`, `search.ts`, `download-detect.ts`, `download-stream.ts`, `resolve-link.ts`, `telemetry.ts`, `telemetry-incident.ts`, `vps.ts`, `early-access.ts` |
 | `tests/` | Master test suite (Unit, Integration, E2E, Stress, Bench)| `unit/`, `integration/`, `e2e/`, `performance/`, `benchmark/`, `runAllTests.ts` |
 | `public/` | Static assets, branding, and crawler manifests | `matany-logo.svg`, `robots.txt`, `sitemap.xml` |
 
@@ -71,6 +71,7 @@ Matany utilizes a **Modular Dual-Mode Hybrid Architecture** integrating a **Clie
   - `GET /api/early-access-status`, `POST /api/early-access`, `POST /api/early-access-action` (Early access pipeline).
   - `POST /api/verify-subscription-code` (Tier unlocking).
   - `POST /api/telemetry` (Client performance & telemetry logging).
+  - `POST /api/telemetry/incident` & `POST /api/telemetry-incident` (Passive client incident & friction logging).
 
 ---
 
@@ -94,6 +95,8 @@ Matany utilizes a **Modular Dual-Mode Hybrid Architecture** integrating a **Clie
 - `public.x1_activation_rate_limits`: Rate limiting for access/activation requests.
 - `public.x1_semantic_memories`: Semantic memory nodes with pgvector embeddings (`embedding vector(1536)`), entities, keywords.
 - `public.x1_chat_links`: Dynamic graph relations between chat sessions.
+- `public.x1_diagnostic_incidents`: User friction signals, API errors, crash dumps, and device metadata.
+- `public.x1_system_lessons`: Autonomous continuous learning rules, prompt constraints, and preventative actions.
 
 ---
 
@@ -145,4 +148,5 @@ Matany utilizes a **Modular Dual-Mode Hybrid Architecture** integrating a **Clie
 7. **Context Synchronization:** Whenever a new module, page, endpoint, or dependency is added or modified, update `CONTEXT.md` to reflect the change.
 8. **Neural Image Studio Invariants:** All image modifications and additions must preserve the conversational latent `seed`, suppress prompt enhancement (`enhance=false`) to eliminate environment and background hallucination, preserve exact proportional dimensions (`16:9` -> 1344x768, `9:16` -> 768x1344, `4:3` -> 1152x864, `1:1` -> 1024x1024), and ensure the dual-image comparison slider uses valid image URIs (filtering out template placeholders).
 9. **Enterprise Reliability & UI Polish Invariants:** All backend responses (Express & Edge) attach unique `x-request-id` UUID headers, expose `GET /api/health`, and emit RFC 7807/OpenAI standard error envelopes `{ error: { message, code, type } }`. The frontend follows Claude/ChatGPT dignified styling with chronological chat drawer grouping (`اليوم`, `أمس`, `آخر 7 أيام`, `الأشهر السابقة`), concise universal prompt placeholder (`اكتب استفسارك أو رسالتك هنا...`), and polite intellectual Fusha Arabic prompts without conversational filler.
+10. **GPAENG Sovereign Diagnostic Intelligence Invariant:** The master trigger keyword `GPAENG` (case-insensitive) intercepts user queries with highest priority, extracts live diagnostic incident telemetry and error logs from Supabase (`x1_diagnostic_incidents`), and directs the model to perform a comprehensive 5-phase audit: Executive Census, Deep Root Cause Analysis (RCA), Risk & Impact Matrix, Step-by-Step Master Remediation Plan, and Surgical Code Patches. Client-side friction and error reporting (`incidentDiagnosticService.ts`) runs 100% passively without blocking the UI thread.
 

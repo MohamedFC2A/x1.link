@@ -76,10 +76,42 @@ export default async function handler(req: any, res?: any) {
       return sendResponse(500, { error: 'OPENROUTER_API_KEY is not configured' });
     }
 
-    const fetchImage = async (attempt = 1): Promise<any> => {
+    // Parse and normalize visual reference images for Meta: Muse Image agentic conditioning
+    let formattedReferences: any[] = [];
+    const rawRefs = body?.input_references || body?.referenceImages || (body?.originalImage ? [body.originalImage] : []);
+    if (Array.isArray(rawRefs)) {
+      for (const item of rawRefs) {
+        if (typeof item === 'string' && item.trim()) {
+          formattedReferences.push({
+            type: 'image_url',
+            image_url: { url: item.trim() }
+          });
+        } else if (item && typeof item === 'object') {
+          if (item.type === 'image_url' && item.image_url?.url) {
+            formattedReferences.push(item);
+          } else if (item.url) {
+            formattedReferences.push({
+              type: 'image_url',
+              image_url: { url: item.url }
+            });
+          }
+        }
+      }
+    }
+
+    const fetchImage = async (attempt = 1, includeRefs = true): Promise<any> => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 55000);
       try {
+        const payload: any = {
+          model: 'meta/muse-image',
+          prompt: prompt.trim()
+        };
+
+        if (includeRefs && formattedReferences.length > 0) {
+          payload.input_references = formattedReferences.slice(0, 5);
+        }
+
         const response = await fetch('https://openrouter.ai/api/v1/images', {
           method: 'POST',
           headers: {
@@ -88,10 +120,7 @@ export default async function handler(req: any, res?: any) {
             'HTTP-Referer': 'https://matany.one',
             'X-Title': 'Matany AI'
           },
-          body: JSON.stringify({
-            model: 'meta/muse-image',
-            prompt: prompt.trim()
-          }),
+          body: JSON.stringify(payload),
           signal: controller.signal
         });
 
@@ -99,9 +128,14 @@ export default async function handler(req: any, res?: any) {
 
         if (!response.ok) {
           const errText = await response.text();
+          // If 400 occurred with input_references (e.g. unreachable image or format error), fallback immediately without refs
+          if (response.status === 400 && includeRefs && formattedReferences.length > 0) {
+            console.warn('[generate-image] Retrying without input_references due to 400 error:', errText.slice(0, 150));
+            return fetchImage(attempt, false);
+          }
           if (attempt < 2 && (response.status >= 500 || response.status === 429)) {
             await new Promise((r) => setTimeout(r, 1500));
-            return fetchImage(attempt + 1);
+            return fetchImage(attempt + 1, includeRefs);
           }
           return { error: 'OpenRouter generation failed', status: response.status, details: errText };
         }
@@ -112,7 +146,7 @@ export default async function handler(req: any, res?: any) {
         clearTimeout(timeoutId);
         if (attempt < 2 && err.name !== 'AbortError') {
           await new Promise((r) => setTimeout(r, 1500));
-          return fetchImage(attempt + 1);
+          return fetchImage(attempt + 1, includeRefs);
         }
         return { error: err.message || 'Fetch error', status: 500 };
       }

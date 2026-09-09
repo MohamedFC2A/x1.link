@@ -578,3 +578,48 @@ BEGIN
     LIMIT 25;
 END;
 $$;
+
+-- ============================================================================
+-- 9. AUTONOMOUS DIAGNOSTIC INCIDENTS & GPAENG CONTINUOUS LEARNING ENGINE
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.x1_diagnostic_incidents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id TEXT,
+    visitor_id TEXT,
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    category TEXT NOT NULL DEFAULT 'SYSTEM_ERROR',
+    severity TEXT NOT NULL DEFAULT 'MEDIUM',
+    user_prompt TEXT,
+    model_used TEXT,
+    error_code TEXT,
+    error_message TEXT,
+    error_stack TEXT,
+    endpoint TEXT,
+    device_info JSONB DEFAULT '{}'::jsonb,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    resolved BOOLEAN DEFAULT FALSE,
+    resolution_notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_x1_incidents_created_at ON public.x1_diagnostic_incidents(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_x1_incidents_category ON public.x1_diagnostic_incidents(category);
+CREATE INDEX IF NOT EXISTS idx_x1_incidents_severity ON public.x1_diagnostic_incidents(severity);
+
+CREATE TABLE IF NOT EXISTS public.x1_system_lessons (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    incident_category TEXT NOT NULL,
+    trigger_signature TEXT NOT NULL,
+    distilled_rule TEXT NOT NULL,
+    remediation_action TEXT NOT NULL DEFAULT 'PARAM_OVERRIDE',
+    action_config JSONB DEFAULT '{}'::jsonb,
+    times_triggered INT DEFAULT 1,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_x1_lessons_category ON public.x1_system_lessons(incident_category);
+
+ALTER TABLE public.x1_diagnostic_incidents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.x1_system_lessons ENABLE ROW LEVEL SECURITY;

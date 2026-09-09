@@ -1627,6 +1627,39 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     return false;
   }, [isQuant3Model, isNeuralImageStudioActive, extractedSvgData, extractedNeuralImageData, activeFeatures, previousUserPrompt, hasImagesInChat, priorImage, message.content, message.reasoning]);
 
+  const isImageOrSvg = Boolean(
+    extractedNeuralImageData !== null ||
+    extractedSvgData !== null ||
+    isNeuralImageStudioActive ||
+    isSvgStudioActive ||
+    (message.image && isValidImageUri(message.image)) ||
+    (message.images && message.images.length > 0)
+  );
+
+  const handleCopyPromptOrContent = () => {
+    if (isImageOrSvg) {
+      let promptText = '';
+      if (extractedNeuralImageData?.prompt) {
+        promptText = extractedNeuralImageData.prompt;
+      } else if (extractedNeuralImageData?.description) {
+        promptText = extractedNeuralImageData.description;
+      } else if (extractedNeuralImageData?.title) {
+        promptText = extractedNeuralImageData.title;
+      } else if (extractedSvgData) {
+        promptText = extractedSvgData;
+      } else if (previousUserPrompt) {
+        promptText = previousUserPrompt;
+      } else {
+        promptText = cleanMarkdownForClipboard(displayContent) || displayContent;
+      }
+      navigator.clipboard.writeText(promptText.trim());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      handleCopy();
+    }
+  };
+
   const isVpsActive = useMemo(() => {
     if (Boolean(message.vpsTelemetry || message.vpsExecution)) return true;
     const cLower = (message.content || '').toLowerCase();
@@ -2373,19 +2406,23 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-zinc-800/60 flex items-center justify-end text-xs text-zinc-500">
             <button
               type="button"
-              onClick={handleCopy}
+              onClick={handleCopyPromptOrContent}
               className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-200 transition-colors px-2.5 py-1 rounded-lg hover:bg-zinc-800/80 active:scale-95 text-xs font-medium cursor-pointer"
-              title="نسخ الرد"
+              title={isImageOrSvg ? "نسخ الوصف" : "نسخ الرد"}
             >
               {copied ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400 text-xs font-medium">تم النسخ</span>
+                  <span className="text-emerald-400 text-xs font-medium">
+                    {isImageOrSvg ? "تم نسخ الوصف" : "تم النسخ"}
+                  </span>
                 </>
               ) : (
                 <>
                   <Copy className="w-3.5 h-3.5" />
-                  <span className="text-xs">نسخ</span>
+                  <span className="text-xs">
+                    {isImageOrSvg ? "نسخ الوصف" : "نسخ"}
+                  </span>
                 </>
               )}
             </button>

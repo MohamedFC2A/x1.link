@@ -114,13 +114,13 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 onClose();
               }
             }}
-            className="relative w-[85vw] max-w-xs sm:max-w-sm bg-[#080811] border-l border-white/15 text-zinc-100 flex flex-col h-full z-10 shadow-2xl pt-safe pb-safe select-none touch-pan-y"
+            className="relative w-[85vw] max-w-xs sm:max-w-sm bg-black/85 backdrop-blur-3xl border-l border-white/[0.08] text-zinc-100 flex flex-col h-full z-10 shadow-[0_0_60px_rgba(0,0,0,0.9)] pt-safe pb-safe select-none touch-pan-y ring-1 ring-white/[0.04]"
           >
             {/* Visual Drag Handle on the inner edge */}
-            <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-14 rounded-full bg-white/20 pointer-events-none hidden sm:block" />
+            <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-14 rounded-full bg-white/10 pointer-events-none hidden sm:block" />
         
         {/* Header */}
-        <div className="p-3.5 sm:p-4 border-b border-white/[0.08] flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 border-b border-white/[0.06] bg-white/[0.015] backdrop-blur-md flex items-center justify-between">
           <div className="flex flex-col text-right">
             <div className="flex items-baseline gap-0.5" dir="ltr">
               <span className="font-['Space_Grotesk'] font-bold text-base tracking-tight brand-shimmer-text">
@@ -145,16 +145,16 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
         </div>
 
         {/* Navigation Grid (Quick Links) */}
-        <div className="p-3 border-b border-white/[0.06] space-y-2">
+        <div className="p-3 border-b border-white/[0.05] bg-white/[0.01] space-y-2">
           <button
             type="button"
             onClick={() => {
               onNewChat();
               onClose();
             }}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white text-zinc-950 font-bold text-xs shadow-md active:scale-95 cursor-pointer hover:bg-zinc-200 transition-all font-sans"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white/[0.1] hover:bg-white/[0.16] text-white font-bold text-xs shadow-lg shadow-black/40 border border-white/[0.14] backdrop-blur-md active:scale-[0.98] cursor-pointer transition-all font-sans"
           >
-            <Plus className="w-4 h-4 text-zinc-950" />
+            <Plus className="w-4 h-4 text-white" />
             <span>بدء محادثة جديدة</span>
           </button>
 
@@ -165,7 +165,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 onNavigateToPricing?.();
                 onClose();
               }}
-              className="flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.08] hover:border-white/20 text-zinc-200 hover:text-white text-xs font-semibold cursor-pointer active:scale-95 transition-all shadow-sm"
+              className="flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] active:bg-white/[0.1] border border-white/[0.06] hover:border-white/15 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer active:scale-95 transition-all shadow-sm backdrop-blur-sm"
               title="خطط الاشتراك"
             >
               <CreditCard className="w-4 h-4 text-zinc-300" />
@@ -178,7 +178,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 onNavigateToProfile?.();
                 onClose();
               }}
-              className="flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.08] hover:border-white/20 text-zinc-200 hover:text-white text-xs font-semibold cursor-pointer active:scale-95 transition-all shadow-sm"
+              className="flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] active:bg-white/[0.1] border border-white/[0.06] hover:border-white/15 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer active:scale-95 transition-all shadow-sm backdrop-blur-sm"
               title="الملف الشخصي"
             >
               <UserIcon className="w-4 h-4 text-zinc-300" />
@@ -218,8 +218,8 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                     }}
                     className={`group flex items-center justify-between p-2.5 rounded-xl text-xs font-medium cursor-pointer border transition-all active:scale-[0.98] ${
                       currentChatId === chat.id
-                        ? 'bg-zinc-800 text-white border-zinc-700/80 shadow-sm'
-                        : 'bg-white/[0.02] hover:bg-white/[0.06] text-zinc-300 border-white/[0.04] hover:text-white'
+                        ? 'bg-white/[0.09] text-white border-white/[0.14] shadow-md backdrop-blur-md'
+                        : 'bg-white/[0.02] hover:bg-white/[0.05] text-zinc-400 border-transparent hover:border-white/[0.06] hover:text-zinc-200'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate flex-1 min-w-0">
@@ -244,10 +244,8 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           )}
         </div>
 
-
-
         {/* Memory Ledger Metrics & Clear Chat */}
-        <div className="p-3 bg-black/50 border-t border-white/[0.08] space-y-2.5">
+        <div className="p-3 bg-white/[0.01] border-t border-white/[0.06] space-y-2.5 backdrop-blur-md">
           <div>
             <div className="flex items-center justify-between text-xs text-zinc-400 mb-1.5 font-sans">
               <span className="flex items-center gap-1.5">
@@ -256,9 +254,9 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
               </span>
               <span className="font-mono text-zinc-200 font-bold">1,000,000 Token</span>
             </div>
-            <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-white/[0.06]">
+            <div className="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden border border-white/[0.08]">
               <div
-                className="bg-white h-full rounded-full transition-all duration-300"
+                className="bg-white/90 shadow-[0_0_8px_rgba(255,255,255,0.4)] h-full rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(Math.max((totalTokens / 1000000) * 100, 1), 100)}%` }}
               />
             </div>
@@ -274,7 +272,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
         </div>
 
         {/* User Account / Google Sign In Footer */}
-        <div className="p-3 border-t border-white/[0.08] bg-[#000000]">
+        <div className="p-3 border-t border-white/[0.06] bg-black/70 backdrop-blur-xl">
           {user ? (
             <div className="flex items-center justify-between">
               <div 
@@ -305,7 +303,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
             <button
               type="button"
               onClick={onGoogleSignIn}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white hover:bg-zinc-100 text-zinc-900 font-semibold text-xs transition-all shadow-sm active:scale-95 cursor-pointer font-sans"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white/[0.09] hover:bg-white/[0.15] text-white border border-white/[0.12] font-semibold text-xs transition-all shadow-md active:scale-95 cursor-pointer font-sans backdrop-blur-md"
             >
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                 <path

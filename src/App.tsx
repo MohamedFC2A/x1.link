@@ -19,6 +19,7 @@ import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
 import { TermsOfServicePage } from './components/TermsOfServicePage';
 import { ChatMessageItem, ModelType, WebAuthnVerificationResult, MediaAttachmentItem } from './types';
 import { streamChatCompletion } from './services/api';
+import { incidentDiagnosticService } from './services/incidentDiagnosticService';
 import { memoryEngine } from './services/memoryManager';
 import { compressImageFile } from './lib/imageCompressor';
 import { detectAndExtractUrl, isMediaOrVideoUrl, formatEnglishTimestamp } from './lib/utils';
@@ -760,6 +761,8 @@ const MainAppContent: React.FC = () => {
 
     const streamSessionId = Date.now();
     activeStreamSessionRef.current = streamSessionId;
+
+    incidentDiagnosticService.evaluateUserPromptFriction(text, chosenModel, targetChatId);
 
     await streamChatCompletion({
       messages: packedMessages,

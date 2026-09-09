@@ -7,6 +7,7 @@ import { extractImageForensics, buildForensicReportMarkdown, isForensicAnalysisR
 import { executeAutonomousSearch, classifyQueryIntent, resolveMultiTurnQuery, extractCleanSearchQuery, extractMultiConstraintSearchQueries, type SearchEngineOptions, type SearchAggregationResult } from '../server/searchEngine';
 import { FathomCyberReasoningEngine, DeterministicCycleDetector } from '../src/services/fathomCyberEngine';
 import { DynamicParameterTuner, type DynamicTuningResult } from '../server/dynamicParameterTuner';
+import { GpaengDiagnosticEngine } from '../server/gpaengDiagnosticEngine';
 
 export const config = {
   runtime: 'edge',
@@ -332,8 +333,14 @@ ${DEVELOPER_IDENTITY_DIRECTIVE}
      * في حال عدم ذكر SVG أو فيكتور إطلاقاً: أي طلب من المستخدم يحتوي على عبارات توليد أو تصميم الصور مثل: (صمم صورة، انشئ صورة، ولد صورة، اعمل صورة، صورة لـ...، صمم لي صورة، صورة واقعية، generate image, create picture, photo) هو طلب لتوليد صورة واقعية عصبية ويجب عليك فوراً إخراج كتلة \`\`\`neural-image\`\`\` لتوليد الصورة بواسطة محرك Fathom QP3 العصبي للرؤية والتوليد البصري الفائق (يُحظر تماماً وبشكل قاطع ذكر اسم أي موديل تقني داخلي كـ Muse أو Meta للمستخدم، الاسم المعتمد والمعلن دائماً هو Fathom QP3 فقط).
      * يُحظر حظراً باتاً ومطلقاً إخراج كود SVG أو رسم متجهات إذا طلب المستخدم (صورة / صمم صورة) دون أن يذكر صراحة كلمة SVG أو فيكتور أو شعاعي!
      * استوديو SVG مخصص حصراً وفقط عندما يطلب المستخدم صراحة ووضوحاً: (SVG، اجعلها SVG، كود SVG، رسم شعاعي، فيكتور، متجهات، svg icon، رسم كود xml متجهات). بدون ذكر صريح لـ SVG/فيكتور، فإن أي طلب تصميم أو إنشاء بصري هو صورة واقعية عصبية \`\`\`neural-image\`\`\`.
-      * محرك Fathom QP3 البصري هو نموذج استدلالي ذكي يقوم بالتفكير والتحليل الدقيق قبل الرسم (Reasons before it renders)، ويتميز بأعلى دقة في التفاصيل:
-    - بروتوكول التخطيط المعماري الذاتي للمشهد البصري للطلبات المقتضبة من كلمتين (Autonomous 2-Word Prompt Elaboration & Master Scene Planning Architecture):
+       * محرك Fathom QP3 البصري هو نموذج استدلالي ذكي يقوم بالتفكير والتحليل الدقيق قبل الرسم (Reasons before it renders)، ويتميز بأعلى دقة في التفاصيل:
+       * [تكامل إدراك Fathom Cam البصري واستغلال الاستدلال التوليدي والتعديلي الفائق للصور (Agentic Reference Conditioning & Chain-of-Thought Rendering)]:
+         - عندما يرفع المستخدم صورة عبر Fathom Cam أو يطلب تعديلاً عليها أو يقدم صورة كمرجع بصري لإنشاء أو تعديل مشهد:
+         - يمتلك محرك Fathom QP3 قدرة استدلالية ذكية فريدة على تحليل مراجع الصور (Reference Conditioning & Multi-Part Decomposition)؛ فكك الطلب داخل <think> بتفكير عميق:
+           1) تحديد العناصر البصرية في صورة Fathom Cam المرفوعة المطلوب الحفاظ عليها بدقة ميكروية 100% (زاوية الكاميرا، عمق الميدان، مصادر الإضاءة، الهوية).
+           2) صياغة برومبت إنجليزي محكم في حقل "prompt" يتضمن تفكيكاً متعدد الأجزاء يصف التعديل الجراحي المستهدف مع دمج التفاعل الضوئي والظلال والفيزياء الواقعية بسلاسة تامة.
+           3) تضمين رابط الصورة المرفوعة أو السابقة في حقل "originalImage" لتمكين التكييف البصري ومقارنة (قبل/بعد).
+     - بروتوكول التخطيط المعماري الذاتي للمشهد البصري للطلبات المقتضبة من كلمتين (Autonomous 2-Word Prompt Elaboration & Master Scene Planning Architecture):
        * عندما يكتب المستخدم طلباً مقتضباً أو مكوناً من كلمتين فقط (مثل: "صمم سيارة"، "صورة فضاء"، "سيارة فخمة"، "صورة أسد"، "بنت جميلة"، "رجل أعمال"، "طبيعة خلابة"):
        * يُحظر تماماً وبشكل قاطع الاكتفاء بوصف سطحي مقتضب، ويُحظر طلب أي توضيحات أو أسئلة من المستخدم؛ بل يجب عليك ذاتياً تفكيك وهندسة المشهد بالكامل بأعلى المعايير السينمائية الجاهزة داخل برومبت Fathom QP3 البصري الإنجليزي:
         1. الموضوع وتفاصيله المجهرية والأبعاد الواقعية (Subject & Authentic Geometry): إذا كانت سيارة أو مركبة، يجب صياغة أبعاد حقيقية صارمة تمنع الانضغاط: authentic manufacturer proportions, perfect circular wheels, symmetrical perspective, ray-tracing reflections, 8k raw photograph، هيكل ألياف كربون، طلاء معدني ثلاثي الطبقات بانعكاسات شعاعية ومصابيح ليد بلورية. إذا كانت بورتريه، ملامح وجه طبيعية مع مسام جلد مجهرية (skin micro-pores) وتطاير شعر واقعي. إذا كانت طبيعة، جبال جليدية أو وادٍ ضبابي مهيب ببحيرات بلورية.
@@ -1808,29 +1815,69 @@ export default async function handler(req: Request): Promise<Response> {
         });
       }
 
-      const imgRes = await fetch(`${OPENROUTER_BASE_URL}/images`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openRouterKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://matany.one',
-          'X-Title': 'Matany AI'
-        },
-        body: JSON.stringify({
+      let formattedReferences: any[] = [];
+      const rawRefs = body?.input_references || body?.referenceImages || (body?.originalImage ? [body.originalImage] : []);
+      if (Array.isArray(rawRefs)) {
+        for (const item of rawRefs) {
+          if (typeof item === 'string' && item.trim()) {
+            formattedReferences.push({
+              type: 'image_url',
+              image_url: { url: item.trim() }
+            });
+          } else if (item && typeof item === 'object') {
+            if (item.type === 'image_url' && item.image_url?.url) {
+              formattedReferences.push(item);
+            } else if (item.url) {
+              formattedReferences.push({
+                type: 'image_url',
+                image_url: { url: item.url }
+              });
+            }
+          }
+        }
+      }
+
+      const fetchImg = async (includeRefs = true): Promise<any> => {
+        const payload: any = {
           model: 'meta/muse-image',
           prompt: promptText
-        })
-      });
+        };
+        if (includeRefs && formattedReferences.length > 0) {
+          payload.input_references = formattedReferences.slice(0, 5);
+        }
 
-      if (!imgRes.ok) {
-        const errDetail = await imgRes.text();
-        return new Response(JSON.stringify({ error: 'OpenRouter generation failed', details: errDetail }), {
-          status: imgRes.status,
+        const imgRes = await fetch(`${OPENROUTER_BASE_URL}/images`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openRouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!imgRes.ok) {
+          const errDetail = await imgRes.text();
+          if (imgRes.status === 400 && includeRefs && formattedReferences.length > 0) {
+            console.warn('[api/chat] Retrying without input_references due to 400 error:', errDetail.slice(0, 150));
+            return fetchImg(false);
+          }
+          return { error: 'OpenRouter generation failed', status: imgRes.status, details: errDetail };
+        }
+
+        return { data: await imgRes.json() };
+      };
+
+      const result = await fetchImg(true);
+      if (result.error) {
+        return new Response(JSON.stringify({ error: result.error, details: result.details }), {
+          status: result.status || 500,
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'x-request-id': requestId }
         });
       }
 
-      const imgData: any = await imgRes.json();
+      const imgData: any = result.data;
       const item = imgData?.data?.[0];
       if (!item) {
         return new Response(JSON.stringify({ error: 'No image data returned from OpenRouter' }), {
@@ -1998,6 +2045,19 @@ export default async function handler(req: Request): Promise<Response> {
       memoryPrompt: effectiveMemoryPrompt
     }
   );
+
+  // GPAENG Autonomous Diagnostic Dossier & Incident Prevention Hook
+  if (GpaengDiagnosticEngine.isGpaengTrigger(lastUserText)) {
+    console.log('[GPAENG Edge] ⚡ Sovereign Diagnostic Command "GPAENG" detected! Fetching live incident dossier from Supabase...');
+    const gpaengDossier = await GpaengDiagnosticEngine.buildMasterDiagnosticDossier(serverSupabase, lastUserText);
+    activeSystemPrompt += `\n\n${gpaengDossier}`;
+  } else {
+    // For standard requests, fetch preventative rules learned from past incidents
+    const preventativeDirectives = await GpaengDiagnosticEngine.fetchPreventativeDirectives(serverSupabase);
+    if (preventativeDirectives) {
+      activeSystemPrompt += `\n${preventativeDirectives}`;
+    }
+  }
 
   let processedMessages = cleanedMessages;
 

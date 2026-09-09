@@ -2,9 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ChatMessageItem, ModelType } from '../types';
 import { ChatMessage } from './ChatMessage';
 import { getConversationGlobalUrls, getConversationGlobalImages } from '../lib/utils';
-import { Sparkles, ShieldOff, Eye, Camera, ShieldCheck, ChevronDown, ArrowDown, Zap } from 'lucide-react';
+import { ArrowDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Quant3PerfectionIcon } from './ui/Quant3PerfectionIcon';
 import { getModelDisplayName, getModelSubtitle } from '../lib/modelUtils';
 
 interface ChatWindowProps {
@@ -280,27 +279,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           </div>
         ) : messages.length === 0 ? (
           <div className="min-h-[45vh] flex flex-col items-center justify-center max-w-lg mx-auto py-8 sm:py-12 text-center animate-in fade-in duration-300 px-4 relative select-none">
-            {/* Active Model Icon Visualizer */}
-            <div className="mb-4 inline-flex items-center justify-center size-12 sm:size-14 rounded-2xl bg-white/[0.04] border border-white/[0.1] text-white shadow-lg backdrop-blur-md">
-              {activeModel === 'fathom-quant-3' ? (
-                <Quant3PerfectionIcon size={26} className="text-zinc-200" />
-              ) : activeModel === 'deepseek-v4-flash-cyber-2.6' ? (
-                <Zap className="w-6 h-6 text-amber-400" />
-              ) : activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1' ? (
-                <ShieldCheck className="w-6 h-6 text-indigo-400" />
-              ) : activeModel === 'deepseek-v4-flash-cyber' ? (
-                <ShieldCheck className="w-6 h-6 text-cyan-400" />
-              ) : activeModel === 'deepseek-v4-flash-vision-exp' ? (
-                <Camera className="w-6 h-6 text-emerald-400" />
-              ) : activeModel === 'meta/muse-spark-1.2-contributor' ? (
-                <Sparkles className="w-6 h-6 text-violet-400" />
-              ) : isX1Active ? (
-                <ShieldOff className="w-6 h-6 text-rose-400" />
-              ) : (
-                <Zap className="w-6 h-6 text-zinc-200 fill-zinc-200/20" />
-              )}
-            </div>
-
             <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white mb-2.5 font-sans">
               ابدأ محادثة مع {modelDisplayName}
             </h2>

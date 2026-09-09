@@ -1,4 +1,5 @@
 import { ChatMessageItem, ModelType, ResolvedLinkInfo, DownloadDetectResult } from '../types';
+import { incidentDiagnosticService } from './incidentDiagnosticService';
 
 export interface StreamChunkData {
   content: string;
@@ -39,6 +40,7 @@ export async function streamChatCompletion({
   onError,
   onComplete,
 }: SendMessageOptions): Promise<() => void> {
+  incidentDiagnosticService.markStreamStart();
   const controller = new AbortController();
   if (signal) {
     if (signal.aborted) {
@@ -256,6 +258,19 @@ export async function streamChatCompletion({
           }
         }
       } catch {}
+
+      incidentDiagnosticService.reportIncident({
+        category: response.status >= 500 ? 'API_5XX' : (response.status === 429 ? 'RATE_LIMIT' : 'NETWORK_ERROR'),
+        severity: response.status >= 500 ? 'HIGH' : 'MEDIUM',
+        errorCode: `HTTP_${response.status}`,
+        errorMessage: errBody || `HTTP error ${response.status}`,
+        userPrompt: (formattedMessages[formattedMessages.length - 1]?.content as string) || '',
+        modelUsed: model,
+        sessionId: chatId,
+        userId: userId,
+        endpoint: '/api/chat',
+      });
+
       onError(errBody || `خطأ في الاتصال بالخادم (${response.status})`);
       return () => controller.abort();
     }
@@ -451,16 +466,35 @@ export async function streamChatCompletion({
     }
 
     flushChunk();
+    incidentDiagnosticService.markAssistantResponse();
     onComplete();
   } catch (err: any) {
     flushChunk();
     if (err.name === 'AbortError' || controller.signal.aborted) {
       console.log('[Stream Aborted gracefully by User]');
+      incidentDiagnosticService.evaluateStreamAbort(model, chatId);
     } else {
       const isFailedFetch = err?.message === 'Failed to fetch' || err?.name === 'TypeError' || err?.message?.includes('NetworkError');
       const errorMsg = isFailedFetch
         ? 'تعذر الاتصال بالخادم الخلفي (Failed to fetch). يرجى التأكد من تشغيل خادم التطبيق عبر أمر: npm run dev'
         : (err?.message || 'انقطع الاتصال ببروتوكول الذكاء الاصطناعي.');
+
+        const lastMsg = messages[messages.length - 1];
+        const lastPrompt = typeof lastMsg?.content === 'string' ? lastMsg.content : '';
+
+        incidentDiagnosticService.reportIncident({
+          category: isFailedFetch ? 'NETWORK_ERROR' : 'API_5XX',
+          severity: 'HIGH',
+          errorCode: err?.name || 'STREAM_EXCEPTION',
+          errorMessage: err?.message || errorMsg,
+          errorStack: err?.stack,
+          userPrompt: lastPrompt,
+          modelUsed: model,
+          sessionId: chatId,
+          userId: userId,
+          endpoint: '/api/chat',
+        });
+
       onError(errorMsg);
     }
     onComplete();

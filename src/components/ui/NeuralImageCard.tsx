@@ -281,12 +281,6 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       }
     }
 
-    // 3. Page Refresh Safeguard: Never auto-trigger generation on page refresh or historical message viewing
-    if (!isStreaming && retryCount === 0) {
-      setIsImageLoading(false);
-      return;
-    }
-
     let isCancelled = false;
     setIsImageLoading(true);
     setLoadError(false);
@@ -295,6 +289,8 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       action: 'generate_image',
       prompt: promptText,
       aspectRatio: selectedRatio,
+      originalImage: originalSrc || data.originalImage || fallbackOriginalImage || undefined,
+      referenceImages: (data as any)?.referenceImages || (originalSrc ? [originalSrc] : (fallbackOriginalImage ? [fallbackOriginalImage] : undefined)),
       messageId: messageId || undefined
     };
 
@@ -750,9 +746,9 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                     setIsImageLoading(true);
                     setRetryCount((c) => c + 1);
                   }}
-                  className="px-3.5 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-white border border-white/[0.1] text-xs flex items-center gap-1.5 transition font-sans cursor-pointer active:scale-95"
+                  className="px-3.5 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/[0.15] text-xs flex items-center gap-1.5 transition font-sans cursor-pointer active:scale-95"
                 >
-                  <RefreshCw className="size-3.5 text-zinc-300" />
+                  <RefreshCw className="size-3.5 text-zinc-200" />
                   <span>إعادة المحاولة عبر Fathom QP3</span>
                 </button>
               </div>
@@ -767,19 +763,8 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
               />
             ) : (
               <div className="flex flex-col items-center justify-center p-6 text-center gap-3 text-zinc-400">
-                <span className="text-xs sm:text-sm font-sans text-zinc-300">الصورة جاهزة للعرض عبر Fathom QP3</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoadError(false);
-                    setIsImageLoading(true);
-                    setRetryCount((c) => c + 1);
-                  }}
-                  className="px-3.5 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/[0.15] text-xs flex items-center gap-1.5 transition font-sans cursor-pointer active:scale-95"
-                >
-                  <RefreshCw className="size-3.5 text-zinc-200" />
-                  <span>توليد الصورة الآن</span>
-                </button>
+                <Sparkles className="size-6 animate-spin text-zinc-400" />
+                <span className="text-xs sm:text-sm font-sans text-zinc-400">جارٍ تجهيز واستعراض الصورة...</span>
               </div>
             )}
           </div>
@@ -895,14 +880,14 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
           </div>
         </div>
 
-        {/* Row 2: Streamlined Official Glassmorphism Action Bar */}
-        <div className="flex items-center gap-2">
-          {/* Primary Download Button */}
+        {/* Row 2: Streamlined Full-Width Glassmorphism Action Bar */}
+        <div className="w-full">
+          {/* Primary Full-Width Download Button */}
           <button
             type="button"
             onClick={() => handleDownload(selectedQuality)}
             disabled={isProcessingCanvas}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs sm:text-sm font-sans font-bold shadow-lg shadow-black/40 border border-white/[0.14] backdrop-blur-md active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs sm:text-sm font-sans font-bold shadow-lg shadow-black/40 border border-white/[0.14] backdrop-blur-md active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isProcessingCanvas ? (
               <>
@@ -915,27 +900,6 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
                 <span>
                   تنزيل الصورة ({selectedQuality === 'original' ? 'HD' : selectedQuality.toUpperCase()})
                 </span>
-              </>
-            )}
-          </button>
-
-          {/* Secondary Action: Copy Description Button */}
-          <button
-            type="button"
-            onClick={handleCopyPrompt}
-            disabled={isProcessingCanvas}
-            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white border border-white/[0.08] text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer active:scale-[0.99] shrink-0"
-            title="نسخ الوصف البصري"
-          >
-            {copied ? (
-              <>
-                <Check className="size-4 text-emerald-400" />
-                <span className="text-emerald-400 font-bold">تم النسخ</span>
-              </>
-            ) : (
-              <>
-                <Copy className="size-4 text-zinc-300" />
-                <span>نسخ الوصف</span>
               </>
             )}
           </button>

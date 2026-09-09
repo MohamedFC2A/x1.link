@@ -185,6 +185,42 @@ export default async function handler(req: Request) {
   try {
     const clientData = await req.json().catch(() => ({}));
 
+    // Intercept diagnostic incident telemetry
+    if (clientData.category && (clientData.errorMessage || clientData.errorCode)) {
+      const incident = {
+        session_id: clientData.sessionId || null,
+        visitor_id: clientData.visitorId || null,
+        user_id: clientData.userId || null,
+        category: clientData.category || 'SYSTEM_ERROR',
+        severity: clientData.severity || 'MEDIUM',
+        user_prompt: clientData.userPrompt ? String(clientData.userPrompt).slice(0, 1000) : null,
+        model_used: clientData.modelUsed || null,
+        error_code: clientData.errorCode || null,
+        error_message: clientData.errorMessage ? String(clientData.errorMessage).slice(0, 2000) : null,
+        error_stack: clientData.errorStack ? String(clientData.errorStack).slice(0, 3000) : null,
+        endpoint: clientData.endpoint || null,
+        device_info: clientData.deviceInfo || {},
+        metadata: clientData.metadata || {},
+        resolved: false,
+      };
+
+      await fetch(`${SUPABASE_URL}/rest/v1/x1_diagnostic_incidents`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify(incident),
+      }).catch(() => null);
+
+      return new Response(JSON.stringify({ success: true, status: 'incident_recorded' }), {
+        status: 200,
+        headers: corsHeaders,
+      });
+    }
+
     // 0. Defense-in-Depth Guard: Absolute Exclusion for Approved Early Access Users
     // Approved users must NEVER be tracked in telemetry logs or trigger Telegram alerts.
     const cookieHeader = req.headers.get('cookie') || '';
