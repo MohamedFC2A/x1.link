@@ -619,21 +619,24 @@ export async function performPostImageVisionPerception(
     model: string;
     headers: Record<string, string>;
   }> = [
+    ...(apiKey ? [{
+      url: `${baseUrl}/chat/completions`,
+      key: apiKey,
+      model: 'deepseek-v4-flash-vision-exp',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      }
+    }] : []),
     ...(openRouterKey ? [{
       url: 'https://openrouter.ai/api/v1/chat/completions',
       key: openRouterKey,
-      model: 'meta/muse-spark-1.2-contributor',
+      model: 'deepseek/deepseek-v4-flash-vision-exp',
       headers: {
         'HTTP-Referer': 'https://matany.one',
         'X-Title': 'Matany AI',
       }
-    }] : []),
-    {
-      url: `${baseUrl}/chat/completions`,
-      key: apiKey,
-      model: 'deepseek-v4-flash-vision-exp',
-      headers: {}
-    }
+    }] : [])
   ];
 
   const dynamicTuning = DynamicParameterTuner.tune({

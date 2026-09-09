@@ -28,6 +28,7 @@ import { runFathomQuant3Tests } from './fathomQuant3.test';
 import { runVpsControlTests } from './vpsControl.test';
 import { runEarlyAccessExemptionTests } from './earlyAccessExemption.test';
 import { runGpaengDiagnosticTests } from './gpaengDiagnostic.test';
+import { runDeepSeekDirectUnitTests } from './deepseekDirectQuality.test';
 
 export async function runAllUnitTests(): Promise<boolean> {
   const harness = new TestHarness();
@@ -60,6 +61,7 @@ export async function runAllUnitTests(): Promise<boolean> {
   await runVpsControlTests(harness);
   await runEarlyAccessExemptionTests(harness);
   await runGpaengDiagnosticTests(harness);
+  await runDeepSeekDirectUnitTests(harness);
 
   const passed = harness.printSummary('UNIT TEST SUITE SUMMARY');
   return passed;

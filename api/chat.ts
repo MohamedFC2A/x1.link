@@ -1109,12 +1109,12 @@ async function extractVisualContext(imageMessages: any[]): Promise<string> {
 
     const dynamicTuning = DynamicParameterTuner.tune({
       userPrompt: userQuestion || 'استيعاب وفهم سياقي تلقائي لمحتوى الصور المرفقة',
-      requestedModel: 'meta/muse-spark-1.2-contributor',
+      requestedModel: 'deepseek-v4-flash-vision-exp',
       hasMultimodalImages: true,
     });
 
     const visionPayload = DynamicParameterTuner.tuneGatewayPayload(
-      'meta/muse-spark-1.2-contributor',
+      'deepseek-v4-flash-vision-exp',
       {
         messages: formattedVisionItems,
         stream: false,
@@ -1122,26 +1122,64 @@ async function extractVisualContext(imageMessages: any[]): Promise<string> {
       dynamicTuning
     );
 
-    const visionRes = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://matany.one',
-        'X-Title': 'Matany AI',
-      },
-      body: JSON.stringify(visionPayload),
-    });
+    // 1. Direct DeepSeek Primary Vision Gateway (api.deepseek.com)
+    if (DEEPSEEK_API_KEY) {
+      try {
+        const visionRes = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+          },
+          body: JSON.stringify(visionPayload),
+        });
 
-    if (visionRes.ok) {
-      const data = await visionRes.json();
-      const result = data.choices?.[0]?.message?.content || '';
-      if (result && result.trim()) {
-        return result.trim();
+        if (visionRes.ok) {
+          const data = await visionRes.json();
+          const result = data.choices?.[0]?.message?.content || '';
+          if (result && result.trim()) {
+            return result.trim();
+          }
+        } else {
+          const errText = await visionRes.text().catch(() => '');
+          console.warn('[Vision Extraction Direct DeepSeek Error]:', visionRes.status, errText);
+        }
+      } catch (directErr) {
+        console.warn('[Vision Extraction Direct DeepSeek Exception]:', directErr);
       }
-    } else {
-      const errText = await visionRes.text().catch(() => '');
-      console.warn('[Vision Extraction Error]:', visionRes.status, errText);
+    }
+
+    // 2. OpenRouter Emergency Fallback only if Direct DeepSeek fails or key is missing
+    if (OPENROUTER_API_KEY) {
+      const fallbackPayload = DynamicParameterTuner.tuneGatewayPayload(
+        'deepseek/deepseek-v4-flash-vision-exp',
+        {
+          messages: formattedVisionItems,
+          stream: false,
+        },
+        dynamicTuning
+      );
+      const visionRes = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://matany.one',
+          'X-Title': 'Matany AI',
+        },
+        body: JSON.stringify(fallbackPayload),
+      });
+
+      if (visionRes.ok) {
+        const data = await visionRes.json();
+        const result = data.choices?.[0]?.message?.content || '';
+        if (result && result.trim()) {
+          return result.trim();
+        }
+      } else {
+        const errText = await visionRes.text().catch(() => '');
+        console.warn('[Vision Extraction OpenRouter Fallback Error]:', visionRes.status, errText);
+      }
     }
     return '';
   } catch (err) {
@@ -2312,7 +2350,26 @@ export default async function handler(req: Request): Promise<Response> {
     ...dedupedHistory.map((m: { role: string; content: any; reasoning?: string }, idx: number) => {
       const isLatestTurn = idx === dedupedHistory.length - 1;
 
-      // Preserve multimodal content array for all turns if image/video frames exist
+      // For past turns, do not re-transmit raw mega-base64 strings to preserve token economy and prevent 600K token spikes
+      if (!isLatestTurn) {
+        if (Array.isArray(m.content)) {
+          const sanitizedContent = m.content.map((c: any) => {
+            if (c.type === 'image_url') {
+              const url = c.image_url?.url || c.url || '';
+              if (url.startsWith('data:image/')) {
+                return { type: 'text', text: '[صورة مرفقة سابقة تم تحليلها]' };
+              }
+            }
+            return c;
+          });
+          return {
+            role: m.role || 'user',
+            content: sanitizedContent
+          };
+        }
+      }
+
+      // Preserve multimodal content array for latest turn if image/video frames exist
       if (Array.isArray(m.content) && (isMediaSpark || isVision || hasMultimodal)) {
         return {
           role: m.role || 'user',
@@ -2322,6 +2379,12 @@ export default async function handler(req: Request): Promise<Response> {
 
       const directImgs = (m as any).images || ((m as any).image ? [(m as any).image] : []);
       if (!Array.isArray(m.content) && directImgs.length > 0 && (isMediaSpark || isVision || hasMultimodal)) {
+        if (!isLatestTurn) {
+          return {
+            role: m.role || 'user',
+            content: typeof m.content === 'string' ? m.content : '[صورة سابقة مرفقة]'
+          };
+        }
         const parts: any[] = [{ type: 'text', text: typeof m.content === 'string' ? m.content : 'صورة مرفقة' }];
         directImgs.forEach((img: string) => {
           if (img && (img.startsWith('http') || img.startsWith('data:image'))) {
@@ -2414,6 +2477,17 @@ export default async function handler(req: Request): Promise<Response> {
 
   // 1. Multimodal Optical Vision Engine (Priority 1 whenever images are attached or vision is requested)
   if (hasMultimodal || isVision) {
+    if (DEEPSEEK_API_KEY) {
+      candidateGateways.push({
+        name: 'DeepSeek Direct Vision (deepseek-v4-flash-vision-exp @ api.deepseek.com)',
+        url: `${DEEPSEEK_BASE_URL}/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-flash-vision-exp', basePayload, dynamicTuning)
+      });
+    }
     if (OPENROUTER_API_KEY) {
       candidateGateways.push({
         name: 'OpenRouter DeepSeek Vision (deepseek/deepseek-v4-flash-vision-exp @ openrouter.ai)',
