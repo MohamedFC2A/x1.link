@@ -50,9 +50,9 @@ export async function runFathomQuant3Tests(harness: TestHarness): Promise<void> 
       expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('[VPS_CONTROL_ROOM: live]');
     });
 
-    await harness.it('Fathom Quant 3: prompt contains Photorealistic Synthesis and Surgical Contextual Image Editing', () => {
+    await harness.it('Fathom Quant 3: prompt contains Photorealistic Synthesis and Contextual Visual Continuity', () => {
       expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('Photorealistic Image Synthesis');
-      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('Surgical Contextual Image & Human Inpainting');
+      expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('Contextual Visual Continuity');
       expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('استوديو SVG السيادي');
       expect(SYSTEM_PROMPT_FATHOM_QUANT_3).toContain('100%');
     });

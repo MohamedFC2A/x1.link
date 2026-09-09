@@ -17,6 +17,39 @@ interface ChatWindowProps {
   onToggleX1?: () => void;
 }
 
+function extractPriorImageFromHistory(precedingMessages: ChatMessageItem[]): string | undefined {
+  for (let i = precedingMessages.length - 1; i >= 0; i--) {
+    const msg = precedingMessages[i];
+    // 1. Attached image in message or media attachments
+    if (msg.image) return msg.image;
+    if (msg.images && msg.images.length > 0) return msg.images[0];
+    if (msg.mediaAttachments && msg.mediaAttachments.length > 0) {
+      const imgAttachment = msg.mediaAttachments.find(a => a.type === 'image' || a.dataUrl?.startsWith('data:image'));
+      if (imgAttachment?.dataUrl) return imgAttachment.dataUrl;
+    }
+    // 2. Neural image code fence in content
+    if (msg.content) {
+      const neuralBlockMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(msg.content);
+      if (neuralBlockMatch) {
+        try {
+          const parsed = JSON.parse(neuralBlockMatch[1]);
+          if (parsed.imageUrl) return parsed.imageUrl;
+          if (parsed.processedImage) return parsed.processedImage;
+          if (parsed.prompt) {
+            const activeModel = parsed.style === 'anime' ? 'flux-anime' : (parsed.style === '3d_render' ? 'flux-3d' : 'flux-realism');
+            return `https://image.pollinations.ai/prompt/${encodeURIComponent(parsed.prompt.trim())}?width=1024&height=1024&model=${activeModel}&nologo=true&enhance=true`;
+          }
+        } catch {}
+      }
+      // 3. Direct Pollinations URL or image link in content
+      const urlMatch = msg.content.match(/https:\/\/image\.pollinations\.ai\/prompt\/[^\s)]+/i) ||
+        msg.content.match(/https?:\/\/[^\s)]+?\.(?:png|jpg|jpeg|webp)(?:\?[^\s)]*)?/i);
+      if (urlMatch) return urlMatch[0];
+    }
+  }
+  return undefined;
+}
+
 export const ChatWindow: React.FC<ChatWindowProps> = ({
   messages,
   isStreaming,
@@ -244,9 +277,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         ) : (
           <div ref={messagesListRef} className="space-y-4 pb-24 sm:pb-32">
             {messages.map((message, index) => {
+              const precedingMessages = messages.slice(0, index);
               const previousUserPrompt = message.role === 'assistant' 
-                ? [...messages.slice(0, index)].reverse().find(m => m.role === 'user')?.content || ''
+                ? [...precedingMessages].reverse().find(m => m.role === 'user')?.content || ''
                 : '';
+              const priorImage = message.role === 'assistant'
+                ? extractPriorImageFromHistory(precedingMessages)
+                : undefined;
 
               return (
                 <ChatMessage
@@ -256,6 +293,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   globalUrlIndexMap={globalUrlIndexMap}
                   globalImageIndexMap={globalImageIndexMap}
                   previousUserPrompt={previousUserPrompt}
+                  priorImage={priorImage}
                 />
               );
             })}

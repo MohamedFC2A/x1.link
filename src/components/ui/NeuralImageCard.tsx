@@ -78,6 +78,19 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     return 'max-w-4xl mx-auto';
   }, [selectedRatio, isFullscreen]);
 
+  // Contextual operation classification
+  const operationInfo = useMemo(() => {
+    const op = (data.operation || '').toLowerCase();
+    const title = (data.title || '').toLowerCase();
+    if (op === 'add_element' || op === 'addition' || op.includes('add') || op === 'composite' || title.includes('إضافة') || title.includes('اضافة')) {
+      return { label: 'إضافة ذكية', type: 'addition' as const };
+    }
+    if (op === 'edit' || op.includes('edit') || op === 'recolor' || op === 'remove_background' || op === 'human_edit' || title.includes('تعديل')) {
+      return { label: 'تعديل دقيق', type: 'edit' as const };
+    }
+    return { label: 'إنشاء بصري', type: 'generation' as const };
+  }, [data.operation, data.title]);
+
   // Resolve images
   const originalSrc = data.originalImage || fallbackOriginalImage || null;
   const processedSrc = useMemo(() => {
@@ -324,8 +337,8 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
               <span className="font-mono text-xs font-bold tracking-wider text-zinc-100">
                 FATHOM QUANT 3
               </span>
-              <span className="text-[9.5px] font-mono font-medium text-zinc-400 px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.08]">
-                IMAGE STUDIO
+              <span className="text-[9.5px] font-sans font-medium text-zinc-300 px-2 py-0.5 rounded-lg bg-white/[0.05] border border-white/[0.1] shadow-sm">
+                {operationInfo.label}
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-[10.5px] font-mono text-zinc-400">
@@ -382,6 +395,20 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         </div>
       </div>
 
+      {/* Dynamic Title and Description Bar */}
+      {data.title && (
+        <div className="px-3.5 sm:px-5 py-2 bg-white/[0.015] border-b border-white/[0.06] flex items-center justify-between gap-2 select-text" dir="rtl">
+          <span className="text-xs sm:text-[13px] font-sans font-semibold text-zinc-200 truncate">
+            {data.title}
+          </span>
+          {data.description && (
+            <span className="text-[11px] font-sans text-zinc-400 hidden md:inline truncate max-w-[55%]">
+              {data.description}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* ── 2. Main Visual Display Viewport (Clean, Uncompressed & Proportional) ───────── */}
       <div
         ref={containerRef}
@@ -401,7 +428,11 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
               <Sparkles className="size-5 sm:size-6 text-zinc-200 animate-spin" />
             </div>
             <div className="text-xs sm:text-sm font-sans font-bold text-zinc-100">
-              جاري توليد الصورة الفوتوغرافية بدقة 4K...
+              {operationInfo.type === 'addition'
+                ? 'جاري إضافة العنصر للصورة بدقة 4K...'
+                : operationInfo.type === 'edit'
+                  ? 'جاري تعديل الصورة الفوتوغرافية بدقة 4K...'
+                  : 'جاري توليد الصورة الفوتوغرافية بدقة 4K...'}
             </div>
             <div className="text-[11px] sm:text-xs text-zinc-400 font-sans max-w-xs">
               توليد عصبي دقيق عبر Fathom Quant 3 والنسب الذهبية
@@ -431,7 +462,7 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             ) : (
               <img
                 src={activeProcessedSrc}
-                alt={data.title || "صورة معدلة عصبياً"}
+                alt={data.title || (operationInfo.type === 'addition' ? "صورة مضاف إليها عناصر" : operationInfo.type === 'edit' ? "صورة معدلة عصبياً" : "صورة فوتوغرافية فائقة")}
                 onLoad={handleImageLoaded}
                 onError={handleImageError}
                 className="w-full h-full object-cover shadow-2xl transition-all duration-300"

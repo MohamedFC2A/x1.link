@@ -64,6 +64,7 @@ interface ChatMessageProps {
   isStreaming?: boolean;
   globalUrlIndexMap?: Record<string, number>;
   globalImageIndexMap?: Record<string, number>;
+  priorImage?: string;
 }
 
 interface SingleLinkCardProps {
@@ -1171,6 +1172,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   isStreaming = false,
   globalUrlIndexMap = {},
   globalImageIndexMap = {},
+  priorImage,
 }) => {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
@@ -1492,10 +1494,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       /^(?:كيف|طريقة|شرح|اشرح|لماذا|ليه|ما\s*هو|ما\s*هي|ماذا\s*يعني|ما\s*الفرق|how\s+to|explain|why|what\s+is)\b/i.test(pLower);
     const hasExplicitCreate = /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية|خلفيه|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i.test(pLower);
 
-    if (isCodeOrHowTo && !hasExplicitCreate && !hasImagesInChat) return false;
+    if (isCodeOrHowTo && !hasExplicitCreate && !hasImagesInChat && !priorImage) return false;
 
-    const hasPhotoEdit = (hasImagesInChat) && (
-      /(?:غير|عدل|بدل|لون|احذف|شيل|ازالة|عزل|اعزل|اضف|ادمج|حسن|وضح|جودة|دقة|4k|2k|شخصين|منتج|نص|كلام|recolor|upscale|enhance)/i.test(pLower)
+    const hasPhotoEdit = (hasImagesInChat || Boolean(priorImage)) && (
+      /(?:غير|عدل|بدل|لون|احذف|شيل|ازالة|إزالة|عزل|اعزل|اضف|أضف|ضيف|ادمج|حسن|وضح|جودة|دقة|4k|2k|شخصين|منتج|نص|كلام|recolor|upscale|enhance|add|edit)/i.test(pLower)
     );
     const hasPhotoGen = (
       hasExplicitCreate ||
@@ -1506,7 +1508,36 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       /\b(?:generate\s+an?\s+image|create\s+an?\s+image|design\s+an?\s+image|draw\s+an?\s+image|image\s+of|photo\s+of|picture\s+of|photorealistic|realistic\s+photo|dslr)/i.test(pLower)
     );
     return hasPhotoEdit || hasPhotoGen;
-  }, [isQuant3Model, extractedNeuralImageData, activeFeatures, previousUserPrompt, hasImagesInChat]);
+  }, [isQuant3Model, extractedNeuralImageData, activeFeatures, previousUserPrompt, hasImagesInChat, priorImage]);
+
+  // Contextual image operation type detection (edit vs addition vs creation)
+  const imageOpType = useMemo<'edit' | 'addition' | 'generation'>(() => {
+    // 1. If extracted data has explicit operation or title
+    if (extractedNeuralImageData) {
+      const op = (extractedNeuralImageData.operation || '').toLowerCase();
+      const title = (extractedNeuralImageData.title || '').toLowerCase();
+      if (op === 'add_element' || op === 'addition' || op.includes('add') || op === 'composite' || title.includes('إضافة') || title.includes('اضافة')) {
+        return 'addition';
+      }
+      if (op === 'edit' || op.includes('edit') || op === 'recolor' || op === 'remove_background' || op === 'human_edit' || title.includes('تعديل')) {
+        return 'edit';
+      }
+      if (op === 'generate' || op === 'portrait_generation' || title.includes('إنشاء') || title.includes('انشاء')) {
+        return 'generation';
+      }
+    }
+    // 2. Check previous user prompt + prior image
+    const pLower = (previousUserPrompt || '').toLowerCase();
+    const hasPrior = Boolean(priorImage || hasImagesInChat);
+    if (hasPrior) {
+      const isAddition = /(?:أضف|اضف|ضيف|إضافة|اضافة|مع وضع|جنب|بجانب|شخص يقف|مع شجرة|مع سيارة|مع مطر|ضع|حط|add|insert|include|append)\b/i.test(pLower);
+      if (isAddition) return 'addition';
+
+      const isEdit = /(?:عدل|تعديل|غير|تغيير|بدل|تبديل|خليه|خليها|امسح|مسح|شيل|ازالة|إزالة|عزل|اعزل|لون|تلوين|خلفية|إضاءة|اضاءة|edit|change|modify|replace|recolor|remove)\b/i.test(pLower);
+      if (isEdit) return 'edit';
+    }
+    return 'generation';
+  }, [extractedNeuralImageData, previousUserPrompt, priorImage, hasImagesInChat]);
 
   const isSvgStudioActive = useMemo(() => {
     // Only Fathom Quant 3 is empowered to activate SVG Studio
@@ -1826,7 +1857,11 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
               <span className="inline-block w-2 h-2 rounded-full bg-white/80 animate-pulse shrink-0" />
               <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
-                جاري انشاء صورة واقعية ......
+                {imageOpType === 'addition'
+                  ? 'جاري إضافة التعديل المطلوب بدقة متناهية ......'
+                  : imageOpType === 'edit'
+                    ? 'جاري تعديل الصورة بدقة متناهية ......'
+                    : 'جاري انشاء صورة واقعية ......'}
               </span>
             </div>
           ) : null
@@ -1963,7 +1998,11 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 ) : message.isX1 ? (
                   "جاري تحرير المحرك العصبي واستدعاء الرد..."
                 ) : isNeuralImageStudioActive ? (
-                  "جاري انشاء صورة واقعية ......"
+                  imageOpType === 'addition'
+                    ? "جاري إضافة التعديل المطلوب بدقة متناهية ......"
+                    : imageOpType === 'edit'
+                      ? "جاري تعديل الصورة بدقة متناهية ......"
+                      : "جاري انشاء صورة واقعية ......"
                 ) : isSvgStudioActive ? (
                   "جاري انشاء صورة ذو رسومات شعاعية ......"
                 ) : (
@@ -2000,13 +2039,13 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 <NeuralImageCard
                   key={`neural-card-${message.id || 'current'}`}
                   data={extractedNeuralImageData || {
-                    operation: 'enhance_4k',
-                    title: 'معالجة فوتوغرافية فائقة',
+                    operation: imageOpType === 'addition' ? 'add_element' : imageOpType === 'edit' ? 'edit' : 'generate',
+                    title: imageOpType === 'addition' ? 'إضافة ذكية على الصورة' : imageOpType === 'edit' ? 'تعديل موضعي دقيق' : 'صورة فوتوغرافية فائقة',
                     fidelityScore: '100%',
                     resolution: '4K',
                     processedImage: message.image || (message.images && message.images[0]) || ''
                   }}
-                  fallbackOriginalImage={message.image || (message.images && message.images[0]) || undefined}
+                  fallbackOriginalImage={priorImage || message.image || (message.images && message.images[0]) || undefined}
                   isStreaming={isStreaming}
                 />
               </div>
@@ -2290,6 +2329,7 @@ const areMessagePropsEqual = (prev: ChatMessageProps, next: ChatMessageProps) =>
     if (prev.message.model !== next.message.model) return false;
   }
   if (prev.previousUserPrompt !== next.previousUserPrompt) return false;
+  if (prev.priorImage !== next.priorImage) return false;
   if (prev.globalUrlIndexMap !== next.globalUrlIndexMap) return false;
   if (prev.globalImageIndexMap !== next.globalImageIndexMap) return false;
   return true;

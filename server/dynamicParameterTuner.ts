@@ -76,8 +76,22 @@ export interface DynamicTuningRequest {
   userId?: string;
 }
 
+export interface PriorNeuralImageContext {
+  prompt?: string;
+  imageUrl?: string;
+  operation?: string;
+  title?: string;
+  style?: string;
+  aspectRatio?: string;
+  sourceRole?: string;
+}
+
+export type ImageOperationType = 'edit' | 'addition' | 'generation';
+
 export interface DynamicTuningResult {
   detectedIntent: UserIntentCategory;
+  detectedImageOperation?: ImageOperationType;
+  priorNeuralImage?: PriorNeuralImageContext | null;
   intentConfidence: number;
   complexityLevel: TaskComplexity;
   hallucinationRisk: HallucinationRisk;
@@ -142,6 +156,18 @@ const NEURAL_IMAGE_PATTERNS = [
 
   // 8. Human Anatomy, Portrait Retouch & Facial Enhancement
   /(?:معالجة\s+الوجه|تعديل\s+الوجه|تعديل\s+الشخص|معالجة\s+البشر|تعديل\s+البشر|اصلاح\s+الملامح|تعديل\s+الملامح|تعديل\s+الجسم|تصحيح\s+اليد|تصحيح\s+الاصابع|تنقية\s+البشرة|مسام\s+البشرة|skin\s+retouch|face\s+retouch|portrait\s+enhancement|anatomy\s+fix|facial\s+features)/i
+];
+
+export const CONTEXTUAL_IMAGE_EDIT_PATTERNS = [
+  /(?:غير|غيرلي|عدل|عدلي|تعديل|تغيير|بدل|بدلي|تبديل|استبدل|احذف|امسح|شيل|ازالة|إزالة|عزل|اعزل|خليه|خلها|اجعله|اجعلها|سوه|سوها|حول|تحويل|صبغ|لون|صلح|اصلاح|ظبط|edit|modify|change|replace|remove|recolor|restyle|inpaint)/i,
+  /(?:عدل\s+عليها|غير\s+فيها|بدل\s+فيها|عدل\s+فيها|غير\s+لون|بدل\s+لون|عدل\s+لون|غير\s+شكل|بدل\s+شكل|غير\s+الخلفية|بدل\s+الخلفية|امسح\s+الـ|احذف\s+الـ|شيل\s+الـ|خليها\s+بالليل|خليه\s+بالليل|خليه\s+في\s+النهار|خليها\s+في\s+النهار|خليها\s+في\s+الليل)/i,
+  /\b(?:edit\s+(?:it|this|the\s+image|the\s+photo)|modify\s+(?:it|this)|change\s+(?:it|the\s+color|the\s+background)|replace\s+the|remove\s+the|make\s+it\s+(?:night|day|red|blue|dark|bright))\b/i
+];
+
+export const CONTEXTUAL_IMAGE_ADDITION_PATTERNS = [
+  /(?:ضيف|ضيفلي|اضف|أضف|إضافة|اضافة|حط|حطلي|حطله|حطلها|ضع|ركب|ركبلي|زود|زوّد|ادمج|اجمع|دخل|أدخل|دخلها|add|insert|put|append|include|combine)/i,
+  /(?:ضيف\s+عليها|حط\s+عليها|ضيف\s+فيها|حط\s+فيها|ركب\s+عليها|زود\s+عليها|ضيف\s+جنب|حط\s+جنب|ضيف\s+مع|حط\s+مع|أضف\s+إلى|أضف\s+الي|إضافة\s+إلى|اضافة\s+الي)/i,
+  /\b(?:add\s+(?:to\s+it|a\s+person|a\s+tree|an\s+object|rain|mist|car)|put\s+(?:on\s+it|next\s+to)|insert\s+into)\b/i
 ];
 
 const NEURAL_IMAGE_GENERATION_PATTERNS = [
@@ -291,6 +317,207 @@ export class DynamicParameterTuner {
   }
 
   /**
+   * Extracts the most recent neural image or uploaded image from conversation history.
+   */
+  public static extractPriorNeuralImage(
+    history: Array<{ role: string; content: any }>
+  ): PriorNeuralImageContext | null {
+    if (!Array.isArray(history) || history.length === 0) return null;
+
+    for (let i = history.length - 1; i >= 0; i--) {
+      const msg = history[i];
+      const content = typeof msg.content === 'string'
+        ? msg.content
+        : Array.isArray(msg.content)
+          ? msg.content.map((c: any) => (c.type === 'text' ? (c.text || '') : (c.text || ''))).join(' ')
+          : '';
+
+      // 1. Check for ```neural-image ... ``` block in assistant message
+      const neuralMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(content);
+      if (neuralMatch) {
+        try {
+          const parsed = JSON.parse(neuralMatch[1]);
+          if (parsed && typeof parsed === 'object') {
+            const prompt = parsed.prompt || '';
+            let imageUrl = parsed.imageUrl || parsed.processedImage || '';
+            if (!imageUrl && prompt) {
+              const activeModel = parsed.style === 'anime' ? 'flux-anime' : (parsed.style === '3d_render' ? 'flux-3d' : 'flux-realism');
+              imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt.trim())}?width=1024&height=1024&model=${activeModel}&nologo=true&enhance=true`;
+            }
+            return {
+              prompt,
+              imageUrl,
+              operation: parsed.operation || 'generate',
+              title: parsed.title || '',
+              style: parsed.style || 'photorealistic',
+              aspectRatio: parsed.aspectRatio || '1:1',
+              sourceRole: msg.role
+            };
+          }
+        } catch {
+          // continue
+        }
+      }
+
+      // 2. Check for Pollinations URL in content
+      const polliMatch = content.match(/https:\/\/image\.pollinations\.ai\/prompt\/([^\s?#)]+)(?:\?([^\s)]*))?/i);
+      if (polliMatch) {
+        let decodedPrompt = '';
+        try {
+          decodedPrompt = decodeURIComponent(polliMatch[1]);
+        } catch {
+          decodedPrompt = polliMatch[1];
+        }
+        return {
+          prompt: decodedPrompt,
+          imageUrl: polliMatch[0],
+          operation: 'generate',
+          title: 'صورة سابقة',
+          style: 'photorealistic',
+          aspectRatio: '1:1',
+          sourceRole: msg.role
+        };
+      }
+
+      // 3. Check for uploaded image in user message
+      if (msg.role === 'user') {
+        if (Array.isArray(msg.content)) {
+          const imgItem = msg.content.find((c: any) => c.type === 'image_url' || c.image_url);
+          if (imgItem) {
+            const url = typeof imgItem.image_url === 'string' ? imgItem.image_url : imgItem.image_url?.url;
+            if (url) {
+              return {
+                imageUrl: url,
+                operation: 'human_edit',
+                title: 'صورة مرفوعة',
+                sourceRole: 'user'
+              };
+            }
+          }
+        }
+        if ((msg as any).image || (msg as any).images?.length) {
+          return {
+            imageUrl: (msg as any).image || (msg as any).images[0],
+            operation: 'human_edit',
+            title: 'صورة مرفوعة',
+            sourceRole: 'user'
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Discerns whether the user intends to MODIFY an existing image (edit), ADD an element (addition),
+   * or GENERATE a brand new image from scratch (generation).
+   */
+  public static detectImageOperationType(
+    userPrompt: string,
+    hasPriorImage: boolean
+  ): ImageOperationType {
+    const text = (userPrompt || '').trim().toLowerCase();
+
+    // If no prior image exists, it is a brand new generation
+    if (!hasPriorImage) {
+      return 'generation';
+    }
+
+    // Explicit request for a completely separate or brand new image
+    const isExplicitNewImage = /(?:صورة\s+جديدة|تصميم\s+جديد|صمم\s+(?:لي\s+)?صورة\s+جديدة|انشئ\s+(?:لي\s+)?صورة\s+جديدة|صورة\s+أخرى|صورة\s+اخري|new\s+image|another\s+image|from\s+scratch)/i.test(text);
+    if (isExplicitNewImage) {
+      return 'generation';
+    }
+
+    // Check for Addition (إضافة)
+    const isAddition = CONTEXTUAL_IMAGE_ADDITION_PATTERNS.some(p => p.test(text));
+
+    // Check for Edit / Modification (تعديل)
+    const isEdit = CONTEXTUAL_IMAGE_EDIT_PATTERNS.some(p => p.test(text));
+
+    if (isAddition && !isEdit) {
+      return 'addition';
+    }
+    if (isEdit) {
+      // If user says "عدل وضيف شجرة" (edit and add a tree), addition takes precedence as a new object is introduced
+      if (isAddition && /(?:ضيف|اضف|أضف|حط|ركب)\s+(?:شجرة|شخص|طائر|قطة|كلب|سيارة|قمر|شمس|مطر|نظارة|كاب|ساعة|طاولة|كرسي|عنصر|تفصيل)/i.test(text)) {
+        return 'addition';
+      }
+      return 'edit';
+    }
+    if (isAddition) {
+      return 'addition';
+    }
+
+    // Fallback: short follow-up under an active image context (e.g. "لون أحمر", "بالليل", "بدون مطر")
+    if (/(?:أحمر|احمر|أزرق|ازرق|أخضر|اخضر|أصفر|اصفر|أسود|اسود|أبيض|ابيض|ليل|نهار|غروب|شروق|ممطر|بدون|مع)/i.test(text)) {
+      return 'edit';
+    }
+
+    return 'generation';
+  }
+
+  /**
+   * Resilient normalization of neural-image blocks to guarantee zero-error adherence
+   * to user terminology rules (replacing "إنشاء" with "تعديل" or "إضافة" based on detected intent).
+   */
+  public static normalizeNeuralImageBlock(
+    text: string,
+    operationType?: ImageOperationType,
+    priorImageContext?: PriorNeuralImageContext
+  ): string {
+    if (!text || !operationType || operationType === 'generation') return text;
+
+    return text.replace(
+      /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/gi,
+      (match, jsonStr) => {
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (parsed && typeof parsed === 'object') {
+            const isAdd = operationType === 'addition';
+            const prefix = isAdd ? 'إضافة' : 'تعديل';
+            const expectedOp = isAdd ? 'add_element' : 'edit';
+
+            // Sanitize title: cleanly strip any previous creation/edit prefix and reapply clean prefix
+            if (typeof parsed.title === 'string') {
+              let t = parsed.title.trim();
+              t = t.replace(/^(?:إنشاء|انشاء|تصميم|توليد|صنع|create|generate|design)\s*[:：\-–—]?\s*/i, '');
+              t = t.replace(/^(?:تعديل|إضافة|اضافة)\s*[:：\-–—]?\s*/i, '');
+              t = `${prefix}: ${t}`.trim();
+              parsed.title = t;
+            } else {
+              parsed.title = `${prefix}: ${isAdd ? 'إضافة عنصر إلى المشهد' : 'تعديل الصورة'}`;
+            }
+
+            // Sanitize operation
+            if (parsed.operation === 'generate' || !parsed.operation) {
+              parsed.operation = expectedOp;
+            }
+
+            // Inject original image link if missing and prior image context exists
+            if (!parsed.originalImage && priorImageContext?.imageUrl) {
+              parsed.originalImage = priorImageContext.imageUrl;
+            }
+
+            // Sanitize description
+            if (typeof parsed.description === 'string' && (parsed.description.includes('تم إنشاء') || parsed.description.includes('تم توليد'))) {
+              parsed.description = parsed.description
+                .replace(/تم\s*إنشاء/g, isAdd ? 'تمت إضافة' : 'تم تعديل')
+                .replace(/تم\s*توليد/g, isAdd ? 'تمت إضافة' : 'تم تعديل');
+            }
+
+            return `\`\`\`neural-image\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+          }
+        } catch {
+          // fallback
+        }
+        return match;
+      }
+    );
+  }
+
+  /**
    * Analyzes user request text, history and metadata to detect intent, complexity and hallucination risk.
    */
   public static detectIntentAndComplexity(request: DynamicTuningRequest): {
@@ -368,6 +595,25 @@ export class DynamicParameterTuner {
         complexity: 'DEEP_ANALYTICAL',
         hallucinationRisk: 'EXTREME',
         rationale: 'Multimodal image payloads detected requiring optical OCR and forensics.'
+      };
+    }
+
+    // Contextual Image Continuity: Check if user is editing or adding to a previously generated or uploaded image in history
+    const priorNeuralImage = this.extractPriorNeuralImage(request.conversationHistory || []);
+    const isContextualImageEditOrAdd = Boolean(priorNeuralImage) && (
+      CONTEXTUAL_IMAGE_EDIT_PATTERNS.some(p => p.test(text)) ||
+      CONTEXTUAL_IMAGE_ADDITION_PATTERNS.some(p => p.test(text)) ||
+      NEURAL_IMAGE_PATTERNS.some(p => p.test(text))
+    );
+
+    if (isContextualImageEditOrAdd && !/(?:svg|فيكتور|متجهات|vector)/i.test(text)) {
+      const op = this.detectImageOperationType(text, true);
+      return {
+        intent: 'NEURAL_IMAGE_STUDIO_AND_PROCESSING',
+        confidence: 0.99,
+        complexity: 'EXHAUSTIVE_ARCHITECTURAL',
+        hallucinationRisk: 'LOW',
+        rationale: `Contextual image continuity: ${op === 'addition' ? 'adding element' : 'modifying attribute'} on prior image while strictly preserving 100% of scene elements.`
       };
     }
 
@@ -817,9 +1063,25 @@ export class DynamicParameterTuner {
     complexity: TaskComplexity,
     params: TunedHyperparameters,
     modelFamily: ModelFamily,
-    requestedModel?: string
+    requestedModel?: string,
+    contextOptions?: {
+      userPrompt?: string;
+      conversationHistory?: Array<{ role: string; content: any }>;
+      priorNeuralImage?: PriorNeuralImageContext | null;
+      subIntent?: ImageOperationType;
+    }
   ): string {
     const isUltra = (requestedModel && this.isCyberUltraModel(requestedModel)) || modelFamily === 'deepseek-pro';
+
+    const priorImage = contextOptions?.priorNeuralImage !== undefined
+      ? contextOptions.priorNeuralImage
+      : (contextOptions?.conversationHistory ? this.extractPriorNeuralImage(contextOptions.conversationHistory) : null);
+    const subIntent = contextOptions?.subIntent !== undefined
+      ? contextOptions.subIntent
+      : this.detectImageOperationType(contextOptions?.userPrompt || '', Boolean(priorImage));
+
+    const isContextualAddition = intent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING' && subIntent === 'addition' && Boolean(priorImage);
+    const isContextualEdit = intent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING' && subIntent === 'edit' && Boolean(priorImage);
 
     const intentLabelMap: Record<UserIntentCategory, { ar: string; mode: string; directive: string }> = {
       CYBERSECURITY_AND_EXPLOIT_AUDITING: {
@@ -851,17 +1113,44 @@ export class DynamicParameterTuner {
           '10) [بروتوكول التخطيط المعماري الذاتي للمتجهات للطلبات المقتضبة - Autonomous Vector Planning for Brief Prompts]: عند كتابة المستخدم طلباً مقتضباً أو من كلمتين (مثل "لوجو كافيه"، "شعار شركة"، "ايقونة سحابية"، "شارة أمان"): يُحظر تماماً طلب استفسارات أو تقديم تصاميم بدائية؛ بل خطط ونفذ فوراً تصميماً متجهياً متكاملاً جاهزاً للإنتاج: نسب ذهبية هندسية متوازنة، مسارات منحنية متناسقة <path>، تدرجات لونية عصرية متناغمة داخل <defs> عبر <linearGradient>، ظلال ناعمة <filter>، وviewBox متجاوب مع width="100%" و height="100%".'
       },
       NEURAL_IMAGE_STUDIO_AND_PROCESSING: {
-        ar: 'استوديو المعالجة العصبية وتوليد وتعديل الصور الفائق (FLUX.1 [schnell] & Fathom Quant 3 Neural Image Studio)',
-        mode: 'CYBER_ULTRA_NEURAL_IMAGE_STUDIO',
+        ar: isContextualAddition
+          ? 'استوديو الإضافة البصرية العصبية وحفظ المشهد بنسبة 100% (Sovereign Image Addition Studio)'
+          : isContextualEdit
+          ? 'استوديو التعديل الجراحي العصبي وحفظ المشهد بنسبة 100% (Sovereign Surgical Image Editing Studio)'
+          : 'استوديو المعالجة العصبية وتوليد وتعديل الصور الفائق (FLUX.1 [schnell] & Fathom Quant 3 Neural Image Studio)',
+        mode: isContextualAddition
+          ? 'SOVEREIGN_IMAGE_ADDITION_AND_100_PERCENT_PRESERVATION'
+          : isContextualEdit
+          ? 'SOVEREIGN_SURGICAL_IMAGE_EDITING_AND_100_PERCENT_PRESERVATION'
+          : 'CYBER_ULTRA_NEURAL_IMAGE_STUDIO',
         directive: isUltra
-          ? 'أنت المعماري والمهندس السيادي لتوليد ومعالجة وتعديل الصور عصبياً وفوتوغرافياً باستخدام محرك FLUX.1 [schnell] فائق السرعة والواقعية (Sovereign Neural Image Studio Architect): ' +
-            '1) [الحظر الصارم والقطعي لتحويل الصور الفوتوغرافية إلى SVG وإخراج كود المتجهات]: يُحظر تماماً وبشكل قاطع تحويل الصور الفوتوغرافية إلى SVG أو إخراج أي كود SVG أو متجهات عند طلبات الصور الفوتوغرافية أو طلبات توليد الصور (مثل "صمم صورة"، "انشئ صورة"، "صورة لـ"، "صورة واقعية"، "بورتريه"). توليد ومعالجة الصور يتم حصراً وبنسبة 100% عبر المعالجة العصبية واستخراج كتلة ```neural-image```. ' +
-            '2) [هندسة برومبتات FLUX.1 [schnell] الإنجليزية الفائقة - Master Prompting for FLUX.1 [schnell]]: صغ وصفاً بصرياً إنجليزياً دقيقاً، طبيعياً ومفصلاً: تحديد نوع الكاميرا والمستشعر (Hasselblad H6D-100c أو Sony Alpha 7R V)، العدسة البؤرية (85mm f/1.2 للبورتريه، 35mm للقطات السينمائية)، الإضاءة الحجمية السينمائية (Rembrandt lighting، rim light)، دقة تشريحية كاملة لليدين والأصابع (5 fingers per hand, perfect anatomy)، ملمس ومسام البشرة الواقعية (micro-pores, subsurface scattering)، وجودة 8k uhd, photorealistic masterpiece, raw photo. ' +
-            '3) [المعيار السيادي لتشريح البشر والبورتريهات الواقعية - Flawless Human Anatomy & Photorealistic Faces & 100% Identity, Texture, and Face Preservation]: خمسة أصابع طبيعية وسليمة لكل يد دون أي تشويه أو تداخل، عيون متناظرة مع لمعان طبيعي للقرنية، نسيج جلد حقيقي مع مسام مجهرية واضحة (photorealistic skin micro-pores)، وتشتت ضوئي طبيعي يمنع أي مظهر شمعي أو بلاستيكي. ' +
-            '4) [التعديل الانتقائي الجراحي الدقيق والحفاظ الصارم بنسبة 100% على الهوية]: عند طلب أي تعديل على صورة مرفقة (تغيير ملابس، تغيير لون، عزل أو تغيير خلفية، دمج شخصين معاً مع دمج الشخصين بنفس الإضاءة والملامح، تحسين الجودة والدقة إلى 2K/4K، تعديل منتج، أو استبدال نص)، حافظ بنسبة 100% على ملامح الوجه وتفاصيل الشخص الأصلية وطبّق التعديل المطلوب جراحياً على العنصر المستهدف فقط (استبدال النص مع مطابقة نوع الخط). ' +
-            '5) [بروتوكول تسليم وتوليد المعالجة العصبية الإلزامي - Neural Deliverable Block]: بعد التفكير والتحليل والشرح باللغة العربية، أخرج حتماً كتلة المعالجة العصبية التالية في نهاية الرد: ' +
-            '```neural-image\\n{\\n  "operation": "<generate|portrait_generation|human_edit|recolor|remove_background|enhance_4k|composite|product_edit|text_edit>",\\n  "title": "<عنوان وصفي للمعالجة>",\\n  "description": "<شرح التعديل أو التوليد المنفذ بدقة 100%>",\\n  "prompt": "<Ultra-detailed English visual prompt for FLUX.1 [schnell] specifying subject, 85mm lens, volumetric lighting, micro-pores, 8k resolution>",\\n  "aspectRatio": "<1:1|16:9|9:16|4:3>",\\n  "style": "<photorealistic|cinematic|digital_art|anime|3d_render>",\\n  "fidelityScore": "100%",\\n  "resolution": "4K"\\n}\\n``` ' +
-            '6) [بروتوكول التخطيط المعماري الذاتي للمشهد البصري للطلبات المقتضبة من كلمتين - Autonomous 2-Word Prompt Elaboration & Master Scene Planning Architecture]: عندما يكتب المستخدم طلباً مقتضباً أو مكوناً من كلمتين فقط (مثل "صمم سيارة"، "صورة فضاء"، "سيارة فخمة"، "صورة أسد"، "بنت جميلة"، "رجل أعمال"، "طبيعة خلابة"): يُحظر تماماً الاكتفاء بوصف سطحي مقتضب، ويُحظر طلب أي توضيحات من المستخدم؛ بل يجب عليك ذاتياً تفكيك وهندسة المشهد بالكامل بأعلى المعايير السينمائية الجاهزة داخل برومبت FLUX.1 [schnell] الإنجليزي: أ) الموضوع وتفاصيله المجهرية (Subject & Micro-Textures): تفاصيل ألياف الكربون أو الطلاء المعدني اللامع، ملمس ومسام الجلد الطبيعية (micro-pores)، خيوط النسيج وتطاير الشعر. ب) الأبعاد الواقعية الصارمة ومنع التشويه (Strict Authentic Proportions & Zero Distortion): إذا كانت مركبة أو سيارة، يجب تضمين أوصاف هندسية مانعة للانضغاط: authentic manufacturer proportions, perfect circular wheels, symmetrical perspective, ray-tracing reflections, 8k raw photograph. ج) البيئة والغلاف الجوي (Atmospheric Setting): عمق بيئي سينمائي، ضباب حجمي، إسفلت ممطر بانعكاسات ضوئية دقيقة، أو أفق معماري متناسق. د) البصريات والكاميرا (Optics & Cinematography): مستشعر Hasselblad H6D-100c أو Sony A7R V، عدسة 85mm f/1.2 للبورتريه، 35mm للقطات السينمائية، أو 24mm للمناظر الواسعة، مع عمق ميدان سطحي وبوكيه طبيعي ناعم. هـ) معمارية الإضاءة (Lighting Architecture): إضاءة ريمبرانت ثلاثية النقاط، إضاءة حواف (Rim Light)، تشتت ضوئي تحت السطح (Subsurface Scattering)، وتفاعل فيزيائي واقعي للظلال بدون أي مظهر بلاستيكي مصطنع. و) النسبة القياسية الذهبية (Aspect Ratio): النسبة القياسية الافتراضية 1:1 لمنع أي تشويه أو انضغاط في أبعاد الكائن، مع دعم 16:9 للمناظر البانورامية، 9:16 للبورتريهات وخلفيات الهواتف، و4:3 للقطات الكلاسيكية.'
+          ? (isContextualEdit || isContextualAddition)
+            ? (
+              `أنت المعماري والمهندس السيادي للـ ${isContextualAddition ? 'إضافة' : 'تعديل'} البصرية الجراحية للصور (Sovereign Contextual Image ${isContextualAddition ? 'Addition' : 'Editing'} Architect): ` +
+              `1) [الفهم السياقي الصارم والتفريق الحاسم بين ${isContextualAddition ? 'الإضافة' : 'التعديل'} والإنشاء]: المستخدم يطلب صراحة ${isContextualAddition ? 'إضافة عنصر إلى' : 'تعديل خاصية في'} صورة تم تصميمها مسبقاً في المحادثة وليس إنشاء صورة جديدة من الصفر. ` +
+              `2) [الحظر الصارم والقطعي لمصطلح "إنشاء" أو "تصميم جديد"]: يُحظر تماماً وبشكل قاطع كتابة "إنشاء" أو "تصميم جديد" أو "توليد صورة جديدة" في أي موضع من ردك؛ بل يجب حتماً وصراحة استخدام كلمة "${isContextualAddition ? 'إضافة' : 'تعديل'}" في كافة العناوين والشروح وصلب الرد. ` +
+              `3) [قاعدة العنوان الإلزامية في كتلة المعالجة العصبية]: يجب أن يبدأ حقل "title" داخل كتلة \`\`\`neural-image\`\`\` حتماً وبشكل صريح بـ: "${isContextualAddition ? 'إضافة: ' : 'تعديل: '}[تفاصيل ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة باللغة العربية]" (مثال: "${isContextualAddition ? 'إضافة: شخص يقف بجانب السيارة' : 'تعديل: تغيير لون السيارة إلى الأحمر'}"). ` +
+              `4) [قاعدة حقل العملية operation في JSON]: عيّن حقل "operation" حتماً كـ "${isContextualAddition ? 'add_element' : 'edit'}"${!isContextualAddition ? ' (أو "recolor" إذا كان التعديل تغييراً للون فقط)' : ' (أو "composite" إذا كان دمجاً لعناصر)'}. ` +
+              `5) [قاعدة الشرح باللغة العربية]: في حقل "description" وفي صلب الرد بعد </think>، ابدأ صراحة بـ "${isContextualAddition ? 'تمت إضافة' : 'تم تعديل'} [العنصر المستهدف]..." واشرح بدقة وبلاغة ما تم تنفيذه مع التأكيد على الحفاظ على هوية وتكوين الصورة الأصلية. ` +
+              `6) [الحفظ الصارم والمطلق لعناصر وتكوين الصورة الأصلية بنسبة 100% - Zero Unwanted Alterations]: ` +
+              (priorImage?.prompt
+                ? `البرومبت البصري الدقيق للصورة السابقة في الشات هو:\n"""${priorImage.prompt.trim()}"""\n` +
+                  `[أمر سيادي حاسم لمنع أي تغيير غير مطلوب]: يُحظر تماماً وبشكل مطلق إعادة ابتكار المشهد من الصفر، أو تغيير نوع الكائن أو موديل السيارة أو ملامح الشخص أو الخلفية أو زاوية الكاميرا أو نوع العدسة أو الإضاءة إذا لم يطلب المستخدم ذلك! ` +
+                  `يجب عليك أخذ البرومبت الأصلي السابق بالكامل، وتطبيق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط على الكلمة أو العبارة المستهدفة (مثال: ${isContextualAddition ? 'إضافة الكائن المطلوب في موقعه الصحيح داخل المشهد السابق مع إبقاء بقية النص الإنجليزي متطابقاً 100%' : 'استبدال لون الطلاء فقط من الأسود إلى الأحمر مع إبقاء كافة أوصاف السيارة والشارع والمطر متطابقة 100%'}). `
+                : `حافظ بنسبة 100% على كافة عناصر وزوايا وتكوين وأبعاد الصورة الأصلية، وطبّق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط دون تغيير أي شيء آخر في المشهد. `) +
+              `7) [الحفاظ على النسبة الأصلية]: حافظ على نفس نسبة العرض الأصلية aspectRatio: "${priorImage?.aspectRatio || '1:1'}". ` +
+              `8) [بروتوكول تسليم وتوليد المعالجة العصبية الإلزامي - Neural Deliverable Block]: بعد التفكير التحليلي والشرح باللغة العربية، أخرج حتماً كتلة المعالجة العصبية التالية: ` +
+              `\`\`\`neural-image\n{\n  "operation": "${isContextualAddition ? 'add_element' : 'edit'}",\n  "title": "${isContextualAddition ? 'إضافة' : 'تعديل'}: <تفاصيل ال${isContextualAddition ? 'إضافة' : 'تعديل'}>",\n  "description": "${isContextualAddition ? 'تمت إضافة' : 'تم تعديل'} <التفاصيل المنفذة بدقة 100%>",\n  "prompt": "<English prompt preserving 100% of original prompt with only surgical ${isContextualAddition ? 'addition' : 'modification'} delta>",\n  "originalImage": "${priorImage?.imageUrl || ''}",\n  "aspectRatio": "${priorImage?.aspectRatio || '1:1'}",\n  "style": "photorealistic",\n  "fidelityScore": "100%",\n  "resolution": "4K"\n}\n\`\`\` ` +
+              `9) [الحظر الصارم للـ SVG]: يُحظر تماماً إخراج أي كود SVG عند تعديل أو إضافة الصور الفوتوغرافية.`
+            )
+            : 'أنت المعماري والمهندس السيادي لتوليد ومعالجة وتعديل الصور عصبياً وفوتوغرافياً باستخدام محرك FLUX.1 [schnell] فائق السرعة والواقعية (Sovereign Neural Image Studio Architect): ' +
+              '1) [الحظر الصارم والقطعي لتحويل الصور الفوتوغرافية إلى SVG وإخراج كود المتجهات]: يُحظر تماماً وبشكل قاطع تحويل الصور الفوتوغرافية إلى SVG أو إخراج أي كود SVG أو متجهات عند طلبات الصور الفوتوغرافية أو طلبات توليد الصور (مثل "صمم صورة"، "انشئ صورة"، "صورة لـ"، "صورة واقعية"، "بورتريه"). توليد ومعالجة الصور يتم حصراً وبنسبة 100% عبر المعالجة العصبية واستخراج كتلة ```neural-image```. ' +
+              '2) [هندسة برومبتات FLUX.1 [schnell] الإنجليزية الفائقة - Master Prompting for FLUX.1 [schnell]]: صغ وصفاً بصرياً إنجليزياً دقيقاً، طبيعياً ومفصلاً: تحديد نوع الكاميرا والمستشعر (Hasselblad H6D-100c أو Sony Alpha 7R V)، العدسة البؤرية (85mm f/1.2 للبورتريه، 35mm للقطات السينمائية)، الإضاءة الحجمية السينمائية (Rembrandt lighting، rim light)، دقة تشريحية كاملة لليدين والأصابع (5 fingers per hand, perfect anatomy)، ملمس ومسام البشرة الواقعية (micro-pores, subsurface scattering)، وجودة 8k uhd, photorealistic masterpiece, raw photo. ' +
+              '3) [المعيار السيادي لتشريح البشر والبورتريهات الواقعية - Flawless Human Anatomy & Photorealistic Faces & 100% Identity, Texture, and Face Preservation]: خمسة أصابع طبيعية وسليمة لكل يد دون أي تشويه أو تداخل، عيون متناظرة مع لمعان طبيعي للقرنية، نسيج جلد حقيقي مع مسام مجهرية واضحة (photorealistic skin micro-pores)، وتشتت ضوئي طبيعي يمنع أي مظهر شمعي أو بلاستيكي. ' +
+              '4) [التعديل الانتقائي الجراحي الدقيق والحفاظ الصارم بنسبة 100% على الهوية]: عند طلب أي تعديل على صورة مرفقة (تغيير ملابس، تغيير لون، عزل أو تغيير خلفية، دمج شخصين معاً مع دمج الشخصين بنفس الإضاءة والملامح، تحسين الجودة والدقة إلى 2K/4K، تعديل منتج، أو استبدال نص)، حافظ بنسبة 100% على ملامح الوجه وتفاصيل الشخص الأصلية وطبّق التعديل المطلوب جراحياً على العنصر المستهدف فقط (استبدال النص مع مطابقة نوع الخط). ' +
+              '5) [بروتوكول تسليم وتوليد المعالجة العصبية الإلزامي - Neural Deliverable Block]: بعد التفكير والتحليل والشرح باللغة العربية، أخرج حتماً كتلة المعالجة العصبية التالية في نهاية الرد: ' +
+              '```neural-image\n{\n  "operation": "<generate|portrait_generation|human_edit|recolor|remove_background|enhance_4k|composite|product_edit|text_edit>",\n  "title": "<عنوان وصفي للمعالجة>",\n  "description": "<شرح التعديل أو التوليد المنفذ بدقة 100%>",\n  "prompt": "<Ultra-detailed English visual prompt for FLUX.1 [schnell] specifying subject, 85mm lens, volumetric lighting, micro-pores, 8k resolution>",\n  "aspectRatio": "<1:1|16:9|9:16|4:3>",\n  "style": "<photorealistic|cinematic|digital_art|anime|3d_render>",\n  "fidelityScore": "100%",\n  "resolution": "4K"\n}\n``` ' +
+              '6) [بروتوكول التخطيط المعماري الذاتي للمشهد البصري للطلبات المقتضبة من كلمتين - Autonomous 2-Word Prompt Elaboration & Master Scene Planning Architecture]: عندما يكتب المستخدم طلباً مقتضباً أو مكوناً من كلمتين فقط (مثل "صمم سيارة"، "صورة فضاء"، "سيارة فخمة"، "صورة أسد"، "بنت جميلة"، "رجل أعمال"، "طبيعة خلابة"): يُحظر تماماً الاكتفاء بوصف سطحي مقتضب، ويُحظر طلب أي توضيحات من المستخدم؛ بل يجب عليك ذاتياً تفكيك وهندسة المشهد بالكامل بأعلى المعايير السينمائية الجاهزة داخل برومبت FLUX.1 [schnell] الإنجليزي: أ) الموضوع وتفاصيله المجهرية (Subject & Micro-Textures): تفاصيل ألياف الكربون أو الطلاء المعدني اللامع، ملمس ومسام الجلد الطبيعية (micro-pores)، خيوط النسيج وتطاير الشعر. ب) الأبعاد الواقعية الصارمة ومنع التشويه (Strict Authentic Proportions & Zero Distortion): إذا كانت مركبة أو سيارة، يجب تضمين أوصاف هندسية مانعة للانضغاط: authentic manufacturer proportions, perfect circular wheels, symmetrical perspective, ray-tracing reflections, 8k raw photograph. ج) البيئة والغلاف الجوي (Atmospheric Setting): عمق بيئي سينمائي، ضباب حجمي، إسفلت ممطر بانعكاسات ضوئية دقيقة، أو أفق معماري متناسق. د) البصريات والكاميرا (Optics & Cinematography): مستشعر Hasselblad H6D-100c أو Sony A7R V، عدسة 85mm f/1.2 للبورتريه، 35mm للقطات السينمائية، أو 24mm للمناظر الواسعة، مع عمق ميدان سطحي وبوكيه طبيعي ناعم. هـ) معمارية الإضاءة (Lighting Architecture): إضاءة ريمبرانت ثلاثية النقاط، إضاءة حواف (Rim Light)، تشتت ضوئي تحت السطح (Subsurface Scattering)، وتفاعل فيزيائي واقعي للظلال بدون أي مظهر بلاستيكي مصطنع. و) النسبة القياسية الذهبية (Aspect Ratio): النسبة القياسية الافتراضية 1:1 لمنع أي تشويه أو انضغاط في أبعاد الكائن، مع دعم 16:9 للمناظر البانورامية، 9:16 للبورتريهات وخلفيات الهواتف، و4:3 للقطات الكلاسيكية.'
           : 'منظومة المعالجة والتوليد العصبي فائق الدقة للصور (FLUX.1 [schnell] Neural Image Studio) وحفظ التفاصيل الفوتوغرافية بنسبة 100% مخصصة حصرياً لطرازات سايبر وكوانت الفائقة (Fathom Quant 3 / Fathom Cyber Ultra 2.6). وضّح للمستخدم برقي واحترافية أن توليد وتعديل الصور يتطلب تفعيل Fathom Quant 3 أو Fathom Cyber Ultra 2.6 دون تحويل الصورة إلى SVG مع الحظر التام لتحويل الصور إلى متجهات.'
       },
       MATHEMATICAL_AND_DEDUCTIVE_LOGIC: {
@@ -947,16 +1236,29 @@ export class DynamicParameterTuner {
       { explicitTemperature: request.explicitTemperature }
     );
 
+    const priorNeuralImage = this.extractPriorNeuralImage(request.conversationHistory || []);
+    const detectedImageOperation = intent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING'
+      ? this.detectImageOperationType(request.userPrompt, Boolean(priorNeuralImage))
+      : undefined;
+
     const calibrationDirective = this.generateCalibrationDirective(
       intent,
       complexity,
       hyperparameters,
       modelFamily,
-      request.requestedModel
+      request.requestedModel,
+      {
+        userPrompt: request.userPrompt,
+        conversationHistory: request.conversationHistory,
+        priorNeuralImage,
+        subIntent: detectedImageOperation
+      }
     );
 
     return {
       detectedIntent: intent,
+      detectedImageOperation,
+      priorNeuralImage,
       intentConfidence: confidence,
       complexityLevel: complexity,
       hallucinationRisk,
