@@ -304,12 +304,31 @@ export async function fetchChatMessages(chatId: string): Promise<ChatMessageItem
         ? row.media_attachments.filter((m: any) => m.type !== 'image')
         : undefined;
 
+      // If row.image_url exists and content has a neural-image block missing imageUrl, inject it
+      const primaryImg = images?.[0] || row.image_url || undefined;
+      if (primaryImg && content.includes('neural-image')) {
+        content = content.replace(
+          /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/gi,
+          (fullBlock: string, jsonStr: string) => {
+            try {
+              const parsed = JSON.parse(jsonStr);
+              if (!parsed.imageUrl && !parsed.processedImage) {
+                parsed.imageUrl = primaryImg;
+                parsed.processedImage = primaryImg;
+                return `\`\`\`neural-image\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+              }
+            } catch {}
+            return fullBlock;
+          }
+        );
+      }
+
       return {
         id: row.id,
         role: row.role as 'user' | 'assistant' | 'system',
         content,
         reasoning,
-        image: images?.[0] || row.image_url || undefined,
+        image: primaryImg,
         images: images && images.length > 0 ? images : undefined,
         mediaAttachments: nonImageAttachments && nonImageAttachments.length > 0 ? nonImageAttachments : undefined,
         isX1: !!row.is_x1,
@@ -336,6 +355,94 @@ export async function fetchChatMessages(chatId: string): Promise<ChatMessageItem
     return deduplicatedList;
   } catch {
     return [];
+  }
+}
+
+/**
+ * Permanently updates a message's image_url and embeds imageUrl into its neural-image markdown block in Supabase.
+ * Ensures generated images persist permanently across refreshes and device switches without regeneration.
+ */
+export async function updateMessageImage(chatId: string, messageId: string | undefined, imageUrl: string): Promise<boolean> {
+  if (!imageUrl) return false;
+  try {
+    let targetId = messageId;
+    let existingContent = '';
+
+    if (targetId) {
+      const { data: row } = await supabase
+        .from('x1_messages')
+        .select('id, content')
+        .eq('id', targetId)
+        .maybeSingle();
+
+      if (row) {
+        existingContent = row.content || '';
+      } else {
+        targetId = undefined;
+      }
+    }
+
+    // Fallback: If targetId not found or not provided, locate latest assistant message in this chat
+    if (!targetId && chatId) {
+      const { data: latestRows } = await supabase
+        .from('x1_messages')
+        .select('id, content')
+        .eq('chat_id', chatId)
+        .eq('role', 'assistant')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (latestRows && latestRows.length > 0) {
+        targetId = latestRows[0].id;
+        existingContent = latestRows[0].content || '';
+      }
+    }
+
+    if (!targetId) return false;
+
+    // Inject imageUrl and processedImage into the ```neural-image code block in message content
+    let updatedContent = existingContent;
+    if (existingContent) {
+      updatedContent = existingContent.replace(
+        /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/gi,
+        (fullMatch: string, jsonStr: string) => {
+          try {
+            const parsed = JSON.parse(jsonStr);
+            parsed.imageUrl = imageUrl;
+            parsed.processedImage = imageUrl;
+            return `\`\`\`neural-image\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+          } catch {
+            return fullMatch;
+          }
+        }
+      );
+    }
+
+    const { error } = await supabase
+      .from('x1_messages')
+      .update({
+        image_url: imageUrl,
+        content: updatedContent
+      })
+      .eq('id', targetId);
+
+    if (error) {
+      console.warn('[Supabase updateMessageImage Error]:', error.message);
+      return false;
+    }
+
+    // Touch chat updated_at
+    if (chatId) {
+      await supabase
+        .from('x1_chats')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', chatId);
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('[Supabase updateMessageImage Exception]:', err);
+    return false;
   }
 }
 

@@ -326,7 +326,7 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(editResult.priorNeuralImage?.prompt).toContain('Mercedes');
       expect(editResult.calibrationDirective).toContain('SOVEREIGN_SURGICAL_IMAGE_EDITING_AND_100_PERCENT_PRESERVATION');
       expect(editResult.calibrationDirective).toContain('يُحظر تماماً وبشكل قاطع كتابة "إنشاء"');
-      expect(editResult.calibrationDirective).toContain('الحفظ الصارم والمطلق لعناصر وتكوين الصورة الأصلية بنسبة 100%');
+      expect(editResult.calibrationDirective).toContain('الحفظ الصارم والمطلق لعناصر وتكوين الصورة الأصلية ومعالم البيئة والمكان بنسبة 100%');
 
       // Case B: Addition -> "ضيف شخص واقف جنبها"
       const additionRequest: DynamicTuningRequest = {
@@ -339,7 +339,7 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(additionResult.priorNeuralImage).toBeTruthy();
       expect(additionResult.calibrationDirective).toContain('SOVEREIGN_IMAGE_ADDITION_AND_100_PERCENT_PRESERVATION');
       expect(additionResult.calibrationDirective).toContain('يُحظر تماماً وبشكل قاطع كتابة "إنشاء"');
-      expect(additionResult.calibrationDirective).toContain('الحفظ الصارم والمطلق لعناصر وتكوين الصورة الأصلية بنسبة 100%');
+      expect(additionResult.calibrationDirective).toContain('الحفظ الصارم والمطلق لعناصر وتكوين الصورة الأصلية ومعالم البيئة والمكان بنسبة 100%');
 
       // Case C: Generation from scratch (no prior history)
       const genRequest: DynamicTuningRequest = {
@@ -463,6 +463,58 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(neuralCard).not.toContain("META: MUSE IMAGE");
       expect(neuralCard).not.toContain("Meta: Muse Image");
       expect(neuralCard).not.toContain("إعادة المحاولة عبر Muse");
+    });
+
+    // 26. Car & Photo Recolor / Modification Zero-Drift Scene Preservation
+    await harness.it('should route "غير لون السيارة للأحمر" to edit with 100% scene preservation and zero drift', () => {
+      const priorHistory = [
+        {
+          role: 'user',
+          content: 'صمم صورة سيارة بورشه رمادية في شوارع دبي ليلاً'
+        },
+        {
+          role: 'assistant',
+          content: '```neural-image\n{\n  "operation": "generate",\n  "title": "إنشاء: سيارة بورشه رمادية",\n  "prompt": "Sleek slate grey Porsche 911 on wet asphalt Dubai boulevard at night, Burj Khalifa backdrop, cinematic reflections, 8k raw photo",\n  "seed": 847291,\n  "imageUrl": "https://cdn.example.com/porsche_grey.png"\n}\n```'
+        }
+      ];
+
+      const request: DynamicTuningRequest = {
+        userPrompt: 'غير لون السيارة إلى الأحمر الميتاليك',
+        requestedModel: 'fathom-quant-3',
+        conversationHistory: priorHistory,
+      };
+
+      const result = DynamicParameterTuner.tune(request);
+      expect(result.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
+      expect(result.detectedImageOperation).toBe('edit');
+      expect(result.priorNeuralImage).toBeTruthy();
+      expect(result.priorNeuralImage?.imageUrl).toBe('https://cdn.example.com/porsche_grey.png');
+      expect(result.priorNeuralImage?.seed).toBe(847291);
+      expect(result.calibrationDirective).toContain('SOVEREIGN_SURGICAL_IMAGE_EDITING_AND_100_PERCENT_PRESERVATION');
+      expect(result.calibrationDirective).toContain('الحفظ الصارم والمطلق لعناصر وتكوين الصورة الأصلية ومعالم البيئة والمكان بنسبة 100%');
+      expect(result.calibrationDirective).toContain('يُحظر تماماً وبشكل قاطع تحويل الصور الفوتوغرافية أو طلبات تعديل/تلوين الصور إلى SVG');
+    });
+
+    // 27. Image Persistence Contract (0ms Instant Load & DB Auto-Save)
+    await harness.it('should verify image persistence architecture in Supabase service and NeuralImageCard', async () => {
+      const fs = await import('fs');
+      const supabaseSource = fs.readFileSync('c:/Best Projects/Matany/src/services/supabase.ts', 'utf-8');
+      const neuralCardSource = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
+      const apiGenSource = fs.readFileSync('c:/Best Projects/Matany/api/generate-image.ts', 'utf-8');
+
+      // Supabase updateMessageImage must exist and inject imageUrl into neural-image block
+      expect(supabaseSource).toContain('export async function updateMessageImage');
+      expect(supabaseSource).toContain('x1_messages');
+      expect(supabaseSource).toContain('parsed.imageUrl = imageUrl');
+
+      // NeuralImageCard must support 0ms localStorage retrieval and messageId callback
+      expect(neuralCardSource).toContain('localStorage.getItem(`fathom_img_${messageId}`)');
+      expect(neuralCardSource).toContain('localStorage.setItem(`fathom_img_${messageId}`,');
+      expect(neuralCardSource).toContain('onImageGenerated');
+
+      // api/generate-image must support server-side persistence via messageId
+      expect(apiGenSource).toContain('messageId');
+      expect(apiGenSource).toContain('x1_messages');
     });
 
   });

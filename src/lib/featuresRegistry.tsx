@@ -1251,13 +1251,22 @@ export function routeFeatureIntent(
     const isExplicitVectorPrompt = /(?:svg|فيكتور|متجهات|شعاعي|vector)/i.test(pLower) ||
       (/(?:كود\s*svg|ملف\s*svg|رسم\s*شعاعي|شكل\s*هندسي)/i.test(pLower)) ||
       (/\b(?:draw|create|generate|design)\s+(?:an?\s+)?(?:svg|vector)/i.test(pLower)) ||
-      (/(?:شعار|لوجو|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower) && !/(?:صورة\s+واقعية|صورة\s+فوتوغرافية|صورة\s+حقيقية|photo|dslr)/i.test(pLower)) ||
+      (/(?:شعار|لوجو|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower) && !/(?:صورة|photo|dslr)/i.test(pLower)) ||
       (/(?:رسم|تصميم)\s+(?:بياني|توضيحي|هندسي|معماري|انسيابي|مخطط|خريطة|diagram|chart|flowchart|infographic)/i.test(pLower)) ||
-      (/(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول|ضع|خليه|خلها|اجعله|اجعلها|سوه|سوها)\s+(?:لي\s+)?(?:الخلفية|خلفية|لون|الوان|ألوان|الألوان|الالوان|الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|العنصر|الرمز|الكتابة|ذهبي|فضي|أبيض|ابيض|أسود|اسود|أحمر|احمر|أزرق|ازرق|أخضر|اخضر|شفاف|شفافة|نيون|داكن|مضيء|أغمق|أفتح)/i.test(pLower)) ||
-      (/\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:background|color|colors|logo|icon|svg|vector|style|design)\b/i.test(pLower));
+      (/(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول|ضع|خليه|خلها|اجعله|اجعلها)\s+(?:لي\s+)?(?:في\s+)?(?:الخلفية|خلفية|خلفية\s+التصميم|اللون|الألوان|الالوان|الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|العنصر|الرمز|الكتابة|ذهبي|فضي|شفاف|شفافة|نيون)/i.test(pLower) && !/(?:صورة|صوره|photo|image|سيارة|السيارة|عربية|العربية|قميص|القميص|فستان|الفستان|شخص|الشخص|بشرة|بشره|وجه|الوجه)/i.test(pLower)) ||
+      (/\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:logo|icon|svg|vector|design\s+background)\b/i.test(pLower));
 
     const isImageToSvgPrompt = (hasImages || Boolean(context?.hasImagesInHistory)) &&
       /(?:حول|تحويل|فيكتور|متجهات|svg|vector|vectorize|convert\s+to\s+svg)/i.test(pLower);
+
+    // Strict Guard: If query is a photo edit/modification or contains realistic/photo keywords, suppress SVG unless explicitly requested
+    const isPhotoOrRealisticQuery = /(?:صورة|صوره|photo|image|picture|portrait|wallpaper|واقعي|واقعية|فوتوغراف|السيارة|العربية|القميص|الشخص)/i.test(pLower);
+    const hasPriorImageContext = Boolean(context?.hasImagesInHistory || hasImages);
+    const hasExplicitSvgKeyword = /(?:svg|فيكتور|متجهات|شعاعي|vector|كود\s*svg)/i.test(pLower);
+
+    if ((isPhotoOrRealisticQuery || hasPriorImageContext) && !hasExplicitSvgKeyword && !hasSvgCode) {
+      return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Suppressed: Photo or contextual image query without explicit SVG keyword.' };
+    }
 
     if (hasSvgBadge || hasSvgCode || isExplicitVectorPrompt || hasSvgReasoning || isImageToSvgPrompt) {
       return {
@@ -1281,10 +1290,10 @@ export function routeFeatureIntent(
     const hasNeuralReasoning = rLower.includes('neural image') || rLower.includes('معالجة عصبية') || rLower.includes('تعديل الصور') || rLower.includes('cyber ultra') || rLower.includes('quant 3') || rLower.includes('fathom quant') || rLower.includes('inpainting') || rLower.includes('flux');
 
     const hasImageMentionForNeural = hasImages || Boolean(context?.hasImagesInHistory) || /(?:في\s+الصورة|الصورة\s+المرفقة|الصورة\s+دي|الصورة\s+هذه|الصورة|صورتين|الصورتين|photo|image)/i.test(pLower);
-    const isPhotoEditPrompt = (hasImageMentionForNeural || /(?:وجه|ملامح|شخص|بشرة|بشره|عينين|عيون|يد|أصابع|اصابع|retouch)/i.test(pLower)) && (
-      /(?:غير|عدل|بدل|لون)\s+(?:لي\s+)?(?:لون\s+)?(?:القميص|البنطلون|الفستان|السيارة|العربية|الشعر|العين|العينين|الحذاء|الجاكيت|التيشيرت|المنتج|العنصر|الكائن|الكوب|العلبة|الخلفية|الباب|الجدار|اللون|الشيء|حاجة|حاجه)/i.test(pLower) ||
+    const isPhotoEditPrompt = (hasImageMentionForNeural || /(?:وجه|ملامح|شخص|بشرة|بشره|عينين|عيون|يد|أصابع|اصابع|retouch|سيارة|عربية|قميص|فستان)/i.test(pLower)) && (
+      /(?:غير|عدل|بدل|لون|صبغ|خليه|خليها|اجعله|اجعلها)\s+(?:لي\s+)?(?:لون\s+)?(?:القميص|البنطلون|الفستان|السيارة|العربية|الشعر|العين|العينين|الحذاء|الجاكيت|التيشيرت|المنتج|العنصر|الكائن|الكوب|العلبة|الخلفية|الباب|الجدار|اللون|الشيء|حاجة|حاجه|الموديل|الطلاء)/i.test(pLower) ||
       /(?:احذف|شيل|ازالة|إزالة|عزل|اعزل|غير|بدل)\s+(?:لي\s+)?(?:الخلفية|خلفية\s+الصورة|الباكجراوند)/i.test(pLower) ||
-      /(?:اضف|أضف|ادمج|حط|ركب|اجمع)\s+(?:لي\s+)?(?:شخصين|الشخصين|الصورتين|شخص\s+تاني|مع\s+بعض|جنب\s+بعض|صورة\s+شخص|وجه|ملامح)/i.test(pLower) ||
+      /(?:اضف|أضف|ادمج|حط|ركب|اجمع)\s+(?:لي\s+)?(?:شخصين|الشخصين|الصورتين|شخص\s+تاني|مع\s+بعض|جنب\s+بعض|صورة\s+شخص|وجه|ملامح|شجرة|سيارة|مطر)/i.test(pLower) ||
       /(?:تحسين|حسن|وضح|توضيح|علي|علّي|ارفع|زوّد|تكبير|زيادة)\s+(?:لي\s+)?(?:جودة\s+الصورة|دقة\s+الصورة|الملامح|الجودة|الدقة|ريزوليوشن|resolution|clarity|upscale|enhance|2k|4k)/i.test(pLower) ||
       /(?:معالجة\s+الوجه|تعديل\s+الوجه|تعديل\s+الشخص|معالجة\s+البشر|تعديل\s+البشر|اصلاح\s+الملامح|تعديل\s+الملامح|تعديل\s+الجسم|تصحيح\s+اليد|تصحيح\s+الاصابع|تنقية\s+البشرة|مسام\s+البشرة|skin\s+retouch|face\s+retouch|portrait\s+enhancement)/i.test(pLower) ||
       /(?:صورة\s+منتج|عدل\s+المنتج|تعديل\s+صورة\s+المنتج|غير\s+صورة\s+المنتج|mockup|product\s+photo)/i.test(pLower) ||

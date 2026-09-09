@@ -56,18 +56,32 @@ export function isValidImageUri(uri: unknown): uri is string {
   );
 }
 
+function simplePromptHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
 export interface NeuralImageCardProps {
   data: NeuralImageData;
+  messageId?: string;
   fallbackOriginalImage?: string;
   isStreaming?: boolean;
   className?: string;
+  onImageGenerated?: (imageUrl: string) => void;
 }
 
 export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
   data,
+  messageId,
   fallbackOriginalImage,
   isStreaming = false,
-  className
+  className,
+  onImageGenerated
 }) => {
   // Dynamic Aspect Ratio and Seed variation controls for Fathom Quant 3
   const [selectedRatio, setSelectedRatio] = useState<string>(() => {
@@ -90,6 +104,22 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     }
     if (data.processedImage && !data.processedImage.includes('pollinations.ai') && (data.processedImage.startsWith('data:image') || data.processedImage.startsWith('http'))) {
       return data.processedImage;
+    }
+    // Instant 0ms cache retrieval on page refresh or component remount
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (messageId) {
+        const cached = localStorage.getItem(`fathom_img_${messageId}`);
+        if (cached && !cached.includes('pollinations.ai') && (cached.startsWith('data:image') || cached.startsWith('http'))) {
+          return cached;
+        }
+      }
+      const promptText = (data.prompt || '').trim();
+      if (promptText) {
+        const cachedByHash = localStorage.getItem(`fathom_img_${simplePromptHash(promptText)}`);
+        if (cachedByHash && !cachedByHash.includes('pollinations.ai') && (cachedByHash.startsWith('data:image') || cachedByHash.startsWith('http'))) {
+          return cachedByHash;
+        }
+      }
     }
     return null;
   });
@@ -155,7 +185,8 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     const requestPayload = {
       action: 'generate_image',
       prompt: promptText,
-      aspectRatio: selectedRatio
+      aspectRatio: selectedRatio,
+      messageId: messageId || undefined
     };
 
     const controller = new AbortController();
@@ -203,6 +234,17 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
           setMuseImageUrl(payload.imageUrl);
           setIsImageLoading(false);
           setLoadError(false);
+          if (typeof window !== 'undefined' && window.localStorage) {
+            if (messageId) {
+              try { localStorage.setItem(`fathom_img_${messageId}`, payload.imageUrl); } catch {}
+            }
+            if (promptText) {
+              try { localStorage.setItem(`fathom_img_${simplePromptHash(promptText)}`, payload.imageUrl); } catch {}
+            }
+          }
+          if (onImageGenerated) {
+            onImageGenerated(payload.imageUrl);
+          }
         } else if (!isCancelled) {
           throw new Error('No image returned from Fathom QP3');
         }

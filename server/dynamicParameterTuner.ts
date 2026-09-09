@@ -193,9 +193,9 @@ const SVG_DESIGN_PATTERNS = [
   // Concise two-word queries: "لوجو كافيه"، "شعار شركة"، "ايقونة سحابية"
   /^(?:لوجو|شعار|ايقونة|أيقونة|شارة|رمز\s*بصري|logo|icon|icons|emblem|badge|symbol)\s+[\p{L}\p{N}]+/iu,
   /(?:لوجو|شعار|ايقونة|أيقونة)\s+(?:احترافي|حديث|فكتور|بصري|مبتكر|لـ|للـ|عن|بسيط|متقن)/i,
-  /(?:ارسم|صمم)\s+(?:لي\s+)?(?:صورة\s+فيكتور|رسم\s+شعاعي)/i,
-  /(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول|ضع|خليه|خلها|اجعله|اجعلها|سوه|سوها)\s+(?:لي\s+)?(?:الخلفية|خلفية|لون|الوان|ألوان|الألوان|الالوان|الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|العنصر|الرمز|الكتابة|ذهبي|فضي|أبيض|ابيض|أسود|اسود|أحمر|احمر|أزرق|ازرق|أخضر|اخضر|شفاف|شفافة|نيون|داكن|مضيء|أغمق|أفتح)/i,
-  /\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:background|color|colors|logo|icon|svg|vector|style|design)\b/i
+  // Strict SVG editing: MUST explicitly mention vector, logo, icon, or SVG
+  /(?:غير|عدل|بدل|لون|اضف|أضف|احذف|شيل|حول)\s+(?:لي\s+)?(?:في\s+)?(?:الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|كود\s*svg|ملف\s*svg|تصميم\s*svg)/i,
+  /\b(?:change|modify|update|edit|recolor)\s+(?:the\s+)?(?:logo|icon|svg|vector)\b/i
 ];
 
 const MATH_DEDUCTIVE_LOGIC_PATTERNS = [
@@ -333,6 +333,8 @@ export class DynamicParameterTuner {
           ? msg.content.map((c: any) => (c.type === 'text' ? (c.text || '') : (c.text || ''))).join(' ')
           : '';
 
+      const directImg = (msg as any).image || ((msg as any).images && (msg as any).images[0]) || (msg as any).image_url;
+
       // 1. Check for ```neural-image ... ``` block in assistant message
       const neuralMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(content);
       if (neuralMatch) {
@@ -340,7 +342,7 @@ export class DynamicParameterTuner {
           const parsed = JSON.parse(neuralMatch[1]);
           if (parsed && typeof parsed === 'object') {
             const prompt = parsed.prompt || '';
-            let imageUrl = parsed.imageUrl || parsed.processedImage || '';
+            let imageUrl = parsed.imageUrl || parsed.processedImage || directImg || '';
 
             // Extract seed from parsed JSON or its URL parameters
             let seed: number | undefined = (typeof parsed.seed === 'number' && !isNaN(parsed.seed))
@@ -357,13 +359,9 @@ export class DynamicParameterTuner {
               } catch {}
             }
 
-            if (!imageUrl && prompt) {
-              // Meta: Muse Image via OpenRouter is the sovereign model; Pollinations is abolished
-              imageUrl = undefined;
-            }
             return {
               prompt,
-              imageUrl,
+              imageUrl: imageUrl || undefined,
               operation: parsed.operation || 'generate',
               title: parsed.title || '',
               style: parsed.style || 'photorealistic',
@@ -391,29 +389,29 @@ export class DynamicParameterTuner {
         };
       }
 
-      // 3. Check for uploaded image in user message
-      if (msg.role === 'user') {
-        if (Array.isArray(msg.content)) {
-          const imgItem = msg.content.find((c: any) => c.type === 'image_url' || c.image_url);
-          if (imgItem) {
-            const url = typeof imgItem.image_url === 'string' ? imgItem.image_url : imgItem.image_url?.url;
-            if (url) {
-              return {
-                imageUrl: url,
-                operation: 'human_edit',
-                title: 'صورة مرفوعة',
-                sourceRole: 'user'
-              };
-            }
+      // 3. Check for attached image on message (user or assistant)
+      if (directImg && typeof directImg === 'string' && !directImg.includes('pollinations.ai')) {
+        return {
+          imageUrl: directImg,
+          operation: 'human_edit',
+          title: msg.role === 'user' ? 'صورة مرفوعة' : 'صورة سابقة',
+          sourceRole: msg.role
+        };
+      }
+
+      // 4. Check for uploaded image in multimodal content array
+      if (Array.isArray(msg.content)) {
+        const imgItem = msg.content.find((c: any) => c.type === 'image_url' || c.image_url);
+        if (imgItem) {
+          const url = typeof imgItem.image_url === 'string' ? imgItem.image_url : imgItem.image_url?.url;
+          if (url && typeof url === 'string' && !url.includes('pollinations.ai')) {
+            return {
+              imageUrl: url,
+              operation: 'human_edit',
+              title: 'صورة مرفوعة',
+              sourceRole: msg.role
+            };
           }
-        }
-        if ((msg as any).image || (msg as any).images?.length) {
-          return {
-            imageUrl: (msg as any).image || (msg as any).images[0],
-            operation: 'human_edit',
-            title: 'صورة مرفوعة',
-            sourceRole: 'user'
-          };
         }
       }
     }
@@ -738,7 +736,9 @@ export class DynamicParameterTuner {
     // 7. SVG Vector Studio & Design Check (prioritized before generic code engineering)
     // Strict Guard: If it's a general image query without svg/vector keywords, it must NOT trigger SVG!
     const isImageQueryWithoutSvg = !/(?:svg|فيكتور|متجهات|شعاعي|vector)/i.test(text) && (
+      Boolean(priorNeuralImage) ||
       /(?:صورة|صوره|photo|image|picture|خلفية\s+شاشة|خلفيه\s+شاشة|wallpaper|بورتريه|portrait)/i.test(text) ||
+      /(?:لون\s+(?:السيارة|العربية|القميص|الفستان|الشعر|العين|البنطلون|الخلفية|الباب|الجدار)|تعديل\s+الصورة|غير\s+الصورة|تغيير\s+الصورة|edit\s+photo|edit\s+image|recolor)/i.test(text) ||
       /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع)\s+(?:لي\s+)?(?:صورة|صوره|خلفية\s+شاشة|لوحة|بورتريه)/i.test(text)
     );
 
@@ -1165,16 +1165,16 @@ export class DynamicParameterTuner {
               `3) [قاعدة العنوان الإلزامية في كتلة المعالجة العصبية]: يجب أن يبدأ حقل "title" داخل كتلة \`\`\`neural-image\`\`\` حتماً وبشكل صريح بـ: "${isContextualAddition ? 'إضافة: ' : 'تعديل: '}[تفاصيل ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة باللغة العربية]" (مثال: "${isContextualAddition ? 'إضافة: شخص يقف بجانب السيارة' : 'تعديل: تغيير لون السيارة إلى الأحمر'}"). ` +
               `4) [قاعدة حقل العملية operation في JSON]: عيّن حقل "operation" حتماً كـ "${isContextualAddition ? 'add_element' : 'edit'}"${!isContextualAddition ? ' (أو "recolor" إذا كان التعديل تغييراً للون فقط)' : ' (أو "composite" إذا كان دمجاً لعناصر)'}. ` +
               `5) [قاعدة الشرح باللغة العربية]: في حقل "description" وفي صلب الرد بعد </think>، ابدأ صراحة بـ "${isContextualAddition ? 'تمت إضافة' : 'تم تعديل'} [العنصر المستهدف]..." واشرح بدقة وبلاغة ما تم تنفيذه مع التأكيد على الحفاظ على هوية وتكوين الصورة الأصلية. ` +
-              `6) [الحفظ الصارم والمطلق لعناصر وتكوين الصورة الأصلية بنسبة 100% ومعالم البيئة والمكان دون أي تغيير عدا المطلوب - Zero Unwanted Alterations]: ` +
+              `6) [الحفظ الصارم والمطلق لعناصر وتكوين الصورة الأصلية ومعالم البيئة والمكان بنسبة 100% دون تغيير أي شيء حتى بنسبة 1% عدا المطلوب حصراً - Strict 100% Zero-Drift Scene & Environment Preservation]: ` +
               (priorImage?.prompt
                 ? `البرومبت البصري الدقيق للصورة السابقة في الشات هو:\n"""${priorImage.prompt.trim()}"""\n` +
-                  `[أمر سيادي حاسم لمنع أي تغيير في معالم البيئة أو المكان]: يُحظر تماماً وبشكل مطلق إعادة ابتكار المشهد من الصفر، أو تغيير نوع الكائن أو موديل السيارة أو ملامح الشخص أو الخلفية أو المكان أو زاوية الكاميرا أو نوع العدسة أو الإضاءة إذا لم يطلب المستخدم ذلك! ` +
-                  `يجب عليك حتماً نقل واستخدام نفس رقم الـ seed السابق (${priorImage.seed !== undefined ? priorImage.seed : 482910}) لحفظ بنية الضوضاء العصبية واستقرار المشهد، وأخذ البرومبت الأصلي السابق بالكامل مع إبقاء كافة أوصاف البيئة والمكان والشارع والإضاءة متطابقة 100%، وتطبيق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط على الكلمة أو العبارة المستهدفة (مثال: ${isContextualAddition ? 'إضافة الكائن المطلوب في موقعه الصحيح داخل المشهد السابق مع إبقاء بقية النص الإنجليزي متطابقاً 100%' : 'استبدال لون الطلاء فقط من الأسود إلى الأحمر مع إبقاء كافة أوصاف السيارة والشارع والمطر متطابقة 100%'}). `
-                : `حافظ بنسبة 100% على كافة عناصر وزوايا وتكوين وأبعاد وبيئة الصورة الأصلية، واستخدم نفس الـ seed (${priorImage?.seed !== undefined ? priorImage.seed : 482910})، وطبّق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط دون تغيير أي شيء آخر في المشهد. `) +
+                  `[أمر سيادي حاسم لمنع أي تغيير في معالم البيئة أو المكان أو الخلفية]: يُحظر تماماً وبشكل قطعي لا يقبل أي استثناء إعادة ابتكار المشهد من الصفر، أو تغيير نوع الكائن أو موديل السيارة أو ملامح الشخص أو الخلفية أو المكان أو تفاصيل الشارع أو زاوية الكاميرا أو نوع العدسة أو الإضاءة حتى بنسبة 1% إذا لم يطلب المستخدم ذلك! ` +
+                  `يجب عليك حتماً نقل واستخدام نفس رقم الـ seed السابق (${priorImage.seed !== undefined ? priorImage.seed : 482910}) لحفظ بنية الضوضاء العصبية واستقرار المشهد بنسبة 100%، وأخذ البرومبت الأصلي السابق بالكامل مع إبقاء كافة أوصاف البيئة والمكان والشارع والإضاءة وزاوية الكاميرا متطابقة 100% دون حذف أو تبديل، وتطبيق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط على الكلمة أو العبارة المستهدفة (مثال: ${isContextualAddition ? 'إضافة الكائن المطلوب في موقعه الصحيح داخل المشهد السابق مع إبقاء بقية النص الإنجليزي متطابقاً 100%' : 'استبدال لون الطلاء فقط من الأسود إلى الأحمر مع إبقاء كافة أوصاف السيارة والشارع والمطر متطابقة 100%'}). `
+                : `حافظ بنسبة 100% قطعية على كافة عناصر وزوايا وتكوين وأبعاد وبيئة وخلفية وإضاءة الصورة الأصلية دون تغيير حتى بنسبة 1%، واستخدم نفس الـ seed (${priorImage?.seed !== undefined ? priorImage.seed : 482910})، وطبّق ال${isContextualAddition ? 'إضافة' : 'تعديل'} المطلوبة جراحياً فقط دون تغيير أي شيء آخر في المشهد. `) +
               `7) [الحفاظ على النسبة الأصلية]: حافظ على نفس نسبة العرض الأصلية aspectRatio: "${priorImage?.aspectRatio || '1:1'}". ` +
               `8) [بروتوكول تسليم وتوليد المعالجة العصبية الإلزامي - Neural Deliverable Block]: بعد التفكير التحليلي والشرح باللغة العربية، أخرج حتماً كتلة المعالجة العصبية التالية: ` +
               `\`\`\`neural-image\n{\n  "operation": "${isContextualAddition ? 'add_element' : 'edit'}",\n  "title": "${isContextualAddition ? 'إضافة' : 'تعديل'}: <تفاصيل ال${isContextualAddition ? 'إضافة' : 'تعديل'}>",\n  "description": "${isContextualAddition ? 'تمت إضافة' : 'تم تعديل'} <التفاصيل المنفذة بدقة 100%>",\n  "prompt": "<English prompt preserving 100% of original scene environment, lighting, and camera angle with only surgical ${isContextualAddition ? 'addition' : 'modification'} delta>",\n  "seed": ${priorImage?.seed !== undefined ? priorImage.seed : 482910},\n  "originalImage": "${priorImage?.imageUrl || ''}",\n  "aspectRatio": "${priorImage?.aspectRatio || '1:1'}",\n  "style": "${priorImage?.style || 'photorealistic'}",\n  "fidelityScore": "100%",\n  "resolution": "4K"\n}\n\`\`\` ` +
-              `9) [الحظر الصارم للـ SVG]: يُحظر تماماً إخراج أي كود SVG عند تعديل أو إضافة الصور الفوتوغرافية.`
+              `9) [الحظر الصارم للـ SVG]: يُحظر تماماً وبشكل قاطع تحويل الصور الفوتوغرافية أو طلبات تعديل/تلوين الصور إلى SVG أو تشغيل SVG Studio إطلاقاً، ولا يُخرج أي كود متجهات.`
             )
             : 'أنت المعماري والمهندس السيادي لتوليد ومعالجة وتعديل الصور عصبياً وفوتوغرافياً باستخدام محرك FLUX.1 [schnell] فائق السرعة والواقعية (Sovereign Neural Image Studio Architect): ' +
               '1) [الحظر الصارم والقطعي لتحويل الصور الفوتوغرافية إلى SVG وإخراج كود المتجهات]: يُحظر تماماً وبشكل قاطع تحويل الصور الفوتوغرافية إلى SVG أو إخراج أي كود SVG أو متجهات عند طلبات الصور الفوتوغرافية أو طلبات توليد الصور (مثل "صمم صورة"، "انشئ صورة"، "صورة لـ"، "صورة واقعية"، "بورتريه"). توليد ومعالجة الصور يتم حصراً وبنسبة 100% عبر المعالجة العصبية واستخراج كتلة ```neural-image```. ' +

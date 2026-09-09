@@ -15,19 +15,27 @@ interface ChatWindowProps {
   onSendPreset: (presetText: string) => void;
   onOpenArchitecture?: () => void;
   onToggleX1?: () => void;
+  onImageGenerated?: (messageId: string | undefined, imageUrl: string) => void;
 }
 
 function extractPriorImageFromHistory(precedingMessages: ChatMessageItem[]): string | undefined {
   for (let i = precedingMessages.length - 1; i >= 0; i--) {
     const msg = precedingMessages[i];
     // 1. Attached image in message or media attachments
-    if (msg.image) return msg.image;
-    if (msg.images && msg.images.length > 0) return msg.images[0];
+    if (msg.image && !msg.image.includes('pollinations.ai')) return msg.image;
+    if (msg.images && msg.images.length > 0 && !msg.images[0].includes('pollinations.ai')) return msg.images[0];
     if (msg.mediaAttachments && msg.mediaAttachments.length > 0) {
       const imgAttachment = msg.mediaAttachments.find(a => a.type === 'image' || a.dataUrl?.startsWith('data:image'));
-      if (imgAttachment?.dataUrl) return imgAttachment.dataUrl;
+      if (imgAttachment?.dataUrl && !imgAttachment.dataUrl.includes('pollinations.ai')) return imgAttachment.dataUrl;
     }
-    // 2. Neural image code fence in content
+    // 2. Check local storage cache by message id
+    if (typeof window !== 'undefined' && window.localStorage && msg.id) {
+      const cached = localStorage.getItem(`fathom_img_${msg.id}`);
+      if (cached && !cached.includes('pollinations.ai') && (cached.startsWith('data:image') || cached.startsWith('http'))) {
+        return cached;
+      }
+    }
+    // 3. Neural image code fence in content
     if (msg.content) {
       const neuralBlockMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(msg.content);
       if (neuralBlockMatch) {
@@ -37,7 +45,7 @@ function extractPriorImageFromHistory(precedingMessages: ChatMessageItem[]): str
           if (parsed.processedImage && !parsed.processedImage.includes('pollinations.ai')) return parsed.processedImage;
         } catch {}
       }
-      // 3. Direct image link in content
+      // 4. Direct image link in content
       const urlMatch = msg.content.match(/https?:\/\/[^\s)]+?\.(?:png|jpg|jpeg|webp)(?:\?[^\s)]*)?/i);
       if (urlMatch && !urlMatch[0].includes('pollinations.ai')) return urlMatch[0];
     }
@@ -51,6 +59,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   isX1Active,
   activeModel = 'deepseek-v4-flash',
   onSendPreset,
+  onImageGenerated,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesListRef = useRef<HTMLDivElement>(null);
@@ -289,6 +298,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   globalImageIndexMap={globalImageIndexMap}
                   previousUserPrompt={previousUserPrompt}
                   priorImage={priorImage}
+                  onImageGenerated={onImageGenerated}
                 />
               );
             })}

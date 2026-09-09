@@ -345,22 +345,43 @@ export function getConversationGlobalUrls(messages: Array<{ role?: string; conte
 /**
  * Extracts a deduplicated list of all image URLs across the entire chat conversation in chronological order.
  */
-export function getConversationGlobalImages(messages: Array<{ role?: string; images?: string[]; image?: string }>): string[] {
+export function getConversationGlobalImages(messages: Array<{ role?: string; images?: string[]; image?: string; content?: any }>): string[] {
   const globalImages: string[] = [];
   const seen = new Set<string>();
 
   messages.forEach(msg => {
-    if (msg.role === 'user') {
-      const allImgs = (msg.images && msg.images.length > 0)
-        ? msg.images
-        : (msg.image ? [msg.image] : []);
+    // 1. Collect direct images or arrays regardless of role (user or assistant)
+    const allImgs = (msg.images && msg.images.length > 0)
+      ? msg.images
+      : (msg.image ? [msg.image] : []);
 
-      allImgs.forEach(img => {
-        if (img && !seen.has(img)) {
-          seen.add(img);
-          globalImages.push(img);
-        }
-      });
+    allImgs.forEach(img => {
+      if (img && typeof img === 'string' && !seen.has(img) && !img.includes('pollinations.ai')) {
+        seen.add(img);
+        globalImages.push(img);
+      }
+    });
+
+    // 2. Also inspect content for neural-image blocks or high-resolution raster URLs
+    if (msg.content) {
+      const text = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      const neuralMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(text);
+      if (neuralMatch) {
+        try {
+          const parsed = JSON.parse(neuralMatch[1]);
+          const candidate = parsed.imageUrl || parsed.processedImage;
+          if (candidate && typeof candidate === 'string' && !seen.has(candidate) && !candidate.includes('pollinations.ai')) {
+            seen.add(candidate);
+            globalImages.push(candidate);
+          }
+        } catch {}
+      }
+
+      const directUrlMatch = text.match(/https?:\/\/[^\s)]+?\.(?:png|jpg|jpeg|webp)(?:\?[^\s)]*)?/i);
+      if (directUrlMatch && !seen.has(directUrlMatch[0]) && !directUrlMatch[0].includes('pollinations.ai')) {
+        seen.add(directUrlMatch[0]);
+        globalImages.push(directUrlMatch[0]);
+      }
     }
   });
 

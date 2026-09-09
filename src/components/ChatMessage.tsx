@@ -65,6 +65,7 @@ interface ChatMessageProps {
   globalUrlIndexMap?: Record<string, number>;
   globalImageIndexMap?: Record<string, number>;
   priorImage?: string;
+  onImageGenerated?: (messageId: string | undefined, imageUrl: string) => void;
 }
 
 interface SingleLinkCardProps {
@@ -1173,6 +1174,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   globalUrlIndexMap = {},
   globalImageIndexMap = {},
   priorImage,
+  onImageGenerated,
 }) => {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
@@ -1430,6 +1432,31 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             parsed.originalImage = priorImage;
           }
 
+          // Fallback to message.image, message.images or instant localStorage cache if imageUrl was not embedded in JSON
+          if (!parsed.imageUrl && !parsed.processedImage) {
+            const fallbackImg = message.image || (message.images && message.images[0]);
+            if (fallbackImg && isValidImageUri(fallbackImg)) {
+              parsed.imageUrl = fallbackImg;
+              parsed.processedImage = fallbackImg;
+            } else if (typeof window !== 'undefined' && window.localStorage) {
+              if (message.id) {
+                const cached = localStorage.getItem(`fathom_img_${message.id}`);
+                if (cached && isValidImageUri(cached)) {
+                  parsed.imageUrl = cached;
+                  parsed.processedImage = cached;
+                }
+              }
+              if (!parsed.imageUrl && parsed.prompt) {
+                const promptHash = Math.abs(parsed.prompt.split('').reduce((a: number, b: string) => (((a << 5) - a) + b.charCodeAt(0)) | 0, 0)).toString(36);
+                const cachedByHash = localStorage.getItem(`fathom_img_${promptHash}`);
+                if (cachedByHash && isValidImageUri(cachedByHash)) {
+                  parsed.imageUrl = cachedByHash;
+                  parsed.processedImage = cachedByHash;
+                }
+              }
+            }
+          }
+
           if (!parsed.imageUrl && !parsed.processedImage && parsed.prompt) {
             // Meta: Muse Image via OpenRouter is the sovereign image generation engine
             // Pollinations is completely abolished
@@ -1558,17 +1585,25 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     // Strict Precedence: If Neural Image Studio is active, SVG Studio must NOT be active
     if (isNeuralImageStudioActive) return false;
     if (extractedSvgData !== null) return true;
-    if (activeFeatures.some(f => f.id === 'svg_studio')) return true;
+
     const pLower = (previousUserPrompt || '').toLowerCase();
+    const hasExplicitSvgKeyword = /(?:svg|فيكتور|متجهات|شعاعي|vector|كود\s*svg|ملف\s*svg)/i.test(pLower);
+
+    // If there is prior image or photo edit/addition prompt, SVG MUST NOT activate unless explicitly asked for SVG
+    if ((hasImagesInChat || Boolean(priorImage) || /(?:صورة|صوره|photo|image|portrait)/i.test(pLower)) && !hasExplicitSvgKeyword) {
+      return false;
+    }
+
+    if (activeFeatures.some(f => f.id === 'svg_studio')) return true;
 
     // Strict: SVG requires explicit vector intent
-    if (/(?:svg|فيكتور|متجهات|شعاعي|vector)/i.test(pLower)) return true;
-    if (/(?:شعار|لوجو|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower)) return true;
+    if (hasExplicitSvgKeyword) return true;
+    if (/(?:شعار|لوجو|ايقونة|أيقونة|أيقونات|شارة|رمز\s*بصري|إنفوجرافيك|انفوجرافيك|طابع|ختم|logo|icon|icons|emblem|badge|symbol|banner)/i.test(pLower) && !/(?:صورة|photo)/i.test(pLower)) return true;
     if (/(?:رسم|تصميم)\s+(?:بياني|توضيحي|هندسي|معماري|انسيابي|مخطط|خريطة|diagram|chart|flowchart|infographic)/i.test(pLower)) return true;
     if (message.content && (message.content.includes('<svg') || message.content.includes('```svg'))) return true;
     if (message.reasoning && (message.reasoning.includes('<svg') || message.reasoning.includes('```svg'))) return true;
     return false;
-  }, [isQuant3Model, isNeuralImageStudioActive, extractedSvgData, activeFeatures, previousUserPrompt, message.content, message.reasoning]);
+  }, [isQuant3Model, isNeuralImageStudioActive, extractedSvgData, activeFeatures, previousUserPrompt, hasImagesInChat, priorImage, message.content, message.reasoning]);
 
   const isVpsActive = useMemo(() => {
     if (Boolean(message.vpsTelemetry || message.vpsExecution)) return true;
@@ -2051,6 +2086,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               <div className="w-full my-3">
                 <NeuralImageCard
                   key={`neural-card-${message.id || 'current'}`}
+                  messageId={message.id}
                   data={extractedNeuralImageData ? {
                     ...extractedNeuralImageData,
                     prompt: extractedNeuralImageData.prompt || previousUserPrompt
@@ -2065,6 +2101,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   }}
                   fallbackOriginalImage={priorImage || message.image || (message.images && message.images[0]) || undefined}
                   isStreaming={isStreaming}
+                  onImageGenerated={(imageUrl) => onImageGenerated?.(message.id, imageUrl)}
                 />
               </div>
             )}

@@ -37,6 +37,7 @@ import {
   fetchCrossChatHistoryForMemory,
   purgeAllLocalChatArtifacts,
   getOrCreateDeviceId,
+  updateMessageImage,
   SupabaseChat
 } from './services/supabase';
 
@@ -240,6 +241,44 @@ const MainAppContent: React.FC = () => {
       }
     } catch (e) {}
   };
+
+  const handleImageGenerated = useCallback((messageId: string | undefined, imageUrl: string) => {
+    if (!imageUrl) return;
+
+    setMessages(prev => {
+      return prev.map((msg, idx) => {
+        const isTarget = messageId ? msg.id === messageId : (idx === prev.length - 1 && msg.role === 'assistant');
+        if (isTarget) {
+          let updatedContent = msg.content || '';
+          const neuralMatch = /```(?:neural-image|neural_image|image-studio|image_studio)?\s*(\{[\s\S]*?\})\s*```/i.exec(updatedContent);
+          if (neuralMatch) {
+            try {
+              const parsed = JSON.parse(neuralMatch[1]);
+              parsed.imageUrl = imageUrl;
+              parsed.processedImage = imageUrl;
+              updatedContent = updatedContent.replace(
+                neuralMatch[0],
+                `\`\`\`neural-image\n${JSON.stringify(parsed, null, 2)}\n\`\`\``
+              );
+            } catch {}
+          }
+          return {
+            ...msg,
+            image: imageUrl,
+            images: [imageUrl],
+            content: updatedContent
+          };
+        }
+        return msg;
+      });
+    });
+
+    if (currentChatId) {
+      updateMessageImage(currentChatId, messageId, imageUrl).catch(err => {
+        console.warn('[Supabase updateMessageImage Error]:', err);
+      });
+    }
+  }, [currentChatId]);
 
   const refreshSidebarChats = async (userId: string | null) => {
     try {
@@ -1230,6 +1269,7 @@ const MainAppContent: React.FC = () => {
                     onSendPreset={(preset) => handleSendMessage(preset)}
                     onOpenArchitecture={() => setIsArchitectureModalOpen(true)}
                     onToggleX1={handleToggleX1}
+                    onImageGenerated={handleImageGenerated}
                   />
                 </main>
 

@@ -490,5 +490,35 @@ export async function runSvgStudioTests(harness: TestHarness) {
       expect(chatMessageSource).toContain('!isSvgStudioActive');
     });
 
+    // 23. Strict Prohibition: Realistic Photo Modification/Recoloring must NEVER route to SVG Studio
+    await harness.it('should NEVER route realistic photo edits or recoloring prompts to SVG Studio', () => {
+      const photoPrompts = [
+        'غير لون السيارة إلى الأحمر',
+        'عدل لون العربية للأزرق',
+        'غير لونها للأحمر',
+        'عدل الخلفية للصورة',
+        'غير لون القميص إلى الأسود'
+      ];
+
+      for (const prompt of photoPrompts) {
+        // Test feature registry
+        const plan = routeFeatureIntent('svg_studio', prompt, '', '');
+        expect(plan.confidence).toBe(0.0);
+        expect(plan.shouldRenderWidget).toBe(false);
+
+        // Test DynamicParameterTuner with prior neural image in history
+        const result = DynamicParameterTuner.tune({
+          userPrompt: prompt,
+          requestedModel: 'fathom-quant-3',
+          conversationHistory: [
+            { role: 'user', content: 'صمم صورة سيارة واقعية' },
+            { role: 'assistant', content: '```neural-image\n{\n  "operation": "generate",\n  "imageUrl": "https://cdn.example.com/car.png",\n  "prompt": "realistic car"\n}\n```' }
+          ]
+        });
+        expect(result.detectedIntent).not.toBe('SVG_VECTOR_STUDIO_AND_DESIGN');
+        expect(result.detectedIntent).toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
+      }
+    });
+
   });
 }
