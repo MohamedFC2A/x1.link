@@ -185,6 +185,67 @@ export default async function handler(req: Request) {
   try {
     const clientData = await req.json().catch(() => ({}));
 
+    // 0. Defense-in-Depth Guard: Absolute Exclusion for Approved Early Access Users
+    // Approved users must NEVER be tracked in telemetry logs or trigger Telegram alerts.
+    const cookieHeader = req.headers.get('cookie') || '';
+    const isUnlockedByCookie =
+      cookieHeader.includes('matany_platform_unlocked=true') ||
+      cookieHeader.includes('matany_early_access_approved=true');
+    const cookieReqId = cookieHeader
+      .split('; ')
+      .find((r) => r.startsWith('matany_early_access_req_id='))
+      ?.split('=')[1];
+
+    const visitorId = clientData.visitorId;
+    const clientMasterHash = clientData.masterFingerprintHash;
+    const reqId = clientData.requestId || cookieReqId;
+
+    let isApprovedUser = isUnlockedByCookie;
+
+    if (!isApprovedUser && (reqId || visitorId || clientMasterHash)) {
+      try {
+        const filters: string[] = [];
+        if (reqId) filters.push(`id.eq.${encodeURIComponent(reqId)}`);
+        if (visitorId && visitorId.length >= 8 && visitorId !== 'anon') {
+          filters.push(`visitor_id.eq.${encodeURIComponent(visitorId)}`);
+        }
+        if (clientMasterHash && clientMasterHash.length >= 6 && clientMasterHash !== 'N/A') {
+          filters.push(`master_hash.eq.${encodeURIComponent(clientMasterHash)}`);
+        }
+        if (filters.length > 0) {
+          const checkRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/early_access_requests?or=(${filters.join(',')})&status=eq.approved&select=id,status,approved_at,approved_by&limit=1`,
+            {
+              headers: {
+                apikey: SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+              },
+            }
+          );
+          if (checkRes.ok) {
+            const records = await checkRes.json();
+            if (Array.isArray(records) && records.length > 0 && records[0].approved_at && records[0].approved_by) {
+              isApprovedUser = true;
+            }
+          }
+        }
+      } catch (checkErr) {
+        console.error('[Telemetry Server Guard Error]:', checkErr);
+      }
+    }
+
+    if (isApprovedUser) {
+      // Approved early access visitor: completely suppress Telegram dispatch and database telemetry logging
+      return new Response(
+        JSON.stringify({
+          success: true,
+          status: 'suppressed',
+          reason: 'approved_user_exempt',
+        }),
+        { status: 200, headers: corsHeaders }
+      );
+    }
+
     // 1. Precise IP Extraction from Edge & Proxy Headers
     const cfIp = req.headers.get('cf-connecting-ip');
     const trueClientIp = req.headers.get('true-client-ip');

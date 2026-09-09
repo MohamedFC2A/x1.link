@@ -1273,15 +1273,43 @@ const MainAppContent: React.FC = () => {
 
 const STORAGE_REQ_ID = 'matany_early_access_req_id';
 const STORAGE_UNLOCKED = 'matany_platform_unlocked';
+const STORAGE_APPROVED = 'matany_early_access_approved';
+
+// Synchronous Instant Gate Resolution
+// Ensures approved visitors enter immediately with 0ms lag, zero flicker, and never see ComingSoon
+const getIsInitiallyUnlocked = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  if (isLocalEnvironment()) return true;
+  try {
+    const isUnlockedStorage = localStorage.getItem(STORAGE_UNLOCKED) === 'true';
+    const isApprovedStorage = localStorage.getItem(STORAGE_APPROVED) === 'true';
+    const isUnlockedCookie = document.cookie.split('; ').some((row) => row.startsWith(`${STORAGE_UNLOCKED}=true`));
+    const savedReqId =
+      localStorage.getItem(STORAGE_REQ_ID) ||
+      document.cookie
+        .split('; ')
+        .find((row) => row.startsWith(`${STORAGE_REQ_ID}=`))
+        ?.split('=')[1];
+    const visitorId = localStorage.getItem('matany_tracker_vid');
+
+    if ((isUnlockedStorage || isUnlockedCookie || isApprovedStorage) && (savedReqId || visitorId)) {
+      return true;
+    }
+  } catch {
+    // fallback
+  }
+  return false;
+};
 
 export const App: React.FC = () => {
   const isLocal = isLocalEnvironment();
-  const [isPlatformUnlocked, setIsPlatformUnlocked] = useState<boolean>(() => {
-    if (isLocalEnvironment()) return true;
-    return false;
-  });
+  const initialUnlocked = getIsInitiallyUnlocked();
+
+  const [isPlatformUnlocked, setIsPlatformUnlocked] = useState<boolean>(initialUnlocked);
   const [isChecking, setIsChecking] = useState<boolean>(() => {
-    return !isLocalEnvironment();
+    // If already verified/unlocked or local, do not block UI or show ComingSoon!
+    if (isLocal || initialUnlocked) return false;
+    return true;
   });
 
   // Active Server Verification with Supabase via /api/early-access-status
@@ -1304,6 +1332,7 @@ export const App: React.FC = () => {
         if (localStorage.getItem(STORAGE_UNLOCKED) === 'true') {
           console.warn('[Security] Unauthorized client-side unlock flag detected without credentials. Purging.');
           localStorage.removeItem(STORAGE_UNLOCKED);
+          localStorage.removeItem(STORAGE_APPROVED);
           document.cookie = `${STORAGE_UNLOCKED}=; max-age=0; path=/`;
         }
         return false;
@@ -1318,26 +1347,34 @@ export const App: React.FC = () => {
         headers: { 'Cache-Control': 'no-cache' },
       });
 
-      if (!res.ok) return false;
+      if (!res.ok) {
+        // In case of transient network issue, preserve existing unlocked state
+        return localStorage.getItem(STORAGE_UNLOCKED) === 'true' || localStorage.getItem(STORAGE_APPROVED) === 'true';
+      }
 
       const data = await res.json();
       if (data && data.status === 'approved') {
         localStorage.setItem(STORAGE_UNLOCKED, 'true');
+        localStorage.setItem(STORAGE_APPROVED, 'true');
         document.cookie = `${STORAGE_UNLOCKED}=true; max-age=31536000; path=/; samesite=lax`;
         if (data.id && !savedReqId) {
           localStorage.setItem(STORAGE_REQ_ID, data.id);
           document.cookie = `${STORAGE_REQ_ID}=${data.id}; max-age=31536000; path=/; samesite=lax`;
         }
         return true;
-      } else {
-        // Any status other than 'approved': purge fake flags
+      } else if (data && (data.status === 'rejected' || data.status === 'revoked' || data.status === 'not_found')) {
+        // Status explicitly confirmed revoked/rejected by server
         localStorage.removeItem(STORAGE_UNLOCKED);
+        localStorage.removeItem(STORAGE_APPROVED);
         document.cookie = `${STORAGE_UNLOCKED}=; max-age=0; path=/`;
+        return false;
+      } else {
+        // Pending or intermediate state
         return false;
       }
     } catch (err) {
       console.error('[Security] Matany status verification error:', err);
-      return false;
+      return localStorage.getItem(STORAGE_UNLOCKED) === 'true' || localStorage.getItem(STORAGE_APPROVED) === 'true';
     }
   }, []);
 
@@ -1369,7 +1406,7 @@ export const App: React.FC = () => {
     window.addEventListener('focus', handleFocus);
 
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_UNLOCKED && e.newValue === 'true') {
+      if ((e.key === STORAGE_UNLOCKED || e.key === STORAGE_APPROVED) && e.newValue === 'true') {
         verifyApprovalStatus().then((approved) => {
           if (isSubscribed) setIsPlatformUnlocked(approved);
         });

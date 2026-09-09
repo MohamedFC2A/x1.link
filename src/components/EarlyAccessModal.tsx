@@ -118,6 +118,12 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
         if (data.status === 'approved') {
           setRequestStatus('approved');
           localStorage.setItem('matany_platform_unlocked', 'true');
+          localStorage.setItem('matany_early_access_approved', 'true');
+          document.cookie = 'matany_platform_unlocked=true; max-age=31536000; path=/; samesite=lax';
+          if (data.id) {
+            localStorage.setItem('matany_early_access_req_id', data.id);
+            document.cookie = `matany_early_access_req_id=${data.id}; max-age=31536000; path=/; samesite=lax`;
+          }
           if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         } else if (data.status === 'rejected') {
           setRequestStatus('rejected');
@@ -212,6 +218,9 @@ export const EarlyAccessModal: React.FC<EarlyAccessModalProps> = ({
   };
 
   const handleEnterPlatform = () => {
+    localStorage.setItem('matany_platform_unlocked', 'true');
+    localStorage.setItem('matany_early_access_approved', 'true');
+    document.cookie = 'matany_platform_unlocked=true; max-age=31536000; path=/; samesite=lax';
     onClose();
     if (onPlatformUnlock) {
       onPlatformUnlock();

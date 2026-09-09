@@ -26,6 +26,7 @@ import { runSocialVideoSparkTests } from './socialVideoSpark.test';
 import { runEmptyPromptImageTests } from './emptyPromptImage.test';
 import { runFathomQuant3Tests } from './fathomQuant3.test';
 import { runVpsControlTests } from './vpsControl.test';
+import { runEarlyAccessExemptionTests } from './earlyAccessExemption.test';
 
 export async function runAllUnitTests(): Promise<boolean> {
   const harness = new TestHarness();
@@ -56,6 +57,7 @@ export async function runAllUnitTests(): Promise<boolean> {
   await runEmptyPromptImageTests(harness);
   await runFathomQuant3Tests(harness);
   await runVpsControlTests(harness);
+  await runEarlyAccessExemptionTests(harness);
 
   const passed = harness.printSummary('UNIT TEST SUITE SUMMARY');
   return passed;

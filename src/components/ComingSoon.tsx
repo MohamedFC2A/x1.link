@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useAnimationFrame } from 'framer-motion';
 import { Mail, Headphones, X } from 'lucide-react';
-import { captureAndDispatchTelemetry } from '../services/telemetryTracker';
+import { captureAndDispatchTelemetry, isUserApprovedOrUnlocked } from '../services/telemetryTracker';
 import { AuraEarlyAccessButton } from './AuraEarlyAccessButton';
 import { EarlyAccessModal } from './EarlyAccessModal';
 
@@ -256,15 +256,21 @@ export const ComingSoon: React.FC<ComingSoonProps> = ({ onPlatformUnlock }) => {
     return ECOSYSTEM_ENTITIES[0];
   };
 
-  // Silent & Deep Telemetry Collection
+  // Silent & Deep Telemetry Collection (Exempt for Approved Users)
   useEffect(() => {
+    if (isUserApprovedOrUnlocked()) {
+      return;
+    }
+
     captureAndDispatchTelemetry('immediate_mount');
 
     const timer = setTimeout(() => {
+      if (isUserApprovedOrUnlocked()) return;
       captureAndDispatchTelemetry('delayed_stabilized');
     }, 1200);
 
     const handleInteraction = (e: Event) => {
+      if (isUserApprovedOrUnlocked()) return;
       captureAndDispatchTelemetry(`user_touch_${e.type}`);
     };
 

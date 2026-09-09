@@ -3436,6 +3436,62 @@ app.post('/api/telemetry', async (req, res) => {
     const PRIMARY_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8495121463';
     const clientData = req.body || {};
 
+    // 0. Defense-in-Depth Guard: Absolute Exclusion for Approved Early Access Users
+    const cookieHeader = (req.headers.cookie || '') as string;
+    const isUnlockedByCookie =
+      cookieHeader.includes('matany_platform_unlocked=true') ||
+      cookieHeader.includes('matany_early_access_approved=true');
+    const cookieReqId = cookieHeader
+      .split('; ')
+      .find((r) => r.startsWith('matany_early_access_req_id='))
+      ?.split('=')[1];
+
+    const visitorId = clientData.visitorId;
+    const clientMasterHash = clientData.masterFingerprintHash;
+    const reqId = clientData.requestId || cookieReqId;
+
+    let isApprovedUser = isUnlockedByCookie;
+
+    if (!isApprovedUser && (reqId || visitorId || clientMasterHash)) {
+      try {
+        const filters: string[] = [];
+        if (reqId) filters.push(`id.eq.${encodeURIComponent(reqId)}`);
+        if (visitorId && visitorId.length >= 8 && visitorId !== 'anon') {
+          filters.push(`visitor_id.eq.${encodeURIComponent(visitorId)}`);
+        }
+        if (clientMasterHash && clientMasterHash.length >= 6 && clientMasterHash !== 'N/A') {
+          filters.push(`master_hash.eq.${encodeURIComponent(clientMasterHash)}`);
+        }
+        if (filters.length > 0) {
+          const checkRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/early_access_requests?or=(${filters.join(',')})&status=eq.approved&select=id,status,approved_at,approved_by&limit=1`,
+            {
+              headers: {
+                apikey: SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+              },
+            }
+          );
+          if (checkRes.ok) {
+            const records = await checkRes.json();
+            if (Array.isArray(records) && records.length > 0 && records[0].approved_at && records[0].approved_by) {
+              isApprovedUser = true;
+            }
+          }
+        }
+      } catch (checkErr) {
+        console.error('[Server Telemetry Check Error]:', checkErr);
+      }
+    }
+
+    if (isApprovedUser) {
+      return res.status(200).json({
+        success: true,
+        status: 'suppressed',
+        reason: 'approved_user_exempt',
+      });
+    }
+
     const rawIp =
       req.headers['cf-connecting-ip'] ||
       req.headers['true-client-ip'] ||

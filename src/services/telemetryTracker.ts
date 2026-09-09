@@ -613,7 +613,25 @@ export async function collectMaximumTelemetryPayload(trigger: string = 'page_loa
   return payload;
 }
 
+export function isUserApprovedOrUnlocked(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const isUnlockedStorage = localStorage.getItem('matany_platform_unlocked') === 'true';
+    const isUnlockedCookie = document.cookie.split('; ').some((row) => row.startsWith('matany_platform_unlocked=true'));
+    const isApprovedFlag = localStorage.getItem('matany_early_access_approved') === 'true';
+    return isUnlockedStorage || isUnlockedCookie || isApprovedFlag;
+  } catch {
+    return false;
+  }
+}
+
 export async function captureAndDispatchTelemetry(trigger: string = 'page_load'): Promise<void> {
+  // CRITICAL PRIVACY & AUDIT COMPLIANCE:
+  // Users who received approved early access or unlocked status MUST NEVER be tracked, logged, or alerted via bot.
+  if (isUserApprovedOrUnlocked()) {
+    return;
+  }
+
   if (isCapturing) return;
 
   const lastSent = sessionStorage.getItem(LAST_SENT_KEY);
