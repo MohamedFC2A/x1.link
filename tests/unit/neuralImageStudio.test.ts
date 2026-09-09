@@ -192,5 +192,44 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(planNeural.confidence).toBeGreaterThanOrEqual(0.95);
     });
 
+    // 14. Strict Context Perception: Informational/coding queries mentioning "صورة" MUST NOT trigger Neural Image Studio (0% error rate)
+    await harness.it('should strictly suppress Neural Image Studio for informational and coding queries mentioning image concepts', () => {
+      const nonImagePrompts = [
+        'كيف اعرض صورة في ريأكت؟',
+        'ما هي مكونات الصورة الرقمية ومصفوفة البكسل؟',
+        'اشرح لي تاريخ التصوير والصورة الفوتوغرافية',
+        'اكتب كود بايثون لقراءة ملف صورة واستخراج حجمها',
+        'ما مفهوم الصورة النمطية في علم الاجتماع؟'
+      ];
+
+      for (const prompt of nonImagePrompts) {
+        const plan = routeFeatureIntent('neural_image_studio', prompt, '', '', {});
+        expect(plan.confidence).toBe(0.0);
+        expect(plan.shouldRenderWidget).toBe(false);
+
+        const tuning = DynamicParameterTuner.tune({ userPrompt: prompt, requestedModel: 'fathom-quant-3' });
+        expect(tuning.detectedIntent).not.toBe('NEURAL_IMAGE_STUDIO_AND_PROCESSING');
+      }
+    });
+
+    // 15. Verify NeuralImageCard has clean Glassmorphism styling with zero clutter and zero loud neon
+    await harness.it('should verify NeuralImageCard has clean Glassmorphism styling without loud colors or duplicate badges', async () => {
+      const fs = await import('fs');
+      const cardSource = fs.readFileSync('c:/Best Projects/Matany/src/components/ui/NeuralImageCard.tsx', 'utf-8');
+
+      // Zero loud cyan/sky/blue gradient buttons
+      expect(cardSource).not.toContain('from-cyan-600/90');
+      expect(cardSource).not.toContain('via-sky-600/90');
+
+      // Pure Glassmorphism styling on primary button
+      expect(cardSource).toContain('bg-white/[0.08]');
+      expect(cardSource).toContain('hover:bg-white/[0.14]');
+
+      // No duplicate IMAGE STUDIO badge or aspect ratio pills
+      expect(cardSource).not.toContain("selectedRatio === r");
+      expect(cardSource).not.toContain("تنويع بصري");
+    });
+
   });
 }
+

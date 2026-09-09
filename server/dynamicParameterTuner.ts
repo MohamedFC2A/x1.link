@@ -145,11 +145,11 @@ const NEURAL_IMAGE_PATTERNS = [
 ];
 
 const NEURAL_IMAGE_GENERATION_PATTERNS = [
-  /(?:صورة|صوره|photo|image|picture|خلفية\s+شاشة|خلفيه\s+شاشة|خلفية\s+الصورة|wallpaper|بورتريه|portrait)/i,
+  /(?:صورة|صوره|خلفية\s+شاشة|خلفيه\s+شاشة|خلفية\s+الصورة|wallpaper|بورتريه|portrait)\s+(?:واقعية|فوتوغرافية|احترافية|عالية\s+الدقة|hd|4k|8k|فنية)/i,
   /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية\s+شاشة|خلفيه\s+شاشة|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i,
   /(?:صورة|صوره|خلفية\s+شاشة|خلفيه\s+شاشة|بورتريه|photo|image|picture)\s+(?:لـ|للـ|عن|فيها|تعبر\s+عن|جميلة|فنية|واقعية|احترافية|طبيعية|سينمائية|شخصية|متحركة|جديدة|hd|4k|8k)/i,
   /(?:صمم|ارسم|تخيل|ولد|انشئ|أنشئ)\s+(?:لي\s+)?(?:قطة|كلب|[أا]سد|طائر|عصفور|حيوان|شجرة|زهور|ورد|سيارة|عربية|طبيعة|منظر|[أا]شكال|شمس|غروب|شروق|قمر|بحر|فضاء|كوكب|رجل|شخص|وجه|بنت|طفل|بيت|مدينة|سفينة|طائرة|طبيعة\s*صامتة)/i,
-  /\b(?:generate\s+an?\s+image|create\s+an?\s+image|design\s+an?\s+image|draw\s+an?\s+image|image\s+of|photo\s+of|picture\s+of|photorealistic|realistic\s+photo|dslr\s+shot|hyperrealistic|realistic\s+portrait|realistic\s+human|realistic\s+person|generate\s+photo|create\s+photo)\b/i
+  /\b(?:generate\s+(?:an?\s+)?(?:image|photo|picture|wallpaper|portrait)|create\s+(?:an?\s+)?(?:image|photo|picture|wallpaper|portrait)|design\s+(?:an?\s+)?(?:image|photo|picture|wallpaper|portrait)|draw\s+(?:an?\s+)?(?:image|photo|picture)|image\s+of|photo\s+of|picture\s+of|photorealistic|realistic\s+photo|dslr\s+shot|hyperrealistic|realistic\s+portrait|realistic\s+human|realistic\s+person|generate\s+photo|create\s+photo)\b/i
 ];
 
 const SVG_DESIGN_PATTERNS = [
@@ -432,8 +432,15 @@ export class DynamicParameterTuner {
 
     // 6.b. Cyber Ultra & Fathom Quant Neural Image Studio & Photorealistic Generation Check
     const isSvgHistoryFollowup = /(?:```svg|<svg)/i.test(historyText);
-    const matchesNeuralGen = NEURAL_IMAGE_GENERATION_PATTERNS.some(p => p.test(text)) ||
-      (isFollowUpPrompt && !isSvgHistoryFollowup && NEURAL_IMAGE_GENERATION_PATTERNS.some(p => p.test(historyText)));
+    const isCodeOrHowToQuery = /(?:كود|برمجة|دالة|مكتبة|بايثون|جافاسكريبت|رياكت|api|endpoint|code|script|component|function)\b/i.test(text) ||
+      /^(?:كيف|طريقة|شرح|اشرح|لماذا|ليه|ما\s*هو|ما\s*هي|ماذا\s*يعني|ما\s*الفرق|how\s+to|explain|why|what\s+is)\b/i.test(text);
+    const hasExplicitCreateCmd = /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية|خلفيه|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i.test(text);
+
+    const matchesNeuralGen = (!isCodeOrHowToQuery || hasExplicitCreateCmd) && (
+      NEURAL_IMAGE_GENERATION_PATTERNS.some(p => p.test(text)) ||
+      (isFollowUpPrompt && !isSvgHistoryFollowup && NEURAL_IMAGE_GENERATION_PATTERNS.some(p => p.test(historyText)))
+    );
+
     if (matchesNeuralGen && !/(?:svg|فيكتور|متجهات|vector)/i.test(text) && !(isSvgHistoryFollowup && /(?:الشعار|اللوجو|الايقونة|الأيقونة|الفيكتور|التصميم|الخلفية|لون|الوان|ألوان|ذهبي|فضي)/i.test(text))) {
       return {
         intent: 'NEURAL_IMAGE_STUDIO_AND_PROCESSING',

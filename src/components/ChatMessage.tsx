@@ -1822,7 +1822,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           // Neural Image Studio Mode: Clean single-line indicator during processing, suppress thinking button
           (isThinking || isStreaming) && !extractedNeuralImageData ? (
             <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
-              <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+              <span className="inline-block w-2 h-2 rounded-full bg-white/80 animate-pulse shrink-0" />
               <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
                 جاري انشاء صورة واقعية ......
               </span>
@@ -1832,7 +1832,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           // SVG Studio Mode: Clean single-line indicator during creation, completely remove thinking button during and after
           (isThinking || isStreaming) && !extractedSvgData ? (
             <div className="flex items-center gap-2.5 py-2 px-3.5 mb-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-zinc-200 select-none w-fit" dir="rtl">
-              <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+              <span className="inline-block w-2 h-2 rounded-full bg-white/80 animate-pulse shrink-0" />
               <span className="text-xs sm:text-sm font-sans font-medium text-zinc-200">
                 جاري انشاء صورة ذو رسومات شعاعية ......
               </span>
@@ -1960,10 +1960,10 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   "جاري الاستطلاع الأمني وتدقيق الهدف والبحث الحي..."
                 ) : message.isX1 ? (
                   "جاري تحرير المحرك العصبي واستدعاء الرد..."
+                ) : isNeuralImageStudioActive ? (
+                  "جاري انشاء صورة واقعية ......"
                 ) : isSvgStudioActive ? (
                   "جاري انشاء صورة ذو رسومات شعاعية ......"
-                ) : isNeuralImageStudioActive ? (
-                  "جاري المعالجة العصبية الفائقة للصورة (Cyber Ultra 4K)..."
                 ) : (
                   "جاري توليد الاستجابة اللغوية الفصحى..."
                 )}

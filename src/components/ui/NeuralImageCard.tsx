@@ -239,28 +239,28 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
       )}
       dir="rtl"
     >
-      {/* ── 1. Header Toolbar (Identical to SvgStudioCard) ────────────────── */}
-      <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/[0.03] border-b border-white/[0.08]">
-        {/* Title & Image Dimensions */}
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="size-7 sm:size-8 rounded-xl bg-gradient-to-br from-cyan-500/20 via-indigo-500/20 to-purple-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0 shadow-sm text-cyan-300">
+      {/* ── 1. Header Toolbar (Official Minimal Glassmorphism) ────────────── */}
+      <div className="flex items-center justify-between gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 bg-white/[0.02] border-b border-white/[0.08]">
+        {/* Title & Image Specs */}
+        <div className="flex items-center gap-2.5 min-w-0" dir="ltr">
+          <div className="size-7 sm:size-8 rounded-xl bg-white/[0.05] border border-white/[0.1] flex items-center justify-center shrink-0 text-zinc-300">
             <Quant3PerfectionIcon size={16} />
           </div>
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] sm:text-xs font-bold tracking-wider text-cyan-300">
-                FATHOM QUANT 3 • IMAGE STUDIO
+              <span className="font-mono text-xs font-bold tracking-wider text-zinc-100">
+                FATHOM QUANT 3
               </span>
-              <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-cyan-500/10 border border-cyan-400/30 text-cyan-300">
+              <span className="text-[9.5px] font-mono font-medium text-zinc-400 px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.08]">
                 IMAGE STUDIO
               </span>
             </div>
-            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-mono text-zinc-400">
+            <div className="flex items-center gap-1.5 text-[10.5px] font-mono text-zinc-400">
               <span>{currentDimensions.width}×{currentDimensions.height}</span>
               <span>•</span>
-              <span>{selectedRatio}</span>
-              <span className="hidden xs:inline">•</span>
-              <span className="text-cyan-400 font-semibold">FLUX.1 [schnell]</span>
+              <span>4K UHD</span>
+              <span>•</span>
+              <span>FLUX.1</span>
             </div>
           </div>
         </div>
@@ -322,14 +322,14 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         {/* Loading / Streaming Shimmer Overlay */}
         {(isStreaming || isImageLoading) && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm gap-3 p-6 text-center animate-pulse">
-            <div className="size-11 sm:size-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shadow-lg shadow-cyan-950/20">
-              <Sparkles className="size-5 sm:size-6 text-cyan-400 animate-spin" />
+            <div className="size-11 sm:size-12 rounded-2xl bg-white/[0.06] border border-white/[0.12] flex items-center justify-center shadow-lg text-zinc-200">
+              <Sparkles className="size-5 sm:size-6 text-zinc-200 animate-spin" />
             </div>
-            <div className="text-xs sm:text-sm font-sans font-bold text-white">
+            <div className="text-xs sm:text-sm font-sans font-bold text-zinc-100">
               جاري توليد الصورة الفوتوغرافية بدقة 4K...
             </div>
             <div className="text-[11px] sm:text-xs text-zinc-400 font-sans max-w-xs">
-              توليد عصبي دقيق عبر Fathom Quant 3 والنسب الذهبية المختارة
+              توليد عصبي دقيق عبر Fathom Quant 3 والنسب الذهبية
             </div>
           </div>
         )}
@@ -424,42 +424,22 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         )}
       </div>
 
-      {/* ── 3. Unified Action Footer Dock (Matching SvgStudioCard 1:1) ──── */}
-      <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-[#0a0d14]/95 border-t border-white/[0.08] flex flex-col gap-2 sm:gap-2.5">
-        {/* Row 1: Unified Config Dock (Aspect Ratio & Resolution) */}
+      {/* ── 3. Unified Action Footer Dock (Clean, Official, Glassmorphism) ── */}
+      <div className="px-3.5 sm:px-5 py-3 bg-[#0a0d14]/95 border-t border-white/[0.08] flex flex-col gap-2.5">
+        {/* Row 1: Resolution Config Dock */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          {/* Aspect Ratio Selector: 1:1 | 16:9 | 9:16 | 4:3 */}
-          <div className="flex items-center gap-1 bg-white/[0.03] p-0.5 sm:p-1 rounded-xl border border-white/[0.07]">
-            <span className="text-[10px] sm:text-[11px] font-sans font-medium text-zinc-400 px-1">الأبعاد:</span>
-            {(['1:1', '16:9', '9:16', '4:3'] as const).map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => handleRatioChange(r)}
-                className={cn(
-                  "px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-mono font-bold transition-all cursor-pointer",
-                  selectedRatio === r
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]"
-                )}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-
           {/* Resolution Selector: 4K | 2K | 1X */}
           <div className="flex items-center gap-1 bg-white/[0.03] p-0.5 sm:p-1 rounded-xl border border-white/[0.07]">
-            <span className="text-[10px] sm:text-[11px] font-sans font-medium text-zinc-400 px-1">الدقة:</span>
+            <span className="text-[10px] sm:text-[11px] font-sans font-medium text-zinc-400 px-1.5">الدقة:</span>
             {(['4k', '2k', 'original'] as const).map((q) => (
               <button
                 key={q}
                 type="button"
                 onClick={() => setSelectedQuality(q)}
                 className={cn(
-                  "px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-mono font-bold uppercase transition-all cursor-pointer",
+                  "px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-mono font-bold uppercase transition-all cursor-pointer",
                   selectedQuality === q
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                    ? "bg-white/[0.12] text-white border border-white/[0.2] shadow-sm"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]"
                 )}
                 title={q === '4k' ? 'دقة 4K فائقة الوضوح (3840px)' : q === '2k' ? 'دقة 2K عالية (2048px)' : 'الدقة الأصلية 1X'}
@@ -468,25 +448,30 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
               </button>
             ))}
           </div>
+
+          <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400 bg-white/[0.02] px-2.5 py-1 rounded-xl border border-white/[0.05]">
+            <span className="size-1.5 rounded-full bg-emerald-400" />
+            <span>جاهز للتنزيل المباشر</span>
+          </div>
         </div>
 
-        {/* Row 2: Streamlined Action Bar (100% Mobile Responsive) */}
+        {/* Row 2: Streamlined Official Glassmorphism Action Bar */}
         <div className="flex items-center gap-2">
           {/* Primary Download Button */}
           <button
             type="button"
             onClick={() => handleDownload(selectedQuality)}
             disabled={isProcessingCanvas}
-            className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-cyan-600/90 via-sky-600/90 to-blue-600/90 hover:from-cyan-500 hover:to-blue-500 text-white text-xs sm:text-sm font-sans font-bold shadow-lg shadow-cyan-950/30 border border-cyan-400/25 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs sm:text-sm font-sans font-bold shadow-lg shadow-black/40 border border-white/[0.14] backdrop-blur-md active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isProcessingCanvas ? (
               <>
-                <Sparkles className="size-3.5 sm:size-4 animate-spin text-cyan-200" />
+                <Sparkles className="size-4 animate-spin text-zinc-300" />
                 <span>جاري معالجة الصورة...</span>
               </>
             ) : (
               <>
-                <Download className="size-3.5 sm:size-4 text-cyan-100" />
+                <Download className="size-4 text-zinc-200" />
                 <span>
                   تنزيل الصورة ({selectedQuality === 'original' ? '1X' : selectedQuality.toUpperCase()})
                 </span>
@@ -494,29 +479,26 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             )}
           </button>
 
-          {/* Secondary Action: Variation Button */}
+          {/* Secondary Action: Copy Description Button */}
           <button
             type="button"
-            onClick={handleRegenerateVariation}
-            disabled={isProcessingCanvas || !data.prompt}
-            className="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] text-zinc-200 hover:text-white border border-white/[0.1] text-xs sm:text-sm font-sans font-semibold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 shrink-0"
-            title="توليد تنويع بصري جديد برقم عشوائي (Seed)"
+            onClick={handleCopyPrompt}
+            disabled={isProcessingCanvas}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white border border-white/[0.08] text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer active:scale-[0.99] shrink-0"
+            title="نسخ الوصف البصري"
           >
-            <RefreshCw className={cn("size-3.5 sm:size-4 text-zinc-300", isImageLoading && "animate-spin")} />
-            <span>تنويع بصري</span>
+            {copied ? (
+              <>
+                <Check className="size-4 text-emerald-400" />
+                <span className="text-emerald-400 font-bold">تم النسخ</span>
+              </>
+            ) : (
+              <>
+                <Copy className="size-4 text-zinc-300" />
+                <span>نسخ الوصف</span>
+              </>
+            )}
           </button>
-
-          {/* Copy Prompt Button */}
-          {data.prompt && (
-            <button
-              type="button"
-              onClick={handleCopyPrompt}
-              className="p-2 sm:p-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] text-zinc-300 hover:text-white border border-white/[0.1] transition-all cursor-pointer active:scale-[0.98] shrink-0"
-              title="نسخ الوصف البصري"
-            >
-              {copied ? <Check className="size-3.5 sm:size-4 text-emerald-400" /> : <Copy className="size-3.5 sm:size-4" />}
-            </button>
-          )}
         </div>
       </div>
 

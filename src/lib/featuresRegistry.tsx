@@ -1292,13 +1292,23 @@ export function routeFeatureIntent(
       /(?:عدل\s+على\s+الصورة|تعديل\s+الصورة|ظبط\s+الصورة|معالجة\s+الصورة|عدل\s+الصورة|edit\s+photo|modify\s+image|inpaint|recolor|upscale|remove\s+background)/i.test(pLower)
     );
 
+    // Strict Guard: Informational or coding queries without creation commands must NEVER trigger image generation
+    const isCodeOrHowToQuery = /(?:كود|برمجة|دالة|مكتبة|بايثون|جافاسكريبت|رياكت|api|endpoint|code|script|component|function)\b/i.test(pLower) ||
+      /^(?:كيف|طريقة|شرح|اشرح|لماذا|ليه|ما\s*هو|ما\s*هي|ماذا\s*يعني|ما\s*الفرق|how\s+to|explain|why|what\s+is)\b/i.test(pLower) ||
+      isInfoOnly;
+
+    const hasExplicitCreateCommand = /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية|خلفيه|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i.test(pLower);
+
+    if (isCodeOrHowToQuery && !hasExplicitCreateCommand && !hasImages && !hasNeuralBlock) {
+      return { featureId, confidence: 0.0, category: 'none', shouldRenderWidget: false, shouldInjectContext: false, extractedParams: {}, reason: 'Suppressed: Informational or coding query without explicit image creation command.' };
+    }
+
     // Comprehensive Image Generation Intent (Photo, Scene, Portrait, Wallpaper, or any "صمم صورة" command)
     const isPhotoGenPrompt = !/(?:كود\s*svg|رسم\s*svg|ملف\s*svg|\.svg\b)/i.test(pLower) && (
-      /(?:صورة|صوره|photo|image|picture|خلفية|خلفيه|wallpaper|بورتريه|portrait)/i.test(pLower) ||
-      /(?:صمم|صممي|انشئ|أنشئ|ولد|توليد|اعمل|اعملي|سوي|سويلي|طلع|طلعلي|اريد|أريد|عايز|عاوز|بدي|محتاج|تخيل|ارسم|ارسمي|هات|جهز|صنع|create|generate|design|draw|make|render)\s+(?:لي\s+)?(?:صورة|صوره|خلفية|خلفيه|لوحة|بورتريه|photo|image|picture|wallpaper|portrait)/i.test(pLower) ||
+      hasExplicitCreateCommand ||
       /(?:صورة|صوره|خلفية|خلفيه|بورتريه|photo|image|picture)\s+(?:لـ|للـ|عن|فيها|تعبر\s+عن|جميلة|فنية|واقعية|احترافية|طبيعية|سينمائية|شخصية|متحركة|جديدة)/i.test(pLower) ||
       /(?:صمم|ارسم|تخيل|ولد|انشئ|أنشئ)\s+(?:لي\s+)?(?:قطة|كلب|[أا]سد|طائر|عصفور|حيوان|شجرة|زهور|ورد|سيارة|عربية|طبيعة|منظر|[أا]شكال|شمس|غروب|شروق|قمر|بحر|فضاء|كوكب|رجل|شخص|وجه|بنت|طفل|بيت|مدينة|سفينة|طائرة|طبيعة\s*صامتة)/i.test(pLower) ||
-      /\b(?:generate\s+an?\s+image|create\s+an?\s+image|design\s+an?\s+image|draw\s+an?\s+image|image\s+of|photo\s+of|picture\s+of|photorealistic|realistic\s+photo|dslr\s+shot|hyperrealistic|realistic\s+portrait|realistic\s+human|realistic\s+person)\b/i.test(pLower)
+      /\b(?:generate\s+(?:an?\s+)?(?:image|photo|picture|wallpaper|portrait)|create\s+(?:an?\s+)?(?:image|photo|picture|wallpaper|portrait)|design\s+(?:an?\s+)?(?:image|photo|picture|wallpaper|portrait)|draw\s+(?:an?\s+)?(?:image|photo|picture)|image\s+of|photo\s+of|picture\s+of|photorealistic|realistic\s+photo|dslr\s+shot|hyperrealistic|realistic\s+portrait|realistic\s+human|realistic\s+person)\b/i.test(pLower)
     );
 
     if (hasNeuralBadge || hasNeuralBlock || isPhotoEditPrompt || isPhotoGenPrompt || hasNeuralReasoning) {
