@@ -29,6 +29,7 @@ import { runVpsControlTests } from './vpsControl.test';
 import { runEarlyAccessExemptionTests } from './earlyAccessExemption.test';
 import { runGpaengDiagnosticTests } from './gpaengDiagnostic.test';
 import { runDeepSeekDirectUnitTests } from './deepseekDirectQuality.test';
+import { runPayloadAndGpaengHardeningTests } from './payloadAndGpaengHardening.test';
 
 export async function runAllUnitTests(): Promise<boolean> {
   const harness = new TestHarness();
@@ -62,6 +63,7 @@ export async function runAllUnitTests(): Promise<boolean> {
   await runEarlyAccessExemptionTests(harness);
   await runGpaengDiagnosticTests(harness);
   await runDeepSeekDirectUnitTests(harness);
+  await runPayloadAndGpaengHardeningTests(harness);
 
   const passed = harness.printSummary('UNIT TEST SUITE SUMMARY');
   return passed;

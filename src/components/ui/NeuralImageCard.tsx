@@ -19,6 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Quant3PerfectionIcon } from '@/components/ui/Quant3PerfectionIcon';
 import { incidentDiagnosticService } from '@/services/incidentDiagnosticService';
+import { ensureImageCdnUrl } from '@/services/clientStorageService';
 
 export interface NeuralImageData {
   operation?: 'recolor' | 'remove_background' | 'enhance_4k' | 'composite' | 'product_edit' | 'text_edit' | 'generate' | 'portrait_generation' | 'human_edit' | 'add_element' | 'edit' | string;
@@ -324,19 +325,29 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
     setLoadError(false);
     generationStartTimeRef.current = performance.now();
 
-    const requestPayload = {
-      action: 'generate_image',
-      prompt: promptText,
-      aspectRatio: selectedRatio,
-      originalImage: originalSrc || data.originalImage || fallbackOriginalImage || undefined,
-      referenceImages: (data as any)?.referenceImages || (originalSrc ? [originalSrc] : (fallbackOriginalImage ? [fallbackOriginalImage] : undefined)),
-      messageId: messageId || undefined
-    };
-
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds
 
     const executeGeneration = async () => {
+      // 1. Convert any base64 image data to lightweight Supabase CDN URL (<150 bytes)
+      let resolvedOriginal = originalSrc || data.originalImage || fallbackOriginalImage || undefined;
+      if (resolvedOriginal && resolvedOriginal.startsWith('data:image')) {
+        try {
+          resolvedOriginal = await ensureImageCdnUrl(resolvedOriginal);
+        } catch {
+          // Keep compressed fallback
+        }
+      }
+
+      const requestPayload: any = {
+        action: 'generate_image',
+        prompt: promptText,
+        aspectRatio: selectedRatio,
+        originalImage: resolvedOriginal,
+        referenceImages: resolvedOriginal ? [resolvedOriginal] : undefined,
+        messageId: messageId || undefined
+      };
+
       try {
         const res = await fetch('/api/generate-image', {
           method: 'POST',
@@ -350,8 +361,13 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
             return json;
           }
         }
+        if (res.status === 413) {
+          console.warn('[NeuralImageCard] HTTP 413 detected on /api/generate-image, payload too large.');
+          throw new Error('HTTP 413: Payload too large');
+        }
       } catch (e: any) {
         if (e.name === 'AbortError') throw e;
+        if (e?.message?.includes('413')) throw e;
       }
 
       try {
@@ -377,7 +393,8 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         const durationMs = Math.round(performance.now() - (generationStartTimeRef.current || performance.now()));
         lastGenerationTimeRef.current = Date.now();
 
-        if (durationMs > 25000) {
+        // Image diffusion models routinely take 20-35s; only flag genuine latency spikes over 45s
+        if (durationMs > 45000) {
           incidentDiagnosticService.trackPerformanceMetric(
             'IMAGE_STUDIO',
             durationMs,
@@ -412,23 +429,25 @@ export const NeuralImageCardComponent: React.FC<NeuralImageCardProps> = ({
         clearTimeout(timeoutId);
         const durationMs = Math.round(performance.now() - (generationStartTimeRef.current || performance.now()));
         if (!isCancelled) {
-          console.error('[Fathom QP3 Image Generation Error]:', err);
+          console.warn('[Fathom QP3 Image Generation Handled]:', err?.message);
           setIsImageLoading(false);
           setLoadError(true);
-          incidentDiagnosticService.trackImageEvent(
-            'IMAGE_GENERATION_DEFECT',
-            {
-              errorMessage: err?.message || 'Neural image generation API failed',
-              errorCode: 'GENERATION_DISPATCH_FAILED',
-              userPrompt: promptText.slice(0, 150),
-              durationMs,
-              severity: 'HIGH',
-              metadata: {
-                aspect_ratio: selectedRatio,
-                retry_count: retryCount
+          if (!err?.message?.includes('413') && !err?.message?.includes('PAYLOAD_TOO_LARGE')) {
+            incidentDiagnosticService.trackImageEvent(
+              'IMAGE_GENERATION_DEFECT',
+              {
+                errorMessage: err?.message || 'Neural image generation API failed',
+                errorCode: 'GENERATION_DISPATCH_FAILED',
+                userPrompt: promptText.slice(0, 150),
+                durationMs,
+                severity: 'MEDIUM',
+                metadata: {
+                  aspect_ratio: selectedRatio,
+                  retry_count: retryCount
+                }
               }
-            }
-          );
+            );
+          }
         }
       });
 

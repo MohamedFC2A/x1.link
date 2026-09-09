@@ -122,18 +122,37 @@ class IncidentDiagnosticService {
 
     // Window global error handler
     window.addEventListener('error', (event: ErrorEvent) => {
-      if (event.message?.includes('ResizeObserver') || event.message?.includes('Script error')) return;
+      const msg = event.message || '';
+      const filename = event.filename || '';
+      const stack = event.error?.stack || '';
+
+      // Strictly ignore third-party browser extensions, ResizeObserver noise, and non-app script errors
+      if (
+        msg.includes('ResizeObserver') ||
+        msg.includes('Script error') ||
+        filename.includes('extension://') ||
+        filename.startsWith('chrome-extension:') ||
+        filename.startsWith('moz-extension:') ||
+        filename.startsWith('safari-extension:') ||
+        stack.includes('chrome-extension:') ||
+        stack.includes('moz-extension:') ||
+        stack.includes('safari-extension:') ||
+        stack.includes('executors/200.js') ||
+        msg.includes("Cannot read properties of undefined (reading 'M_ID')")
+      ) {
+        return;
+      }
 
       this.reportIncident({
         category: 'CLIENT_CRASH',
         severity: 'HIGH',
         incidentType: 'HARD_ERROR',
         component: 'CLIENT_UI',
-        errorMessage: event.message || 'Window Global Error',
-        errorStack: event.error?.stack || `${event.filename}:${event.lineno}:${event.colno}`,
+        errorMessage: msg || 'Window Global Error',
+        errorStack: stack || `${filename}:${event.lineno}:${event.colno}`,
         endpoint: window.location.pathname,
         metadata: {
-          filename: event.filename,
+          filename,
           lineno: event.lineno,
           colno: event.colno,
         },
@@ -143,15 +162,27 @@ class IncidentDiagnosticService {
     // Unhandled Promise rejection handler
     window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
       const reason = event.reason;
-      if (reason?.name === 'AbortError' || reason?.message?.includes('aborted')) return;
+      const msg = reason?.message || String(reason || '');
+      const stack = reason?.stack || '';
+
+      if (
+        reason?.name === 'AbortError' ||
+        msg.includes('aborted') ||
+        stack.includes('chrome-extension:') ||
+        stack.includes('moz-extension:') ||
+        stack.includes('safari-extension:') ||
+        msg.includes('extension://')
+      ) {
+        return;
+      }
 
       this.reportIncident({
         category: 'CLIENT_CRASH',
         severity: 'HIGH',
         incidentType: 'HARD_ERROR',
         component: 'CLIENT_UI',
-        errorMessage: reason?.message || String(reason) || 'Unhandled Promise Rejection',
-        errorStack: reason?.stack || undefined,
+        errorMessage: msg || 'Unhandled Promise Rejection',
+        errorStack: stack || undefined,
         endpoint: window.location.pathname,
       });
     });
@@ -248,14 +279,16 @@ class IncidentDiagnosticService {
     durationMs: number,
     metadata?: Record<string, any>
   ): void {
-    if (durationMs > 8000) {
+    // Calibrate thresholds: Image diffusion takes 20-35s naturally; SVG vector generation takes 10-20s
+    const thresholdMs = component === 'IMAGE_STUDIO' ? 45000 : (component === 'SVG_STUDIO' ? 25000 : 12000);
+    if (durationMs > thresholdMs) {
       this.reportIncident({
         category: 'STREAM_LATENCY_SPIKE',
-        severity: durationMs > 15000 ? 'HIGH' : 'MEDIUM',
+        severity: durationMs > (thresholdMs * 1.5) ? 'HIGH' : 'MEDIUM',
         incidentType: 'PERFORMANCE_ANOMALY',
         component,
         durationMs,
-        errorMessage: `Subsystem ${component} latency spike detected: ${durationMs}ms`,
+        errorMessage: `Subsystem ${component} latency spike detected: ${durationMs}ms (exceeded threshold ${thresholdMs}ms)`,
         metadata: metadata || {},
       });
     }

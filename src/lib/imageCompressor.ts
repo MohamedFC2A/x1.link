@@ -10,8 +10,8 @@ export async function compressImageFile(
   quality = 0.88
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    // 1. If file is under 4MB, preserve the RAW original file as Data URL to retain 100% of EXIF/IPTC/XMP/GPS metadata without loss
-    if (file.size <= 4 * 1024 * 1024) {
+    // 1. If file is under 600KB, preserve the RAW original file as Data URL to retain EXIF/IPTC/XMP metadata safely
+    if (file.size <= 600 * 1024) {
       const reader = new FileReader();
       reader.onload = (e) => resolve(e.target?.result as string);
       reader.onerror = reject;

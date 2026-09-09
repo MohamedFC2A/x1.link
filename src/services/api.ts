@@ -1,5 +1,6 @@
 import { ChatMessageItem, ModelType, ResolvedLinkInfo, DownloadDetectResult } from '../types';
 import { incidentDiagnosticService } from './incidentDiagnosticService';
+import { ensureImageCdnUrl } from './clientStorageService';
 
 export interface StreamChunkData {
   content: string;
@@ -92,11 +93,13 @@ export async function streamChatCompletion({
   try {
     let effectiveTargetUrl = targetUrl;
 
-    // Format messages for API (convert multimodal items with images if present)
-    const formattedMessages = messages.map((msg, idx) => {
+    // Format messages for API (convert multimodal items with images, uploading base64 to CDN)
+    const formattedMessages: any[] = [];
+    for (let idx = 0; idx < messages.length; idx++) {
+      const msg = messages[idx];
       const isLatestTurn = idx === messages.length - 1;
       let cleanContent = msg.content || '';
-      
+
       // Auto-substitute any cached unshortened URLs directly in message content
       linkResolveCache.forEach((resolved, shortUrl) => {
         if (resolved?.originalUrl && shortUrl && cleanContent.includes(shortUrl)) {
@@ -112,11 +115,12 @@ export async function streamChatCompletion({
 
       if (hasKeyframes) {
         if (!isLatestTurn) {
-          return {
+          formattedMessages.push({
             role: msg.role,
             content: `${cleanContent}\n[ملاحظة سياقية: تم إرفاق وتحليل فيديو "${videoItem?.name || 'فيديو'}" في هذا الدور السابق كمرجع وسائط، يُمنع تكرار هذه الملاحظة للمستخدم]`,
             reasoning: msg.reasoning
-          };
+          });
+          continue;
         }
 
         const contentParts: any[] = [
@@ -139,11 +143,12 @@ export async function streamChatCompletion({
           });
         });
 
-        return {
+        formattedMessages.push({
           role: msg.role,
           content: contentParts,
           reasoning: msg.reasoning
-        };
+        });
+        continue;
       }
 
       const allImages = (msg.images && msg.images.length > 0)
@@ -151,33 +156,56 @@ export async function streamChatCompletion({
         : (msg.image ? [msg.image] : []);
 
       if (allImages.length > 0) {
-        // Identify if this message contains the most recent image attachment in conversation history
-        const hasLaterImageTurn = messages.slice(idx + 1).some(m => (m.images && m.images.length > 0) || m.image);
-
-        // Only condense very old turns if they are NOT the latest image reference and are raw base64 data URIs
-        if (!isLatestTurn && hasLaterImageTurn && allImages.every(img => img.startsWith('data:'))) {
+        // Strip heavy base64 data URIs from previous turns completely to keep payload small
+        if (!isLatestTurn) {
           const imageText = allImages.length === 1 ? 'صورة واحدة' : `${allImages.length} صور`;
-          return {
-            role: msg.role,
-            content: `${cleanContent}\n[ملاحظة سياقية: تم إرفاق وتحليل (${imageText}) في هذا الدور السابق كمرجع بصري معتمد، يُمنع تكرار هذه الملاحظة للمستخدم]`,
-            image: allImages[0],
-            images: allImages,
-            reasoning: msg.reasoning
-          };
+          const httpImages = allImages.filter(img => img.startsWith('http'));
+          if (httpImages.length > 0) {
+            formattedMessages.push({
+              role: msg.role,
+              content: [
+                { type: 'text', text: `${cleanContent}\n\n[الصور المرجعية المعتمدة من الدور السابق]` },
+                ...httpImages.map((u, i) => ({ type: 'image_url', image_url: { url: u } }))
+              ],
+              reasoning: msg.reasoning
+            });
+          } else {
+            formattedMessages.push({
+              role: msg.role,
+              content: `${cleanContent}\n[ملاحظة سياقية: تم إرفاق وتحليل (${imageText}) في هذا الدور السابق كمرجع بصري معتمد، يُمنع تكرار هذه الملاحظة للمستخدم]`,
+              reasoning: msg.reasoning
+            });
+          }
+          continue;
         }
 
-        const imageCountNotice = isLatestTurn
-          ? (allImages.length === 1 ? 'المرفق في هذا الطلب الحالي: صورة واحدة فقط' : `عدد الصور المرفقة في هذا الطلب: (${allImages.length}) صور`)
-          : (allImages.length === 1 ? 'الصورة المرجعية المعتمدة من الدور السابق: صورة واحدة' : `الصور المرجعية المعتمدة من الدور السابق: (${allImages.length}) صور`);
+        // Active current turn: convert any base64 images to lightweight Supabase CDN URLs first!
+        const resolvedImageUrls: string[] = [];
+        for (const rawImg of allImages) {
+          if (rawImg.startsWith('data:image')) {
+            try {
+              const cdnUrl = await ensureImageCdnUrl(rawImg);
+              resolvedImageUrls.push(cdnUrl);
+            } catch {
+              resolvedImageUrls.push(rawImg);
+            }
+          } else {
+            resolvedImageUrls.push(rawImg);
+          }
+        }
+
+        const imageCountNotice = resolvedImageUrls.length === 1
+          ? 'المرفق في هذا الطلب الحالي: صورة واحدة فقط'
+          : `عدد الصور المرفقة في هذا الطلب: (${resolvedImageUrls.length}) صور`;
 
         const contentParts: any[] = [
           { type: 'text', text: `${cleanContent}\n\n[${imageCountNotice}]` }
         ];
 
-        allImages.forEach((imgUrl, i) => {
+        resolvedImageUrls.forEach((imgUrl, i) => {
           contentParts.push({
             type: 'text',
-            text: allImages.length === 1 ? `\n--- [الصورة المرفقة] ---` : `\n--- [صورة رقم ${i + 1} من أصل ${allImages.length}] ---`
+            text: resolvedImageUrls.length === 1 ? `\n--- [الصورة المرفقة] ---` : `\n--- [صورة رقم ${i + 1} من أصل ${resolvedImageUrls.length}] ---`
           });
           contentParts.push({
             type: 'image_url',
@@ -187,23 +215,23 @@ export async function streamChatCompletion({
           });
         });
 
-        return {
+        // Do NOT duplicate image/images properties when content already contains the image_url
+        formattedMessages.push({
           role: msg.role,
           content: contentParts,
-          image: allImages[0],
-          images: allImages,
           reasoning: msg.reasoning
-        };
+        });
+        continue;
       }
 
-      return {
+      formattedMessages.push({
         role: msg.role,
         content: cleanContent || 'متابعة',
         reasoning: msg.reasoning
-      };
-    });
+      });
+    }
 
-    const requestPayload = {
+    const requestPayload: any = {
       messages: formattedMessages,
       model,
       isX1Mode,
@@ -215,6 +243,21 @@ export async function streamChatCompletion({
       userId: userId || undefined,
       deviceId: deviceId || undefined,
     };
+
+    // Pre-flight payload size guard: verify payload is well below Vercel's 4.5MB threshold
+    const serializedPayload = JSON.stringify(requestPayload);
+    if (serializedPayload.length > 3 * 1024 * 1024) {
+      console.warn('[API Stream] Payload size exceeds 3MB guard. Performing emergency pruning of older history...');
+      requestPayload.messages = formattedMessages.map((m, idx) => {
+        if (idx < formattedMessages.length - 2) {
+          return {
+            role: m.role,
+            content: typeof m.content === 'string' ? m.content.slice(0, 500) : '...'
+          };
+        }
+        return m;
+      });
+    }
 
     let response: Response | null = null;
     let lastNetworkErr: any = null;
@@ -287,20 +330,80 @@ export async function streamChatCompletion({
         }
       } catch {}
 
-      incidentDiagnosticService.reportIncident({
-        category: response.status >= 500 ? 'API_5XX' : (response.status === 429 ? 'RATE_LIMIT' : 'NETWORK_ERROR'),
-        severity: response.status >= 500 ? 'HIGH' : 'MEDIUM',
-        errorCode: `HTTP_${response.status}`,
-        errorMessage: errBody || `HTTP error ${response.status}`,
-        userPrompt: (formattedMessages[formattedMessages.length - 1]?.content as string) || '',
-        modelUsed: model,
-        sessionId: chatId,
-        userId: userId,
-        endpoint: '/api/chat',
-      });
+      // Autonomous Recovery & User-Protection Shield against 413 / FUNCTION_PAYLOAD_TOO_LARGE
+      const isPayloadTooLarge = response.status === 413 ||
+        errBody.includes('FUNCTION_PAYLOAD_TOO_LARGE') ||
+        errBody.includes('Request Entity Too Large') ||
+        errBody.includes('Payload Too Large') ||
+        errBody.includes('cdg1::');
 
-      onError(errBody || `خطأ في الاتصال بالخادم (${response.status})`);
-      return () => controller.abort();
+      if (isPayloadTooLarge) {
+        console.warn('[API Stream] 413 Payload too large intercepted. Sanitizing and auto-recovering...');
+        try {
+          // Immediately retry with only text content and minimal recent turns
+          const emergencyPrunedMessages = formattedMessages.slice(-3).map((m: any) => {
+            if (Array.isArray(m.content)) {
+              return {
+                role: m.role,
+                content: m.content.filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n')
+              };
+            }
+            return m;
+          });
+
+          const retryResponse = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...requestPayload,
+              messages: emergencyPrunedMessages,
+              deepSearch: false
+            }),
+            signal: controller.signal
+          });
+
+          if (retryResponse.ok && retryResponse.body) {
+            response = retryResponse;
+          }
+        } catch (retryErr) {
+          console.warn('[API Stream] 413 Auto-recovery failed:', retryErr);
+        }
+      }
+
+      // If still not ok after recovery attempt, map to a respectful, clean Arabic user message (ZERO technical leaks)
+      if (!response.ok) {
+        let userFacingError = errBody;
+        if (
+          response.status === 413 ||
+          errBody.includes('FUNCTION_PAYLOAD_TOO_LARGE') ||
+          errBody.includes('Request Entity Too Large') ||
+          errBody.includes('Payload Too Large') ||
+          errBody.includes('cdg1::')
+        ) {
+          userFacingError = 'تم استلام طلبك، ولكن حجم المرفقات أو المحادثة كان كبيراً جداً؛ تم تحسين وضغط الحجم تلقائياً. يرجى الضغط على زر إعادة المحاولة للمتابعة.';
+        } else if (errBody.includes('504') || response.status === 504) {
+          userFacingError = 'استغرق الخادم وقتاً أطول من المتوقع، يرجى إعادة المحاولة.';
+        } else if (errBody.includes('502') || errBody.includes('503') || response.status === 502 || response.status === 503) {
+          userFacingError = 'الخادم مشغول حالياً، يرجى إعادة المحاولة بعد ثوانٍ قليلة.';
+        } else if (!userFacingError || userFacingError.includes('cdg1::') || userFacingError.includes('<!DOCTYPE') || userFacingError.includes('<html>')) {
+          userFacingError = 'تعذر استكمال الاتصال بالخادم مؤقتاً. يرجى إعادة المحاولة.';
+        }
+
+        incidentDiagnosticService.reportIncident({
+          category: response.status === 413 ? 'RATE_LIMIT' : (response.status >= 500 ? 'API_5XX' : (response.status === 429 ? 'RATE_LIMIT' : 'NETWORK_ERROR')),
+          severity: response.status >= 500 ? 'HIGH' : 'MEDIUM',
+          errorCode: `HTTP_${response.status}`,
+          errorMessage: errBody || `HTTP error ${response.status}`,
+          userPrompt: (formattedMessages[formattedMessages.length - 1]?.content as string) || '',
+          modelUsed: model,
+          sessionId: chatId,
+          userId: userId,
+          endpoint: '/api/chat',
+        });
+
+        onError(userFacingError);
+        return () => controller.abort();
+      }
     }
 
     if (!response.body) {

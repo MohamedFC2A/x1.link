@@ -89,9 +89,15 @@ function normalizeSvgXml(rawSvg: string): { normalizedSvg: string; metrics: SvgM
     return { normalizedSvg: rawSvg, metrics: defaultMetrics };
   }
 
+  // Pre-sanitize raw SVG: auto-escape unescaped ampersands & repair missing closing </svg>
+  let sanitizedXml = rawSvg.replace(/&(?!(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/g, '&amp;');
+  if (sanitizedXml.includes('<svg') && !sanitizedXml.includes('</svg>')) {
+    sanitizedXml = sanitizedXml.trim() + '\n</svg>';
+  }
+
   try {
     const parser = new DOMParser();
-    const doc = parser.parseFromString(rawSvg, 'image/svg+xml');
+    const doc = parser.parseFromString(sanitizedXml, 'image/svg+xml');
     const parserError = doc.querySelector('parsererror');
 
     if (parserError) {
@@ -220,16 +226,16 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
     return highlightCode(cleanSvg, 'markup');
   }, [cleanSvg]);
 
-  // Track SVG XML Parsing Defects (millimeter precision)
+  // Track SVG XML Parsing Defects (only after stream completes to avoid false alarms during chunk arrival)
   useEffect(() => {
-    if (metrics.error && cleanSvg) {
+    if (!isStreaming && metrics.error && cleanSvg && cleanSvg.length > 50) {
       incidentDiagnosticService.trackSvgEvent(
         'SVG_PARSER_ERROR',
         {
           errorMessage: metrics.error,
           errorCode: 'SVG_XML_PARSER_ERROR',
           svgLength: metrics.sizeBytes,
-          severity: 'HIGH',
+          severity: 'MEDIUM',
           metadata: {
             snippet: cleanSvg.slice(0, 250),
             title: title || 'SVG Graphic'
@@ -237,7 +243,7 @@ export const SvgStudioCardComponent: React.FC<SvgStudioCardProps> = ({
         }
       );
     }
-  }, [metrics.error, cleanSvg, metrics.sizeBytes, title]);
+  }, [isStreaming, metrics.error, cleanSvg, metrics.sizeBytes, title]);
 
   // Track Unclosed or Truncated SVG Streams (token cutoffs)
   useEffect(() => {

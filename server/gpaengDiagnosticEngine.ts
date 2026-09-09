@@ -158,6 +158,65 @@ export class GpaengDiagnosticEngine {
   }
 
   /**
+   * Marks a diagnostic incident as resolved with surgical remediation notes
+   */
+  public static async resolveIncident(
+    supabase: SupabaseClient,
+    incidentId: string,
+    resolutionNotes: string
+  ): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('x1_diagnostic_incidents')
+        .update({
+          resolved: true,
+          resolution_notes: resolutionNotes,
+        })
+        .eq('id', incidentId);
+
+      if (error) {
+        console.warn(`[GPAENG-DIAGNOSTICS] Failed to resolve incident ${incidentId}:`, error.message);
+        return false;
+      }
+      return true;
+    } catch (err: any) {
+      console.warn(`[GPAENG-DIAGNOSTICS] Exception resolving incident ${incidentId}:`, err?.message || err);
+      return false;
+    }
+  }
+
+  /**
+   * Batch resolves incidents matching category or criteria
+   */
+  public static async batchResolveIncidents(
+    supabase: SupabaseClient,
+    filter: { category?: string; component?: string; errorMessagePattern?: string },
+    resolutionNotes: string
+  ): Promise<number> {
+    try {
+      let query = supabase.from('x1_diagnostic_incidents').select('id, error_message').eq('resolved', false);
+      if (filter.category) query = query.eq('category', filter.category);
+      if (filter.component) query = query.eq('component', filter.component);
+
+      const { data, error } = await query;
+      if (error || !data) return 0;
+
+      let resolvedCount = 0;
+      for (const item of data) {
+        if (filter.errorMessagePattern && !item.error_message?.includes(filter.errorMessagePattern)) {
+          continue;
+        }
+        const success = await this.resolveIncident(supabase, item.id, resolutionNotes);
+        if (success) resolvedCount++;
+      }
+      return resolvedCount;
+    } catch (err: any) {
+      console.warn('[GPAENG-DIAGNOSTICS] Batch resolve exception:', err?.message || err);
+      return 0;
+    }
+  }
+
+  /**
    * Fetches the complete diagnostic dossier across all users from Supabase
    * and formats it into a high-density, authoritative dossier for the AI Agent.
    */
@@ -193,7 +252,22 @@ export class GpaengDiagnosticEngine {
         .order('times_triggered', { ascending: false })
         .limit(25);
 
-      const incidents = (recentIncidents as DiagnosticIncidentRecord[]) || [];
+      const rawIncidents = (recentIncidents as DiagnosticIncidentRecord[]) || [];
+      // Cleanse third-party browser extension noise (e.g. chrome-extension://) to maintain sovereign intelligence purity
+      const incidents = rawIncidents.filter(inc => {
+        const msg = inc.error_message || '';
+        const stack = inc.error_stack || '';
+        if (
+          msg.includes("Cannot read properties of undefined (reading 'M_ID')") ||
+          stack.includes('chrome-extension:') ||
+          stack.includes('moz-extension:') ||
+          stack.includes('safari-extension:') ||
+          stack.includes('executors/200.js')
+        ) {
+          return false;
+        }
+        return true;
+      });
       const lessonRecords = (lessons as SystemLessonRecord[]) || [];
 
       // Calculate real-time incident metrics & millimeter categorization

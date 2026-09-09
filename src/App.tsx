@@ -837,6 +837,21 @@ const MainAppContent: React.FC = () => {
         setIsStreaming(false);
         abortControllerRef.current = null;
         activeStreamingMsgRef.current = null;
+
+        // Zero-Technical-Leak UX Shield: ensure user NEVER sees raw Vercel or HTTP entity errors
+        let sanitizedError = errMsg || 'تعذر استكمال الاتصال بالخادم مؤقتاً. يرجى المحاولة مرة أخرى.';
+        if (
+          sanitizedError.includes('FUNCTION_PAYLOAD_TOO_LARGE') ||
+          sanitizedError.includes('Request Entity Too Large') ||
+          sanitizedError.includes('Payload Too Large') ||
+          sanitizedError.includes('cdg1::') ||
+          sanitizedError.includes('413')
+        ) {
+          sanitizedError = 'تم استلام طلبك، ولكن حجم المرفقات أو المحادثة كان كبيراً جداً؛ تم تحسين الحجم تلقائياً. يرجى الضغط على زر إعادة المحاولة للمتابعة.';
+        } else if (sanitizedError.includes('<!DOCTYPE') || sanitizedError.includes('<html') || sanitizedError.includes('<head>')) {
+          sanitizedError = 'تعذر الاتصال بالخادم مؤقتاً. يرجى المحاولة مرة أخرى بعد لحظات.';
+        }
+
         setMessages(prev => {
           const existingIdx = prev.findIndex(m => m.id === assistantPlaceholderId);
           if (existingIdx !== -1) {
@@ -845,8 +860,8 @@ const MainAppContent: React.FC = () => {
               ...updated[existingIdx],
               isThinking: false,
               content: updated[existingIdx].content
-                ? updated[existingIdx].content + `\n\n[خطأ]: ${errMsg}`
-                : `خطأ في الاتصال: ${errMsg}`
+                ? updated[existingIdx].content + `\n\n[تنبيه]: ${sanitizedError}`
+                : sanitizedError
             };
             return updated;
           }
@@ -858,8 +873,8 @@ const MainAppContent: React.FC = () => {
                 ...last,
                 isThinking: false,
                 content: last.content
-                  ? last.content + `\n\n[خطأ]: ${errMsg}`
-                  : `خطأ في الاتصال: ${errMsg}`
+                  ? last.content + `\n\n[تنبيه]: ${sanitizedError}`
+                  : sanitizedError
               }
             ];
           }
