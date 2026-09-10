@@ -84,8 +84,8 @@ export interface PromptInputProps {
   maxAttachments?: number;
   isStreaming?: boolean;
   onAbort?: () => void;
-  isX1Active?: boolean;
-  onToggleX1?: () => void;
+  isMatanyActive?: boolean;
+  onToggleMatany?: () => void;
   isDeepSearchActive?: boolean;
   onToggleDeepSearch?: () => void;
   activeModel?: ModelType;
@@ -216,8 +216,8 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       maxAttachments = 6,
       isStreaming = false,
       onAbort,
-      isX1Active = false,
-      onToggleX1,
+      isMatanyActive = false,
+      onToggleMatany,
       isDeepSearchActive: externalDeepSearch,
       onToggleDeepSearch,
       activeModel = 'fathom-quant-3',
@@ -292,10 +292,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     const isCyber26Pro = internalModel === 'deepseek-v4-pro-cyber-2.6' || internalModel === 'deepseek-v4-pro-cyber-2.1';
     const isCyber26Mode = isCyber26Pro;
     const isCyberMode = isCyber26Mode;
-    const isMediaMode = hasNonImageMedia || internalModel === 'meta/muse-spark-1.2-contributor';
+    const isMediaMode = hasNonImageMedia || internalModel === 'meta/muse-spark-1.3-contributor' || internalModel === 'meta/muse-spark-1.2-contributor';
 
     const effectiveDisplayModel = (internalModel === 'fathom-search' || isDeepSearchEffective) ? 'fathom-search' : internalModel;
-    const activeModelDisplayName = getModelDisplayName(effectiveDisplayModel, isX1Active);
+    const activeModelDisplayName = getModelDisplayName(effectiveDisplayModel, isMatanyActive);
 
     const activeBackendModel = effectiveModel;
 
@@ -661,7 +661,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         : (internalModel === 'fathom-search' || isDeepSearchEffective)
         ? 'fathom-search'
         : hasNonImageMedia
-        ? 'meta/muse-spark-1.2-contributor'
+        ? 'meta/muse-spark-1.3-contributor'
         : hasAttachments
         ? 'deepseek-v4-flash-vision-exp'
         : activeBackendModel;
@@ -675,7 +675,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
       onSubmit?.(formattedContent, {
         model: targetModel,
-        effort: isX1Active ? "X1 MAX" : "Standard",
+        effort: isMatanyActive ? "Matany MAX" : "Standard",
         attachments: attachments.map((a) => a.file),
         targetUrl: allUrlsToSubmit[0] || undefined,
         targetUrls: allUrlsToSubmit.length > 0 ? allUrlsToSubmit : undefined,
@@ -736,7 +736,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       const hasCyber = isCyberMode || hasUrls;
       const hasVision = hasAttachments || isVisionMode;
       const hasMedia = isMediaMode || hasNonImageMedia;
-      const hasNSFW = isX1Active;
+      const hasNSFW = isMatanyActive;
 
       // 0. Media / Spark Mode with Video/Audio
       if (hasMedia) {
@@ -823,9 +823,9 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       }
 
       return null;
-    }, [isDeepSearchEffective, isCyberMode, hasUrls, hasAttachments, isVisionMode, isMediaMode, hasNonImageMedia, isX1Active]);
+    }, [isDeepSearchEffective, isCyberMode, hasUrls, hasAttachments, isVisionMode, isMediaMode, hasNonImageMedia, isMatanyActive]);
 
-    const isSpecialMode = Boolean(activeFusion || isDeepSearchEffective || isCyberMode || isX1Active || hasAttachments || hasUrls || isMediaMode);
+    const isSpecialMode = Boolean(activeFusion || isDeepSearchEffective || isCyberMode || isMatanyActive || hasAttachments || hasUrls || isMediaMode);
 
     const currentBeamType = activeFusion
       ? activeFusion.type
@@ -835,7 +835,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       ? 'search'
       : isCyberMode || hasUrls
       ? 'cyber'
-      : isX1Active
+      : isMatanyActive
       ? 'nsfw'
       : hasAttachments
       ? 'vision'
@@ -897,7 +897,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           sheen: 'bg-gradient-to-r from-transparent via-cyan-400 to-transparent',
         };
       }
-      if (isX1Active) {
+      if (isMatanyActive) {
         // NSFW Mode - Rose
         return {
           strokeRing: 'stroke-rose-400',
@@ -928,7 +928,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         spinnerColor: 'text-white',
         sheen: 'bg-gradient-to-r from-transparent via-white/40 to-transparent',
       };
-    }, [activeFusion, isMediaMode, hasNonImageMedia, isDeepSearchEffective, isCyberMode, hasUrls, isX1Active, isVisionMode, hasAttachments]);
+    }, [activeFusion, isMediaMode, hasNonImageMedia, isDeepSearchEffective, isCyberMode, hasUrls, isMatanyActive, isVisionMode, hasAttachments]);
 
     return (
       <div
@@ -1210,12 +1210,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 <button
                   type="button"
                   onClick={() => {
-                    onToggleX1?.();
+                    onToggleMatany?.();
                     setIsActionsMenuOpen(false);
                   }}
                   className={cn(
                     "w-full flex items-center justify-between p-2 rounded-xl text-xs font-sans transition-all cursor-pointer text-right border",
-                    isX1Active
+                    isMatanyActive
                       ? "bg-rose-950/40 border-rose-500/30 text-rose-200"
                       : "hover:bg-zinc-900/70 text-zinc-300 hover:text-white border-transparent hover:border-zinc-800/60"
                   )}
@@ -1223,7 +1223,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                   <div className="flex items-center gap-2.5">
                     <div className={cn(
                       "size-7 rounded-lg flex items-center justify-center shrink-0 border transition-all",
-                      isX1Active
+                      isMatanyActive
                         ? "bg-rose-500/20 border-rose-500/40 text-rose-300"
                         : "bg-zinc-900 border-zinc-800 text-rose-400"
                     )}>
@@ -1231,7 +1231,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     </div>
                     <span className="font-semibold text-xs text-white">وضع NSFW Off</span>
                   </div>
-                  {isX1Active && (
+                  {isMatanyActive && (
                     <span className="size-2 rounded-full bg-rose-400 shrink-0 ring-2 ring-rose-400/20" />
                   )}
                 </button>
@@ -1642,7 +1642,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     ? "ابحث واستقصِ بذكاء عبر Fathom Search (ويب، سياق، ذاكرة، وفحص وسائط)..."
                     : isVisionMode || hasAttachments
                     ? "أرفق صورة للتحليل البصري أو اكتب استفسارك..."
-                    : getModelPlaceholder(internalModel, isX1Active, {
+                    : getModelPlaceholder(internalModel, isMatanyActive, {
                         hasAttachments,
                         hasNonImageMedia,
                         isDeepSearch: isDeepSearchEffective,
@@ -1662,7 +1662,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                     ? "text-cyan-50 placeholder:text-cyan-300/50 selection:bg-cyan-500/40"
                     : hasAttachments
                     ? "text-emerald-50 placeholder:text-emerald-300/50 selection:bg-emerald-500/40"
-                    : isX1Active
+                    : isMatanyActive
                     ? "text-zinc-100 placeholder:text-zinc-400 selection:bg-rose-500/40"
                     : "text-zinc-100 placeholder:text-zinc-400 selection:bg-white/30"
                 )}
@@ -1695,7 +1695,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                       ? "bg-cyan-400 hover:bg-cyan-300 text-black font-bold hover:scale-105 shadow-cyan-400/30"
                       : isVisionMode || hasAttachments
                       ? "bg-emerald-400 hover:bg-emerald-300 text-black font-bold hover:scale-105 shadow-emerald-500/30"
-                      : isX1Active
+                      : isMatanyActive
                       ? "bg-rose-500 hover:bg-rose-400 text-white font-bold hover:scale-105 shadow-rose-500/30"
                       : "bg-white hover:bg-zinc-100 text-zinc-950 font-bold hover:scale-105 shadow-white/20"
                     : "bg-white/[0.04] text-zinc-600 cursor-not-allowed border border-white/[0.04]"
@@ -1707,7 +1707,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 ) : isAnyAttachmentProcessing ? (
                   <Loader2 className={cn("w-4 h-4 animate-spin", currentThemeColor.spinnerColor)} />
                 ) : (
-                  <ArrowUp className={cn("w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]", (isMediaMode || hasNonImageMedia || isX1Active) ? "text-white" : (isCyberMode || isDeepSearchEffective || hasAttachments || Boolean(activeFusion)) ? "text-black" : hasValue ? "text-zinc-950" : "text-zinc-600")} />
+                  <ArrowUp className={cn("w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]", (isMediaMode || hasNonImageMedia || isMatanyActive) ? "text-white" : (isCyberMode || isDeepSearchEffective || hasAttachments || Boolean(activeFusion)) ? "text-black" : hasValue ? "text-zinc-950" : "text-zinc-600")} />
                 )}
               </button>
             </div>
@@ -1739,10 +1739,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             <div className="flex items-center gap-1.5 mr-auto shrink-0">
               
               {/* NSFW Active Icon Indicator (Clickable to cancel/toggle) */}
-              {isX1Active && (
+              {isMatanyActive && (
                 <button
                   type="button"
-                  onClick={onToggleX1}
+                  onClick={onToggleMatany}
                   title="وضع NSFW Off مفعّل (انقر للتعطيل)"
                   className="size-8 rounded-xl bg-zinc-950 border border-white/[0.12] hover:border-rose-500/40 hover:bg-rose-950/20 text-rose-400 hover:text-rose-300 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0"
                 >

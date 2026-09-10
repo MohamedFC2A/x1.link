@@ -27,9 +27,9 @@ export async function runSvgPlaywrightTest(targetUrl = 'https://matany.one') {
 
     // Bypass gates
     await page.addInitScript(() => {
-      localStorage.setItem('x1_auth_age_18', 'true');
-      localStorage.setItem('x1_has_seen_landing', 'true');
-      localStorage.setItem('x1_active_plan', 'pro-29');
+      localStorage.setItem('matany_auth_age_18', 'true');
+      localStorage.setItem('matany_has_seen_landing', 'true');
+      localStorage.setItem('matany_active_plan', 'pro-29');
     });
 
     console.log('  1. Navigating to page...');

@@ -13,7 +13,7 @@ export interface UsageLedger {
   lastUpdated: string;
 }
 
-const STORAGE_KEY_USAGE = 'x1_real_usage_ledger';
+const STORAGE_KEY_USAGE = 'matany_real_usage_ledger';
 
 const DEFAULT_USAGE: UsageLedger = {
   totalTokens: 0,
@@ -75,7 +75,7 @@ export async function recordRealUsage(params: {
 
   const updated: UsageLedger = {
     totalTokens: current.totalTokens + addedTokens,
-    fathom1Tokens: current.fathom1Tokens + (params.model === 'fathom-quant-3' || params.model === 'meta/muse-spark-1.2-contributor' ? addedTokens : 0),
+    fathom1Tokens: current.fathom1Tokens + (params.model === 'fathom-quant-3' || params.model === 'meta/muse-spark-1.3-contributor' || params.model === 'meta/muse-spark-1.2-contributor' ? addedTokens : 0),
     fathomCamTokens: current.fathomCamTokens + (params.model === 'deepseek-v4-flash-vision-exp' || params.hasImages ? addedTokens : 0),
     fathomCyberTokens: current.fathomCyberTokens + (params.model === 'deepseek-v4-pro-cyber-2.6' || params.model === 'deepseek-v4-pro-cyber-2.1' || params.isCyberScan ? addedTokens : 0),
     visionFilesCount: current.visionFilesCount + imagesNum,
@@ -149,7 +149,7 @@ export async function syncUsageToSupabase(usage: UsageLedger, userId: string | n
     };
 
     await supabase
-      .from('x1_usage')
+      .from('matany_usage')
       .upsert(payload, { onConflict: 'device_id' });
   } catch (err) {
     console.warn('[Supabase Usage Sync Warn]:', err);
@@ -160,7 +160,7 @@ export async function syncUsageToSupabase(usage: UsageLedger, userId: string | n
 export async function fetchRemoteUsage(userId: string | null): Promise<UsageLedger | null> {
   const deviceId = getOrCreateDeviceId();
   try {
-    let query = supabase.from('x1_usage').select('*');
+    let query = supabase.from('matany_usage').select('*');
     if (userId) {
       query = query.or(`user_id.eq.${userId},device_id.eq.${deviceId}`);
     } else {

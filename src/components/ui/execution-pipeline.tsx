@@ -6,7 +6,7 @@ import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 
 export interface ExecutionPipelineProps {
   model?: ModelType;
-  isX1?: boolean;
+  isMatany?: boolean;
   isStreaming?: boolean;
   isThinking?: boolean;
   hasReasoning?: boolean;
@@ -16,7 +16,7 @@ export interface ExecutionPipelineProps {
 
 export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
   model,
-  isX1 = false,
+  isMatany = false,
   isStreaming = false,
   isThinking = false,
   hasReasoning = false,
@@ -92,8 +92,8 @@ export const ExecutionPipeline: React.FC<ExecutionPipelineProps> = ({
               ? "الاستدلال المباشر الخاطف وحسم التقاطعات"
               : isCyber
               ? "تزامن الذاكرة العرضية وشبكة المفاهيم"
-              : isX1
-              ? "استدعاء معمارية X1 MAX"
+              : isMatany
+              ? "استدعاء معمارية Matany MAX"
               : "التفكير والتحليل المنطقي"}
           </span>
         </div>

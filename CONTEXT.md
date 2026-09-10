@@ -88,15 +88,17 @@ Matany utilizes a **Modular Dual-Mode Hybrid Architecture** integrating a **Clie
 - `WebAuthnVerificationResult`: Hardware security key & biometric authentication status.
 
 ### Supabase PostgreSQL Database (`supabase_schema.sql`):
-- `public.x1_chats`: Chat sessions (`id`, `user_id`, `title`, `model`, `is_x1`, timestamps).
-- `public.x1_messages`: Message history (`id`, `chat_id`, `role`, `content`, `reasoning`, `tokens_count`).
-- `public.x1_subscriptions`: User subscription tiers (`user_id`, `plan_id`, `status`, `current_period_end`).
-- `public.x1_usage`: Token usage tracking per user and period.
-- `public.x1_activation_rate_limits`: Rate limiting for access/activation requests.
-- `public.x1_semantic_memories`: Semantic memory nodes with pgvector embeddings (`embedding vector(1536)`), entities, keywords.
-- `public.x1_chat_links`: Dynamic graph relations between chat sessions.
-- `public.x1_diagnostic_incidents`: User friction signals, API errors, crash dumps, and device metadata.
-- `public.x1_system_lessons`: Autonomous continuous learning rules, prompt constraints, and preventative actions.
+- `public.matany_chats`: Chat sessions (`id`, `user_id`, `title`, `model`, `is_matany`, timestamps).
+- `public.matany_messages`: Message history (`id`, `chat_id`, `role`, `content`, `reasoning`, `tokens_count`).
+- `public.matany_subscriptions`: User subscription tiers (`user_id`, `plan_id`, `status`, `current_period_end`).
+- `public.matany_usage`: Token usage tracking per user and period.
+- `public.matany_activation_rate_limits`: Rate limiting for access/activation requests.
+- `public.matany_semantic_memories`: Semantic memory nodes with pgvector embeddings (`embedding vector(1536)`), entities, keywords.
+- `public.matany_chat_links`: Dynamic graph relations between chat sessions.
+- `public.matany_diagnostic_incidents`: User friction signals, API errors, crash dumps, and device metadata.
+- `public.matany_system_lessons`: Autonomous continuous learning rules, prompt constraints, and preventative actions.
+- `public.matany_autonomous_remediations`: Autonomous system healing records and mitigations.
+- `public.matany_gpaeng_snapshots`: Historical system health and SVI metric snapshots.
 
 ---
 
@@ -105,7 +107,7 @@ Matany utilizes a **Modular Dual-Mode Hybrid Architecture** integrating a **Clie
 - **Central State Hub (`src/App.tsx`):**
   - Messages array (`ChatMessageItem[]`) and active conversation ID.
   - Active model (`ModelType`).
-  - X1 Mode toggle & Biometric unlock state (`WebAuthn`).
+  - Matany Mode toggle & Biometric unlock state (`WebAuthn`).
   - Active view mode (`AppViewMode`) synchronized via History API.
   - User session & Supabase Auth state (`User | null`).
   - Subscription plan (`free-0`, `pro-29`, `elite-99`) and quota tracking.
@@ -131,22 +133,33 @@ Matany utilizes a **Modular Dual-Mode Hybrid Architecture** integrating a **Clie
 - **Backend & Networking:** Express 4.21.2, CORS 2.8.5, Server-Sent Events (SSE), Cheerio 1.2.0, SSH2 1.17.0, `ai` 7.0.77
 - **Database, Auth & Cloud:** `@supabase/supabase-js` 2.112.3 (PostgreSQL, Auth, Storage, `pgvector`), WebAuthn API
 - **AI Inference Providers:**
-  - OpenRouter (`anthracite-org/magnum-v4-72b`, `meta/muse-spark-1.2-contributor`)
+  - OpenRouter (`meta/muse-spark-1.3-contributor` [Primary Sovereign Fathom Engine], `anthracite-org/magnum-v4-72b`, `meta/muse-spark-1.2-contributor`)
   - DeepSeek API (`deepseek-v4-flash`, `deepseek-v4-flash-vision-exp`, `deepseek-v4-pro-cyber-2.6`, etc.)
 - **Testing Suite:** Playwright (`@playwright/test` 1.63.0), JSDOM 30.0.1, custom TypeScript test runners
 
 ---
 
-## 7. Architectural Rules & Constraints
+## 7. Model Catalog & Intelligence Matrix
+
+- `fathom_quant_3` (Default Flagship): `deepseek-v4-pro-cyber-2.6` (DeepSeek V4 Pro Engine) with 32,768 token ceiling, RFC 9449 zero-trust cyber protocols, and mandatory VPS status notice.
+- `deepseek_v4_pro`: DeepSeek V4 Pro for complex software engineering and deep system reasoning.
+- `deepseek_v4_flash`: High-velocity model for instant QA and lightweight tasks.
+- `fathom_cam`: Vision forensics and multi-modal image inspection.
+- `deepseek_reasoner`: Dedicated mathematical proof and deductive logic.
+- `muse_spark`: Visual prompt architect for image synthesis and creative concept ideation.
+- `matany_max`: Uninhibited sovereign persona for direct, raw, creative discourse (`anthracite-org/magnum-v4-72b`).
+
+---
+
+## 8. Architectural Rules & Constraints
 
 1. **Dual-Environment Parity:** The project runs on both local Express (`server/`) and Vercel Serverless (`api/`). Any backend endpoint change must be reflected in both environments or abstracted into a shared service.
 2. **State Centralization:** Do NOT introduce external state management libraries (Redux, Zustand, MobX). All shared UI state belongs in `src/App.tsx` or specialized modular custom hooks.
 3. **Strict Attribution Mandate:** All system prompts must preserve the developer attribution directive (`Mohamed Ahmed Matany`).
-4. **Biometric Security Gate:** NSFW NANO (+21 MAX) and X1 mode features must strictly pass WebAuthn verification (`src/services/webauthn.ts`).
+4. **Biometric Security Gate:** NSFW NANO (+21 MAX) and Matany mode features must strictly pass WebAuthn verification (`src/services/webauthn.ts`).
 5. **Streaming & Cancellation:** All LLM completion calls must support `AbortController` cancellation across both client and server to preserve token budgets and prevent hanging sockets.
 6. **Zero Code Truncation:** Never use `// ... rest of code` or omit imports/types when modifying files.
 7. **Context Synchronization:** Whenever a new module, page, endpoint, or dependency is added or modified, update `CONTEXT.md` to reflect the change.
 8. **Neural Image Studio Invariants:** All image modifications and additions must preserve the conversational latent `seed`, suppress prompt enhancement (`enhance=false`) to eliminate environment and background hallucination, preserve exact proportional dimensions (`16:9` -> 1344x768, `9:16` -> 768x1344, `4:3` -> 1152x864, `1:1` -> 1024x1024), and ensure the dual-image comparison slider uses valid image URIs (filtering out template placeholders).
 9. **Enterprise Reliability & UI Polish Invariants:** All backend responses (Express & Edge) attach unique `x-request-id` UUID headers, expose `GET /api/health`, and emit RFC 7807/OpenAI standard error envelopes `{ error: { message, code, type } }`. The frontend follows Claude/ChatGPT dignified styling with chronological chat drawer grouping (`اليوم`, `أمس`, `آخر 7 أيام`, `الأشهر السابقة`), concise universal prompt placeholder (`اكتب استفسارك أو رسالتك هنا...`), and polite intellectual Fusha Arabic prompts without conversational filler.
-10. **GPAENG Sovereign Diagnostic Intelligence Invariant:** The master trigger keyword `GPAENG` (case-insensitive) intercepts user queries with highest priority, extracts live diagnostic incident telemetry and error logs from Supabase (`x1_diagnostic_incidents`), and directs the model to perform a comprehensive 5-phase audit: Executive Census, Deep Root Cause Analysis (RCA), Risk & Impact Matrix, Step-by-Step Master Remediation Plan, and Surgical Code Patches. Client-side friction and error reporting (`incidentDiagnosticService.ts`) runs 100% passively without blocking the UI thread.
-
+10. **GPAENG Sovereign Diagnostic Intelligence Invariant:** The master trigger keyword `GPAENG` (case-insensitive) intercepts user queries with highest priority, extracts live diagnostic incident telemetry and error logs from Supabase (`matany_diagnostic_incidents`), and directs the model to perform a comprehensive 5-phase audit: Executive Census, Deep Root Cause Analysis (RCA), Risk & Impact Matrix, Step-by-Step Master Remediation Plan, and Surgical Code Patches. Client-side friction and error reporting (`incidentDiagnosticService.ts`) runs 100% passively without blocking the UI thread.

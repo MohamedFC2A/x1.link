@@ -18,7 +18,7 @@ class SoundManager {
   }
 
   // Elegant, soft two-tone ascending chime
-  playX1Activate() {
+  playMatanyActivate() {
     try {
       this.initCtx();
       if (!this.ctx) return;
@@ -60,7 +60,7 @@ class SoundManager {
   }
 
   // Soft descending tone
-  playX1Deactivate() {
+  playMatanyDeactivate() {
     try {
       this.initCtx();
       if (!this.ctx) return;

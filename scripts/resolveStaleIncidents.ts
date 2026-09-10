@@ -8,7 +8,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 async function main() {
   console.log('⚡ [GPAENG Remediation] Fetching all open diagnostic incidents...');
   const { data: incidents, error: fetchErr } = await supabase
-    .from('x1_diagnostic_incidents')
+    .from('matany_diagnostic_incidents')
     .select('id, category, component, error_message, error_code, resolved')
     .eq('resolved', false);
 
@@ -39,7 +39,7 @@ async function main() {
     }
 
     const { error: updateErr } = await supabase
-      .from('x1_diagnostic_incidents')
+      .from('matany_diagnostic_incidents')
       .update({
         resolved: true,
         resolution_notes: notes,
@@ -89,7 +89,7 @@ async function main() {
 
   for (const lesson of lessons) {
     const { error: lessonErr } = await supabase
-      .from('x1_system_lessons')
+      .from('matany_system_lessons')
       .insert(lesson);
     if (lessonErr) {
       console.log(`Note on lesson (${lesson.trigger_signature}): ${lessonErr.message}`);

@@ -10,11 +10,11 @@ interface ChatWindowProps {
   messages: ChatMessageItem[];
   isStreaming: boolean;
   isRestoringChat?: boolean;
-  isX1Active: boolean;
+  isMatanyActive?: boolean;
   activeModel?: ModelType;
   onSendPreset: (presetText: string) => void;
   onOpenArchitecture?: () => void;
-  onToggleX1?: () => void;
+  onToggleMatany?: () => void;
   onImageGenerated?: (messageId: string | undefined, imageUrl: string) => void;
 }
 
@@ -68,7 +68,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   messages,
   isStreaming,
   isRestoringChat = false,
-  isX1Active,
+  isMatanyActive,
   activeModel = 'fathom-quant-3',
   onSendPreset,
   onImageGenerated,
@@ -77,8 +77,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const messagesListRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
 
-  const modelDisplayName = getModelDisplayName(activeModel, isX1Active);
-  const modelSubtitle = getModelSubtitle(activeModel, isX1Active);
+  const isMatany = Boolean(isMatanyActive);
+  const modelDisplayName = getModelDisplayName(activeModel, isMatany);
+  const modelSubtitle = getModelSubtitle(activeModel, isMatany);
 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const isAutoScrollLockedRef = useRef(true);

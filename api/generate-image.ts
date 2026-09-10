@@ -110,7 +110,7 @@ export default async function handler(req: any, res?: any) {
         let targetRow: { id: string; content?: string } | null = null;
         if (isUuid) {
           const { data: row } = await serverSupabase
-            .from('x1_messages')
+            .from('matany_messages')
             .select('id, content')
             .eq('id', messageId)
             .maybeSingle();
@@ -132,7 +132,7 @@ export default async function handler(req: any, res?: any) {
             } catch {}
           }
           await serverSupabase
-            .from('x1_messages')
+            .from('matany_messages')
             .update({ image_url: imageUrl, content: updatedContent })
             .eq('id', targetRow.id);
         }

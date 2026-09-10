@@ -23,7 +23,7 @@ export interface ChatReasoningProps {
   partsInAccordion?: ReasoningStep[];
   isThinking?: boolean;
   isStreaming?: boolean;
-  isX1?: boolean;
+  isMatany?: boolean;
   isTimeIntent?: boolean;
   activeFeatures?: DetectedFeatureData[];
   defaultValue?: string;
@@ -585,7 +585,7 @@ export default function ChatReasoning({
   partsInAccordion = [],
   isThinking = false,
   isStreaming = false,
-  isX1 = false,
+  isMatany = false,
   isTimeIntent = false,
   activeFeatures = [],
   defaultValue,
@@ -731,7 +731,7 @@ export default function ChatReasoning({
             <div className="flex items-center justify-center size-4.5 sm:size-5 shrink-0">
               {isThinking ? (
                 <ThinkingOrb state={isFathomSearchActive ? "searching" : "solving"} size={16} theme="dark" speed={1.4} />
-              ) : isX1 ? (
+              ) : isMatany ? (
                 <div className="flex items-center justify-center size-4.5 sm:size-5 rounded-md border bg-white/[0.04] border-white/[0.08] text-zinc-300">
                   <Cpu className="size-2.5 sm:size-3 text-zinc-300" />
                 </div>

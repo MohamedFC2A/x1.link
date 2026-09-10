@@ -12,15 +12,15 @@ import {
 } from 'lucide-react';
 
 interface TopBarProps {
-  isX1Active?: boolean;
-  isX1Unlocked?: boolean;
+  isMatanyActive?: boolean;
+  isMatanyUnlocked?: boolean;
   activeModel?: ModelType;
   user?: User | null;
   currentView?: 'landing' | 'chat' | 'pricing' | 'limits' | 'profile';
   currentChatTokens?: number;
   totalTokens?: number;
   cloudChatsCount?: number;
-  onToggleX1?: () => void;
+  onToggleMatany?: () => void;
   onSelectModel?: (model: ModelType) => void;
   onOpenSidebar: () => void;
   onNewChat?: () => void;

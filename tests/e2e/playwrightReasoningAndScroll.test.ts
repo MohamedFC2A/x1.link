@@ -38,9 +38,9 @@ async function runPlaywrightSuite() {
 
     // Inject bypass keys so test enters ChatWindow directly
     await page.addInitScript(() => {
-      localStorage.setItem('x1_auth_age_18', 'true');
-      localStorage.setItem('x1_has_seen_landing', 'true');
-      localStorage.setItem('x1_active_plan', 'pro-29');
+      localStorage.setItem('matany_auth_age_18', 'true');
+      localStorage.setItem('matany_has_seen_landing', 'true');
+      localStorage.setItem('matany_active_plan', 'pro-29');
     });
 
     // ─── TEST 1: App Navigation & Initial Render ─────────────────────────────

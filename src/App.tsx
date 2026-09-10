@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { DisclaimerModal } from './components/DisclaimerModal';
-import { X1UnlockModal } from './components/X1UnlockModal';
+import { MatanyUnlockModal } from './components/MatanyUnlockModal';
 import { ArchitectureModal } from './components/ArchitectureModal';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { AuthRequiredModal } from './components/AuthRequiredModal';
@@ -44,10 +44,10 @@ import {
   SupabaseChat
 } from './services/supabase';
 
-const STORAGE_KEY_18 = 'x1_auth_age_18';
-const STORAGE_KEY_21 = 'x1_auth_age_21_biometric';
-const STORAGE_KEY_SEEN_LANDING = 'x1_has_seen_landing';
-const STORAGE_KEY_PLAN = 'x1_active_plan';
+const STORAGE_KEY_18 = 'matany_auth_age_18';
+const STORAGE_KEY_21 = 'matany_auth_age_21_biometric';
+const STORAGE_KEY_SEEN_LANDING = 'matany_has_seen_landing';
+const STORAGE_KEY_PLAN = 'matany_active_plan';
 
 export type AppViewMode = 'landing' | 'chat' | 'pricing' | 'limits' | 'profile' | 'privacy' | 'terms';
 
@@ -145,13 +145,13 @@ const MainAppContent: React.FC = () => {
     return localStorage.getItem(STORAGE_KEY_18) === 'true';
   });
 
-  const [isX1Unlocked, setIsX1Unlocked] = useState<boolean>(() => {
+  const [isMatanyUnlocked, setIsMatanyUnlocked] = useState<boolean>(() => {
     if (isLocal) return true;
     return localStorage.getItem(STORAGE_KEY_21) === 'true';
   });
 
-  const [isX1Active, setIsX1Active] = useState<boolean>(false);
-  const [isX1ModalOpen, setIsX1ModalOpen] = useState<boolean>(false);
+  const [isMatanyActive, setIsMatanyActive] = useState<boolean>(false);
+  const [isMatanyModalOpen, setIsMatanyModalOpen] = useState<boolean>(false);
   const [isArchitectureModalOpen, setIsArchitectureModalOpen] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
@@ -209,7 +209,7 @@ const MainAppContent: React.FC = () => {
     isThinking: boolean;
     isMemoryDetectTriggered?: boolean;
     memoryDetectSummary?: string;
-    isX1Active: boolean;
+    isMatanyActive: boolean;
     chosenModel: ModelType;
     newMessagesList: ChatMessageItem[];
     text: string;
@@ -459,22 +459,22 @@ const MainAppContent: React.FC = () => {
     setHasAccepted18(true);
   };
 
-  const handleToggleX1 = () => {
-    if (!isX1Active) {
-      if (isX1Unlocked || isLocal) {
-        setIsX1Active(true);
+  const handleToggleMatany = () => {
+    if (!isMatanyActive) {
+      if (isMatanyUnlocked || isLocal) {
+        setIsMatanyActive(true);
       } else {
-        setIsX1ModalOpen(true);
+        setIsMatanyModalOpen(true);
       }
     } else {
-      setIsX1Active(false);
+      setIsMatanyActive(false);
     }
   };
 
   const handleBiometricSuccess = (_result: WebAuthnVerificationResult) => {
-    setIsX1Unlocked(true);
-    setIsX1Active(true);
-    setIsX1ModalOpen(false);
+    setIsMatanyUnlocked(true);
+    setIsMatanyActive(true);
+    setIsMatanyModalOpen(false);
   };
 
   const handleSelectPlan = (planId: string) => {
@@ -667,7 +667,7 @@ const MainAppContent: React.FC = () => {
       videoKeyframes: attachedVideoKeyframes.length > 0 ? attachedVideoKeyframes : undefined,
       mediaAttachments: attachedMediaList,
       timestamp: formatEnglishTimestamp(),
-      isX1: isX1Active,
+      isMatany: isMatanyActive,
       model: chosenModel,
     };
 
@@ -679,7 +679,7 @@ const MainAppContent: React.FC = () => {
       reasoning: '',
       isThinking: true,
       timestamp: formatEnglishTimestamp(),
-      isX1: isX1Active,
+      isMatany: isMatanyActive,
       model: chosenModel,
     };
 
@@ -692,7 +692,7 @@ const MainAppContent: React.FC = () => {
 
     if (!targetChatId) {
       const chatInitialTitle = userCleanDisplayContent || (uniqueImagesDataUrls.length > 0 ? 'صورة مرفقة' : 'محادثة جديدة');
-      targetChatId = await createCloudChat(userId, chatInitialTitle, chosenModel, isX1Active);
+      targetChatId = await createCloudChat(userId, chatInitialTitle, chosenModel, isMatanyActive);
       if (targetChatId) {
         setCurrentChatId(targetChatId);
         updateActiveChatUrlAndStorage(targetChatId);
@@ -731,7 +731,7 @@ const MainAppContent: React.FC = () => {
       isThinking: true,
       isMemoryDetectTriggered,
       memoryDetectSummary,
-      isX1Active,
+      isMatanyActive,
       chosenModel,
       newMessagesList,
       text,
@@ -760,7 +760,7 @@ const MainAppContent: React.FC = () => {
     await streamChatCompletion({
       messages: packedMessages,
       model: chosenModel,
-      isX1Mode: isX1Active,
+      isMatanyMode: isMatanyActive,
       deepSearch: meta?.deepSearch ?? false,
       memoryPrompt: memoryContextPrompt,
       targetUrl: resolvedTargetUrl || undefined,
@@ -817,7 +817,7 @@ const MainAppContent: React.FC = () => {
               reasoning: data.reasoning,
               isThinking: data.isThinking,
               timestamp: formatEnglishTimestamp(),
-              isX1: isX1Active,
+              isMatany: isMatanyActive,
               model: chosenModel,
               isMemoryDetectTriggered,
               memoryDetectSummary,
@@ -888,7 +888,7 @@ const MainAppContent: React.FC = () => {
           content: finalContentResolved,
           reasoning: fullAssistantReasoning,
           isThinking: false,
-          isX1: isX1Active,
+          isMatany: isMatanyActive,
           model: chosenModel,
           timestamp: formatEnglishTimestamp(),
           isMemoryDetectTriggered,
@@ -974,7 +974,7 @@ const MainAppContent: React.FC = () => {
       fullAssistantReasoning,
       isMemoryDetectTriggered,
       memoryDetectSummary,
-      isX1Active,
+      isMatanyActive,
       chosenModel,
       newMessagesList,
       text,
@@ -998,7 +998,7 @@ const MainAppContent: React.FC = () => {
       isStopped: true,
       stoppedReason: 'user_aborted',
       timestamp: formatEnglishTimestamp(),
-      isX1: isX1Active,
+      isMatany: isMatanyActive,
       model: chosenModel,
       isMemoryDetectTriggered,
       memoryDetectSummary,
@@ -1086,8 +1086,10 @@ const MainAppContent: React.FC = () => {
       handleNewChat();
     };
 
-    window.addEventListener('x1:autodelete-chat', onAutoDelete);
-    return () => window.removeEventListener('x1:autodelete-chat', onAutoDelete);
+    window.addEventListener('matany:autodelete-chat', onAutoDelete);
+    return () => {
+      window.removeEventListener('matany:autodelete-chat', onAutoDelete);
+    };
   }, [currentChatId, user]);
 
   // Mobile Edge-Swipe to Open Sidebar Drawer (Swipe from Right to Left)
@@ -1210,7 +1212,7 @@ const MainAppContent: React.FC = () => {
     <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-[#030306] text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-white selection:text-black relative" dir="rtl">
       
       {/* Intelligent Interactive High-Tech Laser Blueprint Grid (Dynamic Cursor Tracking & Multi-Model Color Auras) */}
-      <InteractiveGridBackground activeModel={activeModel} isX1Active={isX1Active} />
+      <InteractiveGridBackground activeModel={activeModel} isMatanyActive={isMatanyActive} />
 
       {/* Ambient Neutral Monochrome Luminescence (Sleek Obsidian & Pure Grey Depth) */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0 select-none opacity-30">
@@ -1226,9 +1228,9 @@ const MainAppContent: React.FC = () => {
       />
 
       {/* Biometric NSFW NANO Unlock Modal */}
-      <X1UnlockModal
-        isOpen={isX1ModalOpen}
-        onClose={() => setIsX1ModalOpen(false)}
+      <MatanyUnlockModal
+        isOpen={isMatanyModalOpen}
+        onClose={() => setIsMatanyModalOpen(false)}
         onSuccess={handleBiometricSuccess}
       />
 
@@ -1303,7 +1305,7 @@ const MainAppContent: React.FC = () => {
           
           {/* PERSISTENT FIXED GLOBAL TOP BAR */}
           <TopBar
-            isX1Active={isX1Active}
+            isMatanyActive={isMatanyActive}
             activeModel={activeModel}
             onSelectModel={setActiveModel}
             user={user}
@@ -1311,7 +1313,7 @@ const MainAppContent: React.FC = () => {
             currentChatTokens={currentChatTokens}
             totalTokens={totalTokens}
             cloudChatsCount={cloudChats.length}
-            onToggleX1={handleToggleX1}
+            onToggleMatany={handleToggleMatany}
             onOpenSidebar={() => setIsSidebarOpen(true)}
             onNewChat={handleNewChat}
             onClearChat={handleClearChat}
@@ -1383,11 +1385,11 @@ const MainAppContent: React.FC = () => {
                     messages={messages}
                     isStreaming={isStreaming}
                     isRestoringChat={isRestoringChat}
-                    isX1Active={isX1Active}
+                    isMatanyActive={isMatanyActive}
                     activeModel={activeModel}
                     onSendPreset={(preset) => handleSendMessage(preset)}
                     onOpenArchitecture={() => setIsArchitectureModalOpen(true)}
-                    onToggleX1={handleToggleX1}
+                    onToggleMatany={handleToggleMatany}
                     onImageGenerated={handleImageGenerated}
                   />
                 </main>
@@ -1399,8 +1401,8 @@ const MainAppContent: React.FC = () => {
                       onSubmit={(val, meta) => handleSendMessage(val, meta)}
                       isStreaming={isStreaming}
                       onAbort={handleAbort}
-                      isX1Active={isX1Active}
-                      onToggleX1={handleToggleX1}
+                      isMatanyActive={isMatanyActive}
+                      onToggleMatany={handleToggleMatany}
                       activeModel={activeModel}
                       onSelectModel={handleSelectModel}
                       placeholder={
@@ -1412,7 +1414,7 @@ const MainAppContent: React.FC = () => {
                           ? "اطرح لغزاً، مسألة معقدة، أو افحص أمنياً..."
                           : activeModel === 'deepseek-v4-flash-vision-exp'
                           ? "اسأل Fathom Cam أو أرفق صور..."
-                          : isX1Active
+                          : isMatanyActive
                           ? "اسأل matany.one في أي شيء..."
                           : "اسأل Fathom Quant 3 في أي شيء..."
                       }

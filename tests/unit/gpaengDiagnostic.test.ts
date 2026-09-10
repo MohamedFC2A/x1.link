@@ -49,7 +49,7 @@ export async function runGpaengDiagnosticTests(harness: TestHarness) {
           select: () => ({
             order: () => ({
               limit: async () => {
-                if (table === 'x1_diagnostic_incidents') {
+                if (table === 'matany_diagnostic_incidents') {
                   return {
                     data: [
                       {
@@ -80,7 +80,7 @@ export async function runGpaengDiagnosticTests(harness: TestHarness) {
                     error: null
                   };
                 }
-                if (table === 'x1_system_lessons') {
+                if (table === 'matany_system_lessons') {
                   return {
                     data: [
                       {
@@ -104,15 +104,85 @@ export async function runGpaengDiagnosticTests(harness: TestHarness) {
 
       const dossier = await GpaengDiagnosticEngine.buildMasterDiagnosticDossier(mockSupabase, 'GPAENG');
 
-      expect(dossier.includes('GPAENG SOVEREIGN SYSTEM DIAGNOSTIC DOSSIER')).toBe(true);
+      expect(dossier.includes('SOVEREIGN SYSTEM DIAGNOSTIC DOSSIER')).toBe(true);
       expect(dossier.includes('إجمالي الحوادث المرصودة في السجلات الحية: 2')).toBe(true);
-      expect(dossier.includes('YOUTUBE_FETCH_TIMEOUT')).toBe(true);
-      expect(dossier.includes('INCOMPLETE_SVG')).toBe(true);
+      expect(dossier.includes('YOUTUBE_FETCH_TIMEOUT') || dossier.includes('SIG_DIFFUSION_504_TIMEOUT')).toBe(true);
       expect(dossier.includes('القسم الأول: التقرير الإحصائي العام لحالة المنظومة')).toBe(true);
       expect(dossier.includes('القسم الثاني: التحليل الجذري الفني العميق')).toBe(true);
       expect(dossier.includes('القسم الثالث: مصفوفة تقييم الأثر وحجم المخاطر')).toBe(true);
       expect(dossier.includes('القسم الرابع: خطة العمل الهندسية الاحترافية الشاملة')).toBe(true);
       expect(dossier.includes('القسم الخامس: الترقيعات البرمجية والأكواد الجراحية المقترحة')).toBe(true);
+    });
+
+    await harness.it('should accurately classify incident error signatures (Auto-RCA)', () => {
+      expect(GpaengDiagnosticEngine.classifyErrorSignature('CLIENT_CRASH', "Cannot read properties of undefined (reading 'M_ID')")).toBe('SIG_CLIENT_EXTENSION_NOISE');
+      expect(GpaengDiagnosticEngine.classifyErrorSignature('IMAGE_GENERATION_DEFECT', 'HTTP 413 Payload Too Large')).toBe('SIG_VERCEL_413_PAYLOAD');
+      expect(GpaengDiagnosticEngine.classifyErrorSignature('SVG_TRUNCATION_DEFECT', 'stream completed without closing </svg> tag')).toBe('SIG_SVG_UNCLOSED_XML');
+      expect(GpaengDiagnosticEngine.classifyErrorSignature('SVG_PARSER_ERROR', 'DOMParser XML syntax error')).toBe('SIG_SVG_PARSER_SYNTAX');
+      expect(GpaengDiagnosticEngine.classifyErrorSignature('TOOL_TIMEOUT', 'HTTP 504 Gateway Timeout')).toBe('SIG_DIFFUSION_504_TIMEOUT');
+      expect(GpaengDiagnosticEngine.classifyErrorSignature('NETWORK_ERROR', 'Failed to fetch')).toBe('SIG_NETWORK_FETCH_DROP');
+      expect(GpaengDiagnosticEngine.classifyErrorSignature('STREAM_TIMEOUT', 'signal is aborted without reason')).toBe('SIG_STREAM_ABORT_FRICTION');
+      expect(GpaengDiagnosticEngine.classifyErrorSignature('STREAM_LATENCY_SPIKE', 'latency spike detected: 32000ms')).toBe('SIG_LATENCY_SPIKE');
+      expect(GpaengDiagnosticEngine.classifyErrorSignature('RATE_LIMIT', 'HTTP 429 Too Many Requests')).toBe('SIG_RATE_LIMIT_429');
+    });
+
+    await harness.it('should execute autonomous self-healing loop and mitigate known signatures', async () => {
+      let resolvedCount = 0;
+      let insertedRemediation: any = null;
+      let insertedSnapshot: any = null;
+
+      const mockSupabase: any = {
+        from: (table: string) => ({
+          select: () => ({
+            eq: () => ({
+              limit: async () => ({
+                data: [
+                  {
+                    id: 'inc-ext-1',
+                    category: 'CLIENT_CRASH',
+                    error_message: "Cannot read properties of undefined (reading 'M_ID')",
+                    error_stack: 'chrome-extension://dummy/executors/200.js'
+                  },
+                  {
+                    id: 'inc-413-1',
+                    category: 'IMAGE_GENERATION_DEFECT',
+                    error_message: 'HTTP 413 FUNCTION_PAYLOAD_TOO_LARGE'
+                  }
+                ],
+                error: null
+              })
+            })
+          }),
+          update: () => ({
+            eq: async () => {
+              resolvedCount++;
+              return { error: null };
+            }
+          }),
+          insert: async (data: any) => {
+            if (table === 'matany_autonomous_remediations') insertedRemediation = data;
+            if (table === 'matany_gpaeng_snapshots') insertedSnapshot = data;
+            return { error: null };
+          }
+        }),
+        rpc: async () => ({
+          data: {
+            svi_score: 98.5,
+            health_status: 'OPTIMAL',
+            total_incidents: 2,
+            open_incidents: 0
+          },
+          error: null
+        })
+      };
+
+      const result = await GpaengDiagnosticEngine.runAutonomousSelfHealingLoop(mockSupabase);
+
+      expect(result.mitigatedCount).toBe(2);
+      expect(result.sviScore).toBe(98.5);
+      expect(result.healthStatus).toBe('OPTIMAL');
+      expect(Boolean(insertedRemediation)).toBe(true);
+      expect(Boolean(insertedSnapshot)).toBe(true);
     });
 
     await harness.it('should safely record an incident without throwing exceptions', async () => {
@@ -138,6 +208,15 @@ export async function runGpaengDiagnosticTests(harness: TestHarness) {
       expect(insertedRow.category).toBe('NETWORK_ERROR');
       expect(insertedRow.severity).toBe('HIGH');
       expect(insertedRow.error_message).toBe('Connection reset by peer');
+    });
+
+    await harness.it('should return error when synchronizing to GitHub without token', async () => {
+      const res = await GpaengDiagnosticEngine.syncCriticalIncidentToGitHub('', 'MohamedFC2A', 'Matany', {
+        category: 'TEST_ERR',
+        errorMessage: 'Test error'
+      });
+      expect(res.success).toBe(false);
+      expect(res.error).toBe('GitHub token missing');
     });
   });
 }

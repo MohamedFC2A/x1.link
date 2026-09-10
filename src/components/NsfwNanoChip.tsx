@@ -16,9 +16,9 @@ export const NsfwNanoChip: React.FC<NsfwNanoChipProps> = ({
 }) => {
   const handleClick = () => {
     if (!isActive) {
-      soundFx.playX1Activate();
+      soundFx.playMatanyActivate();
     } else {
-      soundFx.playX1Deactivate();
+      soundFx.playMatanyDeactivate();
     }
     if (onClick) onClick();
     else if (onToggle) onToggle();

@@ -1192,7 +1192,7 @@ export function routeFeatureIntent(
       rLower.includes('فحص الفيديو') ||
       rLower.includes('مقطع الفيديو')
     );
-    const isSparkModel = context?.model === 'meta/muse-spark-1.2-contributor';
+    const isSparkModel = context?.model === 'meta/muse-spark-1.3-contributor' || context?.model === 'meta/muse-spark-1.2-contributor';
 
     // Strictly require real media or zip/audio/video attachments; never fire on plain text reasoning
     if (hasSparkBadge || isVideoUrlInText || isContextTriggered || isSparkModel || (hasSparkReasoning && (isVideoUrlInText || isContextTriggered))) {

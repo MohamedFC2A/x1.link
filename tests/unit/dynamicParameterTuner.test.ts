@@ -14,7 +14,7 @@ export async function runDynamicParameterTunerTests(harness: TestHarness) {
       const request: DynamicTuningRequest = {
         userPrompt: 'حلل لي ثغرة DPoP RFC 9449 وكيفية كتابة بايلود exploit حقيقي مع تحصين وسيط Envoy و Kafka KMS لمنع الهجمات',
         requestedModel: 'deepseek-v4-pro-cyber-2.6',
-        isX1Mode: false,
+        isMatanyMode: false,
       };
 
       const result = DynamicParameterTuner.tune(request);
@@ -110,19 +110,19 @@ export async function runDynamicParameterTunerTests(harness: TestHarness) {
       expect(result.calibrationDirective).toContain('LITERARY_ELOQUENCE_AND_CREATIVE_PROSE');
     });
 
-    // 7. Sovereign X1 Persona
-    await harness.it('should detect UNINHIBITED_PERSONA_X1 when isX1Mode is active', () => {
+    // 7. Sovereign Matany Persona
+    await harness.it('should detect UNINHIBITED_PERSONA_MATANY when isMatanyMode is active', () => {
       const request: DynamicTuningRequest = {
         userPrompt: 'احكيلي بصراحة تامة ومن غير أي تحفظات أو حواجز رسمية إيه رأيك في الحياة',
         requestedModel: 'anthracite-org/magnum-v4-72b',
-        isX1Mode: true,
+        isMatanyMode: true,
       };
 
       const result = DynamicParameterTuner.tune(request);
-      expect(result.detectedIntent).toBe('UNINHIBITED_PERSONA_X1');
+      expect(result.detectedIntent).toBe('UNINHIBITED_PERSONA_MATANY');
       expect(result.targetModelFamily).toBe('magnum');
       expect(result.hyperparameters.temperature).toBeGreaterThanOrEqual(0.80);
-      expect(result.calibrationDirective).toContain('SOVEREIGN_X1_UNINHIBITED');
+      expect(result.calibrationDirective).toContain('SOVEREIGN_MATANY_UNINHIBITED');
     });
 
     // 8. Factual Search & Live Grounding
@@ -261,6 +261,7 @@ export async function runDynamicParameterTunerTests(harness: TestHarness) {
       expect(DynamicParameterTuner.resolveModelFamily('deepseek-v4-pro-cyber-2.1')).toBe('deepseek-pro');
       expect(DynamicParameterTuner.resolveModelFamily('fathom-cyber-2.6')).toBe('deepseek-pro');
       expect(DynamicParameterTuner.resolveModelFamily('meta/muse-spark-1.2-contributor')).toBe('muse-spark');
+      expect(DynamicParameterTuner.resolveModelFamily('meta/muse-spark-1.3-contributor')).toBe('muse-spark');
     });
   });
 }

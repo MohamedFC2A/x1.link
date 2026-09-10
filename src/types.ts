@@ -4,7 +4,8 @@ export type ModelType =
   | 'deepseek-v4-pro-cyber-2.6'
   | 'deepseek-v4-pro-cyber-2.1'
   | 'deepseek-v4-flash-vision-exp'
-  | 'meta/muse-spark-1.2-contributor';
+  | 'meta/muse-spark-1.2-contributor'
+  | 'meta/muse-spark-1.3-contributor';
 
 export type MediaType = 'image' | 'video' | 'audio' | 'document' | 'other';
 
@@ -38,7 +39,7 @@ export interface ChatMessageItem {
   videoKeyframes?: string[];
   mediaAttachments?: MediaAttachmentItem[];
   timestamp: string;
-  isX1?: boolean;
+  isMatany?: boolean;
   model?: ModelType;
   tokensCount?: number;
   isMemoryDetectTriggered?: boolean;
@@ -64,8 +65,8 @@ export interface SystemStatus {
   online: boolean;
   latencyMs: number;
   activeModel: ModelType;
-  x1Unlocked: boolean;
-  x1Active: boolean;
+  matanyUnlocked: boolean;
+  matanyActive: boolean;
   verifiedAge18: boolean;
   verifiedAge21: boolean;
   totalTokensProcessed: number;

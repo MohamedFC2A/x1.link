@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Zap, Flame, ShieldAlert, Cpu } from 'lucide-react';
+import { Flame, Cpu } from 'lucide-react';
 
-interface X1TransformationOverlayProps {
+interface MatanyTransformationOverlayProps {
   isActive: boolean;
 }
 
-export const X1TransformationOverlay: React.FC<X1TransformationOverlayProps> = ({ isActive }) => {
+export const MatanyTransformationOverlay: React.FC<MatanyTransformationOverlayProps> = ({ isActive }) => {
   const [showAnimation, setShowAnimation] = useState(false);
 
   useEffect(() => {

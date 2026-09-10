@@ -334,7 +334,7 @@ export class ContextMemoryEngine {
   constructor() {
     try {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('x1_cloud_memory_index_v2');
+        localStorage.removeItem('matany_cloud_memory_index_v2');
       }
     } catch {}
   }

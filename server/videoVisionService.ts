@@ -334,26 +334,26 @@ export async function performVideoVisionPerception(
     model: string;
     headers: Record<string, string>;
   }> = [
-    {
-      url: `${baseUrl}/chat/completions`,
-      key: apiKey,
-      model: 'deepseek-v4-flash-vision-exp',
-      headers: {}
-    },
     ...(openRouterKey ? [{
       url: 'https://openrouter.ai/api/v1/chat/completions',
       key: openRouterKey,
-      model: 'meta/muse-spark-1.2-contributor',
+      model: 'meta/muse-spark-1.3-contributor',
       headers: {
         'HTTP-Referer': 'https://matany.one',
         'X-Title': 'Matany AI',
       }
+    }] : []),
+    ...(apiKey ? [{
+      url: `${baseUrl}/chat/completions`,
+      key: apiKey,
+      model: 'deepseek-v4-flash-vision-exp',
+      headers: {}
     }] : [])
   ];
 
   const dynamicTuning = DynamicParameterTuner.tune({
     userPrompt: contextInfo.userPrompt || contextInfo.title || 'استيعاب وفحص لقطات الفيديو',
-    requestedModel: 'meta/muse-spark-1.2-contributor',
+    requestedModel: 'meta/muse-spark-1.3-contributor',
     hasVideoOrAudio: true,
   });
 

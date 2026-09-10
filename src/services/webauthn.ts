@@ -121,13 +121,13 @@ export async function triggerBiometricAuthentication(): Promise<WebAuthnVerifica
         const publicKeyCredentialCreationOptions: PublicKeyCredentialCreationOptions = {
           challenge: challengeBuffer,
           rp: {
-            name: 'X1 PROTOCOL // UNFILTERED AI',
+            name: 'MATANY PROTOCOL // UNFILTERED AI',
             id: window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname
           },
           user: {
             id: userId,
-            name: 'x1_operator',
-            displayName: 'X1 Operator (Authorized)'
+            name: 'matany_operator',
+            displayName: 'Matany Operator (Authorized)'
           },
           pubKeyCredParams: [
             { alg: -7, type: 'public-key' },  // ES256
@@ -176,6 +176,6 @@ export async function triggerBiometricAuthentication(): Promise<WebAuthnVerifica
     success: true,
     type: 'device_passkey',
     verifiedAt: timestamp,
-    credentialId: 'x1-bio-' + Math.random().toString(36).substring(2, 12).toUpperCase()
+    credentialId: 'matany-bio-' + Math.random().toString(36).substring(2, 12).toUpperCase()
   };
 }

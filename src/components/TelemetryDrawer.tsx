@@ -9,8 +9,8 @@ interface TelemetryDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   activeModel: ModelType;
-  isX1Active: boolean;
-  isX1Unlocked: boolean;
+  isMatanyActive?: boolean;
+  isMatanyUnlocked?: boolean;
   messagesCount: number;
 }
 
@@ -18,10 +18,12 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
   isOpen,
   onClose,
   activeModel,
-  isX1Active,
-  isX1Unlocked,
+  isMatanyActive,
+  isMatanyUnlocked,
   messagesCount
 }) => {
+  const active = Boolean(isMatanyActive);
+  const unlocked = Boolean(isMatanyUnlocked);
   if (!isOpen) return null;
 
   const memStats = memoryEngine.getMemoryStats();
@@ -59,7 +61,7 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
             <div className="bg-black/50 p-3 rounded-xl border border-white/[0.08]">
               <span className="text-zinc-400 block text-[10px] uppercase font-bold">CURRENT ACTIVE MODEL</span>
               <span className="text-white font-bold block mt-1">
-                {getModelDisplayName(activeModel, isX1Active)}
+                {getModelDisplayName(activeModel, active)}
               </span>
               <span className="text-[10px] text-cyan-400 block mt-0.5 font-bold">
                 {activeModel === 'fathom-quant-3'
@@ -172,12 +174,12 @@ export const TelemetryDrawer: React.FC<TelemetryDrawerProps> = ({
               <span className="text-zinc-400 block text-[10px] uppercase font-bold">MATANY PROTOCOL STATE</span>
               <div className="mt-1 flex items-center gap-2">
                 <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
-                  isX1Active ? 'bg-white text-zinc-950' : 'bg-white/[0.05] text-zinc-400 border border-white/[0.08]'
+                  active ? 'bg-white text-zinc-950' : 'bg-white/[0.05] text-zinc-400 border border-white/[0.08]'
                 }`}>
-                  {isX1Active ? 'ENGAGED (MAX UNCHAINED)' : 'STANDBY'}
+                  {active ? 'ENGAGED (MAX UNCHAINED)' : 'STANDBY'}
                 </span>
                 <span className="text-[10px] text-zinc-400">
-                  BIOMETRIC_AUTH: {isX1Unlocked ? 'PASSED' : 'LOCKED'}
+                  BIOMETRIC_AUTH: {unlocked ? 'PASSED' : 'LOCKED'}
                 </span>
               </div>
             </div>

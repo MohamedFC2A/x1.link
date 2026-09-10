@@ -1658,22 +1658,62 @@ async function extractVisualContext(
 
     const dynamicTuning = DynamicParameterTuner.tune({
       userPrompt: userQuestion || 'استيعاب وفهم سياقي تلقائي لمحتوى الصور المرفقة',
-      requestedModel: 'deepseek-v4-flash-vision-exp',
+      requestedModel: 'meta/muse-spark-1.3-contributor',
       hasMultimodalImages: true,
     });
 
-    const visionPayload = DynamicParameterTuner.tuneGatewayPayload(
-      'deepseek-v4-flash-vision-exp',
-      {
-        messages: formattedVisionItems,
-        stream: false,
-      },
-      dynamicTuning
-    );
+    // 1. Primary OpenRouter Vision Gateway (meta/muse-spark-1.3-contributor)
+    if (OPENROUTER_API_KEY) {
+      try {
+        const sparkPayload = DynamicParameterTuner.tuneGatewayPayload(
+          'meta/muse-spark-1.3-contributor',
+          {
+            messages: formattedVisionItems,
+            stream: false,
+          },
+          dynamicTuning
+        );
+        const visionRes = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          body: JSON.stringify(sparkPayload),
+          signal
+        });
 
-    // 1. Direct DeepSeek Primary Vision Gateway (api.deepseek.com)
+        if (visionRes.ok) {
+          const data = await visionRes.json();
+          const result = data.choices?.[0]?.message?.content || '';
+          if (result && result.trim()) {
+            console.log(`[Fathom Cam Vision] Extracted ${result.length} chars of visual perception via OpenRouter Muse Spark 1.3.`);
+            visionContextCache.set(cacheKey, { result: result.trim(), expiresAt: Date.now() + VISION_CACHE_TTL_MS });
+            return result.trim();
+          }
+        } else {
+          const errText = await visionRes.text().catch(() => '');
+          console.warn('[Fathom Cam Vision] OpenRouter Muse Spark HTTP Error:', visionRes.status, errText);
+        }
+      } catch (sparkErr: any) {
+        if (sparkErr.name === 'AbortError') throw sparkErr;
+        console.warn('[Fathom Cam Vision] OpenRouter Muse Spark Exception:', sparkErr.message);
+      }
+    }
+
+    // 2. Direct DeepSeek Vision Gateway (api.deepseek.com) [Fallback]
     if (DEEPSEEK_API_KEY) {
       try {
+        const visionPayload = DynamicParameterTuner.tuneGatewayPayload(
+          'deepseek-v4-flash-vision-exp',
+          {
+            messages: formattedVisionItems,
+            stream: false,
+          },
+          dynamicTuning
+        );
         const visionRes = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
           method: 'POST',
           headers: {
@@ -1702,7 +1742,7 @@ async function extractVisualContext(
       }
     }
 
-    // 2. OpenRouter Emergency Fallback only if Direct DeepSeek fails or key is missing
+    // 3. OpenRouter Emergency Fallback (deepseek/deepseek-v4-flash-vision-exp)
     if (OPENROUTER_API_KEY) {
       const fallbackPayload = DynamicParameterTuner.tuneGatewayPayload(
         'deepseek/deepseek-v4-flash-vision-exp',
@@ -2427,7 +2467,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   const {
     messages = [],
     model = 'fathom-quant-3',
-    isX1Mode = false,
+    isMatanyMode = false,
     deepSearch = false,
     temperature = 0.85,
     memoryPrompt = '',
@@ -2436,6 +2476,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     userId = null,
     deviceId = ''
   } = req.body;
+
+  const isEffectiveMatanyMode = Boolean(isMatanyMode);
 
   // Radically map legacy/deleted flash models to flagship fathom-quant-3
   let activeModel = model;
@@ -2504,7 +2546,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
   res.on('close', () => {
     isClientDisconnected = true;
-    console.log(`[X1-SERVER] Client socket closed / refreshed, continuing upstream generation in background for chatId: ${chatId || 'none'}`);
+    console.log(`[MATANY-SERVER] Client socket closed / refreshed, continuing upstream generation in background for chatId: ${chatId || 'none'}`);
   });
 
   const cleanedMessages = messages.filter((m: { role: string; content: string | any[]; id?: string }) => {
@@ -2559,15 +2601,15 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     return /(?:youtube\.com|youtu\.be|yt\.be|tiktok\.com|douyin\.com|instagram\.com\/(?:reel|p|tv)|instagr\.am|fb\.watch|facebook\.com\/(?:watch|reel|.*\/videos)|twitter\.com\/.*\/status|x\.com\/.*\/status|\.mp4|\.webm|\.m4a|\.mp3|\.wav)/i.test(text);
   }) || Boolean(explicitTargetUrl && /(?:youtube\.com|youtu\.be|yt\.be|tiktok\.com|douyin\.com|instagram\.com|instagr\.am|fb\.watch|facebook\.com|twitter\.com|x\.com|\.mp4|\.webm)/i.test(explicitTargetUrl));
 
-  const isMediaSpark = activeModel === 'meta/muse-spark-1.2-contributor' || activeModel.includes('muse-spark') || activeModel.includes('spark') || hasVideoUrlInConversation;
+  const isMediaSpark = activeModel === 'meta/muse-spark-1.3-contributor' || activeModel === 'meta/muse-spark-1.2-contributor' || activeModel.includes('muse-spark') || activeModel.includes('spark') || hasVideoUrlInConversation;
 
   const baseSystemPrompt = isFathomQuant3
-    ? (isX1Mode ? `${SYSTEM_PROMPT_FATHOM_QUANT_3}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_FATHOM_QUANT_3)
+    ? (isEffectiveMatanyMode ? `${SYSTEM_PROMPT_FATHOM_QUANT_3}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_FATHOM_QUANT_3)
     : isCyber26
-    ? (isX1Mode ? `${SYSTEM_PROMPT_CYBER_2_6}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_CYBER_2_6)
+    ? (isEffectiveMatanyMode ? `${SYSTEM_PROMPT_CYBER_2_6}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_CYBER_2_6)
     : isCyber
-    ? (isX1Mode ? `${SYSTEM_PROMPT_CYBER}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_CYBER)
-    : (isX1Mode ? SYSTEM_PROMPT_NSFW_NANO : SYSTEM_PROMPT_18);
+    ? (isEffectiveMatanyMode ? `${SYSTEM_PROMPT_CYBER}\n\n${SYSTEM_PROMPT_NSFW_NANO}` : SYSTEM_PROMPT_CYBER)
+    : (isEffectiveMatanyMode ? SYSTEM_PROMPT_NSFW_NANO : SYSTEM_PROMPT_18);
 
   const timeDetectContext = getTimeDetectPromptBlock();
 
@@ -2596,7 +2638,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       });
       if (preMem.hasMemory && preMem.memoryBlock) {
         effectiveMemoryPrompt = preMem.memoryBlock;
-        console.log(`[X1-SERVER] ✓ Autonomous Memory Detect recall triggered (${preMem.matchedCount} nodes matched).`);
+        console.log(`[MATANY-SERVER] ✓ Autonomous Memory Detect recall triggered (${preMem.matchedCount} nodes matched).`);
       }
     } catch (memErr) {
       console.warn('[Memory Detect Pre-Synthesize Catch]:', memErr);
@@ -2622,7 +2664,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     userPrompt: lastUserText,
     conversationHistory: cleanedMessages,
     requestedModel: model,
-    isX1Mode,
+    isMatanyMode: isEffectiveMatanyMode,
     deepSearch,
     hasMultimodalImages: hasMultimodal || isVision,
     hasZipOrCodeFiles: hasZipOrMedia,
@@ -2659,7 +2701,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
   // Stage 1: Vision Perception & Forensics
   if (isMediaSpark) {
-    console.log('[X1-PIPELINE] Media & Code Spark (Video/Audio/Docs/Zip) detected. Fast native multimodal routing activated...');
+    console.log('[MATANY-PIPELINE] Media & Code Spark (Video/Audio/Docs/Zip) detected. Fast native multimodal routing activated...');
     const mediaAndCodeGuidance = `
 [توجيه استيعاب وفحص الأكواد والمستندات والوسائط — FATHOM SPARK INTELLIGENCE DIRECTIVE]:
 1. فكّر وتأمّل أولاً داخل وسم <think> باللغة العربية الفصحى:
@@ -2698,7 +2740,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
     const isForensicsExplicitlyRequested = isForensicAnalysisRequested(userPromptForForensics);
 
-    console.log(`[X1-PIPELINE] Multimodal image detected. Fast native multimodal routing activated (forensics: ${isForensicsExplicitlyRequested}, intent: ${dynamicTuning.detectedIntent})...`);
+    console.log(`[MATANY-PIPELINE] Multimodal image detected. Fast native multimodal routing activated (forensics: ${isForensicsExplicitlyRequested}, intent: ${dynamicTuning.detectedIntent})...`);
 
     if (dynamicTuning.detectedIntent === 'SVG_VECTOR_STUDIO_AND_DESIGN') {
       const imageToSvgGuidance = `
@@ -3054,6 +3096,17 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       }
       if (OPENROUTER_API_KEY) {
         gateCandidates.push({
+          name: 'OpenRouter Meta Muse Spark 1.3 Contributor Multimodal Vision (meta/muse-spark-1.3-contributor @ openrouter.ai)',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: DynamicParameterTuner.tuneGatewayPayload('meta/muse-spark-1.3-contributor', basePayload, dynamicTuning)
+        });
+        gateCandidates.push({
           name: 'OpenRouter DeepSeek Vision (deepseek/deepseek-v4-flash-vision-exp @ openrouter.ai)',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
           headers: {
@@ -3093,7 +3146,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       });
     } else if (isMediaSpark && OPENROUTER_API_KEY) {
       gateCandidates.push({
-        name: 'OpenRouter Meta Muse Spark 1.2 Contributor (Fathom Spark Multimodal)',
+        name: 'OpenRouter Meta Muse Spark 1.3 Contributor (Fathom Spark Multimodal)',
         url: `${OPENROUTER_BASE_URL}/chat/completions`,
         headers: {
           'Content-Type': 'application/json',
@@ -3101,15 +3154,29 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           'HTTP-Referer': 'https://matany.one',
           'X-Title': 'Matany AI',
         },
-        payload: DynamicParameterTuner.tuneGatewayPayload('meta/muse-spark-1.2-contributor', basePayload, dynamicTuning)
+        payload: DynamicParameterTuner.tuneGatewayPayload('meta/muse-spark-1.3-contributor', basePayload, dynamicTuning)
       });
     }
 
-    // Candidate 2: Fathom Cyber 2.6 & Fathom Quant 3 Sovereign Engine
+    // Candidate 2: Fathom Cyber 2.6 & Fathom Quant 3 Sovereign Engine (Primary: OpenRouter meta/muse-spark-1.3-contributor)
     if (isCyber26) {
+      if (OPENROUTER_API_KEY) {
+        gateCandidates.push({
+          name: 'OpenRouter Meta Muse Spark 1.3 Contributor (Primary Sovereign Fathom Engine)',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: DynamicParameterTuner.tuneGatewayPayload('meta/muse-spark-1.3-contributor', basePayload, dynamicTuning)
+        });
+      }
+
       if (DEEPSEEK_API_KEY) {
         gateCandidates.push({
-          name: 'DeepSeek Direct Fathom Quant 3 (deepseek-v4-pro @ api.deepseek.com)',
+          name: 'DeepSeek Direct Fathom Quant 3 (deepseek-v4-pro @ api.deepseek.com) [Fallback]',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3118,7 +3185,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, dynamicTuning)
         });
         gateCandidates.push({
-          name: 'DeepSeek Direct Reasoner (deepseek-reasoner @ api.deepseek.com)',
+          name: 'DeepSeek Direct Reasoner (deepseek-reasoner @ api.deepseek.com) [Fallback]',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3127,7 +3194,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-reasoner', basePayload, dynamicTuning)
         });
         gateCandidates.push({
-          name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com)',
+          name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com) [Fallback]',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3151,10 +3218,24 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         });
       }
     } else if (isCyber) {
-      // Fathom Cyber 2.0 Sovereign Engine
+      // Fathom Cyber 2.0 Sovereign Engine (Primary: OpenRouter meta/muse-spark-1.3-contributor)
+      if (OPENROUTER_API_KEY) {
+        gateCandidates.push({
+          name: 'OpenRouter Meta Muse Spark 1.3 Contributor (Primary Cyber Engine)',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: DynamicParameterTuner.tuneGatewayPayload('meta/muse-spark-1.3-contributor', basePayload, dynamicTuning)
+        });
+      }
+
       if (DEEPSEEK_API_KEY) {
         gateCandidates.push({
-          name: 'DeepSeek Direct Cyber Pro (deepseek-v4-pro @ api.deepseek.com)',
+          name: 'DeepSeek Direct Cyber Pro (deepseek-v4-pro @ api.deepseek.com) [Fallback]',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3163,7 +3244,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, dynamicTuning)
         });
         gateCandidates.push({
-          name: 'DeepSeek Direct Reasoner (deepseek-reasoner @ api.deepseek.com)',
+          name: 'DeepSeek Direct Reasoner (deepseek-reasoner @ api.deepseek.com) [Fallback]',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3172,7 +3253,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-reasoner', basePayload, dynamicTuning)
         });
         gateCandidates.push({
-          name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com)',
+          name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com) [Fallback]',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3195,11 +3276,11 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: DynamicParameterTuner.tuneGatewayPayload('deepseek/deepseek-v4-pro', basePayload, dynamicTuning)
         });
       }
-    } else if (isX1Mode) {
-      // Candidate 3: X1 NSFW Uninhibited Persona Engine
+    } else if (isEffectiveMatanyMode) {
+      // Candidate 3: Matany NSFW Uninhibited Persona Engine
       if (DEEPSEEK_API_KEY) {
         gateCandidates.push({
-          name: 'DeepSeek Direct X1 Persona (deepseek-v4-pro @ api.deepseek.com)',
+          name: 'DeepSeek Direct Matany Persona (deepseek-v4-pro @ api.deepseek.com)',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3222,7 +3303,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: DynamicParameterTuner.tuneGatewayPayload('anthracite-org/magnum-v4-72b', basePayload, dynamicTuning)
         });
         gateCandidates.push({
-          name: 'OpenRouter DeepSeek v4 Pro (X1 Backup)',
+          name: 'OpenRouter DeepSeek v4 Pro (Matany Backup)',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3234,10 +3315,24 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         });
       }
     } else {
-      // Candidate 5: General Text Chat Mode (Quant 3 Flagship Default)
+      // Candidate 5: General Text Chat Mode (Quant 3 Flagship Default - Primary: OpenRouter meta/muse-spark-1.3-contributor)
+      if (OPENROUTER_API_KEY) {
+        gateCandidates.push({
+          name: 'OpenRouter Meta Muse Spark 1.3 Contributor (Quant 3 Flagship Primary)',
+          url: `${OPENROUTER_BASE_URL}/chat/completions`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://matany.one',
+            'X-Title': 'Matany AI',
+          },
+          payload: DynamicParameterTuner.tuneGatewayPayload('meta/muse-spark-1.3-contributor', basePayload, dynamicTuning)
+        });
+      }
+
       if (DEEPSEEK_API_KEY) {
         gateCandidates.push({
-          name: 'DeepSeek Direct Pro Reasoning (deepseek-v4-pro @ api.deepseek.com)',
+          name: 'DeepSeek Direct Pro Reasoning (deepseek-v4-pro @ api.deepseek.com) [Fallback]',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3246,7 +3341,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-v4-pro', basePayload, dynamicTuning)
         });
         gateCandidates.push({
-          name: 'DeepSeek Direct Reasoner (deepseek-reasoner @ api.deepseek.com)',
+          name: 'DeepSeek Direct Reasoner (deepseek-reasoner @ api.deepseek.com) [Fallback]',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3255,7 +3350,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           payload: DynamicParameterTuner.tuneGatewayPayload('deepseek-reasoner', basePayload, dynamicTuning)
         });
         gateCandidates.push({
-          name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com)',
+          name: 'DeepSeek Direct Chat (deepseek-chat @ api.deepseek.com) [Fallback]',
           url: `${DEEPSEEK_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3267,7 +3362,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
       if (OPENROUTER_API_KEY) {
         gateCandidates.push({
-          name: 'OpenRouter DeepSeek v4 Pro (Advanced Reasoning)',
+          name: 'OpenRouter DeepSeek v4 Pro (Advanced Reasoning Backup)',
           url: `${OPENROUTER_BASE_URL}/chat/completions`,
           headers: {
             'Content-Type': 'application/json',
@@ -3286,7 +3381,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     for (const candidate of gateCandidates) {
       if (upstreamAbortController.signal.aborted || isClientDisconnected) break;
       try {
-        console.log(`[X1-SERVER] Attempting gateway: ${candidate.name}...`);
+        console.log(`[MATANY-SERVER] Attempting gateway: ${candidate.name}...`);
         const resCandidate = await executeFetchWithRetry(candidate.url, {
           method: 'POST',
           headers: candidate.headers,
@@ -3296,22 +3391,22 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
         if (resCandidate && resCandidate.ok) {
           response = resCandidate;
-          console.log(`[X1-SERVER] ✓ Connected successfully via ${candidate.name}`);
+          console.log(`[MATANY-SERVER] ✓ Connected successfully via ${candidate.name}`);
           break;
         } else if (resCandidate) {
           const errTxt = await resCandidate.text().catch(() => '');
           lastError = `${candidate.name} error (${resCandidate.status}): ${errTxt.slice(0, 150)}`;
-          console.warn(`[X1-SERVER] ✗ ${lastError}`);
+          console.warn(`[MATANY-SERVER] ✗ ${lastError}`);
         }
       } catch (gateErr: any) {
         if (gateErr.name === 'AbortError' || upstreamAbortController.signal.aborted) break;
         lastError = `${candidate.name} fetch failed: ${gateErr.message}`;
-        console.warn(`[X1-SERVER] ✗ ${lastError}`);
+        console.warn(`[MATANY-SERVER] ✗ ${lastError}`);
       }
     }
 
     if (isClientDisconnected) {
-      console.log('[X1-SERVER] Client was already disconnected prior to response.');
+      console.log('[MATANY-SERVER] Client was already disconnected prior to response.');
       return;
     }
 
@@ -3424,7 +3519,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
                   const engineCheck = fathomEngine.processStreamingChunk(delta.reasoning_content);
                   if (engineCheck.shouldCutThinking) {
                     isCycleLoopDetected = true;
-                    console.warn(`[X1-SERVER] ⚠️ Fathom Reasoning Engine cycle detected in thinking: ${engineCheck.reason}. Safe break.`);
+                    console.warn(`[MATANY-SERVER] ⚠️ Fathom Reasoning Engine cycle detected in thinking: ${engineCheck.reason}. Safe break.`);
                     const pending = engineCheck.safeClosingSuffix || DeterministicCycleDetector.getPendingDelimiters(fullServerReasoning);
                     if (pending && !isClientDisconnected && !res.writableEnded) {
                       res.write(`data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: pending } }] })}\n\n`);
@@ -3450,7 +3545,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
                     }
                     if (count >= 3 && phrase.length > 15) {
                       isCycleLoopDetected = true;
-                      console.warn(`[X1-SERVER] ⚠️ Degenerate cycle loop detected on reasoning pattern "${phrase}". Ending stream.`);
+                      console.warn(`[MATANY-SERVER] ⚠️ Degenerate cycle loop detected on reasoning pattern "${phrase}". Ending stream.`);
                       const pending = DeterministicCycleDetector.getPendingDelimiters(fullServerReasoning);
                       if (pending && !isClientDisconnected && !res.writableEnded) {
                         res.write(`data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: pending } }] })}\n\n`);
@@ -3465,7 +3560,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
                   const cycleRes = fathomEngine.getCycleDetector().evaluateChunk(delta.content);
                   if (cycleRes.hasCycle && (cycleRes.suggestedAction === 'FORCE_BREAK' || cycleRes.loopCount >= 2)) {
                     isCycleLoopDetected = true;
-                    console.warn(`[X1-SERVER] ⚠️ Fathom Cycle Detector triggered on content (loopCount=${cycleRes.loopCount}). Safe break.`);
+                    console.warn(`[MATANY-SERVER] ⚠️ Fathom Cycle Detector triggered on content (loopCount=${cycleRes.loopCount}). Safe break.`);
                     const pending = cycleRes.pendingDelimiters || DeterministicCycleDetector.getPendingDelimiters(fullServerContent);
                     if (pending && !isClientDisconnected && !res.writableEnded) {
                       fullServerContent += pending;
@@ -3492,7 +3587,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
                     }
                     if (count >= 3 && phrase.length > 15) {
                       isCycleLoopDetected = true;
-                      console.warn(`[X1-SERVER] ⚠️ Degenerate cycle loop detected on content pattern "${phrase}". Safely terminating output.`);
+                      console.warn(`[MATANY-SERVER] ⚠️ Degenerate cycle loop detected on content pattern "${phrase}". Safely terminating output.`);
                       const pending = DeterministicCycleDetector.getPendingDelimiters(fullServerContent);
                       if (pending && !isClientDisconnected && !res.writableEnded) {
                         fullServerContent += pending;
@@ -3578,7 +3673,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         if (!isClientDisconnected && !res.writableEnded) {
           res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: recoveryBlock } }] })}\n\n`);
         }
-        console.log('[X1-SERVER] ✓ Synthetic Neural Image recovery block written to stream.');
+        console.log('[MATANY-SERVER] ✓ Synthetic Neural Image recovery block written to stream.');
       }
     }
 
@@ -3607,7 +3702,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           }
         }
 
-        await serverSupabase.from('x1_messages').insert({
+        await serverSupabase.from('matany_messages').insert({
           chat_id: chatId,
           user_id: userId || null,
           device_id: deviceId || null,
@@ -3615,11 +3710,11 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           content: cleanServerContent,
           reasoning: fullServerReasoning ? fullServerReasoning.slice(0, 2000) : null,
           image_url: extractedImageUrl,
-          is_x1: !!isX1Mode,
+          is_matany: !!isEffectiveMatanyMode,
           tokens_count: 0
         });
-        await serverSupabase.from('x1_chats').update({ updated_at: new Date().toISOString() }).eq('id', chatId);
-        console.log(`[X1-SERVER] ✓ Assistant message persisted to Supabase in background for chatId: ${chatId}`);
+        await serverSupabase.from('matany_chats').update({ updated_at: new Date().toISOString() }).eq('id', chatId);
+        console.log(`[MATANY-SERVER] ✓ Assistant message persisted to Supabase in background for chatId: ${chatId}`);
 
         // Autonomous Background Memory Ingestion & Chunking
         memoryDetectService.autoIndexConversation({
@@ -3630,18 +3725,18 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           deviceId: deviceId || null
         }).then(idxRes => {
           if (idxRes.indexedCount > 0) {
-            console.log(`[X1-SERVER] ✓ Memory Detect auto-indexed (${idxRes.indexedCount}) semantic chunks for chatId: ${chatId}`);
+            console.log(`[MATANY-SERVER] ✓ Memory Detect auto-indexed (${idxRes.indexedCount}) semantic chunks for chatId: ${chatId}`);
           }
         }).catch(idxErr => {
-          console.warn('[X1-SERVER] Memory Detect auto-index error:', idxErr?.message);
+          console.warn('[MATANY-SERVER] Memory Detect auto-index error:', idxErr?.message);
         });
       } catch (saveErr: any) {
-        console.warn('[X1-SERVER] Background save failed:', saveErr?.message);
+        console.warn('[MATANY-SERVER] Background save failed:', saveErr?.message);
       }
     }
   } catch (error: any) {
     if (error.name === 'AbortError' || isClientDisconnected) {
-      console.log('[X1-SERVER] AI upstream stream cleanly aborted by user action.');
+      console.log('[MATANY-SERVER] AI upstream stream cleanly aborted by user action.');
       return;
     }
     console.error('[Server Error in /api/chat]:', error);
@@ -4149,7 +4244,7 @@ app.post('/api/generate-image', async (req: Request, res: Response) => {
         let targetRow: { id: string; content?: string } | null = null;
         if (isUuid) {
           const { data: row } = await serverSupabase
-            .from('x1_messages')
+            .from('matany_messages')
             .select('id, content')
             .eq('id', messageId)
             .maybeSingle();
@@ -4171,7 +4266,7 @@ app.post('/api/generate-image', async (req: Request, res: Response) => {
             } catch {}
           }
           await serverSupabase
-            .from('x1_messages')
+            .from('matany_messages')
             .update({ image_url: imageUrl, content: updatedContent })
             .eq('id', targetRow.id);
         }
@@ -4195,18 +4290,18 @@ const isTestEnv = process.env.NODE_ENV === 'test' || process.argv.some(arg => ar
 let server: any = null;
 if (!isTestEnv) {
   server = app.listen(PORT, () => {
-    console.log(`[X1-SERVER] Running on http://localhost:${PORT}`);
-    console.log(`[X1-SERVER] Synthesis Engine: anthracite-org/magnum-v4-72b (NSFW NANO +21 MAX)`);
-    console.log(`[X1-SERVER] Perception Engine: deepseek-v4-flash-vision-exp (Native DeepSeek Multi-Vision)`);
+    console.log(`[MATANY-SERVER] Running on http://localhost:${PORT}`);
+    console.log(`[MATANY-SERVER] Synthesis Engine: anthracite-org/magnum-v4-72b (NSFW NANO +21 MAX)`);
+    console.log(`[MATANY-SERVER] Perception Engine: deepseek-v4-flash-vision-exp (Native DeepSeek Multi-Vision)`);
   });
 }
 
 process.on('uncaughtException', (err) => {
-  console.error('[X1-SERVER UncaughtException]:', err);
+  console.error('[MATANY-SERVER UncaughtException]:', err);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[X1-SERVER UnhandledRejection]:', reason);
+  console.error('[MATANY-SERVER UnhandledRejection]:', reason);
 });
 
 process.on('SIGTERM', () => {

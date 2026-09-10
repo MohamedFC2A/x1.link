@@ -504,7 +504,7 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
 
       // Supabase updateMessageImage must exist and inject imageUrl into neural-image block
       expect(supabaseSource).toContain('export async function updateMessageImage');
-      expect(supabaseSource).toContain('x1_messages');
+      expect(supabaseSource).toContain('matany_messages');
       expect(supabaseSource).toContain('parsed.imageUrl = imageUrl');
 
       // NeuralImageCard must support 0ms localStorage retrieval and messageId callback
@@ -514,7 +514,7 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
 
       // api/generate-image must support server-side persistence via messageId
       expect(apiGenSource).toContain('messageId');
-      expect(apiGenSource).toContain('x1_messages');
+      expect(apiGenSource).toContain('matany_messages');
     });
 
     // 28. Zero-Failure Visual Processing Engine (storageService Architecture)

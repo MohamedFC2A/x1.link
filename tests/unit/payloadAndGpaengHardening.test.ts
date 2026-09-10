@@ -64,7 +64,7 @@ export async function runPayloadAndGpaengHardeningTests(harness: TestHarness) {
           select: () => ({
             order: () => ({
               limit: async () => {
-                if (table === 'x1_diagnostic_incidents') {
+                if (table === 'matany_diagnostic_incidents') {
                   return {
                     data: [
                       {

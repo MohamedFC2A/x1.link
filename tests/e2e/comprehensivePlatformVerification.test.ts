@@ -95,9 +95,9 @@ export async function runComprehensivePlaywrightVerification(): Promise<boolean>
 
     // Bypass age gate, early access locks, and set default pro plan
     await page.addInitScript(() => {
-      localStorage.setItem('x1_auth_age_18', 'true');
-      localStorage.setItem('x1_has_seen_landing', 'true');
-      localStorage.setItem('x1_active_plan', 'pro-29');
+      localStorage.setItem('matany_auth_age_18', 'true');
+      localStorage.setItem('matany_has_seen_landing', 'true');
+      localStorage.setItem('matany_active_plan', 'pro-29');
       localStorage.setItem('matany_platform_unlocked', 'true');
       localStorage.setItem('matany_early_access_approved', 'true');
       document.cookie = 'matany_platform_unlocked=true; path=/';

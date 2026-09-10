@@ -104,6 +104,56 @@ class IncidentDiagnosticService {
 
   private constructor() {
     this.initPassiveListeners();
+    this.initOfflineQueue();
+  }
+
+  /**
+   * Flushes any queued offline incidents when connectivity is restored
+   */
+  private initOfflineQueue(): void {
+    if (typeof window === 'undefined') return;
+    window.addEventListener('online', () => {
+      this.flushOfflineQueue();
+    });
+    // Attempt initial flush on mount if back online
+    if (navigator.onLine) {
+      setTimeout(() => this.flushOfflineQueue(), 3000);
+    }
+  }
+
+  private enqueueOffline(payload: any): void {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    try {
+      const existing = JSON.parse(localStorage.getItem('matany_gpaeng_offline_queue') || '[]');
+      if (existing.length < 25) {
+        existing.push(payload);
+        localStorage.setItem('matany_gpaeng_offline_queue', JSON.stringify(existing));
+      }
+    } catch {
+      // Ignore quota errors
+    }
+  }
+
+  private flushOfflineQueue(): void {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    try {
+      const raw = localStorage.getItem('matany_gpaeng_offline_queue');
+      if (!raw) return;
+      const queue = JSON.parse(raw);
+      if (!Array.isArray(queue) || queue.length === 0) return;
+      localStorage.removeItem('matany_gpaeng_offline_queue');
+
+      for (const payload of queue) {
+        fetch('/api/telemetry-incident', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        }).catch(() => null);
+      }
+    } catch {
+      // Ignore parse errors
+    }
   }
 
   public static getInstance(): IncidentDiagnosticService {
@@ -439,10 +489,12 @@ class IncidentDiagnosticService {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload),
               keepalive: true,
-            }).catch(() => null);
+            }).catch(() => {
+              this.enqueueOffline(payload);
+            });
           });
         } catch {
-          // Silent non-blocking failover
+          this.enqueueOffline(payload);
         }
       };
 

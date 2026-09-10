@@ -239,7 +239,7 @@ export class CodeSymbolExtractor {
     // 1. Explicit variable, constant, function declarations
     const declPatterns = [
       /(?:const|let|var|function|def|class|interface|type|enum)\s+([_a-zA-Z0-9$]+)/g,
-      /(?:^|[^\w$])([_a-zA-Z$][a-zA-Z0-9_$]{2,60})(?=[^\w$]|$)/g, // handles identifiers including _x1_auth_nonce_ephemeral_v9
+      /(?:^|[^\w$])([_a-zA-Z$][a-zA-Z0-9_$]{2,60})(?=[^\w$]|$)/g, // handles identifiers including _matany_auth_nonce_ephemeral_v9
       /\b([a-z]+(?:[A-Z][a-z0-9]+)+)\b/g,  // camelCase (e.g. authNonceEphemeral)
       /\b([A-Z]+(?:_[A-Z0-9]+)+)\b/g,      // SCREAMING_SNAKE (e.g. MAX_TOKEN_LIMIT)
       /\b(CVE-\d{4}-\d{4,})\b/gi           // Security CVEs
@@ -620,7 +620,7 @@ export class MemoryDetectService {
       if (error) {
         console.warn('[MemoryDetectService updateMemoryNode RPC Error]:', error.message);
         const { error: directErr } = await this.supabase
-          .from('x1_semantic_memories')
+          .from('matany_semantic_memories')
           .update({
             content: cleanContent,
             summary: cleanSummary,
@@ -663,7 +663,7 @@ export class MemoryDetectService {
       if (error) {
         console.warn('[MemoryDetectService linkChatContexts RPC Error]:', error.message);
         const { data: upsertData, error: directErr } = await this.supabase
-          .from('x1_chat_links')
+          .from('matany_chat_links')
           .upsert({
             user_id: userId || null,
             device_id: deviceId || null,
@@ -881,7 +881,7 @@ export class MemoryDetectService {
       // Bulk Insert non-predicate memory nodes
       if (memoryNodesToInsert.length > 0) {
         await this.supabase
-          .from('x1_semantic_memories')
+          .from('matany_semantic_memories')
           .insert(memoryNodesToInsert);
       }
 
@@ -979,7 +979,7 @@ export class MemoryDetectService {
     try {
       const clean = MemorySanitizer.sanitize(params.query);
       let query = this.supabase
-        .from('x1_semantic_memories')
+        .from('matany_semantic_memories')
         .select('*')
         .eq('is_latest', true)
         .order('created_at', { ascending: false })

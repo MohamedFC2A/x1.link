@@ -19,8 +19,8 @@ export interface RateLimitStatus {
   lockoutRemainingMs: number;
 }
 
-const STORAGE_KEY_PLAN = 'x1_active_plan';
-const STORAGE_KEY_RATE_LIMIT = 'x1_sub_rate_limit';
+const STORAGE_KEY_PLAN = 'matany_active_plan';
+const STORAGE_KEY_RATE_LIMIT = 'matany_sub_rate_limit';
 
 // Get current rate limit status
 export function getRateLimitStatus(): RateLimitStatus {
@@ -175,7 +175,7 @@ export async function syncSubscriptionToSupabase(
     };
 
     await supabase
-      .from('x1_subscriptions')
+      .from('matany_subscriptions')
       .upsert(payload, { onConflict: 'device_id' });
   } catch (err) {
     console.warn('[Supabase Subscription Sync Warn]:', err);
@@ -188,7 +188,7 @@ export async function fetchUserSubscription(
 ): Promise<'free-0' | 'pro-29' | 'elite-99'> {
   const deviceId = getOrCreateDeviceId();
   try {
-    let query = supabase.from('x1_subscriptions').select('plan_id, status');
+    let query = supabase.from('matany_subscriptions').select('plan_id, status');
     if (userId) {
       query = query.or(`user_id.eq.${userId},device_id.eq.${deviceId}`);
     } else {

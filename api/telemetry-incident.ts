@@ -60,7 +60,7 @@ export default async function handler(req: Request): Promise<Response> {
       resolved: false,
     };
 
-    const { error } = await serverSupabase.from('x1_diagnostic_incidents').insert(incident);
+    const { error } = await serverSupabase.from('matany_diagnostic_incidents').insert(incident);
 
     if (error) {
       console.warn('[Vercel Edge Incident] Error saving to Supabase:', error.message);

@@ -1,7 +1,7 @@
 import { ModelType } from '../types';
 
-export function getModelDisplayName(model?: string, isX1?: boolean): string {
-  if (isX1) return 'matany.one (X1 MAX)';
+export function getModelDisplayName(model?: string, isMatany?: boolean): string {
+  if (isMatany) return 'matany.one (Matany MAX)';
   if (!model) return 'Fathom Quant 3';
 
   switch (model) {
@@ -15,6 +15,7 @@ export function getModelDisplayName(model?: string, isX1?: boolean): string {
     case 'deepseek-v4-flash-vision-exp':
       return 'Fathom Cam';
     case 'meta/muse-spark-1.2-contributor':
+    case 'meta/muse-spark-1.3-contributor':
       return 'Fathom Spark';
     default:
       if (model.includes('search') || model.includes('fathom-search')) return 'Fathom Search';
@@ -25,8 +26,8 @@ export function getModelDisplayName(model?: string, isX1?: boolean): string {
   }
 }
 
-export function getModelSubtitle(model?: string, isX1?: boolean): string {
-  if (isX1) {
+export function getModelSubtitle(model?: string, isMatany?: boolean): string {
+  if (isMatany) {
     return 'وضع التحليل الحر غير المقيد للواقعية الموضوعية والنقد التحليلي الشامل';
   }
   switch (model) {
@@ -40,6 +41,7 @@ export function getModelSubtitle(model?: string, isX1?: boolean): string {
     case 'deepseek-v4-flash-vision-exp':
       return 'تحليل الرؤية الحاسوبية وقراءة المستندات والبيانات البصرية';
     case 'meta/muse-spark-1.2-contributor':
+    case 'meta/muse-spark-1.3-contributor':
       return 'معالجة الوسائط المتعددة: تفكيك وتحليل المقاطع الصوتية والمرئية';
     default:
       return 'استدلال تحليلي فائق، توليد ومعالجة الصور بدقة عالية، والتحكم السحابي المتقدم';
@@ -48,7 +50,7 @@ export function getModelSubtitle(model?: string, isX1?: boolean): string {
 
 export function getModelPlaceholder(
   model?: string,
-  isX1?: boolean,
+  isMatany?: boolean,
   options?: {
     hasAttachments?: boolean;
     hasNonImageMedia?: boolean;
@@ -68,7 +70,7 @@ export function getModelPlaceholder(
   if (options?.hasAttachments) {
     return 'أرفق صورة للتحليل البصري أو اكتب استفسارك هنا...';
   }
-  if (isX1) {
+  if (isMatany) {
     return 'اكتب استفسارك أو رسالتك هنا... (الوضع الحر)';
   }
   return 'اكتب استفسارك أو رسالتك هنا...';

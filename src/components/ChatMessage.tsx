@@ -912,7 +912,7 @@ export const TimeDetectAutoDelete: React.FC<{
       setIsDestroyed(true);
       playTimerChime();
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('x1:autodelete-chat'));
+        window.dispatchEvent(new CustomEvent('matany:autodelete-chat'));
       }, 1200);
       return;
     }
@@ -1429,6 +1429,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     (message as any).hasFiles ||
     (message as any).attachments?.length ||
     (message as any).files?.length ||
+    message.model === 'meta/muse-spark-1.3-contributor' ||
     message.model === 'meta/muse-spark-1.2-contributor' ||
     message.model?.includes('spark')
   );
@@ -1941,7 +1942,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     message.model?.includes('cyber') ||
     message.model?.includes('cyper')
   );
-  const isMedia = message.model === 'meta/muse-spark-1.2-contributor';
+  const isMedia = message.model === 'meta/muse-spark-1.3-contributor' || message.model === 'meta/muse-spark-1.2-contributor';
   const isVision = message.model === 'deepseek-v4-flash-vision-exp' || Boolean(message.image);
 
   return (
@@ -1959,9 +1960,9 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               <span>Fathom Quant 3</span>
             </span>
           )}
-          {message.isX1 && (
+          {message.isMatany && (
             <span className="text-[10px] font-mono font-bold text-rose-400/90 tracking-wide px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20">
-              X1 MAX
+              Matany MAX
             </span>
           )}
           {(message.model === 'deepseek-v4-pro-cyber-2.6' || message.model === 'deepseek-v4-pro-cyber-2.1') && (
@@ -1975,7 +1976,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             </span>
           )}
 
-          {(isMedia || hasVideoLinks || (message.model === 'meta/muse-spark-1.2-contributor')) && (
+          {(isMedia || hasVideoLinks || message.model === 'meta/muse-spark-1.3-contributor' || message.model === 'meta/muse-spark-1.2-contributor') && (
             <span className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded bg-violet-500/10 text-violet-300 border border-violet-500/20 select-none">
               <FathomSparkIcon size={11} />
               <span>FATHOM SPARK</span>
@@ -1992,7 +1993,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             reasoningText={effectiveReasoning}
             isThinking={isThinking}
             isStreaming={isStreaming}
-            isX1={message.isX1}
+            isMatany={message.isMatany}
             isTimeIntent={isTimeIntent}
             activeFeatures={activeFeatures}
           />
@@ -2036,7 +2037,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           <div className="flex items-center gap-2 py-1.5 select-none w-full max-w-full" dir="rtl">
             <div className="inline-flex min-h-8 py-1.5 px-3 max-w-full items-center gap-2.5 rounded-2xl time-detect-glass flex-wrap">
               <ThinkingOrb
-                state={hasDownloadDetect ? "shaping" : hasMemoryDetect ? "weaving" : isTimeIntent ? "solving" : isMedia ? "weaving" : isCyber ? "searching" : isVision ? (loadingPhase === 'detecting' ? "shaping" : "working") : message.isX1 ? "solving" : "composing"}
+                state={hasDownloadDetect ? "shaping" : hasMemoryDetect ? "weaving" : isTimeIntent ? "solving" : isMedia ? "weaving" : isCyber ? "searching" : isVision ? (loadingPhase === 'detecting' ? "shaping" : "working") : message.isMatany ? "solving" : "composing"}
                 size={20}
                 theme="dark"
                 speed={1.6}
@@ -2126,7 +2127,7 @@ const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                   "جارٍ التحليل البصري واستيعاب المشهد..."
                 ) : isCyber ? (
                   "جارٍ الفحص الأمني والتحقق الميداني..."
-                ) : message.isX1 ? (
+                ) : message.isMatany ? (
                   "جارٍ معالجة الاستدلال واستدعاء الرد..."
                 ) : isNeuralImageStudioActive ? (
                   imageOpType === 'addition'

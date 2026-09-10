@@ -204,7 +204,7 @@ export default async function handler(req: Request) {
         resolved: false,
       };
 
-      await fetch(`${SUPABASE_URL}/rest/v1/x1_diagnostic_incidents`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/matany_diagnostic_incidents`, {
         method: 'POST',
         headers: {
           apikey: SUPABASE_ANON_KEY,

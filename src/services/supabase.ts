@@ -50,12 +50,7 @@ export function purgeAllLocalChatArtifacts(): void {
       const key = localStorage.key(i);
       if (!key) continue;
       if (
-        key.startsWith('x1_chat') ||
-        key.startsWith('x1_msg') ||
-        key.startsWith('x1_memory') ||
-        key.startsWith('x1_cloud_memory') ||
-        key.startsWith('x1_local') ||
-        key.startsWith('x1_guest') ||
+        key.startsWith('matany_') ||
         key.startsWith('chat_') ||
         key.startsWith('messages_') ||
         key.includes('chat_history') ||
@@ -78,10 +73,10 @@ export function purgeAllLocalChatArtifacts(): void {
 // Generate or retrieve unique device fingerprint ID for cloud device identification
 export function getOrCreateDeviceId(): string {
   purgeAllLocalChatArtifacts();
-  let deviceId = sessionStorage.getItem('x1_session_device_id');
+  let deviceId = sessionStorage.getItem('matany_session_device_id');
   if (!deviceId) {
     deviceId = 'dev_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-    sessionStorage.setItem('x1_session_device_id', deviceId);
+    sessionStorage.setItem('matany_session_device_id', deviceId);
   }
   return deviceId;
 }
@@ -129,12 +124,12 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 // Save or Create a Chat Session in Supabase (Supports Both Logged-in & Guest Users)
-export async function createCloudChat(userId: string | null, title: string, model: ModelType, isX1: boolean): Promise<string | null> {
+export async function createCloudChat(userId: string | null, title: string, model: ModelType, isMatany: boolean): Promise<string | null> {
   const deviceId = getOrCreateDeviceId();
   try {
     const payload: any = {
       title: title.slice(0, 60),
-      mode: isX1 ? 'x1' : 'base',
+      mode: isMatany ? 'matany' : 'base',
       model: getModelDisplayName(model),
       device_id: deviceId,
     };
@@ -144,7 +139,7 @@ export async function createCloudChat(userId: string | null, title: string, mode
     }
 
     const { data, error } = await supabase
-      .from('x1_chats')
+      .from('matany_chats')
       .insert(payload)
       .select('id')
       .single();
@@ -170,7 +165,7 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
     // Deduplication safeguard: if assistant message was already auto-persisted by server, skip duplicate insert
     if (msg.role === 'assistant') {
       const { data: existing } = await supabase
-        .from('x1_messages')
+        .from('matany_messages')
         .select('id, content')
         .eq('chat_id', chatId)
         .eq('role', 'assistant')
@@ -178,13 +173,8 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
         .limit(1);
 
       if (existing && existing.length > 0) {
-        const existingText = (existing[0].content || '').trim();
-        const newText = cleanContent;
-        if (
-          existingText === newText ||
-          (existingText.length > 20 && newText.includes(existingText.slice(0, 50))) ||
-          (newText.length > 20 && existingText.includes(newText.slice(0, 50)))
-        ) {
+        const existingClean = (existing[0].content || '').replace(/<think>[\s\S]*?<\/think>\n*/gi, '').trim();
+        if (cleanContent && (existingClean === cleanContent || existingClean.startsWith(cleanContent.slice(0, 40)))) {
           return;
         }
       }
@@ -232,7 +222,7 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
       reasoning: msg.reasoning ? msg.reasoning.slice(0, 2000) : null,
       image_url: resolvedImageUrl,
       media_attachments: mediaAttachments,
-      is_x1: !!msg.isX1,
+      is_matany: !!msg.isMatany,
       tokens_count: msg.tokensCount || 0,
       device_id: deviceId,
     };
@@ -242,7 +232,7 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
     }
 
     const { error } = await supabase
-      .from('x1_messages')
+      .from('matany_messages')
       .insert(payload);
 
     if (error) {
@@ -261,7 +251,7 @@ export async function saveCloudMessage(chatId: string, userId: string | null, ms
 export async function fetchUserChats(userId: string | null): Promise<SupabaseChat[]> {
   const deviceId = getOrCreateDeviceId();
   try {
-    let query = supabase.from('x1_chats').select('*');
+    let query = supabase.from('matany_chats').select('*');
 
     if (userId) {
       query = query.or(`user_id.eq.${userId},device_id.eq.${deviceId}`);
@@ -285,7 +275,7 @@ export async function fetchUserChats(userId: string | null): Promise<SupabaseCha
 export async function fetchChatMessages(chatId: string): Promise<ChatMessageItem[]> {
   try {
     const { data, error } = await supabase
-      .from('x1_messages')
+      .from('matany_messages')
       .select('*')
       .eq('chat_id', chatId)
       .order('created_at', { ascending: true });
@@ -421,7 +411,7 @@ export async function fetchChatMessages(chatId: string): Promise<ChatMessageItem
         image: primaryImg,
         images: images && images.length > 0 ? images : undefined,
         mediaAttachments: nonImageAttachments && nonImageAttachments.length > 0 ? nonImageAttachments : undefined,
-        isX1: !!row.is_x1,
+        isMatany: !!row.is_matany,
         tokensCount: row.tokens_count || 0,
         timestamp: formatEnglishTimestamp(new Date(row.created_at)),
       };
@@ -461,7 +451,7 @@ export async function updateMessageImage(chatId: string, messageId: string | und
     // Only query by UUID if messageId is a syntactically valid UUID to prevent Postgres 22P02 error
     if (messageId && isUuid(messageId)) {
       const { data: row } = await supabase
-        .from('x1_messages')
+        .from('matany_messages')
         .select('id, content')
         .eq('id', messageId)
         .maybeSingle();
@@ -475,7 +465,7 @@ export async function updateMessageImage(chatId: string, messageId: string | und
     // Fallback: If targetId not found or not provided, locate latest assistant message with neural-image in this chat
     if (!targetId && chatId) {
       const { data: latestRows } = await supabase
-        .from('x1_messages')
+        .from('matany_messages')
         .select('id, content')
         .eq('chat_id', chatId)
         .eq('role', 'assistant')
@@ -510,7 +500,7 @@ export async function updateMessageImage(chatId: string, messageId: string | und
     }
 
     const { error } = await supabase
-      .from('x1_messages')
+      .from('matany_messages')
       .update({
         image_url: imageUrl,
         content: updatedContent
@@ -536,7 +526,7 @@ export async function updateMessageImage(chatId: string, messageId: string | und
     // Touch chat updated_at
     if (chatId) {
       await supabase
-        .from('x1_chats')
+        .from('matany_chats')
         .update({ updated_at: new Date().toISOString() })
         .eq('id', chatId);
     }
@@ -552,7 +542,7 @@ export async function updateMessageImage(chatId: string, messageId: string | und
 export async function deleteCloudChat(chatId: string): Promise<boolean> {
   try {
     const { error } = await supabase
-      .from('x1_chats')
+      .from('matany_chats')
       .delete()
       .eq('id', chatId);
 
@@ -595,7 +585,7 @@ export async function fetchCloudUserMemories(userId: string | null): Promise<any
   if (!userId) return null;
   try {
     const { data, error } = await supabase
-      .from('x1_user_memories')
+      .from('matany_user_memories')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
@@ -646,7 +636,7 @@ export async function saveCloudUserMemories(
     if ((snapshot as any).axioms) payload.axioms = (snapshot as any).axioms;
 
     const { error } = await supabase
-      .from('x1_user_memories')
+      .from('matany_user_memories')
       .upsert(payload, { onConflict: 'user_id' });
 
     if (error) {
@@ -691,7 +681,7 @@ export async function searchCloudMemoriesHybrid(
       console.warn('[Supabase searchCloudMemoriesHybrid RPC Error]:', error.message);
       // Direct text fallback
       let query = supabase
-        .from('x1_semantic_memories')
+        .from('matany_semantic_memories')
         .select('*')
         .eq('is_latest', true)
         .order('created_at', { ascending: false })

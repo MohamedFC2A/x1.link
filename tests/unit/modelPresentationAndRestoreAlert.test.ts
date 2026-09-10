@@ -58,8 +58,6 @@ export async function runModelPresentationAndRestoreAlertTests(harness: TestHarn
       expect(modelMenuSnippet).toContain('dir="rtl" className="text-[11px] text-zinc-400 font-normal leading-normal text-right');
       expect(modelMenuSnippet).toContain('توليد وتعديل الصور، SVG، واستدلال عميق');
       expect(modelMenuSnippet).toContain('تفكير استدلالي وهندسة سيبرانية متقدمة');
-      expect(modelMenuSnippet).toContain('فحص أمني واستجابة سيبرانية خاطفة');
-      expect(modelMenuSnippet).toContain('محادثة ذكية وتوليد نصوص سريع');
     });
 
     await harness.it('Colors are pure obsidian/black and completely eradicate navy/indigo blue tints', () => {

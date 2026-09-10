@@ -365,14 +365,14 @@ func main() {
     });
 
     await harness.it('URL Intelligence: cleanly parses URLs embedded in conversational text', () => {
-      const userText = 'راجع هذا الموقع https://matany.app/docs ثم قارنه مع https://github.com/MohamedFC2A/x1.link';
+      const userText = 'راجع هذا الموقع https://matany.app/docs ثم قارنه مع https://github.com/MohamedFC2A/Matany';
       const extractedSingle = detectAndExtractUrl(userText);
       const extractedAll = extractAllCleanUrls(userText);
 
       expect(extractedSingle.cleanUrl).toBe('https://matany.app/docs');
       expect(extractedAll.urls.length).toBe(2);
       expect(extractedAll.urls[0]).toBe('https://matany.app/docs');
-      expect(extractedAll.urls[1]).toBe('https://github.com/MohamedFC2A/x1.link');
+      expect(extractedAll.urls[1]).toBe('https://github.com/MohamedFC2A/Matany');
     });
 
     await harness.it('Social Video Spark: routes YouTube, TikTok, and Instagram to fathom_spark with 1.0 confidence', () => {

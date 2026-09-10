@@ -1,33 +1,34 @@
 import React, { useEffect, useRef } from 'react';
 
-export type GridTheme = 'fathom' | 'cyber' | 'vision' | 'media' | 'x1';
+export type GridTheme = 'fathom' | 'cyber' | 'vision' | 'media' | 'matany';
 
 interface InteractiveGridBackgroundProps {
   className?: string;
   gridSize?: number;
   macroSize?: number;
   activeModel?: string;
-  isX1Active?: boolean;
+  isMatanyActive?: boolean;
 }
 
 export const InteractiveGridBackground: React.FC<InteractiveGridBackgroundProps> = ({
   className = '',
   gridSize = 36,
-  macroSize = 144,
-  activeModel = 'fathom-quant-3',
-  isX1Active = false,
+  macroSize = 180,
+  activeModel = 'fathom',
+  isMatanyActive = false,
 }) => {
+  const isFlameActive = Boolean(isMatanyActive);
   const spotlightRef = useRef<HTMLDivElement>(null);
   const rafIdRef = useRef<number | null>(null);
   const isRunningRef = useRef<boolean>(false);
 
-  const theme: GridTheme = isX1Active
-    ? 'x1'
+  const theme: GridTheme = isFlameActive
+    ? 'matany'
     : (activeModel === 'deepseek-v4-pro-cyber-2.6' || activeModel === 'deepseek-v4-pro-cyber-2.1')
     ? 'cyber'
     : activeModel === 'deepseek-v4-flash-vision-exp'
     ? 'vision'
-    : (activeModel === 'meta/muse-spark-1.2-contributor' || activeModel === 'deepseek-v4-flash-media')
+    : (activeModel === 'meta/muse-spark-1.3-contributor' || activeModel === 'meta/muse-spark-1.2-contributor' || activeModel === 'deepseek-v4-flash-media')
     ? 'media'
     : 'fathom';
 
@@ -101,8 +102,8 @@ export const InteractiveGridBackground: React.FC<InteractiveGridBackgroundProps>
       ? 'bg-grid-vision-laser opacity-[0.06]'
       : theme === 'media'
       ? 'bg-grid-media-laser opacity-[0.06]'
-      : theme === 'x1'
-      ? 'bg-grid-x1-laser opacity-[0.08]'
+      : theme === 'matany'
+      ? 'bg-grid-matany-laser opacity-[0.08]'
       : 'bg-grid-laser opacity-[0.05]';
 
   const macroClass =
@@ -112,8 +113,8 @@ export const InteractiveGridBackground: React.FC<InteractiveGridBackgroundProps>
       ? 'bg-grid-vision-macro opacity-[0.05]'
       : theme === 'media'
       ? 'bg-grid-media-macro opacity-[0.05]'
-      : theme === 'x1'
-      ? 'bg-grid-x1-macro opacity-[0.06]'
+      : theme === 'matany'
+      ? 'bg-grid-matany-macro opacity-[0.06]'
       : 'bg-grid-macro opacity-[0.04]';
 
   const crosshairsClass =
@@ -123,8 +124,8 @@ export const InteractiveGridBackground: React.FC<InteractiveGridBackgroundProps>
       ? 'bg-grid-vision-crosshairs opacity-[0.05]'
       : theme === 'media'
       ? 'bg-grid-media-crosshairs opacity-[0.05]'
-      : theme === 'x1'
-      ? 'bg-grid-x1-crosshairs opacity-[0.06]'
+      : theme === 'matany'
+      ? 'bg-grid-matany-crosshairs opacity-[0.06]'
       : 'bg-grid-crosshairs opacity-[0.035]';
 
   const spotlightGlowGradient =
@@ -134,7 +135,7 @@ export const InteractiveGridBackground: React.FC<InteractiveGridBackgroundProps>
       ? 'radial-gradient(circle at 50% 50%, rgba(16,185,129,0.06) 0%, rgba(16,185,129,0.015) 45%, transparent 70%)'
       : theme === 'media'
       ? 'radial-gradient(circle at 50% 50%, rgba(168,85,247,0.06) 0%, rgba(168,85,247,0.015) 45%, transparent 70%)'
-      : theme === 'x1'
+      : theme === 'matany'
       ? 'radial-gradient(circle at 50% 50%, rgba(244,63,94,0.08) 0%, rgba(244,63,94,0.02) 45%, transparent 70%)'
       : 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.01) 40%, transparent 70%)';
 

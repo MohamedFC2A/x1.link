@@ -11,7 +11,7 @@ export interface StreamChunkData {
 export interface SendMessageOptions {
   messages: ChatMessageItem[];
   model: ModelType;
-  isX1Mode: boolean;
+  isMatanyMode?: boolean;
   deepSearch?: boolean;
   memoryPrompt?: string;
   targetUrl?: string;
@@ -28,7 +28,7 @@ export interface SendMessageOptions {
 export async function streamChatCompletion({
   messages,
   model,
-  isX1Mode,
+  isMatanyMode = false,
   deepSearch = false,
   memoryPrompt = '',
   targetUrl = '',
@@ -231,10 +231,11 @@ export async function streamChatCompletion({
       });
     }
 
+    const effectiveMatanyMode = Boolean(isMatanyMode);
     const requestPayload: any = {
       messages: formattedMessages,
       model,
-      isX1Mode,
+      isMatanyMode: effectiveMatanyMode,
       deepSearch,
       memoryPrompt,
       targetUrl: effectiveTargetUrl,

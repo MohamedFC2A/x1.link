@@ -25,7 +25,7 @@ export type UserIntentCategory =
   | 'MULTIMODAL_IMAGE_AND_FORENSICS'
   | 'MULTIMODAL_MEDIA_AND_ARCHIVE_DECONSTRUCTION'
   | 'CREATIVE_LITERARY_AND_BRAINSTORMING'
-  | 'UNINHIBITED_PERSONA_X1'
+  | 'UNINHIBITED_PERSONA_MATANY'
   | 'GENERAL_CONVERSATION_AND_QUICK_QA';
 
 export type ModelFamily =
@@ -69,7 +69,7 @@ export interface DynamicTuningRequest {
   userPrompt: string;
   conversationHistory?: Array<{ role: string; content: any }>;
   requestedModel: string;
-  isX1Mode?: boolean;
+  isMatanyMode?: boolean;
   deepSearch?: boolean;
   hasMultimodalImages?: boolean;
   hasVideoOrAudio?: boolean;
@@ -292,7 +292,7 @@ export class DynamicParameterTuner {
       return 'deepseek-vision';
     }
 
-    if (m.includes('magnum') || m === 'x1' || m.includes('x1-persona')) {
+    if (m.includes('magnum') || m === 'matany' || m.includes('matany-persona')) {
       return 'magnum';
     }
 
@@ -600,7 +600,7 @@ export class DynamicParameterTuner {
     rationale: string;
   } {
     const text = (request.userPrompt || '').trim();
-    const isX1 = Boolean(request.isX1Mode);
+    const isMatany = Boolean(request.isMatanyMode);
     const hasImages = Boolean(request.hasMultimodalImages);
     const hasMediaOrZip = Boolean(request.hasVideoOrAudio || request.hasZipOrCodeFiles);
 
@@ -731,18 +731,18 @@ export class DynamicParameterTuner {
       };
     }
 
-    // 4. Uninhibited X1 Persona Override (if explicitly active and not a technical prompt)
+    // 4. Uninhibited Matany Persona Override (if explicitly active and not a technical prompt)
     const hasTechnicalKeywords = CYBER_PATTERNS.some(p => p.test(text)) ||
       CODE_ENGINEERING_PATTERNS.some(p => p.test(text)) ||
       MATH_DEDUCTIVE_LOGIC_PATTERNS.some(p => p.test(text));
 
-    if (isX1 && !hasTechnicalKeywords) {
+    if (isMatany && !hasTechnicalKeywords) {
       return {
-        intent: 'UNINHIBITED_PERSONA_X1',
+        intent: 'UNINHIBITED_PERSONA_MATANY',
         confidence: 0.95,
         complexity: 'STANDARD',
         hallucinationRisk: 'LOW',
-        rationale: 'User engaged in Sovereign X1 uninhibited dialogue mode.'
+        rationale: 'User engaged in Sovereign Matany uninhibited dialogue mode.'
       };
     }
 
@@ -1037,7 +1037,7 @@ export class DynamicParameterTuner {
         max_tokens = 16384;
         break;
 
-      case 'UNINHIBITED_PERSONA_X1':
+      case 'UNINHIBITED_PERSONA_MATANY':
         temperature = 0.82;
         top_p = 0.96;
         frequency_penalty = 0.20;
@@ -1086,7 +1086,7 @@ export class DynamicParameterTuner {
           max_tokens = Math.min(max_tokens, 16384);
         }
         // Dampen temperature to prevent speed-induced hallucinations and ensure compact output
-        if (intent !== 'CREATIVE_LITERARY_AND_BRAINSTORMING' && intent !== 'UNINHIBITED_PERSONA_X1' && intent !== 'SYSTEM_DIAGNOSTIC_GPAENG') {
+        if (intent !== 'CREATIVE_LITERARY_AND_BRAINSTORMING' && intent !== 'UNINHIBITED_PERSONA_MATANY' && intent !== 'SYSTEM_DIAGNOSTIC_GPAENG') {
           temperature = Math.min(temperature, 0.70);
         } else {
           temperature = Math.min(temperature, 0.85);
@@ -1106,8 +1106,12 @@ export class DynamicParameterTuner {
         break;
 
       case 'muse-spark':
-        // Meta Muse Spark 1.2 multimodal & archive specialist
-        max_tokens = 16384;
+        // Meta Muse Spark 1.3 Contributor: Sovereign 1.0M context multimodal & deep reasoning engine
+        if (complexity === 'EXHAUSTIVE_ARCHITECTURAL' || intent === 'CYBERSECURITY_AND_EXPLOIT_AUDITING' || intent === 'CODE_ENGINEERING_AND_ARCHITECTURE' || intent === 'MATHEMATICAL_AND_DEDUCTIVE_LOGIC') {
+          max_tokens = 32768;
+        } else {
+          max_tokens = Math.max(max_tokens, 16384);
+        }
         break;
 
       case 'deepseek-vision':
@@ -1338,9 +1342,9 @@ export class DynamicParameterTuner {
         mode: 'LITERARY_ELOQUENCE_AND_CREATIVE_PROSE',
         directive: 'صياغة عربية فصحى آسرة وبليغة، استخدام صور بيانية ثرية، وتفصيل سردي عميق يجذب الذهن.'
       },
-      UNINHIBITED_PERSONA_X1: {
-        ar: 'النمط السيادي غير المقيد (X1 Uninhibited Persona)',
-        mode: 'SOVEREIGN_X1_UNINHIBITED',
+      UNINHIBITED_PERSONA_MATANY: {
+        ar: 'النمط السيادي غير المقيد (Matany Uninhibited Persona)',
+        mode: 'SOVEREIGN_MATANY_UNINHIBITED',
         directive: 'حوار مباشر، صريح، عميق، متحرر من القوالب التكرارية، تفاعل بشري واقعي بدون مواعظ أو تنصلات.'
       },
       GENERAL_CONVERSATION_AND_QUICK_QA: {
@@ -1632,7 +1636,7 @@ export function detectDynamicTuning(
   userPrompt: string,
   requestedModel: string = 'deepseek-v4-pro',
   conversationHistory: Array<{ role: string; content: any }> = [],
-  options?: { hasMedia?: boolean; hasImages?: boolean; hasImagesInHistory?: boolean; isX1Mode?: boolean }
+  options?: { hasMedia?: boolean; hasImages?: boolean; hasImagesInHistory?: boolean; isMatanyMode?: boolean }
 ) {
   const history = [...conversationHistory];
   if (options?.hasImagesInHistory && history.length === 0) {
@@ -1648,7 +1652,7 @@ export function detectDynamicTuning(
     conversationHistory: history,
     hasMultimodalImages: options?.hasImages,
     hasVideoOrAudio: options?.hasMedia,
-    isX1Mode: options?.isX1Mode,
+    isMatanyMode: options?.isMatanyMode,
   });
 
   return {

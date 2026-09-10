@@ -3,7 +3,7 @@ import { triggerBiometricAuthentication, getBiometricDeviceInfo, BiometricDevice
 import { WebAuthnVerificationResult } from '../types';
 import { X, CheckCircle2, Fingerprint, KeyRound, ShieldOff } from 'lucide-react';
 
-interface X1UnlockModalProps {
+interface MatanyUnlockModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (result: WebAuthnVerificationResult) => void;
@@ -34,7 +34,7 @@ const WindowsHelloIcon: React.FC<{ className?: string }> = ({ className = "w-5 h
   </svg>
 );
 
-export const X1UnlockModal: React.FC<X1UnlockModalProps> = ({
+export const MatanyUnlockModal: React.FC<MatanyUnlockModalProps> = ({
   isOpen,
   onClose,
   onSuccess,

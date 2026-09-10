@@ -11,12 +11,12 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
 -- 2. Create Semantic Memories Table (Chunked, Embedded, Multi-Scope Memory History)
-CREATE TABLE IF NOT EXISTS public.x1_semantic_memories (
+CREATE TABLE IF NOT EXISTS public.matany_semantic_memories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     device_id TEXT,
-    chat_id UUID REFERENCES public.x1_chats(id) ON DELETE CASCADE,
-    message_id UUID REFERENCES public.x1_messages(id) ON DELETE CASCADE,
+    chat_id UUID REFERENCES public.matany_chats(id) ON DELETE CASCADE,
+    message_id UUID REFERENCES public.matany_messages(id) ON DELETE CASCADE,
     project_id TEXT NOT NULL DEFAULT 'default_project',
     predicate TEXT, -- e.g. 'SERVER_PORT', 'DATABASE_ENGINE', 'AUTH_MECHANISM', 'BUGFIX', 'API_ENDPOINT'
     message_role TEXT NOT NULL CHECK (message_role IN ('user', 'assistant', 'system', 'distilled_summary', 'insight')),
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS public.x1_semantic_memories (
     relevance_weight FLOAT NOT NULL DEFAULT 1.0,
     is_latest BOOLEAN NOT NULL DEFAULT true,
     superseded_at TIMESTAMPTZ,
-    superseded_by UUID REFERENCES public.x1_semantic_memories(id) ON DELETE SET NULL,
+    superseded_by UUID REFERENCES public.matany_semantic_memories(id) ON DELETE SET NULL,
     revision_reason TEXT,
     valid_from TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     valid_until TIMESTAMPTZ,
@@ -40,93 +40,93 @@ CREATE TABLE IF NOT EXISTS public.x1_semantic_memories (
 );
 
 -- 3. Create Chat Links Knowledge Graph Table (Cross-Session Relational Edges)
-CREATE TABLE IF NOT EXISTS public.x1_chat_links (
+CREATE TABLE IF NOT EXISTS public.matany_chat_links (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     device_id TEXT,
-    source_chat_id UUID NOT NULL REFERENCES public.x1_chats(id) ON DELETE CASCADE,
-    target_chat_id UUID NOT NULL REFERENCES public.x1_chats(id) ON DELETE CASCADE,
+    source_chat_id UUID NOT NULL REFERENCES public.matany_chats(id) ON DELETE CASCADE,
+    target_chat_id UUID NOT NULL REFERENCES public.matany_chats(id) ON DELETE CASCADE,
     relationship_type TEXT NOT NULL CHECK (relationship_type IN ('SUPERSEDES', 'EXTENDS', 'DEPENDS_ON', 'SAME_PROJECT', 'RELATES_TO', 'CONTRADICTS')),
     confidence FLOAT NOT NULL DEFAULT 1.0 CHECK (confidence >= 0.0 AND confidence <= 1.0),
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    CONSTRAINT uq_x1_chat_link UNIQUE (source_chat_id, target_chat_id, relationship_type)
+    CONSTRAINT uq_matany_chat_link UNIQUE (source_chat_id, target_chat_id, relationship_type)
 );
 
 -- 4. High-Performance Search Indexes (Tuned HNSW & Multi-Column Composite GIN)
 -- HNSW Vector Index with enhanced ef_construction & m parameters for ultra-high recall
-CREATE INDEX IF NOT EXISTS idx_x1_semantic_memories_embedding_hnsw 
-ON public.x1_semantic_memories 
+CREATE INDEX IF NOT EXISTS idx_matany_semantic_memories_embedding_hnsw 
+ON public.matany_semantic_memories 
 USING hnsw (embedding vector_cosine_ops)
 WITH (m = 24, ef_construction = 128);
 
 -- Full-Text Search GIN Indexes (Multi-Language: Simple & English & Trigram)
-CREATE INDEX IF NOT EXISTS idx_x1_semantic_memories_content_fts 
-ON public.x1_semantic_memories 
+CREATE INDEX IF NOT EXISTS idx_matany_semantic_memories_content_fts 
+ON public.matany_semantic_memories 
 USING gin (to_tsvector('simple', content));
 
-CREATE INDEX IF NOT EXISTS idx_x1_semantic_memories_summary_fts 
-ON public.x1_semantic_memories 
+CREATE INDEX IF NOT EXISTS idx_matany_semantic_memories_summary_fts 
+ON public.matany_semantic_memories 
 USING gin (to_tsvector('simple', COALESCE(summary, '')));
 
-CREATE INDEX IF NOT EXISTS idx_x1_semantic_memories_content_trgm 
-ON public.x1_semantic_memories 
+CREATE INDEX IF NOT EXISTS idx_matany_semantic_memories_content_trgm 
+ON public.matany_semantic_memories 
 USING gin (content gin_trgm_ops);
 
 -- Exact Code Symbols Array GIN Index (Crucial for Needle-in-Code retrieval)
-CREATE INDEX IF NOT EXISTS idx_x1_semantic_memories_code_symbols 
-ON public.x1_semantic_memories 
+CREATE INDEX IF NOT EXISTS idx_matany_semantic_memories_code_symbols 
+ON public.matany_semantic_memories 
 USING gin (code_symbols);
 
 -- JSONB & Keyword Array GIN Indexes
-CREATE INDEX IF NOT EXISTS idx_x1_semantic_memories_entities 
-ON public.x1_semantic_memories 
+CREATE INDEX IF NOT EXISTS idx_matany_semantic_memories_entities 
+ON public.matany_semantic_memories 
 USING gin (entities);
 
-CREATE INDEX IF NOT EXISTS idx_x1_semantic_memories_keywords 
-ON public.x1_semantic_memories 
+CREATE INDEX IF NOT EXISTS idx_matany_semantic_memories_keywords 
+ON public.matany_semantic_memories 
 USING gin (keywords);
 
 -- Composite B-Tree Performance Filtering Indexes
-CREATE INDEX IF NOT EXISTS idx_x1_semantic_memories_lookup 
-ON public.x1_semantic_memories(user_id, device_id, project_id, is_latest, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_matany_semantic_memories_lookup 
+ON public.matany_semantic_memories(user_id, device_id, project_id, is_latest, created_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_x1_semantic_memories_predicate 
-ON public.x1_semantic_memories(user_id, device_id, predicate, is_latest);
+CREATE INDEX IF NOT EXISTS idx_matany_semantic_memories_predicate 
+ON public.matany_semantic_memories(user_id, device_id, predicate, is_latest);
 
-CREATE INDEX IF NOT EXISTS idx_x1_semantic_memories_chat_id 
-ON public.x1_semantic_memories(chat_id);
+CREATE INDEX IF NOT EXISTS idx_matany_semantic_memories_chat_id 
+ON public.matany_semantic_memories(chat_id);
 
-CREATE INDEX IF NOT EXISTS idx_x1_semantic_memories_scope 
-ON public.x1_semantic_memories(scope);
+CREATE INDEX IF NOT EXISTS idx_matany_semantic_memories_scope 
+ON public.matany_semantic_memories(scope);
 
-CREATE INDEX IF NOT EXISTS idx_x1_chat_links_user_device 
-ON public.x1_chat_links(user_id, device_id);
+CREATE INDEX IF NOT EXISTS idx_matany_chat_links_user_device 
+ON public.matany_chat_links(user_id, device_id);
 
-CREATE INDEX IF NOT EXISTS idx_x1_chat_links_source_target 
-ON public.x1_chat_links(source_chat_id, target_chat_id);
+CREATE INDEX IF NOT EXISTS idx_matany_chat_links_source_target 
+ON public.matany_chat_links(source_chat_id, target_chat_id);
 
 -- 5. Enable Row Level Security (RLS)
-ALTER TABLE public.x1_semantic_memories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.x1_chat_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.matany_semantic_memories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.matany_chat_links ENABLE ROW LEVEL SECURITY;
 
 -- 6. Row Level Security Policies for Semantic Memories
-DROP POLICY IF EXISTS "Allow select semantic memories" ON public.x1_semantic_memories;
-CREATE POLICY "Allow select semantic memories" ON public.x1_semantic_memories FOR SELECT
+DROP POLICY IF EXISTS "Allow select semantic memories" ON public.matany_semantic_memories;
+CREATE POLICY "Allow select semantic memories" ON public.matany_semantic_memories FOR SELECT
 USING (auth.uid() = user_id OR (user_id IS NULL AND device_id IS NOT NULL));
 
-DROP POLICY IF EXISTS "Allow upsert semantic memories" ON public.x1_semantic_memories;
-CREATE POLICY "Allow upsert semantic memories" ON public.x1_semantic_memories FOR ALL
+DROP POLICY IF EXISTS "Allow upsert semantic memories" ON public.matany_semantic_memories;
+CREATE POLICY "Allow upsert semantic memories" ON public.matany_semantic_memories FOR ALL
 USING (auth.uid() = user_id OR (user_id IS NULL AND device_id IS NOT NULL))
 WITH CHECK (auth.uid() = user_id OR (user_id IS NULL AND device_id IS NOT NULL));
 
 -- 7. Row Level Security Policies for Chat Links
-DROP POLICY IF EXISTS "Allow select chat links" ON public.x1_chat_links;
-CREATE POLICY "Allow select chat links" ON public.x1_chat_links FOR SELECT
+DROP POLICY IF EXISTS "Allow select chat links" ON public.matany_chat_links;
+CREATE POLICY "Allow select chat links" ON public.matany_chat_links FOR SELECT
 USING (auth.uid() = user_id OR (user_id IS NULL AND device_id IS NOT NULL));
 
-DROP POLICY IF EXISTS "Allow upsert chat links" ON public.x1_chat_links;
-CREATE POLICY "Allow upsert chat links" ON public.x1_chat_links FOR ALL
+DROP POLICY IF EXISTS "Allow upsert chat links" ON public.matany_chat_links;
+CREATE POLICY "Allow upsert chat links" ON public.matany_chat_links FOR ALL
 USING (auth.uid() = user_id OR (user_id IS NULL AND device_id IS NOT NULL))
 WITH CHECK (auth.uid() = user_id OR (user_id IS NULL AND device_id IS NOT NULL));
 
@@ -236,7 +236,7 @@ BEGIN
             END AS sym_score,
             0 AS h_depth,
             NULL::UUID AS link_origin
-        FROM public.x1_semantic_memories m
+        FROM public.matany_semantic_memories m
         WHERE 
             m.is_latest = true
             AND (
@@ -280,9 +280,9 @@ BEGIN
             1 AS h_depth,
             fp.id AS link_origin
         FROM filtered_primary fp
-        JOIN public.x1_chat_links l 
+        JOIN public.matany_chat_links l 
             ON (l.source_chat_id = fp.chat_id OR l.target_chat_id = fp.chat_id)
-        JOIN public.x1_semantic_memories m2 
+        JOIN public.matany_semantic_memories m2 
             ON (m2.chat_id = CASE WHEN l.source_chat_id = fp.chat_id THEN l.target_chat_id ELSE l.source_chat_id END)
         WHERE 
             p_enable_multihop = true
@@ -379,7 +379,7 @@ DECLARE
     v_superseded_count INT := 0;
 BEGIN
     -- 1. Insert the new Ground Truth Memory Node
-    INSERT INTO public.x1_semantic_memories (
+    INSERT INTO public.matany_semantic_memories (
         user_id,
         device_id,
         chat_id,
@@ -424,7 +424,7 @@ BEGIN
     -- 2. If predicate is functional (e.g. SERVER_PORT, DATABASE_ENGINE, USER_ROLE), invalidate prior entries
     IF p_predicate IS NOT NULL AND p_predicate <> '' THEN
         WITH updated_rows AS (
-            UPDATE public.x1_semantic_memories
+            UPDATE public.matany_semantic_memories
             SET 
                 is_latest = false,
                 superseded_at = timezone('utc'::text, now()),
@@ -476,7 +476,7 @@ AS $$
 DECLARE
     v_updated_id UUID;
 BEGIN
-    UPDATE public.x1_semantic_memories
+    UPDATE public.matany_semantic_memories
     SET 
         content = p_new_content,
         summary = COALESCE(p_new_summary, summary),
@@ -530,7 +530,7 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'error', 'Cannot link chat session to itself.');
     END IF;
 
-    INSERT INTO public.x1_chat_links (
+    INSERT INTO public.matany_chat_links (
         user_id,
         device_id,
         source_chat_id,
@@ -602,9 +602,9 @@ BEGIN
         l.confidence,
         l.metadata,
         l.created_at
-    FROM public.x1_chat_links l
-    JOIN public.x1_chats s ON l.source_chat_id = s.id
-    JOIN public.x1_chats t ON l.target_chat_id = t.id
+    FROM public.matany_chat_links l
+    JOIN public.matany_chats s ON l.source_chat_id = s.id
+    JOIN public.matany_chats t ON l.target_chat_id = t.id
     WHERE 
         (l.source_chat_id = p_chat_id OR l.target_chat_id = p_chat_id)
         AND (

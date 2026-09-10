@@ -704,7 +704,7 @@ export class FathomCyberReasoningEngine {
     const isVision = m.includes('vision') || m.includes('cam');
     const isFlash = m.includes('flash');
     const isSpark = m.includes('spark') || m.includes('muse');
-    const isMagnum = m.includes('magnum') || m === 'x1';
+    const isMagnum = m.includes('magnum') || m === 'matany';
 
     let temperature = isMagnum ? 0.85 : (isVision ? 0.20 : 0.35);
     let top_p = 0.95;
