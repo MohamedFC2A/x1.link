@@ -88,8 +88,9 @@ export async function uploadImageToSupabaseStorage(
 }
 
 /**
- * Normalizes input references: converts any base64 reference images to Supabase CDN URLs
- * to prevent payload explosions and OpenRouter 400 Bad Request errors.
+ * Normalizes input references: ensures references are delivered as base64 data URIs
+ * so OpenRouter's multimodal image models receive raw image payloads directly.
+ * This completely prevents OpenRouter crawler 400 Bad Request errors when fetching external/Supabase URLs.
  */
 export async function normalizeReferenceImages(
   rawRefs: any[]
@@ -111,18 +112,52 @@ export async function normalizeReferenceImages(
 
     if (!candidateUrl) continue;
 
-    // If candidate is a base64 data URI, upload to Supabase CDN first
+    // 1. If candidate is already a base64 data URI, preserve it directly!
+    // OpenRouter natively supports data URIs without web crawling.
     if (candidateUrl.startsWith('data:image')) {
+      result.push({
+        type: 'image_url',
+        image_url: { url: candidateUrl }
+      });
+      continue;
+    }
+
+    // 2. If candidate is an HTTP/HTTPS URL (e.g. Supabase CDN), fetch server-side
+    // and convert to base64 data URI so OpenRouter never fails with crawler 400.
+    if (candidateUrl.startsWith('http://') || candidateUrl.startsWith('https://')) {
       try {
-        const cdnUrl = await uploadImageToSupabaseStorage(candidateUrl, 'ref-upload');
-        if (cdnUrl && cdnUrl.startsWith('http')) {
-          candidateUrl = cdnUrl;
+        const fetchController = new AbortController();
+        const timeout = setTimeout(() => fetchController.abort(), 7000);
+        const res = await fetch(candidateUrl, {
+          signal: fetchController.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'image/*,*/*'
+          }
+        });
+        clearTimeout(timeout);
+
+        if (res.ok) {
+          const arrayBuffer = await res.arrayBuffer();
+          const contentType = res.headers.get('content-type') || 'image/png';
+          const base64String = typeof Buffer !== 'undefined'
+            ? Buffer.from(arrayBuffer).toString('base64')
+            : btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          const dataUri = `data:${contentType};base64,${base64String}`;
+          result.push({
+            type: 'image_url',
+            image_url: { url: dataUri }
+          });
+          continue;
+        } else {
+          console.warn(`[storageService] Failed to fetch remote reference image ${candidateUrl}: status ${res.status}`);
         }
       } catch (err) {
-        console.warn('[storageService] Failed to upload reference image to CDN:', err);
+        console.warn('[storageService] Failed to fetch remote reference image:', err);
       }
     }
 
+    // Fallback if fetch failed or unknown format
     result.push({
       type: 'image_url',
       image_url: { url: candidateUrl }
@@ -152,8 +187,7 @@ export interface ResilientImageResult {
 const IMAGE_EDITING_MODELS = [
   'google/gemini-3.1-flash-lite-image',
   'google/gemini-2.5-flash-image',
-  'google/gemini-3.1-flash-image',
-  'meta/muse-image'
+  'google/gemini-3.1-flash-image'
 ];
 
 const TEXT_TO_IMAGE_MODELS = [

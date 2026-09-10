@@ -2103,7 +2103,17 @@ export default async function handler(req: Request): Promise<Response> {
     } else if (dynamicTuning.detectedIntent === 'NEURAL_IMAGE_STUDIO_AND_PROCESSING') {
       const priorImg = dynamicTuning.priorNeuralImage || priorNeuralImage;
       const priorSeed = priorImg?.seed !== undefined ? priorImg.seed : 482910;
-      const priorImgUrl = priorImg?.imageUrl && !priorImg.imageUrl.startsWith('data:') ? priorImg.imageUrl : '';
+      let priorImgUrl = priorImg?.imageUrl && !priorImg.imageUrl.startsWith('data:') ? priorImg.imageUrl : '';
+      if (!priorImgUrl && priorImg?.imageUrl && priorImg.imageUrl.startsWith('data:image')) {
+        try {
+          const cdnUrl = await uploadImageToSupabaseStorage(priorImg.imageUrl, 'chat-prior');
+          if (cdnUrl && cdnUrl.startsWith('http')) {
+            priorImgUrl = cdnUrl;
+          }
+        } catch (storageErr) {
+          console.warn('[api/chat] Failed to upload prior data URI to CDN:', storageErr);
+        }
+      }
 
       const neuralImageEditingGuidance = `
 [توجيه التعديل والمعالجة البصرية العصبية للصور — FATHOM NEURAL IMAGE STUDIO MODIFICATION & INPAINTING DIRECTIVE]:
@@ -2911,7 +2921,15 @@ export default async function handler(req: Request): Promise<Response> {
                 const priorImgUrl = priorImg?.imageUrl || '';
                 const userUploadedMsg = cleanedMessages.slice().reverse().find((m: any) => m.image || (m.images && m.images.length > 0));
                 const uploadedUrl = userUploadedMsg?.image || (userUploadedMsg?.images && userUploadedMsg.images[0]) || '';
-                const originalImageToUse = priorImgUrl || uploadedUrl || undefined;
+                let originalImageToUse = priorImgUrl || uploadedUrl || undefined;
+                if (originalImageToUse && originalImageToUse.startsWith('data:image')) {
+                  try {
+                    const cdnUrl = await uploadImageToSupabaseStorage(originalImageToUse, 'chat-prior');
+                    if (cdnUrl && cdnUrl.startsWith('http')) {
+                      originalImageToUse = cdnUrl;
+                    }
+                  } catch {}
+                }
                 const isEdit = Boolean(originalImageToUse);
 
                 const recoveryBlock = `\n\n\`\`\`neural-image\n${JSON.stringify({

@@ -558,6 +558,23 @@ export async function runNeuralImageStudioTests(harness: TestHarness) {
       expect(cardSource).not.toContain('!data.imageUrl.includes(\'pollinations.ai\')');
     });
 
+    // 30. High-Fidelity Reference Normalization & Image Editing Architecture
+    await harness.it('should verify base64 preservation and remote URL conversion in normalizeReferenceImages', async () => {
+      const { normalizeReferenceImages } = await import('../../server/storageService');
+
+      // Base64 reference image must be preserved directly as base64 without replacing with Supabase CDN
+      const testBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+      const normalized = await normalizeReferenceImages([testBase64]);
+      expect(normalized.length).toBe(1);
+      expect(normalized[0].type).toBe('image_url');
+      expect(normalized[0].image_url.url).toBe(testBase64);
+
+      // Object format reference must also be normalized properly
+      const objNormalized = await normalizeReferenceImages([{ type: 'image_url', image_url: { url: testBase64 } }]);
+      expect(objNormalized.length).toBe(1);
+      expect(objNormalized[0].image_url.url).toBe(testBase64);
+    });
+
   });
 }
 

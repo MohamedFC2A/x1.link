@@ -405,7 +405,7 @@ export class DynamicParameterTuner {
 
       // 2. Check for image URL in content (including Supabase Storage chat-images and standard image extensions)
       const genericImgMatch = content.match(/https?:\/\/[^\s)]+?(?:\.(?:png|jpg|jpeg|webp)|supabase\.co\/storage\/v1\/object\/public\/chat-images\/[^\s)]+)(?:\?[^\s)]*)?/i);
-      if (genericImgMatch && !genericImgMatch[0].includes('pollinations.ai')) {
+      if (genericImgMatch) {
         return {
           prompt: '',
           imageUrl: genericImgMatch[0],
@@ -418,7 +418,7 @@ export class DynamicParameterTuner {
       }
 
       // 3. Check for attached image on message (user or assistant)
-      if (directImg && typeof directImg === 'string' && !directImg.includes('pollinations.ai')) {
+      if (directImg && typeof directImg === 'string') {
         return {
           imageUrl: directImg,
           operation: 'human_edit',
@@ -432,7 +432,7 @@ export class DynamicParameterTuner {
         const imgItem = msg.content.find((c: any) => c.type === 'image_url' || c.image_url);
         if (imgItem) {
           const url = typeof imgItem.image_url === 'string' ? imgItem.image_url : imgItem.image_url?.url;
-          if (url && typeof url === 'string' && !url.includes('pollinations.ai')) {
+          if (url && typeof url === 'string') {
             return {
               imageUrl: url,
               operation: 'human_edit',
